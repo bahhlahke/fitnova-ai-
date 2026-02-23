@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* FitNova AI — Concept 1: Futuristic Precision
+ * High-contrast, mobile-first, accessible
+ */
+:root {
+  --fn-teal: #00e5cc;
+  --fn-teal-dim: #00b8a3;
+  --fn-magenta: #e91e8c;
+  --fn-magenta-dim: #b8186e;
+  --fn-charcoal: #1a1a1d;
+  --fn-black: #0d0d0f;
+  --fn-surface: #252529;
+  --fn-muted: #6b6b70;
+  --fn-border: #3a3a40;
+  /* Touch targets: min 44px for accessibility */
+  --touch-min: 44px;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  @apply bg-fn-black text-white antialiased;
+  background-color: var(--fn-black);
+}
+
+/* Safe area for mobile bottom nav */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .nav-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
