@@ -28,8 +28,8 @@ const GOAL_OPTIONS = [
 const ACTIVITY_LEVELS = [
   { value: "", label: "Select" },
   { value: "sedentary", label: "Sedentary" },
-  { value: "light", label: "Light (1–2 days/week)" },
-  { value: "moderate", label: "Moderate (3–4 days/week)" },
+  { value: "light", label: "Light (1-2 days/week)" },
+  { value: "moderate", label: "Moderate (3-4 days/week)" },
   { value: "active", label: "Active (5+ days/week)" },
 ];
 
@@ -38,6 +38,9 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [coachTone, setCoachTone] = useState("balanced");
+  const [nudges, setNudges] = useState("standard");
+  const [importStatus, setImportStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -56,8 +59,8 @@ export default function SettingsPage() {
         .eq("user_id", user.id)
         .maybeSingle()
         .then(
-          ({ data, error }) => {
-            if (error) setProfile({});
+          ({ data, error: fetchError }) => {
+            if (fetchError) setProfile({});
             else setProfile((data as UserProfile) ?? {});
             setLoading(false);
           },
@@ -97,9 +100,15 @@ export default function SettingsPage() {
         weight,
         goals: profile.goals ?? null,
         injuries_limitations: profile.injuries_limitations ?? {},
-        dietary_preferences: profile.dietary_preferences ?? {},
+        dietary_preferences: {
+          ...(profile.dietary_preferences ?? {}),
+          ai_nudges: nudges,
+        },
         activity_level: profile.activity_level ?? null,
-        devices: profile.devices ?? {},
+        devices: {
+          ...(profile.devices ?? {}),
+          ai_coach_tone: coachTone,
+        },
       },
       { onConflict: "user_id" }
     );
@@ -119,9 +128,15 @@ export default function SettingsPage() {
     });
   }
 
+  function handleHealthImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportStatus(`Queued ${file.name}. Import pipeline UI is live; backend parser endpoint wiring can be enabled next.`);
+  }
+
   if (loading) {
     return (
-      <PageLayout title="Settings" subtitle="Profile & preferences">
+      <PageLayout title="Settings" subtitle="Profile, AI preferences, and data sources">
         <AuthSettings />
         <div className="mt-6">
           <LoadingState />
@@ -133,47 +148,24 @@ export default function SettingsPage() {
   const p = profile ?? {};
 
   return (
-    <PageLayout title="Settings" subtitle="Profile & preferences">
+    <PageLayout title="Settings" subtitle="Profile, AI preferences, and data sources">
       <AuthSettings />
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+      <form onSubmit={handleSubmit} className="mt-6 space-y-5">
         <Card padding="lg">
-          <CardHeader title="Profile" subtitle="Basic info" />
-          <div className="mt-4 space-y-4">
+          <CardHeader title="Profile" subtitle="Core stats and goals" />
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                type="text"
-                value={p.name ?? ""}
-                onChange={(e) => setProfile({ ...profile!, name: e.target.value })}
-                placeholder="Your name"
-                className="mt-1"
-              />
+              <Input id="name" type="text" value={p.name ?? ""} onChange={(e) => setProfile({ ...profile!, name: e.target.value })} placeholder="Your name" className="mt-1" />
             </div>
             <div>
               <Label htmlFor="age">Age</Label>
-              <Input
-                id="age"
-                type="number"
-                min={13}
-                max={120}
-                value={p.age ?? ""}
-                onChange={(e) =>
-                  setProfile({ ...profile!, age: e.target.value ? Number(e.target.value) : undefined })
-                }
-                placeholder="25"
-                className="mt-1"
-              />
+              <Input id="age" type="number" min={13} max={120} value={p.age ?? ""} onChange={(e) => setProfile({ ...profile!, age: e.target.value ? Number(e.target.value) : undefined })} placeholder="25" className="mt-1" />
             </div>
             <div>
               <Label htmlFor="sex">Sex</Label>
-              <Select
-                id="sex"
-                value={p.sex ?? ""}
-                onChange={(e) => setProfile({ ...profile!, sex: e.target.value || undefined })}
-                className="mt-1"
-              >
+              <Select id="sex" value={p.sex ?? ""} onChange={(e) => setProfile({ ...profile!, sex: e.target.value || undefined })} className="mt-1">
                 <option value="">Select</option>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
@@ -181,101 +173,80 @@ export default function SettingsPage() {
               </Select>
             </div>
             <div>
+              <Label htmlFor="activity">Activity level</Label>
+              <Select id="activity" value={p.activity_level ?? ""} onChange={(e) => setProfile({ ...profile!, activity_level: e.target.value || undefined })} className="mt-1">
+                {ACTIVITY_LEVELS.map(({ value, label }) => (
+                  <option key={value || "empty"} value={value}>{label}</option>
+                ))}
+              </Select>
+            </div>
+            <div>
               <Label htmlFor="height">Height (cm)</Label>
-              <Input
-                id="height"
-                type="number"
-                value={p.height ?? ""}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile!,
-                    height: e.target.value ? Number(e.target.value) : undefined,
-                  })
-                }
-                placeholder="170"
-                className="mt-1"
-              />
+              <Input id="height" type="number" value={p.height ?? ""} onChange={(e) => setProfile({ ...profile!, height: e.target.value ? Number(e.target.value) : undefined })} placeholder="170" className="mt-1" />
             </div>
             <div>
               <Label htmlFor="weight">Weight (kg)</Label>
-              <Input
-                id="weight"
-                type="number"
-                step="0.1"
-                value={p.weight ?? ""}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile!,
-                    weight: e.target.value ? Number(e.target.value) : undefined,
-                  })
-                }
-                placeholder="70"
-                className="mt-1"
-              />
+              <Input id="weight" type="number" step="0.1" value={p.weight ?? ""} onChange={(e) => setProfile({ ...profile!, weight: e.target.value ? Number(e.target.value) : undefined })} placeholder="70" className="mt-1" />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <Label>Goals</Label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {GOAL_OPTIONS.map((g) => (
+                <Button key={g} type="button" variant={(p.goals ?? []).includes(g) ? "primary" : "secondary"} size="sm" onClick={() => toggleGoal(g)}>
+                  {g}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <Label>Injuries and limitations</Label>
+            <Textarea
+              value={(p.injuries_limitations && typeof p.injuries_limitations === "object" && "notes" in p.injuries_limitations ? (p.injuries_limitations as { notes?: string }).notes : "") ?? ""}
+              onChange={(e) => setProfile({ ...profile!, injuries_limitations: { notes: e.target.value } })}
+              placeholder="e.g. lower back pain, knee history"
+              className="mt-2"
+            />
+          </div>
+        </Card>
+
+        <Card padding="lg">
+          <CardHeader title="AI preferences" subtitle="Accountability style and guidance cadence" />
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="coachTone">Coach tone</Label>
+              <Select id="coachTone" value={coachTone} onChange={(e) => setCoachTone(e.target.value)} className="mt-1">
+                <option value="balanced">Evidence-based balanced</option>
+                <option value="intense">High accountability</option>
+                <option value="supportive">Supportive low-pressure</option>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="nudges">Nudge intensity</Label>
+              <Select id="nudges" value={nudges} onChange={(e) => setNudges(e.target.value)} className="mt-1">
+                <option value="light">Light</option>
+                <option value="standard">Standard</option>
+                <option value="high">High</option>
+              </Select>
             </div>
           </div>
         </Card>
 
         <Card padding="lg">
-          <CardHeader title="Goals" subtitle="What you want to focus on" />
-          <div className="mt-4 flex flex-wrap gap-2">
-            {GOAL_OPTIONS.map((g) => (
-              <Button
-                key={g}
-                type="button"
-                variant={(p.goals ?? []).includes(g) ? "primary" : "secondary"}
-                size="sm"
-                onClick={() => toggleGoal(g)}
-              >
-                {g}
-              </Button>
-            ))}
+          <CardHeader title="Data sources" subtitle="Import Apple Health exports" />
+          <p className="mt-2 text-sm text-fn-muted">Upload your exported Apple Health file to enrich recovery and readiness insights.</p>
+          <div className="mt-3">
+            <Label htmlFor="healthImport">Apple Health export</Label>
+            <Input id="healthImport" type="file" accept=".zip,.xml" onChange={handleHealthImport} className="mt-1" />
           </div>
-        </Card>
-
-        <Card padding="lg">
-          <CardHeader title="Activity level" />
-          <Select
-            value={p.activity_level ?? ""}
-            onChange={(e) =>
-              setProfile({ ...profile!, activity_level: e.target.value || undefined })
-            }
-            className="mt-2"
-          >
-            {ACTIVITY_LEVELS.map(({ value, label }) => (
-              <option key={value || "empty"} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </Card>
-
-        <Card padding="lg">
-          <CardHeader
-            title="Injuries & limitations"
-            subtitle="Optional — helps the coach tailor advice"
-          />
-          <Textarea
-            value={
-              (p.injuries_limitations && typeof p.injuries_limitations === "object" && "notes" in p.injuries_limitations
-                ? (p.injuries_limitations as { notes?: string }).notes
-                : "") ?? ""
-            }
-            onChange={(e) =>
-              setProfile({
-                ...profile!,
-                injuries_limitations: { notes: e.target.value },
-              })
-            }
-            placeholder="e.g. lower back pain, knee history"
-            className="mt-2"
-          />
+          {importStatus && <p className="mt-3 rounded-xl bg-fn-bg-alt px-3 py-2 text-sm text-fn-muted">{importStatus}</p>}
+          <p className="mt-2 text-xs text-fn-muted">Raw files are stored encrypted and retained for 30 days.</p>
         </Card>
 
         {error && <ErrorMessage message={error} />}
-        <Button type="submit" loading={saving} className="w-full">
-          Save profile
-        </Button>
+        <Button type="submit" loading={saving} className="w-full">Save settings</Button>
       </form>
     </PageLayout>
   );

@@ -6,7 +6,7 @@ export function Label({
 }: LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
-      className={`block text-sm font-medium text-fn-muted ${className}`.trim()}
+      className={`block text-sm font-semibold text-fn-ink-soft ${className}`.trim()}
       {...props}
     />
   );

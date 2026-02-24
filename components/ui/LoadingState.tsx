@@ -4,7 +4,7 @@ export interface LoadingStateProps {
 }
 
 export function LoadingState({
-  message = "Loading…",
+  message = "Loading...",
   className = "",
 }: LoadingStateProps) {
   return (
@@ -15,7 +15,7 @@ export function LoadingState({
       aria-label={message}
     >
       <span
-        className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-fn-muted border-t-fn-teal"
+        className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-fn-muted/30 border-t-fn-primary"
         aria-hidden
       />
       <span className="text-sm">{message}</span>

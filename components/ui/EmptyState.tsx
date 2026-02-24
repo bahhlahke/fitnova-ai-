@@ -15,11 +15,11 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={`flex flex-col items-center justify-center py-8 text-center ${className}`.trim()}
+      className={`flex flex-col items-center justify-center rounded-2xl border border-dashed border-fn-border bg-fn-surface-hover/70 py-8 text-center ${className}`.trim()}
       role="status"
       aria-label={message}
     >
-      {icon && <span className="text-2xl text-fn-muted mb-2" aria-hidden>{icon}</span>}
+      {icon && <span className="mb-2 text-2xl text-fn-muted" aria-hidden>{icon}</span>}
       <p className="text-sm text-fn-muted">{message}</p>
       {action && <div className="mt-4">{action}</div>}
     </div>

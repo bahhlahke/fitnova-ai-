@@ -6,6 +6,12 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: vi.fn(() => null),
 }));
 
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => ({
+    get: () => null,
+  }),
+}));
+
 describe("Onboarding page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -21,7 +27,7 @@ describe("Onboarding page", () => {
       fireEvent.click(nextBtn);
     }
 
-    expect(screen.queryByText(/you’re all set/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/your plan is ready/i)).not.toBeInTheDocument();
     expect(
       await screen.findByText(/Supabase not configured\.|supabase/i)
     ).toBeInTheDocument();

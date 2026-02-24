@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import {
@@ -69,104 +69,97 @@ export default function ProgressPage() {
     ? (latestEntry.measurements as Record<string, number>)
     : null;
 
+  const aiNarrative = useMemo(() => {
+    if (!entries.length) return "No trend available yet. Add at least two check-ins to unlock AI narrative insight.";
+    if (trend === "down") return "Weight trend is moving down. Maintain current adherence and preserve protein intake.";
+    if (trend === "up") return "Weight trend is rising. Review weekly calorie average and session consistency.";
+    return "Trend is stable. Consider a small plan adjustment if body composition goals are stalled.";
+  }, [entries.length, trend]);
+
   return (
-    <PageLayout
-      title="Progress"
-      subtitle="Weight, measurements, and insights"
-    >
+    <PageLayout title="Progress" subtitle="Trend interpretation and what changed" >
       {loading ? (
         <LoadingState />
       ) : (
         <>
-          <Card>
-            <CardHeader title="Weight" />
-            {latestWeight != null ? (
-              <>
-                <p className="mt-2 text-2xl font-bold text-white">{latestWeight} kg</p>
-                {trend && (
-                  <p className="mt-1 text-sm text-fn-muted">
-                    {trend === "down" && "Trending down"}
-                    {trend === "up" && "Trending up"}
-                    {trend === "stable" && "Stable"} vs previous entry
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="mt-2 text-fn-muted">No weight entries yet.</p>
-            )}
-          </Card>
-
-          {latestBodyFat != null && (
-            <Card className="mt-4">
-              <CardHeader title="Body fat" />
-              <p className="mt-2 text-xl font-semibold text-white">{latestBodyFat}%</p>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Card padding="lg" className="lg:col-span-2">
+              <CardHeader title="AI narrative" subtitle="Based on latest entries" />
+              <p className="mt-3 text-base text-fn-ink">{aiNarrative}</p>
             </Card>
-          )}
 
-          {latestMeasurements && Object.keys(latestMeasurements).length > 0 && (
-            <Card className="mt-4">
-              <CardHeader title="Measurements (cm)" />
-              <ul className="mt-2 space-y-1 text-sm text-white">
-                {Object.entries(latestMeasurements).map(([key, value]) => (
-                  <li key={key}>
-                    <span className="capitalize">{key}</span>: {value} cm
-                  </li>
-                ))}
-              </ul>
+            <Card>
+              <CardHeader title="Latest check-in" />
+              {latestWeight != null ? (
+                <>
+                  <p className="mt-2 text-3xl font-semibold text-fn-ink">{latestWeight} kg</p>
+                  {trend && (
+                    <p className="mt-1 text-sm text-fn-muted">
+                      {trend === "down" && "Trending down"}
+                      {trend === "up" && "Trending up"}
+                      {trend === "stable" && "Stable"} vs previous entry
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="mt-2 text-fn-muted">No weight entries yet.</p>
+              )}
             </Card>
-          )}
+          </div>
 
-          <Card className="mt-4">
-            <CardHeader title="Weight trend" />
-            <div className="mt-4 h-32 flex items-end gap-1">
+          <Card className="mt-4" padding="lg">
+            <CardHeader title="Weight trend" subtitle="Last 14 points" />
+            <div className="mt-4 flex h-36 items-end gap-1.5">
               {weights.slice(0, 14).reverse().map((e) => (
                 <div
                   key={e.date}
-                  className="flex-1 rounded-t bg-fn-teal/60 min-h-[4px]"
+                  className="flex-1 rounded-t-md bg-fn-primary/70 min-h-[6px]"
                   style={{
-                    height: `${Math.max(8, (e.weight / (Math.max(...weights.map((x) => x.weight), 1) || 1)) * 80)}%`,
+                    height: `${Math.max(8, (e.weight / (Math.max(...weights.map((x) => x.weight), 1) || 1)) * 85)}%`,
                   }}
                   title={`${e.date}: ${e.weight} kg`}
                 />
               ))}
             </div>
-            {weights.length === 0 && (
-              <EmptyState
-                className="py-4"
-                message="Add progress entries to see a trend."
-              />
-            )}
+            {weights.length === 0 && <EmptyState className="mt-4" message="Add progress entries to see a trend." />}
           </Card>
 
-          <Card className="mt-4">
-            <CardHeader title="Recent entries" />
-            {entries.length === 0 ? (
-              <EmptyState
-                className="py-4"
-                message="No entries yet."
-              />
-            ) : (
-              <ul className="mt-2 space-y-2">
-                {entries.slice(0, 10).map((e) => (
-                  <li key={e.date} className="flex justify-between text-sm text-white">
-                    <span>{e.date}</span>
-                    <span>
-                      {[
-                        e.weight != null ? `${e.weight} kg` : "",
-                        e.body_fat_percent != null ? `${e.body_fat_percent}%` : "",
-                        e.notes ?? "",
-                      ]
-                        .filter(Boolean)
-                        .join(" · ") || "—"}
-                    </span>
-                  </li>
-                ))}
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader title="What changed" subtitle="Signals from latest entry" />
+              <ul className="mt-3 space-y-2 text-sm text-fn-muted">
+                <li>{latestBodyFat != null ? `Body fat updated to ${latestBodyFat}%` : "Body fat not logged this entry."}</li>
+                <li>{latestMeasurements && Object.keys(latestMeasurements).length > 0 ? `Measurements captured (${Object.keys(latestMeasurements).join(", ")}).` : "No measurement updates captured."}</li>
+                <li>{latestEntry?.notes ? `Coach note: ${latestEntry.notes}` : "No note added to latest check-in."}</li>
               </ul>
-            )}
-            <Link href="/progress/add" className="mt-4 inline-block">
-              <Button>Add entry</Button>
-            </Link>
-          </Card>
+            </Card>
+
+            <Card>
+              <CardHeader title="Recent entries" subtitle="Last 10" />
+              {entries.length === 0 ? (
+                <EmptyState className="mt-4" message="No entries yet." />
+              ) : (
+                <ul className="mt-3 space-y-2">
+                  {entries.slice(0, 10).map((e) => (
+                    <li key={e.date} className="flex justify-between rounded-xl border border-fn-border bg-fn-surface-hover px-3 py-2 text-sm text-fn-ink">
+                      <span>{e.date}</span>
+                      <span>
+                        {[
+                          e.weight != null ? `${e.weight} kg` : "",
+                          e.body_fat_percent != null ? `${e.body_fat_percent}%` : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || "—"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link href="/progress/add" className="mt-4 inline-block">
+                <Button>Add entry</Button>
+              </Link>
+            </Card>
+          </div>
         </>
       )}
     </PageLayout>

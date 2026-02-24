@@ -8,7 +8,7 @@ export interface ErrorMessageProps {
 export function ErrorMessage({ message, className = "" }: ErrorMessageProps) {
   return (
     <p
-      className={`text-sm text-red-400 ${className}`.trim()}
+      className={`rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 ${className}`.trim()}
       role="alert"
     >
       {message}

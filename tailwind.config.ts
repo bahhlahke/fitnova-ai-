@@ -1,9 +1,5 @@
 import type { Config } from "tailwindcss";
 
-/** FitNova AI — Concept 1: Futuristic Precision
- * Electric teal + magenta on charcoal/black
- * Mobile-first; min 44px touch targets via spacing
- */
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -12,26 +8,33 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Concept 1 branding
         fn: {
-          teal: "#00e5cc",
-          "teal-dim": "#00b8a3",
-          magenta: "#e91e8c",
-          "magenta-dim": "#b8186e",
-          charcoal: "#1a1a1d",
-          black: "#0d0d0f",
-          surface: "#252529",
-          "surface-hover": "#2e2e33",
-          muted: "#6b6b70",
-          border: "#3a3a40",
+          bg: "#f5f7fb",
+          "bg-alt": "#eef3fb",
+          surface: "#ffffff",
+          "surface-hover": "#f7f9ff",
+          ink: "#16213a",
+          muted: "#495574",
+          border: "#dbe3f2",
+          primary: "#335cff",
+          "primary-dim": "#2848c8",
+          accent: "#15b69c",
+          danger: "#c43d2f",
+          teal: "#15b69c",
+          "teal-dim": "#0f917e",
+          magenta: "#335cff",
+          "magenta-dim": "#2848c8",
+          charcoal: "#eef3fb",
+          black: "#16213a",
         },
       },
       fontFamily: {
-        sans: ["system-ui", "Segoe UI", "Roboto", "sans-serif"],
-        mono: ["ui-monospace", "monospace"],
+        sans: ["var(--font-manrope)", "sans-serif"],
+        display: ["var(--font-fraunces)", "serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "monospace"],
       },
       spacing: {
-        "touch": "44px",
+        touch: "44px",
         "touch-lg": "48px",
       },
       minHeight: {
@@ -41,6 +44,16 @@ const config: Config = {
       minWidth: {
         touch: "44px",
         "touch-lg": "48px",
+      },
+      maxWidth: {
+        shell: "72rem",
+      },
+      boxShadow: {
+        "fn-card": "0 18px 45px -28px rgba(17, 36, 77, 0.38)",
+        "fn-soft": "0 8px 20px -14px rgba(17, 36, 77, 0.35)",
+      },
+      borderRadius: {
+        xl2: "1.1rem",
       },
     },
   },

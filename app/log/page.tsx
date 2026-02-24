@@ -1,28 +1,30 @@
 import Link from "next/link";
+import { Card } from "@/components/ui";
 
 export default function LogPage() {
   return (
-    <div className="mx-auto max-w-lg px-4 py-6">
+    <div className="mx-auto w-full max-w-shell px-4 py-8 sm:px-6">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Log</h1>
-        <p className="mt-1 text-fn-muted">Workout & nutrition</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">Data capture</p>
+        <h1 className="mt-2 font-display text-4xl text-fn-ink">Log training and nutrition</h1>
+        <p className="mt-2 text-fn-muted">Consistent logging improves plan adaptation and insight quality.</p>
       </header>
+
       <div className="grid gap-4 sm:grid-cols-2">
-        <Link
-          href="/log/workout"
-          className="min-h-touch flex flex-col justify-center rounded-xl border border-fn-border bg-fn-surface p-6 text-left transition-colors hover:bg-fn-surface-hover focus:outline-none focus:ring-2 focus:ring-fn-teal"
-        >
-          <span className="text-lg" aria-hidden>◆</span>
-          <span className="mt-2 font-medium text-white">Workout</span>
-          <span className="text-sm text-fn-muted">Guided or quick log</span>
+        <Link href="/log/workout" className="group">
+          <Card padding="lg" className="h-full transition group-hover:-translate-y-0.5 group-hover:shadow-fn-soft">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">Workout</p>
+            <h2 className="mt-2 text-xl font-semibold text-fn-ink">Guided or quick log</h2>
+            <p className="mt-2 text-sm text-fn-muted">Start a structured session or capture your completed work in seconds.</p>
+          </Card>
         </Link>
-        <Link
-          href="/log/nutrition"
-          className="min-h-touch flex flex-col justify-center rounded-xl border border-fn-border bg-fn-surface p-6 text-left transition-colors hover:bg-fn-surface-hover focus:outline-none focus:ring-2 focus:ring-fn-teal"
-        >
-          <span className="text-lg" aria-hidden>◇</span>
-          <span className="mt-2 font-medium text-white">Nutrition</span>
-          <span className="text-sm text-fn-muted">Meals & macros</span>
+
+        <Link href="/log/nutrition" className="group">
+          <Card padding="lg" className="h-full transition group-hover:-translate-y-0.5 group-hover:shadow-fn-soft">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">Nutrition</p>
+            <h2 className="mt-2 text-xl font-semibold text-fn-ink">Meal timeline and macros</h2>
+            <p className="mt-2 text-sm text-fn-muted">Track meals quickly and let AI evaluate your daily target gap.</p>
+          </Card>
         </Link>
       </div>
     </div>

@@ -1,18 +1,42 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
 import AuthPage from "./page";
 
+const mockCreateClient = vi.fn();
+
+vi.mock("@/lib/supabase/client", () => ({
+  createClient: () => mockCreateClient(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => ({
+    get: (key: string) => {
+      if (key === "next") return "/onboarding?resume=1";
+      return null;
+    },
+  }),
+}));
+
 describe("Auth page", () => {
-  it("renders sign in heading and email input", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("renders both Google and magic-link auth methods", () => {
+    mockCreateClient.mockReturnValue(null);
     render(<AuthPage />);
-    expect(screen.getByRole("heading", { name: /Sign in/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
+
+    expect(screen.getByRole("heading", { name: /Create your FitNova coaching account/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Continue with Google/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Send magic link/i })).toBeInTheDocument();
   });
 
-  it("has link back to dashboard", () => {
+  it("shows plain-language error when auth client is unavailable", async () => {
+    mockCreateClient.mockReturnValue(null);
     render(<AuthPage />);
-    const back = screen.getByRole("link", { name: /Back to dashboard/i });
-    expect(back).toHaveAttribute("href", "/");
+
+    fireEvent.click(screen.getByRole("button", { name: /Continue with Google/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/configured/i);
   });
 });

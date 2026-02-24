@@ -9,6 +9,8 @@ import {
   Input,
   Label,
   ErrorMessage,
+  Card,
+  CardHeader,
 } from "@/components/ui";
 import { toLocalDateString } from "@/lib/date/local-date";
 
@@ -78,78 +80,39 @@ export default function AddProgressPage() {
   }
 
   return (
-    <PageLayout
-      title="Add progress"
-      backHref="/progress"
-      backLabel="Progress"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="weight">Weight (kg)</Label>
-          <Input
-            id="weight"
-            type="number"
-            step="0.1"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            placeholder="70"
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <Label htmlFor="bodyFat">Body fat (%)</Label>
-          <Input
-            id="bodyFat"
-            type="number"
-            step="0.1"
-            value={bodyFat}
-            onChange={(e) => setBodyFat(e.target.value)}
-            placeholder="Optional"
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <Label>Measurements (cm, optional)</Label>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            <Input
-              type="number"
-              step="0.1"
-              value={waist}
-              onChange={(e) => setWaist(e.target.value)}
-              placeholder="Waist"
-            />
-            <Input
-              type="number"
-              step="0.1"
-              value={chest}
-              onChange={(e) => setChest(e.target.value)}
-              placeholder="Chest"
-            />
-            <Input
-              type="number"
-              step="0.1"
-              value={hip}
-              onChange={(e) => setHip(e.target.value)}
-              placeholder="Hip"
-            />
+    <PageLayout title="Add progress" subtitle="Capture one checkpoint" backHref="/progress" backLabel="Progress">
+      <Card padding="lg" className="max-w-3xl">
+        <CardHeader title="Today&apos;s check-in" subtitle="Consistent entries improve AI trend interpretation" />
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="weight">Weight (kg)</Label>
+              <Input id="weight" type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="70" className="mt-1" />
+            </div>
+            <div>
+              <Label htmlFor="bodyFat">Body fat (%)</Label>
+              <Input id="bodyFat" type="number" step="0.1" value={bodyFat} onChange={(e) => setBodyFat(e.target.value)} placeholder="Optional" className="mt-1" />
+            </div>
           </div>
-        </div>
-        <div>
-          <Label htmlFor="notes">Notes</Label>
-          <Input
-            id="notes"
-            type="text"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Optional"
-            className="mt-1"
-          />
-        </div>
-        {error && <ErrorMessage message={error} />}
-        <Button type="submit" loading={saving} className="w-full">
-          Save
-        </Button>
-      </form>
+
+          <div>
+            <Label>Measurements (cm, optional)</Label>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <Input type="number" step="0.1" value={waist} onChange={(e) => setWaist(e.target.value)} placeholder="Waist" />
+              <Input type="number" step="0.1" value={chest} onChange={(e) => setChest(e.target.value)} placeholder="Chest" />
+              <Input type="number" step="0.1" value={hip} onChange={(e) => setHip(e.target.value)} placeholder="Hip" />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="notes">Notes</Label>
+            <Input id="notes" type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Sleep quality, stress, training feel" className="mt-1" />
+          </div>
+
+          {error && <ErrorMessage message={error} />}
+          <Button type="submit" loading={saving} className="w-full">Save checkpoint</Button>
+        </form>
+      </Card>
     </PageLayout>
   );
 }

@@ -1,10 +1,11 @@
 # FitNova AI
 
-AI-backed fitness coaching and tracking — professional trainer–style guided workouts, nutrition, and progress at a glance.
+AI-first fitness and nutrition coaching with a premium assessment funnel, adaptive daily planning, and guided execution.
 
 ## Features
 
-- **Dashboard** — This week’s workout count, 7-day bar chart, quick actions (workout, coach, progress, onboarding when needed).
+- **Adaptive Home** — Signed-out users see a premium conversion funnel; signed-in users see a coaching cockpit.
+- **Assessment Funnel** — `/start` quiz-first flow saves a draft before auth and resumes onboarding.
 - **AI Coach** — Chat with an AI coach; context includes profile, recent workouts, nutrition, and conversation history.
 - **Daily Plan Engine** — Generate a personalized day plan (training + calories/macros + safety notes), save it, and use it in guided workouts.
 - **Log** — Workout (guided step-by-step or quick log) and nutrition (meals + calories per day); data persisted in Supabase.
@@ -82,7 +83,7 @@ AI-backed fitness coaching and tracking — professional trainer–style guided 
 
 | Path | Description |
 |------|-------------|
-| `app/` | App Router routes: `/` (dashboard), `/log`, `/log/workout`, `/log/nutrition`, `/log/workout/guided`, `/coach`, `/progress`, `/progress/add`, `/settings`, `/onboarding`, `/auth`. |
+| `app/` | App Router routes: `/` (adaptive home), `/start`, `/auth`, `/onboarding`, `/log`, `/log/workout`, `/log/nutrition`, `/log/workout/guided`, `/coach`, `/progress`, `/progress/add`, `/settings`. |
 | `app/api/v1/ai/respond/` | POST API for AI coach; see [docs/API.md](docs/API.md). |
 | `app/api/v1/plan/daily/` | POST API for personalized daily plan generation and persistence. |
 | `components/ui/` | Design primitives: Button, Card, Input, Label, Select, Textarea, EmptyState, LoadingState, ErrorMessage, PageLayout. |

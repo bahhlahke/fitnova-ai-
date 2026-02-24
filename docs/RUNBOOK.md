@@ -57,7 +57,7 @@
 
 ## Troubleshooting
 
-- **Auth not working:** Ensure Supabase URL and anon key are set and that the Supabase project has Auth enabled (email magic link). Redirect after login is validated (relative path only) in `app/auth/callback/route.ts`.
+- **Auth not working:** Ensure Supabase URL and anon key are set and that the Supabase project has Auth enabled. For Google sign-in, enable Google provider in Supabase Auth settings. Redirect after login is validated (relative path only) in `app/auth/callback/route.ts`.
 - **AI returns 503:** Set `OPENROUTER_API_KEY` in Vercel (and locally in `.env.local`). Key is server-only and must not be exposed to the client.
 - **AI returns 401:** User is not signed in. Authenticate first (magic link flow).
 - **RLS errors:** Ensure migrations have been run and policies use `auth.uid()`.

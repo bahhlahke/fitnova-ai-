@@ -7,17 +7,18 @@ import type { WorkoutType } from "@/types";
 import { PageLayout, Card, CardHeader, Button, Input, Label, EmptyState, LoadingState, ErrorMessage } from "@/components/ui";
 import { toLocalDateString } from "@/lib/date/local-date";
 
-const WORKOUT_TYPES: { value: WorkoutType; label: string }[] = [
-  { value: "strength", label: "Strength" },
-  { value: "cardio", label: "Cardio" },
-  { value: "mobility", label: "Mobility" },
-  { value: "other", label: "Other" },
+const WORKOUT_TYPES: { value: WorkoutType; label: string; hint: string }[] = [
+  { value: "strength", label: "Strength", hint: "Progressive overload" },
+  { value: "cardio", label: "Cardio", hint: "Aerobic conditioning" },
+  { value: "mobility", label: "Mobility", hint: "Movement quality" },
+  { value: "other", label: "Other", hint: "Custom session" },
 ];
 
 export default function WorkoutLogPage() {
   const [workouts, setWorkouts] = useState<{ log_id: string; date: string; workout_type: string; duration_minutes?: number; notes?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refetch, setRefetch] = useState(0);
+
   const fetchWorkouts = useCallback(() => {
     const supabase = createClient();
     if (!supabase) {
@@ -51,54 +52,50 @@ export default function WorkoutLogPage() {
   }, [fetchWorkouts, refetch]);
 
   return (
-    <PageLayout
-      title="Workout"
-      subtitle="Guided or quick log"
-      backHref="/log"
-      backLabel="Log"
-    >
-      <div className="grid gap-4">
-        <Link
-          href="/log/workout/guided"
-          className="flex min-h-touch items-center justify-between rounded-xl border border-fn-teal bg-fn-surface p-4 transition-colors hover:bg-fn-surface-hover"
-        >
-          <span className="font-medium text-white">Guided workout</span>
-          <span className="text-sm text-fn-muted">Step-by-step + rest timers</span>
+    <PageLayout title="Workout" subtitle="Capture sessions and keep progression visible" backHref="/log" backLabel="Log">
+      <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+        <Link href="/log/workout/guided" className="block">
+          <Card padding="lg" className="h-full border-fn-primary/20 bg-gradient-to-br from-white to-fn-bg-alt transition hover:-translate-y-0.5">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">Guided mode</p>
+            <h2 className="mt-2 text-xl font-semibold text-fn-ink">Start today&apos;s coached session</h2>
+            <p className="mt-2 text-sm text-fn-muted">Step-by-step flow with plan-aware exercise sequence and rest pacing.</p>
+            <p className="mt-4 text-sm font-semibold text-fn-primary">Open guided workout →</p>
+          </Card>
         </Link>
 
         <Card>
-          <CardHeader title="Quick log" subtitle="Add a workout" />
-          <WorkoutQuickForm onSuccess={() => setRefetch((n) => n + 1)} />
+          <CardHeader title="AI suggestion" subtitle="Use this when your day is constrained" />
+          <p className="mt-3 text-sm text-fn-muted">If time is limited, do your first three compound movements and one finisher interval.</p>
         </Card>
-
-        {loading ? (
-          <LoadingState />
-        ) : workouts.length > 0 ? (
-          <ul className="space-y-2">
-            {workouts.map((w) => (
-              <li
-                key={w.log_id}
-                className="rounded-lg border border-fn-border bg-fn-surface p-3 text-sm text-white"
-              >
-                {w.date} — {w.workout_type}
-                {w.duration_minutes != null && ` (${w.duration_minutes} min)`}
-                {w.notes && ` — ${w.notes}`}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState
-            message="No workouts yet. Start a guided session or quick log above."
-            action={
-              <Link href="/log/workout/guided">
-                <Button variant="secondary" size="sm">
-                  Start guided workout
-                </Button>
-              </Link>
-            }
-          />
-        )}
       </div>
+
+      <Card className="mt-4" padding="lg">
+        <CardHeader title="Quick log" subtitle="Save a completed workout" />
+        <WorkoutQuickForm onSuccess={() => setRefetch((n) => n + 1)} />
+      </Card>
+
+      <section className="mt-4">
+        <Card>
+          <CardHeader title="Recent sessions" subtitle="Last 20 entries" />
+          {loading ? (
+            <LoadingState className="mt-3" />
+          ) : workouts.length > 0 ? (
+            <ul className="mt-3 space-y-2">
+              {workouts.map((w) => (
+                <li key={w.log_id} className="rounded-xl border border-fn-border bg-fn-surface-hover px-3 py-3 text-sm text-fn-ink">
+                  <p className="font-semibold">{w.date} · {w.workout_type}</p>
+                  <p className="mt-1 text-fn-muted">
+                    {w.duration_minutes != null ? `${w.duration_minutes} min` : "Duration not set"}
+                    {w.notes ? ` · ${w.notes}` : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState className="mt-4" message="No workouts yet. Start a guided session or quick log above." action={<Link href="/log/workout/guided"><Button variant="secondary" size="sm">Start guided workout</Button></Link>} />
+          )}
+        </Card>
+      </section>
     </PageLayout>
   );
 }
@@ -128,7 +125,7 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
     }
     const durationNum = duration.trim() ? parseInt(duration, 10) : undefined;
     if (duration.trim() && (durationNum == null || !Number.isInteger(durationNum) || durationNum < 1 || durationNum > 600)) {
-      setError("Duration must be 1–600 minutes.");
+      setError("Duration must be 1-600 minutes.");
       setSaving(false);
       return;
     }
@@ -153,47 +150,37 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
       <div>
-        <Label>Type</Label>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {WORKOUT_TYPES.map(({ value, label }) => (
-            <Button
+        <Label>Session type</Label>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {WORKOUT_TYPES.map(({ value, label, hint }) => (
+            <button
               key={value}
               type="button"
-              variant={type === value ? "primary" : "secondary"}
-              size="sm"
               onClick={() => setType(value)}
+              className={`rounded-xl border px-3 py-3 text-left transition ${
+                type === value
+                  ? "border-fn-primary bg-fn-primary text-white"
+                  : "border-fn-border bg-white text-fn-ink hover:bg-fn-surface-hover"
+              }`}
             >
-              {label}
-            </Button>
+              <p className="text-sm font-semibold">{label}</p>
+              <p className={`mt-1 text-xs ${type === value ? "text-white/85" : "text-fn-muted"}`}>{hint}</p>
+            </button>
           ))}
         </div>
       </div>
-      <div>
-        <Label htmlFor="duration">Duration (min)</Label>
-        <Input
-          id="duration"
-          type="number"
-          value={duration}
-          onChange={(e) => setDuration(e.target.value)}
-          placeholder="30"
-          className="mt-1"
-        />
-      </div>
-      <div>
-        <Label htmlFor="notes">Notes</Label>
-        <Input
-          id="notes"
-          type="text"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Optional"
-          className="mt-1"
-        />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="duration">Duration (min)</Label>
+          <Input id="duration" type="number" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="30" className="mt-1" />
+        </div>
+        <div>
+          <Label htmlFor="notes">Notes</Label>
+          <Input id="notes" type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="How did it feel?" className="mt-1" />
+        </div>
       </div>
       {error && <ErrorMessage message={error} />}
-      <Button type="submit" loading={saving} className="w-full">
-        Save workout
-      </Button>
+      <Button type="submit" loading={saving} className="w-full">Save workout</Button>
     </form>
   );
 }

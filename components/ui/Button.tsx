@@ -5,17 +5,17 @@ type ButtonSize = "default" | "sm";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-fn-teal text-fn-black hover:bg-fn-teal-dim focus:ring-fn-teal disabled:opacity-50",
+    "bg-fn-primary text-white shadow-fn-soft hover:bg-fn-primary-dim focus:ring-fn-primary/40 disabled:opacity-50",
   secondary:
-    "border border-fn-border bg-fn-surface text-white hover:bg-fn-surface-hover focus:ring-fn-teal",
+    "border border-fn-border bg-white text-fn-ink hover:bg-fn-surface-hover focus:ring-fn-primary/30",
   ghost:
-    "text-fn-muted hover:bg-fn-surface-hover hover:text-white focus:ring-fn-teal",
+    "text-fn-ink-soft hover:bg-white focus:ring-fn-primary/20",
   danger:
-    "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 disabled:opacity-50",
+    "bg-fn-danger text-white hover:brightness-95 focus:ring-fn-danger/30 disabled:opacity-50",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  default: "min-h-touch min-w-touch px-4 py-3 text-sm",
+  default: "min-h-touch min-w-touch px-5 py-3 text-sm",
   sm: "min-h-[36px] px-3 py-1.5 text-xs rounded-lg",
 };
 
@@ -36,7 +36,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    "inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2";
+    "inline-flex items-center justify-center font-semibold rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent";
   const combined = [
     base,
     variantClasses[variant],
@@ -53,7 +53,7 @@ export function Button({
       className={combined}
       {...props}
     >
-      {loading ? "…" : children}
+      {loading ? "..." : children}
     </button>
   );
 }

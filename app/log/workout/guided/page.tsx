@@ -121,83 +121,51 @@ export default function GuidedWorkoutPage() {
 
   if (phase === "completed") {
     return (
-      <div className="mx-auto max-w-lg px-4 py-6 text-center">
-        <h2 className="text-2xl font-bold text-white">Workout complete</h2>
-        <p className="mt-2 text-fn-muted">
-          {saved ? "Saved to your log." : saveError ?? "Workout complete."}
-        </p>
-        <Link href="/log/workout" className="mt-6 inline-block min-h-touch rounded-lg bg-fn-teal px-6 py-3 font-medium text-fn-black">
-          Back to workout
-        </Link>
+      <div className="mx-auto max-w-shell px-4 py-10 text-center sm:px-6">
+        <h2 className="font-display text-4xl text-fn-ink">Workout complete</h2>
+        <p className="mt-2 text-fn-muted">{saved ? "Saved to your log." : saveError ?? "Workout complete."}</p>
+        <Link href="/log/workout" className="mt-6 inline-block rounded-xl bg-fn-primary px-6 py-3 text-sm font-semibold text-white">Back to workout</Link>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto flex max-w-lg flex-col px-4 py-6 min-h-[80vh]">
+    <div className="mx-auto flex min-h-[80vh] max-w-shell flex-col px-4 py-8 sm:px-6">
       <header className="mb-4 flex items-center justify-between">
-        <Link href="/log/workout" className="text-fn-muted hover:text-white">← Back</Link>
+        <Link href="/log/workout" className="rounded-lg px-2 py-1 text-sm font-semibold text-fn-muted hover:bg-white hover:text-fn-ink">← Back</Link>
         <span className="text-sm text-fn-muted">{progressLabel}</span>
       </header>
 
-      <div className="mb-2 rounded-lg border border-fn-border bg-fn-surface p-3">
-        <p className="text-sm text-white">{planTitle}</p>
-        <p className="mt-1 text-xs text-fn-muted">Educational guidance only. Stop if pain worsens.</p>
+      <div className="mb-3 rounded-2xl border border-fn-border bg-white p-4">
+        <p className="font-semibold text-fn-ink">{planTitle}</p>
+        <p className="mt-1 text-xs text-fn-muted">AI guidance is educational. Stop if pain worsens.</p>
       </div>
 
-      <div className="flex-1 rounded-xl border border-fn-border bg-fn-surface p-6 flex flex-col items-center justify-center text-center">
+      <div className="flex-1 rounded-2xl border border-fn-border bg-white p-6 shadow-fn-card">
         {phase === "work" && exercise && (
-          <>
-            <h2 className="text-2xl font-bold text-white">
-              {exercise.name} — Set {setIndex + 1} of {totalSets}
-            </h2>
-            <p className="mt-4 text-fn-teal text-lg">
-              {exercise.reps} · {exercise.intensity}
-            </p>
-            {exercise.notes && (
-              <p className="mt-4 text-fn-muted max-w-sm">{exercise.notes}</p>
-            )}
-            <div className="mt-8 flex flex-col gap-3 w-full max-w-xs">
-              <button
-                type="button"
-                onClick={startRest}
-                className="min-h-touch rounded-lg bg-fn-teal py-3 font-medium text-fn-black hover:bg-fn-teal-dim"
-              >
-                Done - Start rest
-              </button>
-              <button
-                type="button"
-                onClick={nextSet}
-                className="min-h-touch rounded-lg border border-fn-border py-3 font-medium text-white hover:bg-fn-surface-hover"
-              >
-                Skip rest
-              </button>
+          <div className="flex h-full flex-col items-center justify-center text-center">
+            <h2 className="text-3xl font-semibold text-fn-ink">{exercise.name}</h2>
+            <p className="mt-2 text-base text-fn-muted">Set {setIndex + 1} of {totalSets}</p>
+            <p className="mt-4 text-xl font-semibold text-fn-primary">{exercise.reps} · {exercise.intensity}</p>
+            {exercise.notes && <p className="mt-3 max-w-md text-sm text-fn-muted">{exercise.notes}</p>}
+            <div className="mt-8 flex w-full max-w-xs flex-col gap-3">
+              <button type="button" onClick={startRest} className="min-h-touch rounded-xl bg-fn-primary text-sm font-semibold text-white">Done - Start rest</button>
+              <button type="button" onClick={nextSet} className="min-h-touch rounded-xl border border-fn-border bg-white text-sm font-semibold text-fn-ink hover:bg-fn-surface-hover">Skip rest</button>
             </div>
-          </>
+          </div>
         )}
 
         {phase === "rest" && (
-          <>
-            <h2 className="text-xl font-bold text-white">Rest</h2>
-            <p className="mt-4 text-4xl font-mono text-fn-teal tabular-nums">{restSeconds}s</p>
-            <button
-              type="button"
-              onClick={nextSet}
-              className="mt-6 min-h-touch rounded-lg border border-fn-border px-6 py-3 font-medium text-white hover:bg-fn-surface-hover"
-            >
-              Skip rest
-            </button>
-          </>
+          <div className="flex h-full flex-col items-center justify-center text-center">
+            <h2 className="text-2xl font-semibold text-fn-ink">Rest</h2>
+            <p className="mt-3 font-mono text-5xl font-semibold text-fn-primary tabular-nums">{restSeconds}s</p>
+            <button type="button" onClick={nextSet} className="mt-6 min-h-touch rounded-xl border border-fn-border bg-white px-6 text-sm font-semibold text-fn-ink hover:bg-fn-surface-hover">Skip rest</button>
+          </div>
         )}
       </div>
 
-      <div className="mt-4 h-2 w-full rounded-full bg-fn-border overflow-hidden">
-        <div
-          className="h-full bg-fn-teal transition-all duration-300"
-          style={{
-            width: `${((exerciseIndex * totalSets + setIndex + (phase === "rest" ? 0.5 : 0)) / Math.max(1, totalExercises * totalSets)) * 100}%`,
-          }}
-        />
+      <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-fn-bg-alt">
+        <div className="h-full bg-fn-primary transition-all duration-300" style={{ width: `${((exerciseIndex * totalSets + setIndex + (phase === "rest" ? 0.5 : 0)) / Math.max(1, totalExercises * totalSets)) * 100}%` }} />
       </div>
     </div>
   );

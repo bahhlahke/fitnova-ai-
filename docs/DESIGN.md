@@ -1,10 +1,10 @@
 # FitNova AI — Design system
 
-## Concept 1: Futuristic Precision
+## Concept 2: Premium Adaptive Light
 
-- **Colors:** Electric teal (`#00e5cc`), magenta (`#e91e8c`), on charcoal/black (`#1a1a1d`, `#0d0d0f`). Surfaces use `fn-surface` (`#252529`); muted text `fn-muted` (`#6b6b70`); borders `fn-border` (`#3a3a40`).
+- **Colors:** Light canvas (`#f5f7fb`), white surfaces, deep ink (`#16213a`), primary blue (`#335cff`), accent teal (`#15b69c`).
 - **Touch targets:** Minimum 44px height/width for interactive elements (Tailwind: `min-h-touch`, `min-w-touch`).
-- **Contrast:** High-contrast, accessible. Use `text-white` for primary content, `text-fn-muted` for secondary.
+- **Contrast:** High-contrast, accessible. Use `text-fn-ink` for primary content, `text-fn-muted` for secondary.
 
 Tokens and Tailwind theme are in `app/globals.css` and `tailwind.config.ts`.
 
@@ -14,9 +14,9 @@ Use these so every screen looks and behaves like the same product.
 
 | Component | Use when |
 |-----------|----------|
-| **Button** | Primary actions (teal), secondary (border), ghost (muted), danger. Sizes: default (touch), sm. Supports `loading` and `disabled`. |
+| **Button** | Primary actions (blue), secondary (outlined white), ghost (muted), danger. Sizes: default (touch), sm. Supports `loading` and `disabled`. |
 | **Card** | Section containers. Use `padding="lg"` for forms or dense content. Optional **CardHeader** for title + subtitle. |
-| **Input** | Text, number, email fields. Shared focus ring (teal). |
+| **Input** | Text, number, email fields. Shared focus ring (primary blue). |
 | **Label** | Form labels; pair with Input/Select/Textarea. |
 | **Select** | Dropdowns; same visual language as Input. |
 | **Textarea** | Multi-line text; min height 120px. |
@@ -48,5 +48,5 @@ Invalid or out-of-range values are rejected with a short message; only valid dat
 ## Accessibility
 
 - Skip link in layout: "Skip to main content" → `#main`. Main landmark has `id="main"` and `tabIndex={-1}`.
-- Buttons and inputs use focus rings (`focus:ring-2 focus:ring-fn-teal` or equivalent).
+- Buttons and inputs use visible focus rings (`focus:ring-2 focus:ring-fn-primary/30` or equivalent).
 - Use semantic headings (one `<h1>` per page) and `aria-label` / `aria-current` where appropriate.

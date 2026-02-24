@@ -1,7 +1,20 @@
 import type { Metadata } from "next";
+import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "FitNova AI",
@@ -16,11 +29,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col font-sans">
+      <body className={`${manrope.variable} ${fraunces.variable} min-h-screen flex flex-col font-sans text-fn-ink`}>
         <AuthProvider>
           <a
             href="#main"
-            className="absolute -left-[9999px] top-4 z-[100] rounded bg-fn-teal px-4 py-2 text-fn-black outline-none ring-2 ring-white focus:left-4 focus:inline"
+            className="absolute -left-[9999px] top-4 z-[100] rounded-lg bg-fn-primary px-4 py-2 text-white outline-none ring-2 ring-fn-ink/20 focus:left-4 focus:inline"
           >
             Skip to main content
           </a>
