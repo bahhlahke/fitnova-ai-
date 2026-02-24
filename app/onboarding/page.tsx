@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { Button, Card } from "@/components/ui";
 
 const steps = [
   { id: "stats", label: "Stats" },
@@ -31,6 +33,8 @@ export default function OnboardingPage() {
   const [allergies, setAllergies] = useState("");
   const [devices, setDevices] = useState("");
   const [completed, setCompleted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const inputClass =
     "min-h-touch w-full rounded-lg border border-fn-border bg-fn-surface px-4 py-3 text-white placeholder-fn-muted focus:border-fn-teal focus:outline-none focus:ring-1 focus:ring-fn-teal";
@@ -40,21 +44,107 @@ export default function OnboardingPage() {
     setGoals((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
   }
 
+  async function handleFinish() {
+    setSaving(true);
+    setSaveError(null);
+    const supabase = createClient();
+    if (!supabase) {
+      setSaveError("Supabase not configured.");
+      setSaving(false);
+      setCompleted(true);
+      return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setSaveError("Sign in to save your profile.");
+      setSaving(false);
+      setCompleted(true);
+      return;
+    }
+    const ageNum = stats.age ? parseInt(stats.age, 10) : undefined;
+    const heightNum = stats.height ? parseFloat(stats.height) : undefined;
+    const weightNum = stats.weight ? parseFloat(stats.weight) : undefined;
+    const age = ageNum != null && Number.isFinite(ageNum) && ageNum >= 13 && ageNum <= 120 ? ageNum : null;
+    const height = heightNum != null && Number.isFinite(heightNum) && heightNum >= 100 && heightNum <= 250 ? heightNum : null;
+    const weight = weightNum != null && Number.isFinite(weightNum) && weightNum >= 30 && weightNum <= 500 ? weightNum : null;
+    const { error: profileErr } = await supabase.from("user_profile").upsert(
+      {
+        user_id: user.id,
+        name: stats.name || null,
+        email: user.email || null,
+        age,
+        sex: stats.sex || null,
+        height,
+        weight,
+        goals: goals.length ? goals : null,
+        injuries_limitations: injuries.trim() ? { notes: injuries.trim() } : {},
+        dietary_preferences: { preference: diet || "none", allergies: allergies.trim() || null },
+        activity_level: null,
+        devices: devices.trim() ? { apps: devices.trim() } : {},
+      },
+      { onConflict: "user_id" }
+    );
+    if (profileErr) {
+      setSaveError(profileErr.message);
+      setSaving(false);
+      setCompleted(true);
+      return;
+    }
+    const responses = {
+      stats,
+      goals,
+      injuries,
+      diet,
+      allergies,
+      devices,
+    };
+    const { data: existing } = await supabase
+      .from("onboarding")
+      .select("onboarding_id")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing && "onboarding_id" in existing) {
+      await supabase
+        .from("onboarding")
+        .update({ completed_at: new Date().toISOString(), responses })
+        .eq("onboarding_id", (existing as { onboarding_id: string }).onboarding_id);
+    } else {
+      await supabase.from("onboarding").insert({
+        user_id: user.id,
+        completed_at: new Date().toISOString(),
+        responses,
+      });
+    }
+    setSaving(false);
+    setCompleted(true);
+  }
+
   function handleNext() {
     if (currentStep < steps.length - 1) setCurrentStep((s) => s + 1);
-    else setCompleted(true);
+    else void handleFinish();
   }
 
   if (completed) {
     return (
       <div className="mx-auto max-w-lg px-4 py-6">
-        <div className="rounded-xl border border-fn-teal bg-fn-surface p-6 text-center">
+        <Card padding="lg" className="border-fn-teal text-center">
           <h2 className="text-lg font-medium text-white">You’re all set</h2>
-          <p className="mt-2 text-fn-muted">Onboarding complete. Data will be saved when Supabase is connected.</p>
-          <Link href="/" className="mt-6 inline-block min-h-touch rounded-lg bg-fn-teal px-6 py-3 font-medium text-fn-black">
-            Go to dashboard
+          <p className="mt-2 text-fn-muted">
+            {saveError
+              ? "Onboarding complete. " + saveError
+              : "Onboarding complete. Your profile has been saved."}
+          </p>
+          {saveError && (
+            <p className="mt-2 text-sm text-fn-muted">
+              You can update your profile anytime in Settings.
+            </p>
+          )}
+          <Link href="/" className="mt-6 inline-block">
+            <Button>Go to dashboard</Button>
           </Link>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -156,9 +246,15 @@ export default function OnboardingPage() {
               Back
             </button>
           )}
-          <button type="button" onClick={handleNext} className="min-h-touch min-w-touch flex-1 rounded-lg bg-fn-magenta px-4 py-3 text-sm font-medium text-white hover:bg-fn-magenta-dim">
+          <Button
+            type="button"
+            variant="primary"
+            className="min-h-touch min-w-touch flex-1 bg-fn-magenta hover:bg-fn-magenta-dim text-white"
+            onClick={handleNext}
+            loading={saving}
+          >
             {currentStep < steps.length - 1 ? "Next" : "Finish"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

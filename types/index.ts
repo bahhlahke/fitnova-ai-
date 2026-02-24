@@ -1,4 +1,8 @@
-/** Shared types for FitNova AI — align with Supabase schema */
+/**
+ * Shared types for FitNova AI.
+ * Kept in sync with Supabase schema (see supabase/migrations/).
+ * Used by app routes, lib/ai/assemble-context, and API.
+ */
 
 export type WorkoutType = "strength" | "cardio" | "mobility" | "other";
 

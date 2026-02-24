@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { ErrorMessage } from "@/components/ui";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -29,9 +30,16 @@ export default function CoachPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),
       });
-      const data = await res.json();
+      let data: { error?: string; reply?: string };
+      try {
+        data = (await res.json()) as { error?: string; reply?: string };
+      } catch {
+        setError(res.ok ? "Invalid response" : "Request failed");
+        setLoading(false);
+        return;
+      }
       if (!res.ok) throw new Error(data.error ?? "Request failed");
-      setMessages((m) => [...m, { role: "assistant", content: data.reply ?? "" }]);
+      setMessages((m) => [...m, { role: "assistant", content: typeof data.reply === "string" ? data.reply : "No response." }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -63,7 +71,7 @@ export default function CoachPage() {
           </div>
         ))}
         {loading && <p className="text-fn-muted">Thinking…</p>}
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <ErrorMessage message={error} />}
         <div ref={bottomRef} />
       </div>
 

@@ -1,3 +1,7 @@
+/**
+ * POST /api/v1/ai/respond — AI coach chat.
+ * Requires OPENROUTER_API_KEY. See docs/API.md for contract.
+ */
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { assembleContext } from "@/lib/ai/assemble-context";
@@ -87,7 +91,7 @@ export async function POST(request: Request) {
           .eq("user_id", userId)
           .order("created_at", { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         const history = (existing?.user_message_history as Array<{ role: string; content: string }>) ?? [];
         const newHistory = [

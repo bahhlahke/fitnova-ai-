@@ -1,3 +1,7 @@
+/**
+ * Assembles AI coach system prompt from user profile, recent logs, and conversation.
+ * Used by POST /api/v1/ai/respond when the user is signed in.
+ */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const SYSTEM_BASE = `You are an elite fitness coach and nutritionist. Be concise, supportive, and evidence-based. When giving advice, include brief rationale and one alternative option when relevant.`;
@@ -14,7 +18,7 @@ export async function assembleContext(
   userId: string
 ): Promise<AssembledContext> {
   const [profileRes, workoutsRes, nutritionRes, convoRes] = await Promise.all([
-    supabase.from("user_profile").select("*").eq("user_id", userId).single(),
+    supabase.from("user_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase
       .from("workout_logs")
       .select("date, workout_type, exercises, duration_minutes")
@@ -33,7 +37,7 @@ export async function assembleContext(
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(1)
-      .single(),
+      .maybeSingle(),
   ]);
 
   const parts: string[] = [SYSTEM_BASE];

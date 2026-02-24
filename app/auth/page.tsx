@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { ErrorMessage } from "@/components/ui";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -53,7 +54,7 @@ export default function AuthPage() {
             className="min-h-touch w-full rounded-lg border border-fn-border bg-fn-surface px-4 py-3 text-white placeholder-fn-muted focus:border-fn-teal focus:outline-none focus:ring-1 focus:ring-fn-teal"
             placeholder="you@example.com"
           />
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <ErrorMessage message={error} />}
           <button
             type="submit"
             disabled={loading}

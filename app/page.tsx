@@ -1,52 +1,144 @@
+"use client";
+
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { PageLayout, Card, CardHeader, Button, LoadingState } from "@/components/ui";
+
+function getWeekStart(d: Date): string {
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(d);
+  monday.setDate(diff);
+  return monday.toISOString().slice(0, 10);
+}
 
 export default function DashboardPage() {
-  return (
-    <div className="mx-auto max-w-lg px-4 py-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-white">
-          FitNova <span className="text-fn-teal">AI</span>
-        </h1>
-        <p className="mt-1 text-fn-muted">Your progress at a glance</p>
-      </header>
+  const [weekCount, setWeekCount] = useState<number | null>(null);
+  const [last7Days, setLast7Days] = useState<number[]>([]);
+  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
 
-      {/* MVP dashboard wireframe — key metrics above the fold */}
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        setWeekCount(0);
+        setLast7Days([]);
+        setOnboardingComplete(false);
+        setLoading(false);
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      const weekStart = getWeekStart(new Date());
+
+      Promise.all([
+        supabase
+          .from("workout_logs")
+          .select("date", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .gte("date", weekStart)
+          .lte("date", today),
+        supabase
+          .from("workout_logs")
+          .select("date")
+          .eq("user_id", user.id)
+          .gte("date", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
+          .lte("date", today)
+          .order("date", { ascending: true }),
+        supabase
+          .from("onboarding")
+          .select("completed_at")
+          .eq("user_id", user.id)
+          .not("completed_at", "is", null)
+          .limit(1)
+          .maybeSingle(),
+      ]).then(
+        ([weekRes, last7Res, onboardingRes]) => {
+          if (weekRes.count != null) setWeekCount(weekRes.count);
+          else setWeekCount(0);
+
+          const byDate: Record<string, number> = {};
+          (last7Res.data ?? []).forEach((row: { date: string }) => {
+            byDate[row.date] = (byDate[row.date] ?? 0) + 1;
+          });
+          const days: number[] = [];
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().slice(0, 10);
+            days.push(byDate[key] ?? 0);
+          }
+          setLast7Days(days);
+
+          setOnboardingComplete(!!onboardingRes.data);
+          setLoading(false);
+        },
+        () => setLoading(false)
+      );
+    }).then(undefined, () => setLoading(false));
+  }, []);
+
+  return (
+    <PageLayout
+      title={
+        <>
+          FitNova <span className="text-fn-teal">AI</span>
+        </>
+      }
+      subtitle="Your progress at a glance"
+    >
       <section className="space-y-4" aria-label="Dashboard summary">
-        <div className="rounded-xl border border-fn-border bg-fn-surface p-4">
-          <h2 className="text-sm font-medium text-fn-muted">This week</h2>
-          <p className="mt-2 text-2xl font-semibold text-white">— workouts</p>
-          <p className="text-sm text-fn-muted">Progress chart placeholder</p>
-        </div>
-        <div className="rounded-xl border border-fn-border bg-fn-surface p-4">
-          <h2 className="text-sm font-medium text-fn-muted">Quick actions</h2>
+        <Card>
+          <CardHeader title="This week" />
+          {loading ? (
+            <LoadingState className="mt-2" />
+          ) : (
+            <>
+              <p className="mt-2 text-2xl font-semibold text-white">
+                {weekCount ?? 0} workout{(weekCount ?? 0) === 1 ? "" : "s"}
+              </p>
+              <p className="text-sm text-fn-muted mt-1">Last 7 days</p>
+              <div className="mt-4 h-12 flex items-end gap-1">
+                {last7Days.map((n, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-t bg-fn-teal/60 min-h-[4px]"
+                    style={{
+                      height: `${Math.max(8, (n / Math.max(...last7Days, 1)) * 100)}%`,
+                    }}
+                    title={`${n} workout(s)`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
+
+        <Card>
+          <CardHeader title="Quick actions" />
           <div className="mt-3 flex flex-wrap gap-3">
-            <Link
-              href="/log/workout"
-              className="min-h-touch min-w-touch inline-flex items-center justify-center rounded-lg bg-fn-teal px-4 py-3 text-sm font-medium text-fn-black hover:bg-fn-teal-dim focus:outline-none focus:ring-2 focus:ring-white"
-            >
-              Start workout
+            <Link href="/log/workout">
+              <Button variant="primary">Start workout</Button>
             </Link>
-            <Link
-              href="/coach"
-              className="min-h-touch min-w-touch inline-flex items-center justify-center rounded-lg border border-fn-border bg-fn-surface px-4 py-3 text-sm font-medium text-white hover:bg-fn-surface-hover focus:outline-none focus:ring-2 focus:ring-fn-teal"
-            >
-              Ask coach
+            <Link href="/coach">
+              <Button variant="secondary">Ask coach</Button>
             </Link>
-            <Link
-              href="/onboarding"
-              className="min-h-touch min-w-touch inline-flex items-center justify-center rounded-lg border border-fn-border bg-fn-surface px-4 py-3 text-sm font-medium text-white hover:bg-fn-surface-hover focus:outline-none focus:ring-2 focus:ring-fn-teal"
-            >
-              Onboarding
-            </Link>
-            <Link
-              href="/progress"
-              className="min-h-touch min-w-touch inline-flex items-center justify-center rounded-lg border border-fn-border bg-fn-surface px-4 py-3 text-sm font-medium text-white hover:bg-fn-surface-hover focus:outline-none focus:ring-2 focus:ring-fn-teal"
-            >
-              Progress
+            {onboardingComplete === false && (
+              <Link href="/onboarding">
+                <Button variant="secondary">Onboarding</Button>
+              </Link>
+            )}
+            <Link href="/progress">
+              <Button variant="secondary">Progress</Button>
             </Link>
           </div>
-        </div>
+        </Card>
       </section>
-    </div>
+    </PageLayout>
   );
 }

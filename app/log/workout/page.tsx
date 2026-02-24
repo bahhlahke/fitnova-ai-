@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { WorkoutType } from "@/types";
+import { PageLayout, Card, CardHeader, Button, Input, Label, EmptyState, LoadingState, ErrorMessage } from "@/components/ui";
 
 const WORKOUT_TYPES: { value: WorkoutType; label: string }[] = [
   { value: "strength", label: "Strength" },
@@ -12,15 +14,48 @@ const WORKOUT_TYPES: { value: WorkoutType; label: string }[] = [
 ];
 
 export default function WorkoutLogPage() {
-  const [workouts] = useState<{ date: string; type: string; duration?: number }[]>([]);
+  const [workouts, setWorkouts] = useState<{ log_id: string; date: string; workout_type: string; duration_minutes?: number; notes?: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refetch, setRefetch] = useState(0);
+  const fetchWorkouts = useCallback(() => {
+    const supabase = createClient();
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      supabase
+        .from("workout_logs")
+        .select("log_id, date, workout_type, exercises, duration_minutes, notes")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false })
+        .limit(20)
+        .then(
+          ({ data }) => {
+            setWorkouts((data ?? []) as { log_id: string; date: string; workout_type: string; duration_minutes?: number; notes?: string }[]);
+            setLoading(false);
+          },
+          () => setLoading(false)
+        );
+    }).then(undefined, () => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchWorkouts();
+  }, [fetchWorkouts, refetch]);
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-6">
-      <header className="mb-6 flex items-center gap-4">
-        <Link href="/log" className="text-fn-muted hover:text-white">← Log</Link>
-        <h1 className="text-2xl font-bold text-white">Workout</h1>
-      </header>
-
+    <PageLayout
+      title="Workout"
+      subtitle="Guided or quick log"
+      backHref="/log"
+      backLabel="Log"
+    >
       <div className="grid gap-4">
         <Link
           href="/log/workout/guided"
@@ -30,69 +65,134 @@ export default function WorkoutLogPage() {
           <span className="text-sm text-fn-muted">Step-by-step + rest timers</span>
         </Link>
 
-        <section className="rounded-xl border border-fn-border bg-fn-surface p-4">
-          <h2 className="text-sm font-medium text-fn-muted">Quick log</h2>
-          <p className="mt-2 text-sm text-fn-muted">Add a workout (data will persist when Supabase is connected).</p>
-          <WorkoutQuickForm />
-        </section>
+        <Card>
+          <CardHeader title="Quick log" subtitle="Add a workout" />
+          <WorkoutQuickForm onSuccess={() => setRefetch((n) => n + 1)} />
+        </Card>
 
-        {workouts.length > 0 ? (
+        {loading ? (
+          <LoadingState />
+        ) : workouts.length > 0 ? (
           <ul className="space-y-2">
-            {workouts.map((w, i) => (
-              <li key={i} className="rounded-lg border border-fn-border bg-fn-surface p-3 text-sm text-white">
-                {w.date} — {w.type} {w.duration != null && `(${w.duration} min)`}
+            {workouts.map((w) => (
+              <li
+                key={w.log_id}
+                className="rounded-lg border border-fn-border bg-fn-surface p-3 text-sm text-white"
+              >
+                {w.date} — {w.workout_type}
+                {w.duration_minutes != null && ` (${w.duration_minutes} min)`}
+                {w.notes && ` — ${w.notes}`}
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-fn-muted">No workouts yet. Start a guided session or quick log above.</p>
+          <EmptyState
+            message="No workouts yet. Start a guided session or quick log above."
+            action={
+              <Link href="/log/workout/guided">
+                <Button variant="secondary" size="sm">
+                  Start guided workout
+                </Button>
+              </Link>
+            }
+          />
         )}
       </div>
-    </div>
+    </PageLayout>
   );
 }
 
-function WorkoutQuickForm() {
+function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
   const [type, setType] = useState<WorkoutType>("strength");
   const [duration, setDuration] = useState("");
   const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    const supabase = createClient();
+    if (!supabase) {
+      setError("Supabase not configured.");
+      setSaving(false);
+      return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setError("Sign in to save workout.");
+      setSaving(false);
+      return;
+    }
+    const durationNum = duration.trim() ? parseInt(duration, 10) : undefined;
+    if (duration.trim() && (durationNum == null || !Number.isInteger(durationNum) || durationNum < 1 || durationNum > 600)) {
+      setError("Duration must be 1–600 minutes.");
+      setSaving(false);
+      return;
+    }
+    const { error: err } = await supabase.from("workout_logs").insert({
+      user_id: user.id,
+      date: new Date().toISOString().slice(0, 10),
+      workout_type: type,
+      exercises: [],
+      duration_minutes: durationNum ?? null,
+      notes: notes.trim() || null,
+    });
+    setSaving(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setDuration("");
+    setNotes("");
+    onSuccess();
+  }
 
   return (
-    <form className="mt-4 space-y-4" onSubmit={(e) => e.preventDefault()}>
-      <label className="block text-sm text-fn-muted">Type</label>
-      <div className="flex flex-wrap gap-2">
-        {WORKOUT_TYPES.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setType(value)}
-            className={`min-h-touch rounded-lg px-4 py-2 text-sm font-medium ${
-              type === value ? "bg-fn-teal text-fn-black" : "border border-fn-border text-white hover:bg-fn-surface-hover"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+    <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
+      <div>
+        <Label>Type</Label>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {WORKOUT_TYPES.map(({ value, label }) => (
+            <Button
+              key={value}
+              type="button"
+              variant={type === value ? "primary" : "secondary"}
+              size="sm"
+              onClick={() => setType(value)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
       </div>
-      <label className="block text-sm text-fn-muted">Duration (min)</label>
-      <input
-        type="number"
-        value={duration}
-        onChange={(e) => setDuration(e.target.value)}
-        className="min-h-touch w-full rounded-lg border border-fn-border bg-fn-surface px-4 py-3 text-white"
-        placeholder="30"
-      />
-      <label className="block text-sm text-fn-muted">Notes</label>
-      <input
-        type="text"
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        className="min-h-touch w-full rounded-lg border border-fn-border bg-fn-surface px-4 py-3 text-white"
-        placeholder="Optional"
-      />
-      <button type="button" className="min-h-touch w-full rounded-lg bg-fn-teal py-3 font-medium text-fn-black hover:bg-fn-teal-dim">
+      <div>
+        <Label htmlFor="duration">Duration (min)</Label>
+        <Input
+          id="duration"
+          type="number"
+          value={duration}
+          onChange={(e) => setDuration(e.target.value)}
+          placeholder="30"
+          className="mt-1"
+        />
+      </div>
+      <div>
+        <Label htmlFor="notes">Notes</Label>
+        <Input
+          id="notes"
+          type="text"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Optional"
+          className="mt-1"
+        />
+      </div>
+      {error && <ErrorMessage message={error} />}
+      <Button type="submit" loading={saving} className="w-full">
         Save workout
-      </button>
+      </Button>
     </form>
   );
 }

@@ -31,6 +31,8 @@
 
 - `npm run build` — production build.
 - `npm run lint` — ESLint.
+- `npm test` — Vitest (unit/integration tests); run after changes to `lib/`, `app/api/`, or pages.
+- `npm run validate` — lint + build + test (CI-style).
 
 ## Deployment (Vercel)
 
@@ -44,7 +46,7 @@
 ## Health checks
 
 - **App:** `GET /` — should return 200 and the dashboard.
-- **AI route:** `POST /api/v1/ai/respond` with `{ "message": "Hi" }` and valid session — should return `{ "reply": "..." }`. Without OpenRouter key, returns 503.
+- **AI route:** `POST /api/v1/ai/respond` with `Content-Type: application/json` and body `{ "message": "Hi" }`. With valid session and OpenRouter key, returns 200 and `{ "reply": "..." }`. Without OpenRouter key, returns 503. See [docs/API.md](API.md) for full contract.
 
 ## Data retention (future)
 
@@ -52,6 +54,7 @@
 
 ## Troubleshooting
 
-- **Auth not working:** Ensure Supabase URL and anon key are set and that the Supabase project has Auth enabled (email magic link).
-- **AI returns 503:** Set `OPENROUTER_API_KEY` in Vercel (and locally in `.env.local`).
+- **Auth not working:** Ensure Supabase URL and anon key are set and that the Supabase project has Auth enabled (email magic link). Redirect after login is validated (relative path only) in `app/auth/callback/route.ts`.
+- **AI returns 503:** Set `OPENROUTER_API_KEY` in Vercel (and locally in `.env.local`). Key is server-only and must not be exposed to the client.
 - **RLS errors:** Ensure migrations have been run and policies use `auth.uid()`.
+- **Stuck loading on dashboard/settings/progress/log:** Check browser console and network; Supabase or auth failures are caught and loading state is cleared. Verify env vars and that the schema matches `supabase/migrations/`.
