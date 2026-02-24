@@ -11,6 +11,14 @@ import {
   LoadingState,
   EmptyState,
 } from "@/components/ui";
+import {
+  DEFAULT_UNIT_SYSTEM,
+  UnitSystem,
+  formatDisplayNumber,
+  readUnitSystemFromProfile,
+  toDisplayWeight,
+  weightUnitLabel,
+} from "@/lib/units";
 
 type Entry = {
   date: string;
@@ -22,6 +30,7 @@ type Entry = {
 
 export default function ProgressPage() {
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>(DEFAULT_UNIT_SYSTEM);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,12 +57,23 @@ export default function ProgressPage() {
           },
           () => setLoading(false)
         );
+      supabase
+        .from("user_profile")
+        .select("devices")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          const nextUnits = readUnitSystemFromProfile((data ?? {}) as Record<string, unknown>);
+          setUnitSystem(nextUnits);
+        });
     }).then(undefined, () => setLoading(false));
   }, []);
 
   const weights = entries.filter((e) => e.weight != null) as { date: string; weight: number }[];
   const latestWeight = weights[0]?.weight;
   const previousWeight = weights[1]?.weight;
+  const latestWeightDisplay = latestWeight != null ? formatDisplayNumber(toDisplayWeight(latestWeight, unitSystem), 1) : null;
+  const unitLabel = weightUnitLabel(unitSystem);
   const trend =
     latestWeight != null && previousWeight != null
       ? latestWeight < previousWeight
@@ -92,7 +112,7 @@ export default function ProgressPage() {
               <CardHeader title="Latest check-in" />
               {latestWeight != null ? (
                 <>
-                  <p className="mt-2 text-3xl font-semibold text-fn-ink">{latestWeight} kg</p>
+                  <p className="mt-2 text-3xl font-semibold text-fn-ink">{latestWeightDisplay} {unitLabel}</p>
                   {trend && (
                     <p className="mt-1 text-sm text-fn-muted">
                       {trend === "down" && "Trending down"}
@@ -117,7 +137,7 @@ export default function ProgressPage() {
                   style={{
                     height: `${Math.max(8, (e.weight / (Math.max(...weights.map((x) => x.weight), 1) || 1)) * 85)}%`,
                   }}
-                  title={`${e.date}: ${e.weight} kg`}
+                  title={`${e.date}: ${formatDisplayNumber(toDisplayWeight(e.weight, unitSystem), 1)} ${unitLabel}`}
                 />
               ))}
             </div>
@@ -145,7 +165,7 @@ export default function ProgressPage() {
                       <span>{e.date}</span>
                       <span>
                         {[
-                          e.weight != null ? `${e.weight} kg` : "",
+                          e.weight != null ? `${formatDisplayNumber(toDisplayWeight(e.weight, unitSystem), 1)} ${unitLabel}` : "",
                           e.body_fat_percent != null ? `${e.body_fat_percent}%` : "",
                         ]
                           .filter(Boolean)

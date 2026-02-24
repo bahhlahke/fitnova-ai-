@@ -16,6 +16,18 @@ import {
 } from "@/components/ui";
 import { AuthSettings } from "@/components/auth/AuthSettings";
 import type { UserProfile } from "@/types";
+import {
+  DEFAULT_UNIT_SYSTEM,
+  UnitSystem,
+  formatDisplayNumber,
+  fromDisplayHeight,
+  fromDisplayWeight,
+  heightUnitLabel,
+  readUnitSystemFromProfile,
+  toDisplayHeight,
+  toDisplayWeight,
+  weightUnitLabel,
+} from "@/lib/units";
 
 const GOAL_OPTIONS = [
   "Weight loss",
@@ -35,6 +47,9 @@ const ACTIVITY_LEVELS = [
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<Partial<UserProfile> | null>(null);
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>(DEFAULT_UNIT_SYSTEM);
+  const [heightInput, setHeightInput] = useState("");
+  const [weightInput, setWeightInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,8 +75,22 @@ export default function SettingsPage() {
         .maybeSingle()
         .then(
           ({ data, error: fetchError }) => {
-            if (fetchError) setProfile({});
-            else setProfile((data as UserProfile) ?? {});
+            const nextProfile: Partial<UserProfile> = fetchError ? {} : ((data as UserProfile) ?? {});
+            const nextUnitSystem = readUnitSystemFromProfile(nextProfile as Record<string, unknown>);
+            setProfile(nextProfile);
+            setUnitSystem(nextUnitSystem);
+            const nextHeight = nextProfile.height;
+            const nextWeight = nextProfile.weight;
+            setHeightInput(
+              nextHeight != null && Number.isFinite(nextHeight)
+                ? formatDisplayNumber(toDisplayHeight(nextHeight, nextUnitSystem), nextUnitSystem === "imperial" ? 1 : 0)
+                : ""
+            );
+            setWeightInput(
+              nextWeight != null && Number.isFinite(nextWeight)
+                ? formatDisplayNumber(toDisplayWeight(nextWeight, nextUnitSystem), 1)
+                : ""
+            );
             setLoading(false);
           },
           () => setLoading(false)
@@ -108,6 +137,7 @@ export default function SettingsPage() {
         devices: {
           ...(profile.devices ?? {}),
           ai_coach_tone: coachTone,
+          units_system: unitSystem,
         },
       },
       { onConflict: "user_id" }
@@ -125,6 +155,50 @@ export default function SettingsPage() {
     setProfile({
       ...profile,
       goals: goals.includes(g) ? goals.filter((x) => x !== g) : [...goals, g],
+    });
+  }
+
+  function handleUnitSystemChange(nextUnitSystem: UnitSystem) {
+    if (!profile) return;
+    setUnitSystem(nextUnitSystem);
+    const heightMetric = profile.height;
+    const weightMetric = profile.weight;
+    setHeightInput(
+      heightMetric != null && Number.isFinite(heightMetric)
+        ? formatDisplayNumber(toDisplayHeight(heightMetric, nextUnitSystem), nextUnitSystem === "imperial" ? 1 : 0)
+        : ""
+    );
+    setWeightInput(
+      weightMetric != null && Number.isFinite(weightMetric)
+        ? formatDisplayNumber(toDisplayWeight(weightMetric, nextUnitSystem), 1)
+        : ""
+    );
+    setProfile({
+      ...profile,
+      devices: {
+        ...(profile.devices ?? {}),
+        units_system: nextUnitSystem,
+      },
+    });
+  }
+
+  function handleHeightInput(value: string) {
+    if (!profile) return;
+    setHeightInput(value);
+    const parsed = Number.parseFloat(value);
+    setProfile({
+      ...profile,
+      height: Number.isFinite(parsed) ? fromDisplayHeight(parsed, unitSystem) : undefined,
+    });
+  }
+
+  function handleWeightInput(value: string) {
+    if (!profile) return;
+    setWeightInput(value);
+    const parsed = Number.parseFloat(value);
+    setProfile({
+      ...profile,
+      weight: Number.isFinite(parsed) ? fromDisplayWeight(parsed, unitSystem) : undefined,
     });
   }
 
@@ -181,12 +255,36 @@ export default function SettingsPage() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="height">Height (cm)</Label>
-              <Input id="height" type="number" value={p.height ?? ""} onChange={(e) => setProfile({ ...profile!, height: e.target.value ? Number(e.target.value) : undefined })} placeholder="170" className="mt-1" />
+              <Label htmlFor="unitSystem">Units</Label>
+              <Select id="unitSystem" value={unitSystem} onChange={(e) => handleUnitSystemChange(e.target.value === "metric" ? "metric" : "imperial")} className="mt-1">
+                <option value="imperial">in / lbs</option>
+                <option value="metric">cm / kg</option>
+              </Select>
+            </div>
+            <div />
+            <div>
+              <Label htmlFor="height">Height ({heightUnitLabel(unitSystem)})</Label>
+              <Input
+                id="height"
+                type="number"
+                step={unitSystem === "imperial" ? "0.1" : "1"}
+                value={heightInput}
+                onChange={(e) => handleHeightInput(e.target.value)}
+                placeholder={unitSystem === "imperial" ? "67" : "170"}
+                className="mt-1"
+              />
             </div>
             <div>
-              <Label htmlFor="weight">Weight (kg)</Label>
-              <Input id="weight" type="number" step="0.1" value={p.weight ?? ""} onChange={(e) => setProfile({ ...profile!, weight: e.target.value ? Number(e.target.value) : undefined })} placeholder="70" className="mt-1" />
+              <Label htmlFor="weight">Weight ({weightUnitLabel(unitSystem)})</Label>
+              <Input
+                id="weight"
+                type="number"
+                step="0.1"
+                value={weightInput}
+                onChange={(e) => handleWeightInput(e.target.value)}
+                placeholder={unitSystem === "imperial" ? "154" : "70"}
+                className="mt-1"
+              />
             </div>
           </div>
 

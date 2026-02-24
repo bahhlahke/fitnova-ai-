@@ -5,6 +5,14 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Card, ErrorMessage } from "@/components/ui";
 import { clearPreAuthDraft, readPreAuthDraft } from "@/lib/funnel/preauth";
+import {
+  DEFAULT_UNIT_SYSTEM,
+  UnitSystem,
+  fromDisplayHeight,
+  fromDisplayWeight,
+  heightUnitLabel,
+  weightUnitLabel,
+} from "@/lib/units";
 
 const steps = [
   { id: "stats", label: "Stats" },
@@ -28,6 +36,7 @@ const dietOptions = ["None", "Vegetarian", "Vegan", "Pescatarian", "Keto", "Othe
 export default function OnboardingPage() {
   const [resume, setResume] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>(DEFAULT_UNIT_SYSTEM);
   const [stats, setStats] = useState({ name: "", age: "", sex: "", height: "", weight: "" });
   const [goals, setGoals] = useState<string[]>([]);
   const [injuries, setInjuries] = useState("");
@@ -89,8 +98,10 @@ export default function OnboardingPage() {
     const heightNum = stats.height ? parseFloat(stats.height) : undefined;
     const weightNum = stats.weight ? parseFloat(stats.weight) : undefined;
     const age = ageNum != null && Number.isFinite(ageNum) && ageNum >= 13 && ageNum <= 120 ? ageNum : null;
-    const height = heightNum != null && Number.isFinite(heightNum) && heightNum >= 100 && heightNum <= 250 ? heightNum : null;
-    const weight = weightNum != null && Number.isFinite(weightNum) && weightNum >= 30 && weightNum <= 500 ? weightNum : null;
+    const heightCm = heightNum != null && Number.isFinite(heightNum) ? fromDisplayHeight(heightNum, unitSystem) : undefined;
+    const weightKg = weightNum != null && Number.isFinite(weightNum) ? fromDisplayWeight(weightNum, unitSystem) : undefined;
+    const height = heightCm != null && Number.isFinite(heightCm) && heightCm >= 100 && heightCm <= 250 ? heightCm : null;
+    const weight = weightKg != null && Number.isFinite(weightKg) && weightKg >= 30 && weightKg <= 500 ? weightKg : null;
     const { error: profileErr } = await supabase.from("user_profile").upsert(
       {
         user_id: user.id,
@@ -104,7 +115,7 @@ export default function OnboardingPage() {
         injuries_limitations: injuries.trim() ? { notes: injuries.trim() } : {},
         dietary_preferences: { preference: diet || "none", allergies: allergies.trim() || null },
         activity_level: null,
-        devices: devices.trim() ? { apps: devices.trim() } : {},
+        devices: { ...(devices.trim() ? { apps: devices.trim() } : {}), units_system: unitSystem },
       },
       { onConflict: "user_id" }
     );
@@ -120,6 +131,7 @@ export default function OnboardingPage() {
       diet,
       allergies,
       devices,
+      units_system: unitSystem,
       resumed_from_assessment: resumedFromAssessment,
     };
     const { data: existing } = await supabase
@@ -229,10 +241,29 @@ export default function OnboardingPage() {
                   <option value="female">Female</option>
                   <option value="other">Other</option>
                 </select>
-                <label className={labelClass}>Height (cm)</label>
-                <input type="number" value={stats.height} onChange={(e) => setStats((s) => ({ ...s, height: e.target.value }))} className={inputClass} placeholder="170" />
-                <label className={labelClass}>Weight (kg)</label>
-                <input type="number" value={stats.weight} onChange={(e) => setStats((s) => ({ ...s, weight: e.target.value }))} className={inputClass} placeholder="70" />
+                <label className={labelClass}>Units</label>
+                <select value={unitSystem} onChange={(e) => setUnitSystem(e.target.value === "metric" ? "metric" : "imperial")} className={inputClass}>
+                  <option value="imperial">in / lbs</option>
+                  <option value="metric">cm / kg</option>
+                </select>
+                <label className={labelClass}>Height ({heightUnitLabel(unitSystem)})</label>
+                <input
+                  type="number"
+                  step={unitSystem === "imperial" ? "0.1" : "1"}
+                  value={stats.height}
+                  onChange={(e) => setStats((s) => ({ ...s, height: e.target.value }))}
+                  className={inputClass}
+                  placeholder={unitSystem === "imperial" ? "67" : "170"}
+                />
+                <label className={labelClass}>Weight ({weightUnitLabel(unitSystem)})</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={stats.weight}
+                  onChange={(e) => setStats((s) => ({ ...s, weight: e.target.value }))}
+                  className={inputClass}
+                  placeholder={unitSystem === "imperial" ? "154" : "70"}
+                />
               </div>
             )}
 

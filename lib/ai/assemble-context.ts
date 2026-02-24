@@ -3,6 +3,7 @@
  * Used by POST /api/v1/ai/respond when the user is signed in.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { readUnitSystemFromProfile } from "@/lib/units";
 
 const SYSTEM_BASE = `You are an elite fitness coach and nutritionist. Be concise, supportive, and evidence-based. When giving advice, include brief rationale and one alternative option when relevant.`;
 
@@ -44,12 +45,14 @@ export async function assembleContext(
 
   if (profileRes.data) {
     const p = profileRes.data as Record<string, unknown>;
+    const units = readUnitSystemFromProfile(p);
     const lines: string[] = ["User profile:"];
     if (p.name) lines.push(`Name: ${p.name}`);
     if (p.age) lines.push(`Age: ${p.age}`);
     if (p.sex) lines.push(`Sex: ${p.sex}`);
     if (p.height != null) lines.push(`Height (cm): ${p.height}`);
     if (p.weight != null) lines.push(`Weight (kg): ${p.weight}`);
+    lines.push(`Preferred units: ${units === "imperial" ? "in/lbs" : "cm/kg"}`);
     if (Array.isArray(p.goals) && p.goals.length) lines.push(`Goals: ${(p.goals as string[]).join(", ")}`);
     if (p.activity_level) lines.push(`Activity level: ${p.activity_level}`);
     if (Object.keys((p.dietary_preferences as object) || {}).length)
