@@ -4,16 +4,27 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./route";
 
+const mockSupabase = {
+  auth: {
+    getUser: vi.fn(),
+  },
+  from: vi.fn(),
+};
+
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(() => Promise.reject(new Error("no cookie in test"))),
+  createClient: vi.fn(async () => mockSupabase),
 }));
 
 describe("POST /api/v1/ai/respond", () => {
   const originalEnv = process.env.OPENROUTER_API_KEY;
+  const originalAllowAnon = process.env.ALLOW_DEV_ANON_AI;
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    process.env.OPENROUTER_API_KEY = originalEnv;
+    mockSupabase.auth.getUser.mockReset();
+    mockSupabase.from.mockReset();
+    process.env.OPENROUTER_API_KEY = "test-key";
+    process.env.ALLOW_DEV_ANON_AI = "false";
   });
 
   it("returns 400 when body is not valid JSON", async () => {
@@ -25,29 +36,37 @@ describe("POST /api/v1/ai/respond", () => {
     const res = await POST(req);
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toMatch(/invalid|required/i);
+    expect(data.code).toBe("INVALID_JSON");
   });
 
-  it("returns 400 when message is missing", async () => {
+  it("returns 401 when user is not authenticated", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
     const req = new Request("http://localhost/api/v1/ai/respond", {
       method: "POST",
-      body: JSON.stringify({}),
+      body: JSON.stringify({ message: "hello" }),
       headers: { "Content-Type": "application/json" },
     });
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    const data = await res.json();
+    expect(data.code).toBe("AUTH_REQUIRED");
+  });
+
+  it("returns 400 when message exceeds max length", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+
+    const req = new Request("http://localhost/api/v1/ai/respond", {
+      method: "POST",
+      body: JSON.stringify({ message: "x".repeat(2001) }),
+      headers: { "Content-Type": "application/json" },
+    });
+
     const res = await POST(req);
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toMatch(/message/i);
-  });
-
-  it("returns 400 when message is empty string", async () => {
-    const req = new Request("http://localhost/api/v1/ai/respond", {
-      method: "POST",
-      body: JSON.stringify({ message: "   " }),
-      headers: { "Content-Type": "application/json" },
-    });
-    const res = await POST(req);
-    expect(res.status).toBe(400);
+    expect(data.code).toBe("VALIDATION_ERROR");
   });
 
   it("returns 503 when OPENROUTER_API_KEY is not set", async () => {
@@ -60,11 +79,29 @@ describe("POST /api/v1/ai/respond", () => {
     const res = await POST(req);
     expect(res.status).toBe(503);
     const data = await res.json();
-    expect(data.error).toMatch(/openrouter|key|configured/i);
+    expect(data.code).toBe("SERVICE_UNAVAILABLE");
   });
 
-  it("returns 200 and reply when key is set and OpenRouter returns success", async () => {
-    process.env.OPENROUTER_API_KEY = "test-key";
+  it("returns 200 and reply when authenticated and provider succeeds", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "ai_conversations") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+          insert: vi.fn().mockResolvedValue({ error: null }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+      };
+    });
+
     const mockReply = "Here is some coach advice.";
     vi.stubGlobal(
       "fetch",
@@ -88,5 +125,10 @@ describe("POST /api/v1/ai/respond", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.reply).toBe(mockReply);
+  });
+
+  afterEach(() => {
+    process.env.OPENROUTER_API_KEY = originalEnv;
+    process.env.ALLOW_DEV_ANON_AI = originalAllowAnon;
   });
 });

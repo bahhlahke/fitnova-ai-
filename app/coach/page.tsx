@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ErrorMessage } from "@/components/ui";
+import { ErrorMessage, Button } from "@/components/ui";
+import type { DailyPlan } from "@/lib/plan/types";
+import { createClient } from "@/lib/supabase/client";
+import { toLocalDateString } from "@/lib/date/local-date";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -10,11 +13,73 @@ export default function CoachPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null);
+  const [planLoading, setPlanLoading] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
+  const [logStatus, setLogStatus] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  async function generateDailyPlan() {
+    setPlanLoading(true);
+    setPlanError(null);
+    setLogStatus(null);
+
+    try {
+      const res = await fetch("/api/v1/plan/daily", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        plan?: DailyPlan;
+      };
+      if (!res.ok || !data.plan) throw new Error(data.error ?? "Failed to generate daily plan");
+      setDailyPlan(data.plan);
+    } catch (err) {
+      setPlanError(err instanceof Error ? err.message : "Could not generate plan.");
+    } finally {
+      setPlanLoading(false);
+    }
+  }
+
+  async function logPlannedWorkoutComplete() {
+    if (!dailyPlan) return;
+    const supabase = createClient();
+    if (!supabase) {
+      setLogStatus("Supabase is not configured.");
+      return;
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setLogStatus("Sign in to save workout completion.");
+      return;
+    }
+
+    const { error: insertErr } = await supabase.from("workout_logs").insert({
+      user_id: user.id,
+      date: toLocalDateString(),
+      workout_type: "strength",
+      duration_minutes: dailyPlan.training_plan.duration_minutes,
+      exercises: dailyPlan.training_plan.exercises,
+      notes: "Completed planned daily session",
+    });
+
+    if (insertErr) {
+      setLogStatus(insertErr.message);
+      return;
+    }
+
+    setLogStatus("Planned workout saved to your log.");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,9 +95,9 @@ export default function CoachPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),
       });
-      let data: { error?: string; reply?: string };
+      let data: { error?: string; reply?: string; code?: string };
       try {
-        data = (await res.json()) as { error?: string; reply?: string };
+        data = (await res.json()) as { error?: string; reply?: string; code?: string };
       } catch {
         setError(res.ok ? "Invalid response" : "Request failed");
         setLoading(false);
@@ -53,12 +118,33 @@ export default function CoachPage() {
         <h1 className="text-2xl font-bold text-white">
           AI <span className="text-fn-magenta">Coach</span>
         </h1>
-        <p className="mt-1 text-sm text-fn-muted">Ask for plans, form cues, or start today’s workout</p>
+        <p className="mt-1 text-sm text-fn-muted">Ask for plans, form cues, or start today&apos;s workout</p>
       </header>
+
+      <div className="mb-3 rounded-lg border border-fn-border bg-fn-surface p-3">
+        <p className="text-xs text-fn-muted">Not medical advice. If pain is severe or worsening, stop and seek licensed care.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button onClick={generateDailyPlan} loading={planLoading} size="sm">Generate today&apos;s plan</Button>
+          {dailyPlan && <Button variant="secondary" size="sm" onClick={logPlannedWorkoutComplete}>Log planned workout complete</Button>}
+        </div>
+        {planError && <ErrorMessage className="mt-2" message={planError} />}
+        {logStatus && <p className="mt-2 text-xs text-fn-muted">{logStatus}</p>}
+        {dailyPlan && (
+          <div className="mt-3 rounded-md border border-fn-border p-3">
+            <p className="text-sm font-medium text-white">{dailyPlan.training_plan.focus}</p>
+            <p className="text-xs text-fn-muted mt-1">Target: {dailyPlan.nutrition_plan.calorie_target} cal · Protein {dailyPlan.nutrition_plan.macros.protein_g}g</p>
+            <ul className="mt-2 space-y-1 text-xs text-fn-muted">
+              {dailyPlan.training_plan.exercises.slice(0, 4).map((exercise) => (
+                <li key={exercise.name}>{exercise.name}: {exercise.sets} sets · {exercise.reps}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto rounded-xl border border-fn-border bg-fn-surface p-4">
         {messages.length === 0 && (
-          <p className="text-fn-muted">Send a message to get started. Try: “What should I do for upper body today?” or “Log my workout: 3x10 bench press, 135 lb.”</p>
+          <p className="text-fn-muted">Send a message to get started. Try asking for an upper-body workout or logging a bench-press session.</p>
         )}
         {messages.map((msg, i) => (
           <div
@@ -70,7 +156,7 @@ export default function CoachPage() {
             <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
           </div>
         ))}
-        {loading && <p className="text-fn-muted">Thinking…</p>}
+        {loading && <p className="text-fn-muted">Thinking...</p>}
         {error && <ErrorMessage message={error} />}
         <div ref={bottomRef} />
       </div>
@@ -80,7 +166,7 @@ export default function CoachPage() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Message coach…"
+          placeholder="Message coach..."
           className="min-h-touch flex-1 rounded-lg border border-fn-border bg-fn-surface px-4 py-3 text-white placeholder-fn-muted focus:border-fn-teal focus:outline-none focus:ring-1 focus:ring-fn-teal"
           disabled={loading}
         />
@@ -92,23 +178,6 @@ export default function CoachPage() {
           Send
         </button>
       </form>
-
-      <div className="mt-2 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setInput("Start today’s workout")}
-          className="rounded-full border border-fn-border px-3 py-1.5 text-xs text-fn-muted hover:bg-fn-surface-hover hover:text-white"
-        >
-          Start today’s workout
-        </button>
-        <button
-          type="button"
-          onClick={() => setInput("Log workout: 3 sets bench press")}
-          className="rounded-full border border-fn-border px-3 py-1.5 text-xs text-fn-muted hover:bg-fn-surface-hover hover:text-white"
-        >
-          Log workout
-        </button>
-      </div>
     </div>
   );
 }

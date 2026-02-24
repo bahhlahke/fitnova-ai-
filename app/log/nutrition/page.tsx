@@ -3,14 +3,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { MealEntry } from "@/types";
-import { PageLayout, Card, CardHeader, Button, Input, Label, EmptyState, LoadingState } from "@/components/ui";
+import { PageLayout, Card, CardHeader, Button, Input, Label, EmptyState, LoadingState, ErrorMessage } from "@/components/ui";
+import { toLocalDateString } from "@/lib/date/local-date";
 
 export default function NutritionLogPage() {
   const [meals, setMeals] = useState<MealEntry[]>([]);
   const [logId, setLogId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refetch, setRefetch] = useState(0);
-  const today = new Date().toISOString().slice(0, 10);
+  const [error, setError] = useState<string | null>(null);
+  const today = toLocalDateString();
 
   const fetchToday = useCallback(() => {
     const supabase = createClient();
@@ -23,6 +25,7 @@ export default function NutritionLogPage() {
         setLoading(false);
         return;
       }
+      setError(null);
       supabase
         .from("nutrition_logs")
         .select("log_id, meals, total_calories")
@@ -43,9 +46,15 @@ export default function NutritionLogPage() {
             }
             setLoading(false);
           },
-          () => setLoading(false)
+          () => {
+            setError("Failed to load nutrition log.");
+            setLoading(false);
+          }
         );
-    }).then(undefined, () => setLoading(false));
+    }).then(undefined, () => {
+      setError("Failed to load nutrition log.");
+      setLoading(false);
+    });
   }, [today]);
 
   useEffect(() => {
@@ -71,6 +80,7 @@ export default function NutritionLogPage() {
           existingMeals={meals}
           existingLogId={logId}
         />
+        {error && <ErrorMessage className="mt-3" message={error} />}
       </Card>
 
       {loading ? (
@@ -115,20 +125,24 @@ function NutritionQuickAdd({
   const [quickDesc, setQuickDesc] = useState("");
   const [quickCals, setQuickCals] = useState("");
   const [saving, setSaving] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
+  const [error, setError] = useState<string | null>(null);
+  const today = toLocalDateString();
   const time = new Date().toTimeString().slice(0, 5);
 
   async function handleQuickAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!quickDesc.trim()) return;
     setSaving(true);
+    setError(null);
     const supabase = createClient();
     if (!supabase) {
+      setError("Supabase is not configured.");
       setSaving(false);
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
+      setError("Sign in to add nutrition entries.");
       setSaving(false);
       return;
     }
@@ -154,6 +168,7 @@ function NutritionQuickAdd({
         })
         .eq("log_id", existingLogId);
       if (error) {
+        setError(error.message);
         setSaving(false);
         return;
       }
@@ -173,6 +188,7 @@ function NutritionQuickAdd({
         .select("log_id")
         .single();
       if (error) {
+        setError(error.message);
         setSaving(false);
         return;
       }
@@ -215,6 +231,7 @@ function NutritionQuickAdd({
       <Button type="submit" loading={saving} disabled={!quickDesc.trim()}>
         Add
       </Button>
+      {error && <ErrorMessage className="sm:basis-full" message={error} />}
     </form>
   );
 }

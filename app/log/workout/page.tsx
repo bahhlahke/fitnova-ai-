@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { WorkoutType } from "@/types";
 import { PageLayout, Card, CardHeader, Button, Input, Label, EmptyState, LoadingState, ErrorMessage } from "@/components/ui";
+import { toLocalDateString } from "@/lib/date/local-date";
 
 const WORKOUT_TYPES: { value: WorkoutType; label: string }[] = [
   { value: "strength", label: "Strength" },
@@ -133,7 +134,7 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
     }
     const { error: err } = await supabase.from("workout_logs").insert({
       user_id: user.id,
-      date: new Date().toISOString().slice(0, 10),
+      date: toLocalDateString(),
       workout_type: type,
       exercises: [],
       duration_minutes: durationNum ?? null,

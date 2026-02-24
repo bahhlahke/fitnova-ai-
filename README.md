@@ -6,6 +6,7 @@ AI-backed fitness coaching and tracking — professional trainer–style guided 
 
 - **Dashboard** — This week’s workout count, 7-day bar chart, quick actions (workout, coach, progress, onboarding when needed).
 - **AI Coach** — Chat with an AI coach; context includes profile, recent workouts, nutrition, and conversation history.
+- **Daily Plan Engine** — Generate a personalized day plan (training + calories/macros + safety notes), save it, and use it in guided workouts.
 - **Log** — Workout (guided step-by-step or quick log) and nutrition (meals + calories per day); data persisted in Supabase.
 - **Progress** — Weight, body fat %, measurements (waist/chest/hip), trend chart, and add-entry form.
 - **Settings** — Profile edit (name, age, sex, height, weight, goals, activity level, injuries, dietary preferences).
@@ -37,7 +38,7 @@ AI-backed fitness coaching and tracking — professional trainer–style guided 
 
 2. **Environment**
    - Copy `.env.local.example` to `.env.local`.
-   - Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `OPENROUTER_API_KEY`. See [docs/RUNBOOK.md](docs/RUNBOOK.md#environment-variables).
+   - Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `OPENROUTER_API_KEY` (`ALLOW_DEV_ANON_AI=false` for launch). See [docs/RUNBOOK.md](docs/RUNBOOK.md#environment-variables).
 
 3. **Database**
    - Run `supabase/migrations/20250222000001_initial_schema.sql` in the Supabase SQL editor (or `supabase db push` if using Supabase CLI).
@@ -83,6 +84,7 @@ AI-backed fitness coaching and tracking — professional trainer–style guided 
 |------|-------------|
 | `app/` | App Router routes: `/` (dashboard), `/log`, `/log/workout`, `/log/nutrition`, `/log/workout/guided`, `/coach`, `/progress`, `/progress/add`, `/settings`, `/onboarding`, `/auth`. |
 | `app/api/v1/ai/respond/` | POST API for AI coach; see [docs/API.md](docs/API.md). |
+| `app/api/v1/plan/daily/` | POST API for personalized daily plan generation and persistence. |
 | `components/ui/` | Design primitives: Button, Card, Input, Label, Select, Textarea, EmptyState, LoadingState, ErrorMessage, PageLayout. |
 | `components/layout/` | BottomNav. |
 | `components/auth/` | AuthProvider, AuthGuard, AuthSettings. |
@@ -97,6 +99,7 @@ AI-backed fitness coaching and tracking — professional trainer–style guided 
 | [docs/RUNBOOK.md](docs/RUNBOOK.md) | Environment, deploy, health checks, troubleshooting. |
 | [docs/DESIGN.md](docs/DESIGN.md) | Design system (Concept 1), UI components, accessibility. |
 | [docs/API.md](docs/API.md) | AI respond API contract. |
+| [docs/SMOKE-CHECKLIST.md](docs/SMOKE-CHECKLIST.md) | Pre-launch smoke run for daily planning and logging flow. |
 | [docs/SAAS-EXTENSION.md](docs/SAAS-EXTENSION.md) | Outline for multi-tenant SaaS (M5+). |
 
 ## Milestones

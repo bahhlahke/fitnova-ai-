@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Card } from "@/components/ui";
+import { ErrorMessage } from "@/components/ui";
 
 const steps = [
   { id: "stats", label: "Stats" },
@@ -51,14 +52,12 @@ export default function OnboardingPage() {
     if (!supabase) {
       setSaveError("Supabase not configured.");
       setSaving(false);
-      setCompleted(true);
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setSaveError("Sign in to save your profile.");
       setSaving(false);
-      setCompleted(true);
       return;
     }
     const ageNum = stats.age ? parseInt(stats.age, 10) : undefined;
@@ -87,7 +86,6 @@ export default function OnboardingPage() {
     if (profileErr) {
       setSaveError(profileErr.message);
       setSaving(false);
-      setCompleted(true);
       return;
     }
     const responses = {
@@ -105,17 +103,25 @@ export default function OnboardingPage() {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+    let onboardingErr: { message: string } | null = null;
     if (existing && "onboarding_id" in existing) {
-      await supabase
+      const { error } = await supabase
         .from("onboarding")
         .update({ completed_at: new Date().toISOString(), responses })
         .eq("onboarding_id", (existing as { onboarding_id: string }).onboarding_id);
+      onboardingErr = error;
     } else {
-      await supabase.from("onboarding").insert({
+      const { error } = await supabase.from("onboarding").insert({
         user_id: user.id,
         completed_at: new Date().toISOString(),
         responses,
       });
+      onboardingErr = error;
+    }
+    if (onboardingErr) {
+      setSaveError(onboardingErr.message);
+      setSaving(false);
+      return;
     }
     setSaving(false);
     setCompleted(true);
@@ -133,7 +139,7 @@ export default function OnboardingPage() {
           <h2 className="text-lg font-medium text-white">You’re all set</h2>
           <p className="mt-2 text-fn-muted">
             {saveError
-              ? "Onboarding complete. " + saveError
+              ? `Could not complete onboarding: ${saveError}`
               : "Onboarding complete. Your profile has been saved."}
           </p>
           {saveError && (
@@ -256,6 +262,7 @@ export default function OnboardingPage() {
             {currentStep < steps.length - 1 ? "Next" : "Finish"}
           </Button>
         </div>
+        {saveError && <ErrorMessage className="mt-3" message={saveError} />}
       </div>
     </div>
   );

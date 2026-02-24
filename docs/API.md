@@ -8,13 +8,12 @@ Chat endpoint for the AI coach. Uses OpenRouter; when the user is signed in, con
 
 - **Method:** `POST`
 - **Headers:** `Content-Type: application/json`
-- **Auth:** Session cookie (Supabase). If no session, a default system prompt is used.
+- **Auth:** Session cookie (Supabase) required in production behavior.
 - **Body:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `message` | string | Yes | User message; must be non-empty after trim. |
-| `contextOverride` | string | No | If set, replaces the assembled system prompt (e.g. for testing). |
 
 **Example**
 
@@ -34,12 +33,60 @@ Chat endpoint for the AI coach. Uses OpenRouter; when the user is signed in, con
 
 | Status | Body | Cause |
 |--------|------|--------|
-| 400 | `{ "error": "message is required" }` | Missing or empty `message`. |
-| 400 | `{ "error": "Invalid JSON body" }` | Malformed request body. |
-| 500 | `{ "error": "AI service error" }` | OpenRouter or internal error. |
-| 503 | `{ "error": "OpenRouter API key not configured" }` | `OPENROUTER_API_KEY` not set. |
+| 400 | `{ "error": "...", "code": "INVALID_JSON" \| "VALIDATION_ERROR" }` | Malformed or invalid body. |
+| 401 | `{ "error": "...", "code": "AUTH_REQUIRED" }` | No signed-in user. |
+| 429 | `{ "error": "...", "code": "RATE_LIMITED" }` | User exceeded request limit. |
+| 500 | `{ "error": "...", "code": "INTERNAL_ERROR" }` | Internal error. |
+| 502 | `{ "error": "...", "code": "UPSTREAM_ERROR" }` | Provider failure. |
+| 503 | `{ "error": "...", "code": "SERVICE_UNAVAILABLE" }` | `OPENROUTER_API_KEY` not set. |
 
 ### Behavior
 
-- When the user is signed in, the handler loads profile, recent workout/nutrition logs, and latest conversation from Supabase and builds a system prompt via `lib/ai/assemble-context.ts`.
-- The request is sent to OpenRouter (`openai/gpt-4o-mini`); the reply is returned and, when signed in, the exchange is appended to `ai_conversations` for that user.
+- The handler loads profile, recent workout/nutrition logs, and latest conversation from Supabase and builds a system prompt via `lib/ai/assemble-context.ts`.
+- Safety policy is appended to system prompt (balanced mode: no diagnosis/treatment, injury-aware alternatives, escalation guidance).
+- Requests are rate limited per user and bounded by message length.
+- The request is sent to OpenRouter (`openai/gpt-4o-mini`); reply is returned and appended to `ai_conversations`.
+
+## POST `/api/v1/plan/daily`
+
+Builds and stores a personalized day plan for the signed-in user.
+
+### Request
+
+- **Method:** `POST`
+- **Headers:** `Content-Type: application/json`
+- **Auth:** Session cookie (Supabase) required.
+- **Body:** optional constraints
+
+```json
+{
+  "todayConstraints": {
+    "minutesAvailable": 45,
+    "location": "gym",
+    "soreness": "mild lower body soreness"
+  }
+}
+```
+
+### Response
+
+**Success (200)**
+
+```json
+{
+  "plan": {
+    "date_local": "2026-02-24",
+    "training_plan": {},
+    "nutrition_plan": {},
+    "safety_notes": []
+  }
+}
+```
+
+### Errors
+
+| Status | Body | Cause |
+|--------|------|--------|
+| 401 | `{ "error": "...", "code": "AUTH_REQUIRED" }` | No signed-in user. |
+| 429 | `{ "error": "...", "code": "RATE_LIMITED" }` | User exceeded request limit. |
+| 500 | `{ "error": "...", "code": "INTERNAL_ERROR" }` | Plan generation or persistence failed. |

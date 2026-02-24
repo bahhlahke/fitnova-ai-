@@ -65,3 +65,24 @@ export interface UserProfile {
   created_at: string;
   updated_at: string;
 }
+
+export interface DailyPlanRecord {
+  plan_id: string;
+  user_id: string;
+  date_local: string;
+  plan_json: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CheckInRecord {
+  check_in_id: string;
+  user_id: string;
+  date_local: string;
+  adherence_score?: number;
+  energy_score?: number;
+  sleep_hours?: number;
+  soreness_notes?: string;
+  created_at: string;
+  updated_at: string;
+}

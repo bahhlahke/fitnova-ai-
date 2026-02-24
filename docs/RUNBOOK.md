@@ -15,8 +15,10 @@
 | `NEXT_PUBLIC_SUPABASE_URL` | Vercel + `.env.local` | Yes (for auth and data) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Vercel + `.env.local` | Yes |
 | `OPENROUTER_API_KEY` | Vercel + `.env.local` (server only) | Yes (for AI coach) |
+| `ALLOW_DEV_ANON_AI` | `.env.local` | No (dev only; defaults to false) |
 
 - Never expose `OPENROUTER_API_KEY` to the client. It is used only in `app/api/v1/ai/respond/route.ts`.
+- Keep `ALLOW_DEV_ANON_AI=false` for production/private launch.
 - Copy `.env.local.example` to `.env.local` and fill values for local dev.
 
 ## Local development
@@ -46,7 +48,8 @@
 ## Health checks
 
 - **App:** `GET /` — should return 200 and the dashboard.
-- **AI route:** `POST /api/v1/ai/respond` with `Content-Type: application/json` and body `{ "message": "Hi" }`. With valid session and OpenRouter key, returns 200 and `{ "reply": "..." }`. Without OpenRouter key, returns 503. See [docs/API.md](API.md) for full contract.
+- **AI route:** `POST /api/v1/ai/respond` requires session and body `{ "message": "Hi" }`; returns `{ "reply": "..." }` on success.
+- **Daily plan route:** `POST /api/v1/plan/daily` requires session; returns `{ "plan": { ... } }` and persists to `daily_plans`.
 
 ## Data retention (future)
 
@@ -56,5 +59,6 @@
 
 - **Auth not working:** Ensure Supabase URL and anon key are set and that the Supabase project has Auth enabled (email magic link). Redirect after login is validated (relative path only) in `app/auth/callback/route.ts`.
 - **AI returns 503:** Set `OPENROUTER_API_KEY` in Vercel (and locally in `.env.local`). Key is server-only and must not be exposed to the client.
+- **AI returns 401:** User is not signed in. Authenticate first (magic link flow).
 - **RLS errors:** Ensure migrations have been run and policies use `auth.uid()`.
 - **Stuck loading on dashboard/settings/progress/log:** Check browser console and network; Supabase or auth failures are caught and loading state is cleared. Verify env vars and that the schema matches `supabase/migrations/`.

@@ -10,6 +10,7 @@ import {
   Label,
   ErrorMessage,
 } from "@/components/ui";
+import { toLocalDateString } from "@/lib/date/local-date";
 
 export default function AddProgressPage() {
   const router = useRouter();
@@ -62,7 +63,7 @@ export default function AddProgressPage() {
     }
     const { error: err } = await supabase.from("progress_tracking").insert({
       user_id: user.id,
-      date: new Date().toISOString().slice(0, 10),
+      date: toLocalDateString(),
       weight: w ?? null,
       body_fat_percent: bf ?? null,
       measurements: Object.keys(measurements).length ? measurements : {},

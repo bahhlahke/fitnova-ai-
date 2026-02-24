@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PageLayout, Card, CardHeader, Button, LoadingState } from "@/components/ui";
+import { toLocalDateString } from "@/lib/date/local-date";
 
 function getWeekStart(d: Date): string {
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   const monday = new Date(d);
   monday.setDate(diff);
-  return monday.toISOString().slice(0, 10);
+  return toLocalDateString(monday);
 }
 
 export default function DashboardPage() {
@@ -33,7 +34,7 @@ export default function DashboardPage() {
         setLoading(false);
         return;
       }
-      const today = new Date().toISOString().slice(0, 10);
+      const today = toLocalDateString();
       const weekStart = getWeekStart(new Date());
 
       Promise.all([
@@ -47,7 +48,7 @@ export default function DashboardPage() {
           .from("workout_logs")
           .select("date")
           .eq("user_id", user.id)
-          .gte("date", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
+          .gte("date", toLocalDateString(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)))
           .lte("date", today)
           .order("date", { ascending: true }),
         supabase
@@ -70,7 +71,7 @@ export default function DashboardPage() {
           for (let i = 6; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
-            const key = d.toISOString().slice(0, 10);
+            const key = toLocalDateString(d);
             days.push(byDate[key] ?? 0);
           }
           setLast7Days(days);
