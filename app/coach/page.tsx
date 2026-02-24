@@ -1,10 +1,26 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { ErrorMessage, Button, Card, CardHeader } from "@/components/ui";
 import type { DailyPlan } from "@/lib/plan/types";
 import { createClient } from "@/lib/supabase/client";
 import { toLocalDateString } from "@/lib/date/local-date";
+
+/** Fitness professional imagery: tailored to viewer gender (male user → female pro, female user → male pro). */
+const COACH_IMAGE_FEMALE_PRO =
+  "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&h=400&fit=crop&q=80";
+const COACH_IMAGE_MALE_PRO =
+  "https://images.unsplash.com/photo-1583454110551-21eb2fa97ead?w=400&h=400&fit=crop&q=80";
+
+const SUGGESTED_PROMPTS = [
+  "Give me a 35-minute home workout with no equipment",
+  "How do I close my protein gap without eating more meat?",
+  "I'm sore from yesterday — should I train or rest?",
+  "Suggest a simple meal that fits 40g protein and 500 cal",
+  "What's one form cue I should focus on for squats?",
+  "Help me adjust my plan for a busy week",
+];
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -17,11 +33,29 @@ export default function CoachPage() {
   const [planLoading, setPlanLoading] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
   const [logStatus, setLogStatus] = useState<string | null>(null);
+  const [coachImageUrl, setCoachImageUrl] = useState<string>(COACH_IMAGE_FEMALE_PRO);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase
+        .from("user_profile")
+        .select("sex")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          const sex = (data as { sex?: string } | null)?.sex?.toLowerCase();
+          setCoachImageUrl(sex === "female" ? COACH_IMAGE_MALE_PRO : COACH_IMAGE_FEMALE_PRO);
+        });
+    });
+  }, []);
 
   async function generateDailyPlan() {
     setPlanLoading(true);
@@ -114,15 +148,26 @@ export default function CoachPage() {
 
   return (
     <div className="mx-auto w-full max-w-shell px-4 py-8 sm:px-6">
-      <header className="mb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">AI Coach</p>
-        <h1 className="mt-2 font-display text-4xl text-fn-ink">Daily accountability and decisions</h1>
-        <p className="mt-2 text-fn-muted">Ask for training adjustments, nutrition guidance, and progression rationale.</p>
+      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-fn-border shadow-fn-soft sm:h-28 sm:w-28">
+          <Image
+            src={coachImageUrl}
+            alt="FitNova AI Coach"
+            fill
+            className="object-cover"
+            sizes="112px"
+          />
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">Your AI coach</p>
+          <h1 className="mt-2 font-display text-3xl text-fn-ink sm:text-4xl">Daily accountability and decisions</h1>
+          <p className="mt-2 text-fn-muted">Evidence-based training adjustments, nutrition guidance, and clear next steps. Ask anything — form cues, meal ideas, or how to adapt when life gets busy.</p>
+        </div>
       </header>
 
       <div className="mb-4 grid gap-4 lg:grid-cols-[1fr_340px]">
         <Card>
-          <CardHeader title="Plan actions" subtitle="Use quick controls before chatting" />
+          <CardHeader title="Plan actions" subtitle="Quick controls before you chat" />
           <div className="mt-3 flex flex-wrap gap-2">
             <Button onClick={generateDailyPlan} loading={planLoading} size="sm">Generate today&apos;s plan</Button>
             {dailyPlan && <Button variant="secondary" size="sm" onClick={logPlannedWorkoutComplete}>Log planned workout complete</Button>}
@@ -145,12 +190,26 @@ export default function CoachPage() {
         )}
       </div>
 
-      <Card className="flex h-[65vh] flex-col">
-        <CardHeader title="Coach chat" subtitle="Evidence-based guidance, concise decisions" />
+      <Card className="flex h-[65vh] min-h-[400px] flex-col">
+        <CardHeader title="Coach chat" subtitle="Get a clear answer and one concrete next step" />
 
         <div className="mt-4 flex-1 space-y-3 overflow-y-auto rounded-xl border border-fn-border bg-fn-surface-hover p-3">
           {messages.length === 0 && (
-            <p className="text-sm text-fn-muted">Try asking for a 35-minute home adjustment or a protein-gap closing meal idea.</p>
+            <div className="space-y-4">
+              <p className="text-sm text-fn-muted">Tap a prompt below or type your own. The coach will give you actionable guidance and, when relevant, one alternative option.</p>
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTED_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => setInput(prompt)}
+                    className="rounded-lg border border-fn-border bg-white px-3 py-2 text-left text-sm text-fn-ink hover:bg-fn-surface-hover focus:outline-none focus:ring-2 focus:ring-fn-primary/20"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
           {messages.map((msg, i) => (
             <div
@@ -172,7 +231,7 @@ export default function CoachPage() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Message coach..."
+            placeholder="Ask for a workout, meal idea, or plan adjustment..."
             className="min-h-touch flex-1 rounded-xl border border-fn-border bg-white px-4 py-3 text-fn-ink placeholder-fn-muted focus:border-fn-primary focus:outline-none focus:ring-2 focus:ring-fn-primary/20"
             disabled={loading}
           />

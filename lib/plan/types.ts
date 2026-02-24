@@ -6,6 +6,8 @@ export type DailyPlanTrainingExercise = {
   reps: string;
   intensity: string;
   notes?: string;
+  /** Optional demo image URL for guided workout (e.g. AI-generated move photo). */
+  image_url?: string | null;
 };
 
 export type DailyPlan = {

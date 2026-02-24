@@ -20,8 +20,9 @@ describe("assembleContext", () => {
       mockSupabase as never,
       "user-123"
     );
-    expect(systemPrompt).toContain("elite fitness coach");
+    expect(systemPrompt).toContain("fitness coach");
     expect(systemPrompt).toContain("nutritionist");
+    expect(systemPrompt).toContain("Tailor workout and exercise suggestions");
   });
 
   it("includes user profile when present", async () => {

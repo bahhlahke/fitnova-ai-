@@ -1,8 +1,29 @@
 import { toLocalDateString } from "@/lib/date/local-date";
-import type { DailyPlan, PlannerDataSources, PlannerInputs } from "@/lib/plan/types";
+import type { DailyPlan, DailyPlanTrainingExercise, PlannerDataSources, PlannerInputs } from "@/lib/plan/types";
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
+}
+
+function normalizeExerciseName(name: string): string {
+  return name.toLowerCase().trim().replace(/\s+/g, " ");
+}
+
+/** Exercise pools per movement slot; [0] is preferred when not recently done. */
+const SQUAT_POOL_GYM = ["Back Squat", "Goblet Squat", "Leg Press", "Front Squat"];
+const SQUAT_POOL_HOME = ["Dumbbell Goblet Squat", "Goblet Squat", "Bodyweight Squat"];
+const PUSH_POOL_GYM = ["Bench Press", "Incline Dumbbell Press", "Push-up"];
+const PUSH_POOL_HOME = ["Push-up", "Incline Push-up", "Dumbbell Press"];
+const HINGE_POOL_GYM = ["Romanian Deadlift", "Dumbbell RDL", "Deadlift"];
+const HINGE_POOL_HOME = ["Dumbbell RDL", "Romanian Deadlift", "Kettlebell Swing"];
+const PULL_POOL_GYM = ["Seated Row", "Dumbbell Row", "Lat Pulldown", "Barbell Row"];
+const PULL_POOL_HOME = ["Single-arm Row", "Dumbbell Row", "Inverted Row"];
+
+function pickFromPool(pool: string[], recentNormalized: Set<string>): string {
+  for (const name of pool) {
+    if (!recentNormalized.has(normalizeExerciseName(name))) return name;
+  }
+  return pool[0];
 }
 
 export async function composeDailyPlan(
@@ -16,7 +37,7 @@ export async function composeDailyPlan(
     supabase.from("user_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase
       .from("workout_logs")
-      .select("date, workout_type, duration_minutes")
+      .select("date, workout_type, duration_minutes, exercises")
       .eq("user_id", userId)
       .order("date", { ascending: false })
       .limit(14),
@@ -43,9 +64,32 @@ export async function composeDailyPlan(
       ? JSON.stringify(profile.injuries_limitations).toLowerCase()
       : "";
 
-  const workouts = (workoutsRes.data ?? []) as Array<{ workout_type?: string; duration_minutes?: number }>;
+  type WorkoutRow = {
+    date: string;
+    workout_type?: string;
+    duration_minutes?: number;
+    exercises?: Array<{ name?: string }>;
+  };
+  const workouts = (workoutsRes.data ?? []) as WorkoutRow[];
   const nutrition = (nutritionRes.data ?? []) as Array<{ total_calories?: number | null }>;
   const progress = (progressRes.data ?? []) as Array<{ weight?: number | null }>;
+
+  const today = toLocalDateString();
+  const lastWorkoutDate = workouts[0]?.date ?? null;
+  let daysSinceLastWorkout: number | null = null;
+  if (lastWorkoutDate) {
+    const diff =
+      (new Date(today).setHours(0, 0, 0, 0) - new Date(lastWorkoutDate).setHours(0, 0, 0, 0)) /
+      (24 * 60 * 60 * 1000);
+    daysSinceLastWorkout = Math.floor(diff);
+  }
+
+  const recentExerciseNames = new Set<string>();
+  for (const w of workouts.slice(0, 3)) {
+    for (const e of w.exercises ?? []) {
+      if (e.name?.trim()) recentExerciseNames.add(normalizeExerciseName(e.name));
+    }
+  }
 
   const avgCals = nutrition.length
     ? nutrition.reduce((sum, r) => sum + (Number(r.total_calories) || 0), 0) / nutrition.length
@@ -72,7 +116,12 @@ export async function composeDailyPlan(
     focus = "Mobility and movement quality";
   }
 
-  const exercises =
+  const squatPool = location === "gym" ? SQUAT_POOL_GYM : SQUAT_POOL_HOME;
+  const pushPool = location === "gym" ? PUSH_POOL_GYM : PUSH_POOL_HOME;
+  const hingePool = location === "gym" ? HINGE_POOL_GYM : HINGE_POOL_HOME;
+  const pullPool = location === "gym" ? PULL_POOL_GYM : PULL_POOL_HOME;
+
+  const exercises: DailyPlanTrainingExercise[] =
     focus.includes("Mobility")
       ? [
           { name: "World's Greatest Stretch", sets: 2, reps: "6/side", intensity: "Controlled", notes: "Move slowly." },
@@ -81,11 +130,16 @@ export async function composeDailyPlan(
           { name: "Dead Bug", sets: 3, reps: "8/side", intensity: "Controlled" },
         ]
       : [
-          { name: location === "gym" ? "Back Squat" : "Dumbbell Goblet Squat", sets: 4, reps: "6-8", intensity: "RPE 7" },
-          { name: location === "gym" ? "Bench Press" : "Push-up", sets: 4, reps: "6-10", intensity: "RPE 7" },
-          { name: location === "gym" ? "Romanian Deadlift" : "Dumbbell RDL", sets: 3, reps: "8-10", intensity: "RPE 7" },
-          { name: location === "gym" ? "Seated Row" : "Single-arm Row", sets: 3, reps: "10-12", intensity: "RPE 7" },
-          { name: "Zone 2 Finisher", sets: 1, reps: `${Math.max(8, Math.floor(minutesAvailable * 0.25))} min`, intensity: "Easy-moderate" },
+          { name: pickFromPool(squatPool, recentExerciseNames), sets: 4, reps: "6-8", intensity: "RPE 7" },
+          { name: pickFromPool(pushPool, recentExerciseNames), sets: 4, reps: "6-10", intensity: "RPE 7" },
+          { name: pickFromPool(hingePool, recentExerciseNames), sets: 3, reps: "8-10", intensity: "RPE 7" },
+          { name: pickFromPool(pullPool, recentExerciseNames), sets: 3, reps: "10-12", intensity: "RPE 7" },
+          {
+            name: "Zone 2 Finisher",
+            sets: 1,
+            reps: `${Math.max(8, Math.floor(minutesAvailable * 0.25))} min`,
+            intensity: "Easy-moderate",
+          },
         ];
 
   const weightKg = Number(profile.weight) || 75;
@@ -121,6 +175,13 @@ export async function composeDailyPlan(
       ? "Prioritize movement quality over load this week to build consistency."
       : "If all sets felt easy, add 2.5-5 lb next session.",
   ];
+
+  if (daysSinceLastWorkout != null && daysSinceLastWorkout >= 2) {
+    alternatives.push("Returning after a break—consider 10% lighter on the first set to re-acclimate.");
+  }
+  if (daysSinceLastWorkout === 0) {
+    alternatives.push("You already logged a workout today; use this plan as a second session or save for tomorrow.");
+  }
 
   return {
     date_local: toLocalDateString(),

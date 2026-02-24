@@ -1,5 +1,14 @@
 # FitNova AI — Design system
 
+## Imagery
+
+Landing and Coach use photo placeholders (Unsplash) that you can replace with AI-generated or custom assets:
+
+- **Landing hero:** `app/page.tsx` uses `HERO_IMAGE` (fitness/training). Override the URL or use a local file at `public/images/hero.jpg` with Next.js `Image`.
+- **Coach persona:** `app/coach/page.tsx` uses `COACH_IMAGE` (wellness/coach). Replace with `public/images/coach-avatar.jpg` or another source for a consistent AI-coach look.
+
+See `public/images/README.md` for slot details and recommended dimensions.
+
 ## Concept 2: Premium Adaptive Light
 
 - **Colors:** Light canvas (`#f5f7fb`), white surfaces, deep ink (`#16213a`), primary blue (`#335cff`), accent teal (`#15b69c`).

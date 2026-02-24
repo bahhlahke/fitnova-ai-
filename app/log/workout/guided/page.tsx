@@ -1,10 +1,17 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toLocalDateString } from "@/lib/date/local-date";
 import type { DailyPlan } from "@/lib/plan/types";
+import {
+  getExerciseImageUrl,
+  isExerciseGifUrl,
+  isExerciseVideoUrl,
+} from "@/lib/workout/exercise-images";
+import { Button } from "@/components/ui";
 
 type GuidedExercise = {
   name: string;
@@ -12,6 +19,7 @@ type GuidedExercise = {
   reps: string;
   intensity: string;
   notes?: string;
+  image_url?: string | null;
 };
 
 const FALLBACK_EXERCISES: GuidedExercise[] = [
@@ -29,6 +37,7 @@ export default function GuidedWorkoutPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [planTitle, setPlanTitle] = useState("Personalized session");
   const [exercises, setExercises] = useState<GuidedExercise[]>(FALLBACK_EXERCISES);
+  const workoutStartedAt = useRef<number | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -50,7 +59,16 @@ export default function GuidedWorkoutPage() {
         const plan = (data?.plan_json ?? null) as DailyPlan | null;
         if (plan?.training_plan?.exercises?.length) {
           setPlanTitle(plan.training_plan.focus || "Personalized session");
-          setExercises(plan.training_plan.exercises);
+          setExercises(
+            plan.training_plan.exercises.map((e) => ({
+              name: e.name,
+              sets: e.sets,
+              reps: e.reps,
+              intensity: e.intensity,
+              notes: e.notes,
+              image_url: e.image_url ?? null,
+            }))
+          );
         }
       })
       .catch(() => undefined);
@@ -61,6 +79,12 @@ export default function GuidedWorkoutPage() {
   const totalSets = exercise?.sets ?? 0;
   const isLastSet = setIndex >= totalSets - 1;
   const isLastExercise = exerciseIndex >= totalExercises - 1;
+  const totalSetCount = exercises.reduce((sum, e) => sum + e.sets, 0);
+  const completedSets =
+    exercises.slice(0, exerciseIndex).reduce((s, e) => s + e.sets, 0) +
+    setIndex +
+    (phase === "rest" ? 1 : 0);
+  const progressPct = totalSetCount > 0 ? (completedSets / totalSetCount) * 100 : 0;
 
   const persistWorkout = useCallback(async () => {
     const supabase = createClient();
@@ -74,21 +98,40 @@ export default function GuidedWorkoutPage() {
       return;
     }
 
-    const { error } = await supabase.from("workout_logs").insert({
+    const durationMinutes = workoutStartedAt.current
+      ? Math.max(1, Math.round((Date.now() - workoutStartedAt.current) / 60_000))
+      : Math.max(20, exercises.length * 10);
+
+    const payload = {
       user_id: user.id,
       date: toLocalDateString(),
-      workout_type: "strength",
-      exercises,
-      duration_minutes: Math.max(20, exercises.length * 10),
-    });
+      workout_type: "strength" as const,
+      exercises: exercises.map((e) => ({
+        name: e.name,
+        sets: e.sets,
+        reps: e.reps,
+        weight: undefined,
+        rest_seconds_after_set: 90,
+        form_cues: e.notes,
+      })),
+      duration_minutes: durationMinutes,
+      notes: `Guided: ${planTitle}`,
+    };
+
+    const { error } = await supabase.from("workout_logs").insert(payload);
 
     if (error) {
       setSaveError(error.message);
       return;
     }
-
     setSaved(true);
-  }, [exercises]);
+  }, [exercises, planTitle]);
+
+  useEffect(() => {
+    if (phase === "work" && exercise && workoutStartedAt.current === null) {
+      workoutStartedAt.current = Date.now();
+    }
+  }, [phase, exercise]);
 
   useEffect(() => {
     if (phase !== "rest" || restSeconds <= 0) return;
@@ -107,9 +150,13 @@ export default function GuidedWorkoutPage() {
   }
 
   function nextSet() {
+    if (isLastSet && isLastExercise) {
+      setPhase("completed");
+      void persistWorkout();
+      return;
+    }
     setPhase("work");
     if (isLastSet) {
-      if (isLastExercise) return;
       setExerciseIndex((i) => i + 1);
       setSetIndex(0);
     } else {
@@ -117,55 +164,147 @@ export default function GuidedWorkoutPage() {
     }
   }
 
-  const progressLabel = `Exercise ${exerciseIndex + 1}/${totalExercises}, Set ${setIndex + 1}/${totalSets}`;
-
   if (phase === "completed") {
     return (
-      <div className="mx-auto max-w-shell px-4 py-10 text-center sm:px-6">
+      <div className="mx-auto flex min-h-[80vh] max-w-shell flex-col items-center justify-center px-4 py-10 text-center sm:px-6">
         <h2 className="font-display text-4xl text-fn-ink">Workout complete</h2>
-        <p className="mt-2 text-fn-muted">{saved ? "Saved to your log." : saveError ?? "Workout complete."}</p>
-        <Link href="/log/workout" className="mt-6 inline-block rounded-xl bg-fn-primary px-6 py-3 text-sm font-semibold text-white">Back to workout</Link>
+        <p className="mt-2 text-fn-muted">
+          {saved ? "Session saved to your log." : saveError ?? "Session complete."}
+        </p>
+        <Link href="/log/workout" className="mt-8">
+          <Button>Back to workout</Button>
+        </Link>
       </div>
     );
   }
 
-  return (
-    <div className="mx-auto flex min-h-[80vh] max-w-shell flex-col px-4 py-8 sm:px-6">
-      <header className="mb-4 flex items-center justify-between">
-        <Link href="/log/workout" className="rounded-lg px-2 py-1 text-sm font-semibold text-fn-muted hover:bg-white hover:text-fn-ink">← Back</Link>
-        <span className="text-sm text-fn-muted">{progressLabel}</span>
-      </header>
+  if (!exercise) {
+    return (
+      <div className="mx-auto max-w-shell px-4 py-10 sm:px-6">
+        <p className="text-fn-muted">No exercises in this plan.</p>
+        <Link href="/log/workout" className="mt-4 inline-block">
+          <Button variant="secondary">Back</Button>
+        </Link>
+      </div>
+    );
+  }
 
-      <div className="mb-3 rounded-2xl border border-fn-border bg-white p-4">
-        <p className="font-semibold text-fn-ink">{planTitle}</p>
-        <p className="mt-1 text-xs text-fn-muted">AI guidance is educational. Stop if pain worsens.</p>
+  const imageUrl = getExerciseImageUrl(exercise.name, exercise.image_url);
+  const progressLabel = `Move ${exerciseIndex + 1}/${totalExercises} · Set ${setIndex + 1}/${totalSets}`;
+
+  return (
+    <div className="mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg px-0 py-0">
+      {/* Progress bar - fixed at top for gym use */}
+      <div className="sticky top-0 z-10 h-1.5 w-full overflow-hidden bg-fn-border">
+        <div
+          className="h-full bg-fn-primary transition-all duration-300"
+          style={{ width: `${progressPct}%` }}
+        />
       </div>
 
-      <div className="flex-1 rounded-2xl border border-fn-border bg-white p-6 shadow-fn-card">
-        {phase === "work" && exercise && (
-          <div className="flex h-full flex-col items-center justify-center text-center">
-            <h2 className="text-3xl font-semibold text-fn-ink">{exercise.name}</h2>
-            <p className="mt-2 text-base text-fn-muted">Set {setIndex + 1} of {totalSets}</p>
-            <p className="mt-4 text-xl font-semibold text-fn-primary">{exercise.reps} · {exercise.intensity}</p>
-            {exercise.notes && <p className="mt-3 max-w-md text-sm text-fn-muted">{exercise.notes}</p>}
-            <div className="mt-8 flex w-full max-w-xs flex-col gap-3">
-              <button type="button" onClick={startRest} className="min-h-touch rounded-xl bg-fn-primary text-sm font-semibold text-white">Done - Start rest</button>
-              <button type="button" onClick={nextSet} className="min-h-touch rounded-xl border border-fn-border bg-white text-sm font-semibold text-fn-ink hover:bg-fn-surface-hover">Skip rest</button>
+      <div className="flex flex-1 flex-col px-4 pb-6 pt-4">
+        <header className="mb-3 flex items-center justify-between">
+          <Link
+            href="/log/workout"
+            className="min-h-touch min-w-touch rounded-lg px-2 py-2 text-sm font-semibold text-fn-muted hover:bg-white hover:text-fn-ink"
+          >
+            ← Back
+          </Link>
+          <span className="text-xs font-medium text-fn-muted tabular-nums">
+            {progressLabel}
+          </span>
+        </header>
+
+        {phase === "work" && (
+          <>
+            {/* Large move media: animated (video/GIF) for form, or static image */}
+            <div className="relative mb-4 aspect-[4/3] w-full overflow-hidden rounded-2xl border border-fn-border bg-white shadow-fn-card">
+              {isExerciseVideoUrl(imageUrl) ? (
+                <video
+                  src={imageUrl}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  loop
+                  muted
+                  autoPlay
+                  playsInline
+                  aria-label={exercise.name}
+                />
+              ) : isExerciseGifUrl(imageUrl) ? (
+                <img
+                  src={imageUrl}
+                  alt={exercise.name}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              ) : (
+                <Image
+                  src={imageUrl}
+                  alt={exercise.name}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 72rem"
+                  priority
+                />
+              )}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-fn-ink/80 to-transparent p-4">
+                <h2 className="text-xl font-semibold text-white drop-shadow">
+                  {exercise.name}
+                </h2>
+                <p className="mt-1 text-sm text-white/90">
+                  Set {setIndex + 1} of {totalSets}
+                </p>
+              </div>
             </div>
-          </div>
+
+            <div className="rounded-2xl border border-fn-border bg-white p-4 shadow-fn-soft">
+              <p className="text-lg font-semibold text-fn-primary">
+                {exercise.reps} reps · {exercise.intensity}
+              </p>
+              {exercise.notes && (
+                <p className="mt-2 text-sm text-fn-muted">{exercise.notes}</p>
+              )}
+              <p className="mt-3 text-xs text-fn-muted">
+                {planTitle} · AI guidance is educational. Stop if pain worsens.
+              </p>
+            </div>
+
+            {/* Large gym-friendly actions */}
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={startRest}
+                className="min-h-touch w-full rounded-2xl bg-fn-primary py-4 text-lg font-semibold text-white shadow-fn-soft"
+              >
+                Done — Start rest
+              </button>
+              <button
+                type="button"
+                onClick={nextSet}
+                className="min-h-touch w-full rounded-2xl border border-fn-border bg-white py-3 text-base font-semibold text-fn-ink"
+              >
+                Skip rest
+              </button>
+            </div>
+          </>
         )}
 
         {phase === "rest" && (
-          <div className="flex h-full flex-col items-center justify-center text-center">
-            <h2 className="text-2xl font-semibold text-fn-ink">Rest</h2>
-            <p className="mt-3 font-mono text-5xl font-semibold text-fn-primary tabular-nums">{restSeconds}s</p>
-            <button type="button" onClick={nextSet} className="mt-6 min-h-touch rounded-xl border border-fn-border bg-white px-6 text-sm font-semibold text-fn-ink hover:bg-fn-surface-hover">Skip rest</button>
+          <div className="flex flex-1 flex-col items-center justify-center text-center">
+            <p className="text-sm font-medium text-fn-muted">Rest</p>
+            <p className="mt-2 font-mono text-6xl font-bold tabular-nums text-fn-primary">
+              {restSeconds}s
+            </p>
+            <p className="mt-2 text-sm text-fn-muted">
+              Next: {exercise.name} · Set {setIndex + 2} of {totalSets}
+            </p>
+            <button
+              type="button"
+              onClick={nextSet}
+              className="mt-8 min-h-touch rounded-2xl border border-fn-border bg-white px-8 py-4 text-base font-semibold text-fn-ink"
+            >
+              Skip rest
+            </button>
           </div>
         )}
-      </div>
-
-      <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-fn-bg-alt">
-        <div className="h-full bg-fn-primary transition-all duration-300" style={{ width: `${((exerciseIndex * totalSets + setIndex + (phase === "rest" ? 0.5 : 0)) / Math.max(1, totalExercises * totalSets)) * 100}%` }} />
       </div>
     </div>
   );

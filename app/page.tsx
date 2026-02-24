@@ -1,10 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardHeader, Button, LoadingState, EmptyState } from "@/components/ui";
 import { toLocalDateString } from "@/lib/date/local-date";
+
+const HERO_IMAGE =
+  "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1200&q=80";
 
 type HelpTab = "adaptive" | "nutrition" | "coaching";
 
@@ -143,16 +147,30 @@ export default function HomePage() {
   if (authState === "signed_out") {
     return (
       <div className="mx-auto w-full max-w-shell px-4 py-8 sm:px-6">
-        <section className="hero-reveal rounded-3xl border border-fn-border bg-white p-6 shadow-fn-card sm:p-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">AI personal trainer + nutritionist</p>
-          <h1 className="mt-4 max-w-3xl font-display text-4xl text-fn-ink sm:text-5xl">
-            Build a personalized plan for <span className="text-fn-primary">{rotatingGoals[goalIndex]}</span> and execute it daily.
-          </h1>
-          <p className="mt-4 max-w-2xl text-base text-fn-muted">
-            FitNova combines adaptive workouts, nutrition guidance, and accountability insights into one coaching system.
-          </p>
+        <section className="hero-reveal overflow-hidden rounded-3xl border border-fn-border bg-white shadow-fn-card">
+          <div className="relative h-56 w-full sm:h-72 md:h-80">
+            <Image
+              src={HERO_IMAGE}
+              alt="Fitness training"
+              fill
+              className="object-cover"
+              priority
+              sizes="(max-width: 768px) 100vw, 72rem"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-fn-ink/70 via-fn-ink/20 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-6 text-white sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/90">AI personal trainer + nutritionist</p>
+              <h1 className="mt-2 max-w-2xl font-display text-3xl sm:text-4xl md:text-5xl">
+                Build a plan for <span className="text-fn-accent">{rotatingGoals[goalIndex]}</span> and execute it daily.
+              </h1>
+            </div>
+          </div>
+          <div className="p-6 sm:p-10">
+            <p className="max-w-2xl text-base text-fn-muted">
+              FitNova combines adaptive workouts, nutrition guidance, and accountability insights into one coaching system.
+            </p>
 
-          <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-3">
             <Link href="/start">
               <Button>Start 1-minute assessment</Button>
             </Link>
@@ -173,12 +191,13 @@ export default function HomePage() {
             ))}
           </div>
 
-          <div className="mt-7 rounded-2xl border border-fn-border bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.13em] text-fn-muted">Mock weekly plan preview</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-4">
-              {["Mon Strength", "Tue Recovery", "Wed Hybrid", "Thu Strength"].map((item) => (
-                <div key={item} className="rounded-xl bg-fn-bg-alt px-3 py-2 text-sm font-semibold text-fn-ink">{item}</div>
-              ))}
+            <div className="mt-7 rounded-2xl border border-fn-border bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.13em] text-fn-muted">Mock weekly plan preview</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-4">
+                {["Mon Strength", "Tue Recovery", "Wed Hybrid", "Thu Strength"].map((item) => (
+                  <div key={item} className="rounded-xl bg-fn-bg-alt px-3 py-2 text-sm font-semibold text-fn-ink">{item}</div>
+                ))}
+              </div>
             </div>
           </div>
         </section>

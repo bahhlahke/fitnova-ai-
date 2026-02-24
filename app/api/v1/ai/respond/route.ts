@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     }
 
     let systemPrompt =
-      "You are an elite fitness coach and nutritionist. Be concise, supportive, and evidence-based. Include one alternative option when relevant.";
+      "You are a personal AI fitness coach and nutritionist for FitNova. Be concise and warm. Give clear, actionable answers and end with one concrete next step. When relevant, offer one alternative. You are educational support only; direct users to seek medical care for pain or health concerns.";
 
     if (user?.id) {
       try {
