@@ -31,6 +31,7 @@ export default function CoachPage() {
   const [planError, setPlanError] = useState<string | null>(null);
   const [logStatus, setLogStatus] = useState<string | null>(null);
   const [coachImageUrl, setCoachImageUrl] = useState<string>(COACH_IMAGE_V1);
+  const [activeVideo, setActiveVideo] = useState<{ url: string; name: string } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -240,10 +241,23 @@ export default function CoachPage() {
                 <div className="space-y-2">
                   <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Session Breakdown</p>
                   <ul className="space-y-3">
-                    {dailyPlan.training_plan.exercises.slice(0, 4).map((exercise) => (
-                      <li key={exercise.name} className="flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/5">
-                        <span className="text-sm font-bold text-white uppercase italic tracking-tighter">{exercise.name}</span>
-                        <span className="text-xs font-black text-fn-accent">{exercise.sets}×{exercise.reps}</span>
+                    {dailyPlan.training_plan.exercises.slice(0, 6).map((exercise) => (
+                      <li key={exercise.name} className="group flex flex-col gap-2 p-3 rounded-xl bg-white/5 border border-white/5 transition-all hover:bg-white/10">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-bold text-white uppercase italic tracking-tighter">{exercise.name}</span>
+                          <span className="text-xs font-black text-fn-accent">{exercise.sets}×{exercise.reps}</span>
+                        </div>
+                        {exercise.video_url && (
+                          <button
+                            onClick={() => setActiveVideo({ url: exercise.video_url!, name: exercise.name })}
+                            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-fn-accent/70 hover:text-fn-accent transition-colors"
+                          >
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                            Watch Demo
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -270,6 +284,37 @@ export default function CoachPage() {
           </Card>
         </aside>
       </div>
+
+      {/* Video Overlay */}
+      {activeVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-xl3 border border-white/10 bg-fn-bg shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-white/5">
+              <h3 className="font-display text-2xl font-black text-white italic uppercase tracking-tighter">{activeVideo.name}</h3>
+              <button
+                onClick={() => setActiveVideo(null)}
+                className="rounded-full bg-white/5 p-2 text-fn-muted hover:text-fn-accent transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="aspect-video bg-black/40">
+              <video
+                src={activeVideo.url}
+                controls
+                autoPlay
+                loop
+                className="h-full w-full object-contain"
+              />
+            </div>
+            <div className="p-6 bg-white/[0.02]">
+              <p className="text-xs text-fn-muted font-medium italic">"Maintain external rotation of the femur and prioritize depth over load for initial sets."</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

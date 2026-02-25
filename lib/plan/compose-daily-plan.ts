@@ -19,6 +19,20 @@ const HINGE_POOL_HOME = ["Dumbbell RDL", "Romanian Deadlift", "Kettlebell Swing"
 const PULL_POOL_GYM = ["Seated Row", "Dumbbell Row", "Lat Pulldown", "Barbell Row"];
 const PULL_POOL_HOME = ["Single-arm Row", "Dumbbell Row", "Inverted Row"];
 
+const EXERCISE_VIDEO_MAP: Record<string, string> = {
+  "goblet squat": "/images/goblet-squat.mp4",
+  "dumbbell goblet squat": "/images/goblet-squat.mp4",
+  "push-up": "/images/push-ups.mp4",
+  "incline push-up": "/images/push-ups.mp4",
+  "back squat": "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
+  "bench press": "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4",
+  "dumbbell row": "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
+  "single-arm row": "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
+  "world's greatest stretch": "https://videos.pexels.com/video-files/4944021/4944021-uhd_2732_1440_24fps.mp4",
+  "romanian deadlift": "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
+  "deadlift": "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
+};
+
 function pickFromPool(pool: string[], recentNormalized: Set<string>): string {
   for (const name of pool) {
     if (!recentNormalized.has(normalizeExerciseName(name))) return name;
@@ -199,11 +213,15 @@ export async function composeDailyPlan(
   const carbs = clamp(Math.round(((calorieTarget - protein * 4 - fat * 9) / 4) * carbMultiplier), 100, 450);
 
   // Apply Bio-Sync to exercises
-  const adjustedExercises = exercises.map(ex => ({
-    ...ex,
-    sets: Math.max(1, Math.round(ex.sets * volumeMultiplier)),
-    notes: (ex.notes || "") + intensityAdjustment
-  }));
+  const adjustedExercises = exercises.map(ex => {
+    const normalized = normalizeExerciseName(ex.name);
+    return {
+      ...ex,
+      sets: Math.max(1, Math.round(ex.sets * volumeMultiplier)),
+      notes: (ex.notes || "") + intensityAdjustment,
+      video_url: EXERCISE_VIDEO_MAP[normalized] || null
+    };
+  });
 
   const safetyNotes = [
     "This coach is educational support, not medical diagnosis or treatment.",

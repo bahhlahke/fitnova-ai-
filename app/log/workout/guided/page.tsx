@@ -20,6 +20,7 @@ type GuidedExercise = {
   intensity: string;
   notes?: string;
   image_url?: string | null;
+  video_url?: string | null;
 };
 
 const FALLBACK_EXERCISES: GuidedExercise[] = [
@@ -73,6 +74,7 @@ export default function GuidedWorkoutPage() {
             intensity: e.intensity,
             notes: e.notes,
             image_url: e.image_url ?? null,
+            video_url: e.video_url ?? null,
           }));
           setExercises(newExercises);
 
@@ -159,7 +161,7 @@ export default function GuidedWorkoutPage() {
       .then((body: { insight?: string | null }) => {
         if (body.insight && typeof body.insight === "string") setPostWorkoutInsight(body.insight);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setPostWorkoutInsightLoading(false));
   }, [saved]);
 
@@ -234,7 +236,7 @@ export default function GuidedWorkoutPage() {
     );
   }
 
-  const imageUrl = getExerciseImageUrl(exercise.name, exercise.image_url);
+  const imageUrl = getExerciseImageUrl(exercise.name, exercise.video_url || exercise.image_url);
   const progressLabel = `Move ${exerciseIndex + 1}/${totalExercises} · Set ${setIndex + 1}/${totalSets}`;
 
   return (

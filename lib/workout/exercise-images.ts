@@ -4,26 +4,31 @@
  * see public/images/README.md. Plan exercises can override via optional image_url.
  */
 const BY_NAME: Record<string, string> = {
-  "goblet squat":
-    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop&q=85",
-  "push-up":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "push up":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "dumbbell rdl":
-    "https://images.unsplash.com/photo-1581009146145-b5ef050c149e?w=800&h=600&fit=crop&q=85",
-  "rdl":
-    "https://images.unsplash.com/photo-1581009146145-b5ef050c149e?w=800&h=600&fit=crop&q=85",
+  "goblet squat": "/images/goblet-squat.mp4",
+  "push-up": "/images/push-ups.mp4",
+  "push up": "/images/push-ups.mp4",
   "bench press":
-    "https://images.unsplash.com/photo-1534368959876-e5e9d32c2d3f?w=800&h=600&fit=crop&q=85",
+    "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4",
+  "back squat":
+    "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
   "squat":
-    "https://images.unsplash.com/photo-1605296867424-35fc25c9212a?w=800&h=600&fit=crop&q=85",
+    "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
+  "dumbbell rdl":
+    "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
+  "rdl":
+    "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
   "deadlift":
-    "https://images.unsplash.com/photo-1581009146145-b5ef050c149e?w=800&h=600&fit=crop&q=85",
+    "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
+  "romanian deadlift":
+    "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
   "row":
     "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&h=600&fit=crop&q=85",
   "dumbbell row":
-    "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&h=600&fit=crop&q=85",
+    "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
+  "single-arm row":
+    "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
+  "seated row":
+    "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
   "overhead press":
     "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&h=600&fit=crop&q=85",
   "lunges":
@@ -100,6 +105,8 @@ const BY_NAME: Record<string, string> = {
     "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
   "dead bug":
     "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
+  "world's greatest stretch":
+    "https://videos.pexels.com/video-files/4944021/4944021-uhd_2732_1440_24fps.mp4",
   "glute bridge":
     "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop&q=85",
   "donkey kick":
@@ -114,8 +121,6 @@ const BY_NAME: Record<string, string> = {
     "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
   "dip":
     "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "romanian deadlift":
-    "https://images.unsplash.com/photo-1581009146145-b5ef050c149e?w=800&h=600&fit=crop&q=85",
 };
 
 const DEFAULT_IMAGE =

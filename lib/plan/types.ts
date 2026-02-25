@@ -8,6 +8,8 @@ export type DailyPlanTrainingExercise = {
   notes?: string;
   /** Optional demo image URL for guided workout (e.g. AI-generated move photo). */
   image_url?: string | null;
+  /** Optional demo video URL for guided workout. */
+  video_url?: string | null;
 };
 
 export type DailyPlan = {

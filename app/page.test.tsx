@@ -16,8 +16,8 @@ describe("Home page", () => {
     vi.mocked(createClient).mockReturnValue(null);
 
     render(<HomePage />);
-    expect(await screen.findByRole("link", { name: /Start 1-minute assessment/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /I already have an account/i })).toHaveAttribute("href", "/auth");
+    expect(await screen.findByRole("link", { name: /Start Assessment/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Member Access/i })).toHaveAttribute("href", "/auth");
   });
 
   // TODO: fix mock so daily_plans query gets chain with .order().limit().maybeSingle(); currently hits catch
@@ -108,10 +108,10 @@ describe("Home page", () => {
       }),
     };
 
-    vi.mocked(createClient).mockReturnValue(supabase);
+    vi.mocked(createClient).mockReturnValue(supabase as any);
 
     render(<HomePage />);
-    expect(await screen.findByText(/Today's coaching cockpit/i, { timeout: 5000 })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Open coach/i })).toHaveAttribute("href", "/coach");
+    expect(await screen.findByText(/Command Center/i, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Enter Coach Room/i })).toHaveAttribute("href", "/coach");
   });
 });
