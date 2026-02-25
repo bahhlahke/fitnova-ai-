@@ -7,8 +7,12 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardHeader, Button, LoadingState, EmptyState } from "@/components/ui";
 import { toLocalDateString } from "@/lib/date/local-date";
 
-const HERO_IMAGE =
-  "/Users/blakeaycock/.gemini/antigravity/brain/6dcb9847-0df3-4ceb-8caf-437152f4c67a/future_hero_female_training_v2_1771989434199.png";
+const HERO_IMAGES = [
+  "/Users/blakeaycock/.gemini/antigravity/brain/6dcb9847-0df3-4ceb-8caf-437152f4c67a/future_hero_female_training_v2_1771989434199.png",
+  "https://images.pexels.com/photos/1552249/pexels-photo-1552249.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  "https://images.pexels.com/photos/3076511/pexels-photo-3076511.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  "https://images.pexels.com/photos/13822300/pexels-photo-13822300.jpeg?auto=compress&cs=tinysrgb&w=1600"
+];
 
 type HelpTab = "adaptive" | "nutrition" | "coaching";
 
@@ -24,6 +28,7 @@ const rotatingGoals = ["weight loss", "muscle", "mobility"];
 
 export default function HomePage() {
   const [goalIndex, setGoalIndex] = useState(0);
+  const [heroIndex, setHeroIndex] = useState(0);
   const [helpTab, setHelpTab] = useState<HelpTab>("adaptive");
   const [authState, setAuthState] = useState<"loading" | "signed_in" | "signed_out">("loading");
   const [weekCount, setWeekCount] = useState<number>(0);
@@ -46,7 +51,8 @@ export default function HomePage() {
   useEffect(() => {
     const timer = setInterval(() => {
       setGoalIndex((idx) => (idx + 1) % rotatingGoals.length);
-    }, 2200);
+      setHeroIndex((idx) => (idx + 1) % HERO_IMAGES.length);
+    }, 4000); // Slower rotation for hero
     return () => clearInterval(timer);
   }, []);
 
@@ -251,10 +257,10 @@ export default function HomePage() {
         {/* Hero Section */}
         <section className="relative min-h-screen w-full flex flex-col justify-end overflow-hidden">
           <Image
-            src={HERO_IMAGE}
+            src={HERO_IMAGES[heroIndex]}
             alt="Elite training"
             fill
-            className="object-cover transition-transform duration-1000 hover:scale-105"
+            className="object-cover transition-opacity duration-1000"
             priority
             sizes="100vw"
           />
