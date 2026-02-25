@@ -30,6 +30,15 @@ export default function HomePage() {
   const [last7Days, setLast7Days] = useState<number[]>([]);
   const [onboardingComplete, setOnboardingComplete] = useState<boolean>(false);
   const [todayPlan, setTodayPlan] = useState<{ focus: string; calories: number } | null>(null);
+  const [weeklyInsight, setWeeklyInsight] = useState<string | null>(null);
+  const [weeklyInsightLoading, setWeeklyInsightLoading] = useState(false);
+  const [reminders, setReminders] = useState<{ daily_plan?: boolean; workout_log?: boolean; weigh_in?: string }>({});
+  const [hasPlanToday, setHasPlanToday] = useState(false);
+  const [hasWorkoutToday, setHasWorkoutToday] = useState(false);
+  const [lastWeighInDate, setLastWeighInDate] = useState<string | null>(null);
+  const [readinessInsight, setReadinessInsight] = useState<string | null>(null);
+  const [readinessInsightLoading, setReadinessInsightLoading] = useState(false);
+  const [lastWorkoutDate, setLastWorkoutDate] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -58,7 +67,7 @@ export default function HomePage() {
         const today = toLocalDateString();
         const weekStart = getWeekStart(new Date());
 
-        const [weekRes, last7Res, onboardingRes, planRes] = await Promise.all([
+        const [weekRes, last7Res, onboardingRes, planRes, profileRes, workoutTodayRes, progressRes] = await Promise.all([
           supabase
             .from("workout_logs")
             .select("date", { count: "exact", head: true })
@@ -87,6 +96,21 @@ export default function HomePage() {
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle(),
+          supabase.from("user_profile").select("devices").eq("user_id", user.id).maybeSingle(),
+          supabase
+            .from("workout_logs")
+            .select("date")
+            .eq("user_id", user.id)
+            .eq("date", today)
+            .limit(1)
+            .maybeSingle(),
+          supabase
+            .from("progress_tracking")
+            .select("date")
+            .eq("user_id", user.id)
+            .order("date", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
         ]);
 
         setWeekCount(weekRes.count ?? 0);
@@ -107,15 +131,69 @@ export default function HomePage() {
         const plan = planRes.data?.plan_json as
           | { training_plan?: { focus?: string }; nutrition_plan?: { calorie_target?: number } }
           | undefined;
+        setHasPlanToday(!!plan?.training_plan?.focus);
         if (plan?.training_plan?.focus) {
           setTodayPlan({
             focus: plan.training_plan.focus,
             calories: plan.nutrition_plan?.calorie_target ?? 0,
           });
         }
+        const dev = (profileRes.data as { devices?: Record<string, unknown> } | null)?.devices ?? {};
+        setReminders((dev.reminders as { daily_plan?: boolean; workout_log?: boolean; weigh_in?: string }) ?? {});
+        setHasWorkoutToday(!!(workoutTodayRes.data as { date: string }[] | null)?.length);
+        const lastProgress = progressRes.data as { date: string }[] | null;
+        setLastWeighInDate(lastProgress?.[0]?.date ?? null);
+        const last7Data = last7Res.data as { date: string }[] | null;
+        const mostRecent = last7Data?.length ? last7Data[last7Data.length - 1]?.date : null;
+        setLastWorkoutDate(mostRecent ?? null);
       })
       .catch(() => setAuthState("signed_out"));
   }, []);
+
+  useEffect(() => {
+    if (authState !== "signed_in") return;
+    setReadinessInsightLoading(true);
+    fetch("/api/v1/ai/readiness-insight", { method: "POST" })
+      .then((r) => r.json())
+      .then((body: { insight?: string | null }) => {
+        if (body.insight && typeof body.insight === "string") setReadinessInsight(body.insight);
+      })
+      .catch(() => {})
+      .finally(() => setReadinessInsightLoading(false));
+  }, [authState]);
+
+  useEffect(() => {
+    if (authState !== "signed_in") return;
+    setWeeklyInsightLoading(true);
+    fetch("/api/v1/ai/weekly-insight", { method: "POST" })
+      .then((r) => r.json())
+      .then((body: { insight?: string | null }) => {
+        if (body.insight && typeof body.insight === "string") setWeeklyInsight(body.insight);
+      })
+      .catch(() => {})
+      .finally(() => setWeeklyInsightLoading(false));
+  }, [authState]);
+
+  const streak = useMemo(() => {
+    let count = 0;
+    for (let i = last7Days.length - 1; i >= 0 && last7Days[i] > 0; i -= 1) count += 1;
+    return count;
+  }, [last7Days]);
+
+  const today = toLocalDateString();
+  const daysSinceLastWorkout = useMemo(() => {
+    if (!lastWorkoutDate) return null;
+    return Math.floor(
+      (new Date(today).setHours(0, 0, 0, 0) - new Date(lastWorkoutDate).setHours(0, 0, 0, 0)) /
+        (24 * 60 * 60 * 1000)
+    );
+  }, [lastWorkoutDate, today]);
+  const recoverySuggestion =
+    daysSinceLastWorkout === 0
+      ? "You already trained today. Rest or light mobility."
+      : daysSinceLastWorkout === 1
+        ? "Consider rest or light movement—you trained yesterday."
+        : null;
 
   const tabContent = useMemo(() => {
     if (helpTab === "adaptive") {
@@ -259,6 +337,29 @@ export default function HomePage() {
         <p className="mt-2 text-fn-muted">Adaptive training, nutrition, and accountability in one view.</p>
       </header>
 
+      {(reminders.daily_plan && !hasPlanToday) || (reminders.workout_log && !hasWorkoutToday) || (reminders.weigh_in === "weekly" && (!lastWeighInDate || lastWeighInDate < getWeekStart(new Date()))) ? (
+        <section className="mb-4 rounded-xl border border-fn-primary/30 bg-fn-primary/5 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-fn-muted">Reminders</p>
+          <div className="mt-2 flex flex-wrap gap-3">
+            {reminders.daily_plan && !hasPlanToday && (
+              <Link href="/coach">
+                <Button size="sm">Generate today&apos;s plan</Button>
+              </Link>
+            )}
+            {reminders.workout_log && !hasWorkoutToday && (
+              <Link href="/log/workout">
+                <Button variant="secondary" size="sm">Log workout</Button>
+              </Link>
+            )}
+            {reminders.weigh_in === "weekly" && (!lastWeighInDate || lastWeighInDate < getWeekStart(new Date())) && (
+              <Link href="/progress/add">
+                <Button variant="secondary" size="sm">Weigh-in reminder</Button>
+              </Link>
+            )}
+          </div>
+        </section>
+      ) : null}
+
       <section className="grid gap-4 lg:grid-cols-3">
         <Card padding="lg" className="lg:col-span-2">
           <CardHeader title="Today" subtitle="Your primary action" />
@@ -273,16 +374,30 @@ export default function HomePage() {
         </Card>
 
         <Card>
-          <CardHeader title="Weekly adherence" subtitle="Training / Nutrition / Recovery" />
+          <CardHeader title="This week" subtitle="Workouts, streak & AI recap" />
           <div className="mt-4 space-y-3">
-            <div>
-              <p className="text-xs text-fn-muted">Workouts this week</p>
-              <p className="text-2xl font-semibold text-fn-ink">{weekCount}</p>
+            <div className="flex justify-between gap-4">
+              <div>
+                <p className="text-xs text-fn-muted">Workouts this week</p>
+                <p className="text-2xl font-semibold text-fn-ink">{weekCount}</p>
+              </div>
+              <div>
+                <p className="text-xs text-fn-muted">Logging streak</p>
+                <p className="text-2xl font-semibold text-fn-ink">{streak} day{streak !== 1 ? "s" : ""}</p>
+              </div>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-fn-bg-alt">
               <div className="h-full bg-fn-accent" style={{ width: `${Math.min(100, weekCount * 20)}%` }} />
             </div>
-            <p className="text-xs text-fn-muted">Consistency builds automatic weekly progression.</p>
+            {weeklyInsightLoading && (
+              <p className="text-xs text-fn-muted">Generating weekly recap...</p>
+            )}
+            {weeklyInsight && !weeklyInsightLoading && (
+              <p className="rounded-xl bg-fn-bg-alt px-3 py-2 text-sm text-fn-ink">{weeklyInsight}</p>
+            )}
+            {!weeklyInsight && !weeklyInsightLoading && (
+              <p className="text-xs text-fn-muted">Consistency builds automatic weekly progression.</p>
+            )}
           </div>
         </Card>
       </section>
@@ -302,6 +417,23 @@ export default function HomePage() {
         </Card>
 
         <Card>
+          <CardHeader title="Today&apos;s readiness" subtitle="Recovery & training" />
+          {recoverySuggestion && (
+            <p className="mt-2 text-sm text-fn-muted">{recoverySuggestion}</p>
+          )}
+          {readinessInsightLoading && (
+            <p className="mt-2 text-sm text-fn-muted">Checking readiness...</p>
+          )}
+          {readinessInsight && !readinessInsightLoading && (
+            <p className="mt-2 rounded-xl bg-fn-bg-alt px-3 py-2 text-sm text-fn-ink">{readinessInsight}</p>
+          )}
+          {!readinessInsight && !readinessInsightLoading && !recoverySuggestion && (
+            <p className="mt-2 text-sm text-fn-muted">Complete a check-in for a readiness insight.</p>
+          )}
+          <Link href="/check-in" className="mt-3 inline-block text-sm font-semibold text-fn-primary hover:underline">Check-in</Link>
+        </Card>
+
+        <Card>
           <CardHeader title="AI insight feed" subtitle="Unread: 3" />
           <ul className="mt-4 space-y-2 text-sm text-fn-muted">
             <li className="rounded-lg bg-fn-bg-alt px-3 py-2">Protein is 20-30g below target for 2 days.</li>
@@ -316,6 +448,7 @@ export default function HomePage() {
         <Card>
           <CardHeader title="Quick actions" subtitle="Secondary shortcuts" />
           <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/check-in"><Button variant="secondary">Today&apos;s check-in</Button></Link>
             <Link href="/log/workout"><Button variant="secondary">Workout log</Button></Link>
             <Link href="/log/nutrition"><Button variant="secondary">Nutrition log</Button></Link>
             <Link href="/progress"><Button variant="secondary">Progress</Button></Link>

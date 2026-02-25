@@ -33,7 +33,8 @@ export async function composeDailyPlan(
   const { supabase, userId } = dataSources;
   const { todayConstraints } = inputs;
 
-  const [profileRes, workoutsRes, nutritionRes, progressRes] = await Promise.all([
+  const today = toLocalDateString();
+  const [profileRes, workoutsRes, nutritionRes, progressRes, checkInsRes] = await Promise.all([
     supabase.from("user_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase
       .from("workout_logs")
@@ -53,6 +54,14 @@ export async function composeDailyPlan(
       .eq("user_id", userId)
       .order("date", { ascending: false })
       .limit(7),
+    supabase
+      .from("check_ins")
+      .select("date_local, soreness_notes, energy_score")
+      .eq("user_id", userId)
+      .eq("date_local", today)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const profile = (profileRes.data ?? {}) as Record<string, unknown>;
@@ -73,8 +82,10 @@ export async function composeDailyPlan(
   const workouts = (workoutsRes.data ?? []) as WorkoutRow[];
   const nutrition = (nutritionRes.data ?? []) as Array<{ total_calories?: number | null }>;
   const progress = (progressRes.data ?? []) as Array<{ weight?: number | null }>;
+  const todayCheckIn = checkInsRes.data as { soreness_notes?: string | null; energy_score?: number | null } | null;
+  const sorenessFromCheckIn = todayCheckIn?.soreness_notes?.trim() || undefined;
+  const effectiveSoreness = todayConstraints?.soreness ?? sorenessFromCheckIn;
 
-  const today = toLocalDateString();
   const lastWorkoutDate = workouts[0]?.date ?? null;
   let daysSinceLastWorkout: number | null = null;
   if (lastWorkoutDate) {
@@ -164,8 +175,8 @@ export async function composeDailyPlan(
   if (injuries.includes("back") || injuries.includes("spine")) {
     safetyNotes.push("Use neutral-spine variations and reduce axial loading today.");
   }
-  if (todayConstraints?.soreness) {
-    safetyNotes.push(`Reported soreness: ${todayConstraints.soreness}. Reduce loads by 5-10% if needed.`);
+  if (effectiveSoreness) {
+    safetyNotes.push(`Reported soreness: ${effectiveSoreness}. Reduce loads by 5-10% if needed.`);
   }
 
   const alternatives = [

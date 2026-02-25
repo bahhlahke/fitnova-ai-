@@ -18,6 +18,8 @@ export default function WorkoutLogPage() {
   const [workouts, setWorkouts] = useState<{ log_id: string; date: string; workout_type: string; duration_minutes?: number; notes?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refetch, setRefetch] = useState(0);
+  const [postWorkoutInsight, setPostWorkoutInsight] = useState<string | null>(null);
+  const [postWorkoutInsightLoading, setPostWorkoutInsightLoading] = useState(false);
 
   const fetchWorkouts = useCallback(() => {
     const supabase = createClient();
@@ -71,7 +73,32 @@ export default function WorkoutLogPage() {
 
       <Card className="mt-4" padding="lg">
         <CardHeader title="Quick log" subtitle="Save a completed workout" />
-        <WorkoutQuickForm onSuccess={() => setRefetch((n) => n + 1)} />
+        <WorkoutQuickForm
+          onSuccess={() => {
+            setRefetch((n) => n + 1);
+            setPostWorkoutInsight(null);
+            setPostWorkoutInsightLoading(true);
+            fetch("/api/v1/ai/post-workout-insight", { method: "POST" })
+              .then((r) => r.json())
+              .then((body: { insight?: string | null }) => {
+                if (body.insight && typeof body.insight === "string") setPostWorkoutInsight(body.insight);
+              })
+              .catch(() => {})
+              .finally(() => setPostWorkoutInsightLoading(false));
+          }}
+        />
+        {postWorkoutInsightLoading && (
+          <p className="mt-4 text-sm text-fn-muted">Generating insight...</p>
+        )}
+        {postWorkoutInsight && !postWorkoutInsightLoading && (
+          <div className="mt-4 rounded-xl border border-fn-border bg-fn-bg-alt px-4 py-3 text-sm text-fn-ink">
+            <p className="font-semibold">What this means</p>
+            <p className="mt-1">{postWorkoutInsight}</p>
+            <button type="button" onClick={() => setPostWorkoutInsight(null)} className="mt-2 text-xs font-semibold text-fn-primary hover:underline">
+              Dismiss
+            </button>
+          </div>
+        )}
       </Card>
 
       <section className="mt-4">

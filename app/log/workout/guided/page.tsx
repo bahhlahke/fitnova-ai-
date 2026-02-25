@@ -35,8 +35,12 @@ export default function GuidedWorkoutPage() {
   const [restSeconds, setRestSeconds] = useState(0);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [postWorkoutInsight, setPostWorkoutInsight] = useState<string | null>(null);
+  const [postWorkoutInsightLoading, setPostWorkoutInsightLoading] = useState(false);
   const [planTitle, setPlanTitle] = useState("Personalized session");
   const [exercises, setExercises] = useState<GuidedExercise[]>(FALLBACK_EXERCISES);
+  const [injuryBanner, setInjuryBanner] = useState<{ exercise: string; message: string } | null>(null);
+  const [injuryBannerDismissed, setInjuryBannerDismissed] = useState(false);
   const workoutStartedAt = useRef<number | null>(null);
 
   useEffect(() => {
@@ -47,28 +51,48 @@ export default function GuidedWorkoutPage() {
       .getUser()
       .then(async ({ data: { user } }) => {
         if (!user) return;
-        const { data } = await supabase
-          .from("daily_plans")
-          .select("plan_json")
-          .eq("user_id", user.id)
-          .eq("date_local", toLocalDateString())
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const [planRes, profileRes] = await Promise.all([
+          supabase
+            .from("daily_plans")
+            .select("plan_json")
+            .eq("user_id", user.id)
+            .eq("date_local", toLocalDateString())
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          supabase.from("user_profile").select("injuries_limitations").eq("user_id", user.id).maybeSingle(),
+        ]);
 
-        const plan = (data?.plan_json ?? null) as DailyPlan | null;
+        const plan = (planRes.data?.plan_json ?? null) as DailyPlan | null;
         if (plan?.training_plan?.exercises?.length) {
           setPlanTitle(plan.training_plan.focus || "Personalized session");
-          setExercises(
-            plan.training_plan.exercises.map((e) => ({
-              name: e.name,
-              sets: e.sets,
-              reps: e.reps,
-              intensity: e.intensity,
-              notes: e.notes,
-              image_url: e.image_url ?? null,
-            }))
-          );
+          const newExercises = plan.training_plan.exercises.map((e) => ({
+            name: e.name,
+            sets: e.sets,
+            reps: e.reps,
+            intensity: e.intensity,
+            notes: e.notes,
+            image_url: e.image_url ?? null,
+          }));
+          setExercises(newExercises);
+
+          const injuries = (profileRes.data as { injuries_limitations?: Record<string, unknown> } | null)?.injuries_limitations;
+          const injuriesText = injuries ? JSON.stringify(injuries).toLowerCase() : "";
+          if (injuriesText) {
+            const conflict = newExercises.find((e) => {
+              const name = e.name.toLowerCase();
+              const kneeSquat = /knee|knee pain/.test(injuriesText) && /squat|lunge|leg press/.test(name);
+              const backHinge = /back|spine|low back/.test(injuriesText) && /deadlift|rdl|squat|barbell row/.test(name);
+              const shoulderPress = /shoulder/.test(injuriesText) && /press|push-up|pushup/.test(name);
+              return kneeSquat || backHinge || shoulderPress;
+            });
+            if (conflict) {
+              setInjuryBanner({
+                exercise: conflict.name,
+                message: `This plan includes "${conflict.name}". You noted limitations in your profile. Consider asking the coach for an alternative.`,
+              });
+            }
+          }
         }
       })
       .catch(() => undefined);
@@ -128,6 +152,18 @@ export default function GuidedWorkoutPage() {
   }, [exercises, planTitle]);
 
   useEffect(() => {
+    if (!saved) return;
+    setPostWorkoutInsightLoading(true);
+    fetch("/api/v1/ai/post-workout-insight", { method: "POST" })
+      .then((r) => r.json())
+      .then((body: { insight?: string | null }) => {
+        if (body.insight && typeof body.insight === "string") setPostWorkoutInsight(body.insight);
+      })
+      .catch(() => {})
+      .finally(() => setPostWorkoutInsightLoading(false));
+  }, [saved]);
+
+  useEffect(() => {
     if (phase === "work" && exercise && workoutStartedAt.current === null) {
       workoutStartedAt.current = Date.now();
     }
@@ -171,6 +207,15 @@ export default function GuidedWorkoutPage() {
         <p className="mt-2 text-fn-muted">
           {saved ? "Session saved to your log." : saveError ?? "Session complete."}
         </p>
+        {postWorkoutInsightLoading && (
+          <p className="mt-4 text-sm text-fn-muted">What this means...</p>
+        )}
+        {postWorkoutInsight && !postWorkoutInsightLoading && (
+          <div className="mt-4 max-w-md rounded-xl border border-fn-border bg-fn-bg-alt px-4 py-3 text-left text-sm text-fn-ink">
+            <p className="font-semibold text-fn-ink">What this means</p>
+            <p className="mt-1">{postWorkoutInsight}</p>
+          </div>
+        )}
         <Link href="/log/workout" className="mt-8">
           <Button>Back to workout</Button>
         </Link>
@@ -201,6 +246,21 @@ export default function GuidedWorkoutPage() {
           style={{ width: `${progressPct}%` }}
         />
       </div>
+
+      {injuryBanner && !injuryBannerDismissed && (
+        <div className="mx-4 mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <p className="font-semibold">Injury note</p>
+          <p className="mt-1">{injuryBanner.message}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Link href="/coach" className="text-sm font-semibold text-fn-primary hover:underline">
+              Ask coach for alternative
+            </Link>
+            <button type="button" onClick={() => setInjuryBannerDismissed(true)} className="text-sm font-semibold text-fn-muted hover:underline">
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col px-4 pb-6 pt-4">
         <header className="mb-3 flex items-center justify-between">

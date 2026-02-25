@@ -56,6 +56,11 @@ export default function SettingsPage() {
   const [coachTone, setCoachTone] = useState("balanced");
   const [nudges, setNudges] = useState("standard");
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [reminders, setReminders] = useState<{ daily_plan?: boolean; workout_log?: boolean; weigh_in?: "weekly" | "off" }>({
+    daily_plan: true,
+    workout_log: true,
+    weigh_in: "weekly",
+  });
 
   useEffect(() => {
     const supabase = createClient();
@@ -77,6 +82,13 @@ export default function SettingsPage() {
           ({ data, error: fetchError }) => {
             const nextProfile: Partial<UserProfile> = fetchError ? {} : ((data as UserProfile) ?? {});
             const nextUnitSystem = readUnitSystemFromProfile(nextProfile as Record<string, unknown>);
+            const dev = (nextProfile.devices ?? {}) as Record<string, unknown>;
+            const rem = (dev.reminders ?? {}) as { daily_plan?: boolean; workout_log?: boolean; weigh_in?: "weekly" | "off" };
+            setReminders({
+              daily_plan: rem.daily_plan ?? true,
+              workout_log: rem.workout_log ?? true,
+              weigh_in: rem.weigh_in ?? "weekly",
+            });
             setProfile(nextProfile);
             setUnitSystem(nextUnitSystem);
             const nextHeight = nextProfile.height;
@@ -138,6 +150,7 @@ export default function SettingsPage() {
           ...(profile.devices ?? {}),
           ai_coach_tone: coachTone,
           units_system: unitSystem,
+          reminders,
         },
       },
       { onConflict: "user_id" }
@@ -329,6 +342,64 @@ export default function SettingsPage() {
                 <option value="high">High</option>
               </Select>
             </div>
+          </div>
+        </Card>
+
+        <Card padding="lg">
+          <CardHeader title="Reminders" subtitle="In-app nudges (no push or email yet)" />
+          <div className="mt-4 space-y-3">
+            <label className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={reminders.daily_plan ?? true}
+                onChange={(e) => setReminders((r) => ({ ...r, daily_plan: e.target.checked }))}
+                className="h-4 w-4 rounded border-fn-border"
+              />
+              <span className="text-sm text-fn-ink">Remind me to generate today&apos;s plan</span>
+            </label>
+            <label className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={reminders.workout_log ?? true}
+                onChange={(e) => setReminders((r) => ({ ...r, workout_log: e.target.checked }))}
+                className="h-4 w-4 rounded border-fn-border"
+              />
+              <span className="text-sm text-fn-ink">Remind me to log my workout</span>
+            </label>
+            <div>
+              <Label className="text-sm">Weigh-in reminder</Label>
+              <Select
+                value={reminders.weigh_in ?? "weekly"}
+                onChange={(e) => setReminders((r) => ({ ...r, weigh_in: e.target.value as "weekly" | "off" }))}
+                className="mt-1 max-w-[180px]"
+              >
+                <option value="weekly">Weekly</option>
+                <option value="off">Off</option>
+              </Select>
+            </div>
+          </div>
+        </Card>
+
+        <Card padding="lg">
+          <CardHeader title="Export data" subtitle="Download your data" />
+          <p className="mt-2 text-sm text-fn-muted">Download workouts, nutrition logs, and progress as JSON or CSV.</p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <a
+              href="/api/v1/export?format=json"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block"
+            >
+              <Button type="button" variant="secondary" size="sm">Download JSON</Button>
+            </a>
+            <a
+              href="/api/v1/export?format=csv"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block"
+            >
+              <Button type="button" variant="secondary" size="sm">Download CSV</Button>
+            </a>
           </div>
         </Card>
 

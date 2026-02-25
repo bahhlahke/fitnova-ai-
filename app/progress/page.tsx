@@ -32,6 +32,8 @@ export default function ProgressPage() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [unitSystem, setUnitSystem] = useState<UnitSystem>(DEFAULT_UNIT_SYSTEM);
   const [loading, setLoading] = useState(true);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [aiInsightLoading, setAiInsightLoading] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -89,12 +91,26 @@ export default function ProgressPage() {
     ? (latestEntry.measurements as Record<string, number>)
     : null;
 
-  const aiNarrative = useMemo(() => {
+  const fallbackNarrative = useMemo(() => {
     if (!entries.length) return "No trend available yet. Add at least two check-ins to unlock AI narrative insight.";
     if (trend === "down") return "Weight trend is moving down. Maintain current adherence and preserve protein intake.";
     if (trend === "up") return "Weight trend is rising. Review weekly calorie average and session consistency.";
     return "Trend is stable. Consider a small plan adjustment if body composition goals are stalled.";
   }, [entries.length, trend]);
+
+  useEffect(() => {
+    if (entries.length < 1) return;
+    setAiInsightLoading(true);
+    fetch("/api/v1/ai/progress-insight", { method: "POST" })
+      .then((r) => r.json())
+      .then((body: { insight?: string | null }) => {
+        if (body.insight && typeof body.insight === "string") setAiInsight(body.insight);
+      })
+      .catch(() => {})
+      .finally(() => setAiInsightLoading(false));
+  }, [entries.length]);
+
+  const aiNarrative = aiInsight ?? fallbackNarrative;
 
   return (
     <PageLayout title="Progress" subtitle="Trend interpretation and what changed" >
@@ -105,7 +121,11 @@ export default function ProgressPage() {
           <div className="grid gap-4 lg:grid-cols-3">
             <Card padding="lg" className="lg:col-span-2">
               <CardHeader title="AI narrative" subtitle="Based on latest entries" />
-              <p className="mt-3 text-base text-fn-ink">{aiNarrative}</p>
+              {aiInsightLoading ? (
+                <p className="mt-3 text-base text-fn-muted">Generating insight...</p>
+              ) : (
+                <p className="mt-3 text-base text-fn-ink">{aiNarrative}</p>
+              )}
             </Card>
 
             <Card>

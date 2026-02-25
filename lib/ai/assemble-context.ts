@@ -6,12 +6,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { toLocalDateString } from "@/lib/date/local-date";
 import { readUnitSystemFromProfile } from "@/lib/units";
 
-const SYSTEM_BASE = `You are the user's personal AI fitness coach and nutritionist for FitNova. Your job is to give clear, actionable answers that help them train and eat in a way that fits their life.
+const SYSTEM_BASE = `You are the user's personal AI fitness coach and nutritionist for FitNova. Respond as a world-class personal trainer and nutritionist would: evidence-aware, concise, and actionable.
 
 Guidelines:
 - Be concise and warm. Use short paragraphs or bullets when it helps clarity.
 - Always end with one concrete next step (e.g. "Do X today" or "Try Y at your next meal").
 - When giving advice, briefly say why it works; if there's a good alternative, offer one.
+- When the user's data supports it, include one short data-driven insight per response—e.g. "Given your last 3 sessions, you're ready for a heavier leg day" or "Your protein has been low on training days; here's why that matters for recovery." Use their profile, recent workouts, nutrition, and check-ins (when provided) to make this insight specific to them.
+- Tie training and nutrition in the same response when relevant (e.g. recovery nutrition after a hard session, or meal timing around training).
 - Respect their goals, injuries, and preferences from their profile. If they're busy or sore, adapt.
 - You are educational support only. Remind them to seek medical care for pain, injury, or health concerns.
 - Use the user's preferred units (cm/kg or in/lbs) when mentioning numbers.
@@ -28,7 +30,8 @@ export async function assembleContext(
   supabase: SupabaseClient,
   userId: string
 ): Promise<AssembledContext> {
-  const [profileRes, workoutsRes, nutritionRes, convoRes] = await Promise.all([
+  const today = toLocalDateString();
+  const [profileRes, workoutsRes, nutritionRes, checkInsRes, convoRes] = await Promise.all([
     supabase.from("user_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase
       .from("workout_logs")
@@ -42,6 +45,12 @@ export async function assembleContext(
       .eq("user_id", userId)
       .order("date", { ascending: false })
       .limit(MAX_RECENT_LOGS),
+    supabase
+      .from("check_ins")
+      .select("date_local, energy_score, sleep_hours, soreness_notes, adherence_score")
+      .eq("user_id", userId)
+      .order("date_local", { ascending: false })
+      .limit(5),
     supabase
       .from("ai_conversations")
       .select("user_message_history, ai_reply_summary")
@@ -79,7 +88,6 @@ export async function assembleContext(
       duration_minutes?: number;
       exercises?: Array<{ name?: string }>;
     }>;
-    const today = toLocalDateString();
     const lastDate = workoutList[0]?.date;
     const daysSinceLast =
       lastDate != null
@@ -112,6 +120,22 @@ export async function assembleContext(
           .map((n) => `${n.date} ${(n as { total_calories?: number }).total_calories ?? "?"} cal — ${JSON.stringify((n as { meals?: unknown }).meals).slice(0, 150)}`)
           .join("\n")
     );
+  }
+
+  if (checkInsRes.data?.length) {
+    const checkInList = checkInsRes.data as Array<{
+      date_local: string;
+      energy_score?: number | null;
+      sleep_hours?: number | null;
+      soreness_notes?: string | null;
+      adherence_score?: number | null;
+    }>;
+    const todayCheckIn = checkInList.find((c) => c.date_local === today);
+    let checkInBlock = "Recent check-ins:\n" + checkInList.map((c) => `${c.date_local} energy=${c.energy_score ?? "?"} sleep=${c.sleep_hours ?? "?"}h ${c.soreness_notes ? `soreness: ${c.soreness_notes}` : ""}`).join("\n");
+    if (todayCheckIn) {
+      checkInBlock = `Today's check-in: energy ${todayCheckIn.energy_score ?? "?"}/5, sleep ${todayCheckIn.sleep_hours ?? "?"}h${todayCheckIn.soreness_notes ? `, soreness/notes: ${todayCheckIn.soreness_notes}` : ""}.\n` + checkInBlock;
+    }
+    parts.push(checkInBlock);
   }
 
   const history = (convoRes.data as { user_message_history?: Array<{ role: string; content: string }> } | null)

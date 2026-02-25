@@ -11,6 +11,13 @@ export default function LogPage() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2">
+        <Link href="/history" className="group order-last sm:order-none sm:col-span-2">
+          <Card padding="lg" className="h-full transition group-hover:-translate-y-0.5 group-hover:shadow-fn-soft">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">History</p>
+            <h2 className="mt-2 text-xl font-semibold text-fn-ink">Workout & nutrition history</h2>
+            <p className="mt-2 text-sm text-fn-muted">Browse past sessions and meals by date.</p>
+          </Card>
+        </Link>
         <Link href="/log/workout" className="group">
           <Card padding="lg" className="h-full transition group-hover:-translate-y-0.5 group-hover:shadow-fn-soft">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">Workout</p>
