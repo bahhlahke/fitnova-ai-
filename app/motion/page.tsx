@@ -96,7 +96,7 @@ export default function MotionLabPage() {
                             <Card padding="lg" className="border-white/5 bg-white/[0.05] animate-in fade-in slide-in-from-right-4 duration-500">
                                 <CardHeader title="AI Insight" subtitle="Kinematic Correction" />
                                 <p className="mt-4 text-sm text-fn-muted leading-relaxed italic border-l-2 border-fn-accent pl-4">
-                                    "Lateral shift detected in mid-rep. Prioritize glute engagement and maintain external rotation of the femur to protect the patellofemoral joint."
+                                    &quot;Lateral shift detected in mid-rep. Prioritize glute engagement and maintain external rotation of the femur to protect the patellofemoral joint.&quot;
                                 </p>
                             </Card>
                         )}

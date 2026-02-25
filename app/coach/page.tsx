@@ -153,7 +153,7 @@ export default function CoachPage() {
           <Card padding="lg" className="border-white/5 bg-white/[0.02]">
             <CardHeader title="Control Center" subtitle="Real-time protocol management" />
             <div className="mt-6 flex flex-wrap gap-4">
-              <Button onClick={generateDailyPlan} loading={planLoading} size="sm">Generate Today's Protocol</Button>
+              <Button onClick={generateDailyPlan} loading={planLoading} size="sm">Generate Today&apos;s Protocol</Button>
               {dailyPlan && <Button variant="secondary" size="sm" onClick={logPlannedWorkoutComplete}>Commit Session</Button>}
             </div>
             {planError && <ErrorMessage className="mt-4" message={planError} />}
@@ -310,7 +310,7 @@ export default function CoachPage() {
               />
             </div>
             <div className="p-6 bg-white/[0.02]">
-              <p className="text-xs text-fn-muted font-medium italic">"Maintain external rotation of the femur and prioritize depth over load for initial sets."</p>
+              <p className="text-xs text-fn-muted font-medium italic">&quot;Maintain external rotation of the femur and prioritize depth over load for initial sets.&quot;</p>
             </div>
           </div>
         </div>

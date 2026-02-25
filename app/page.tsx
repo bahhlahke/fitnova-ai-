@@ -362,7 +362,7 @@ export default function HomePage() {
             </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent mb-2">Lead Coach Briefing</p>
-              <p className="text-lg font-medium text-white/90 leading-relaxed italic">"{briefing}"</p>
+              <p className="text-lg font-medium text-white/90 leading-relaxed italic">&quot;{briefing}&quot;</p>
             </div>
           </div>
         )}
@@ -407,7 +407,7 @@ export default function HomePage() {
             {weeklyInsight && (
               <div className="relative p-6 rounded-2xl bg-white/5 border border-white/5 italic text-fn-muted text-sm leading-relaxed">
                 <span className="absolute -top-3 left-4 bg-fn-bg px-2 text-[10px] font-black uppercase tracking-widest text-fn-accent">Coach Insight</span>
-                "{weeklyInsight}"
+                &quot;{weeklyInsight}&quot;
               </div>
             )}
           </div>
@@ -481,7 +481,7 @@ export default function HomePage() {
           <ul className="mt-4 space-y-4">
             <li className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
               <div className="h-2 w-2 rounded-full bg-fn-accent mt-2" />
-              <p className="text-sm font-medium text-fn-muted leading-relaxed">System detects protein deficiency for 48h. Adjusting tomorrow's targets.</p>
+              <p className="text-sm font-medium text-fn-muted leading-relaxed">System detects protein deficiency for 48h. Adjusting tomorrow&apos;s targets.</p>
             </li>
             <li className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5 opacity-60">
               <div className="h-2 w-2 rounded-full bg-white mt-2" />

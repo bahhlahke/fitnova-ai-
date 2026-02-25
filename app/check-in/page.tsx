@@ -33,37 +33,46 @@ export default function CheckInPage() {
       setLoading(false);
       return;
     }
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      supabase
-        .from("check_ins")
-        .select("check_in_id, energy_score, sleep_hours, soreness_notes, adherence_score")
-        .eq("user_id", user.id)
-        .eq("date_local", today)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data) {
-            const row = data as {
-              check_in_id: string;
-              energy_score?: number | null;
-              sleep_hours?: number | null;
-              soreness_notes?: string | null;
-              adherence_score?: number | null;
-            };
-            setExistingCheckInId(row.check_in_id);
-            if (row.energy_score != null) setEnergyScore(row.energy_score);
-            if (row.sleep_hours != null) setSleepHours(String(row.sleep_hours));
-            if (row.soreness_notes) setSorenessNotes(row.soreness_notes);
-            if (row.adherence_score != null) setAdherenceScore(row.adherence_score);
-          }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user || cancelled) {
           setLoading(false);
-        }).catch(() => setLoading(false));
-    }).catch(() => setLoading(false));
+          return;
+        }
+        const { data } = await supabase
+          .from("check_ins")
+          .select("check_in_id, energy_score, sleep_hours, soreness_notes, adherence_score")
+          .eq("user_id", user.id)
+          .eq("date_local", today)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (cancelled) return;
+        if (data) {
+          const row = data as {
+            check_in_id: string;
+            energy_score?: number | null;
+            sleep_hours?: number | null;
+            soreness_notes?: string | null;
+            adherence_score?: number | null;
+          };
+          setExistingCheckInId(row.check_in_id);
+          if (row.energy_score != null) setEnergyScore(row.energy_score);
+          if (row.sleep_hours != null) setSleepHours(String(row.sleep_hours));
+          if (row.soreness_notes) setSorenessNotes(row.soreness_notes);
+          if (row.adherence_score != null) setAdherenceScore(row.adherence_score);
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [today]);
 
   async function handleSubmit(e: React.FormEvent) {

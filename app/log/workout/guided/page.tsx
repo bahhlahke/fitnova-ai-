@@ -292,10 +292,13 @@ export default function GuidedWorkoutPage() {
                   aria-label={exercise.name}
                 />
               ) : isExerciseGifUrl(imageUrl) ? (
-                <img
+                <Image
                   src={imageUrl}
                   alt={exercise.name}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 72rem"
+                  unoptimized
                 />
               ) : (
                 <Image
