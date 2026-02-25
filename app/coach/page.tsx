@@ -7,19 +7,16 @@ import type { DailyPlan } from "@/lib/plan/types";
 import { createClient } from "@/lib/supabase/client";
 import { toLocalDateString } from "@/lib/date/local-date";
 
-/** Fitness professional imagery: tailored to viewer gender (male user → female pro, female user → male pro). */
-const COACH_IMAGE_FEMALE_PRO =
-  "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&h=400&fit=crop&q=80";
-const COACH_IMAGE_MALE_PRO =
-  "https://images.unsplash.com/photo-1583454110551-21eb2fa97ead?w=400&h=400&fit=crop&q=80";
+/** Fitness professional imagery: tailored to user preference for aesthetic female coaches. */
+const COACH_IMAGE_V1 =
+  "/Users/blakeaycock/.gemini/antigravity/brain/6dcb9847-0df3-4ceb-8caf-437152f4c67a/female_coach_v1_retry_1771989508516.png";
 
 const SUGGESTED_PROMPTS = [
-  "Give me a 35-minute home workout with no equipment",
-  "How do I close my protein gap without eating more meat?",
-  "I'm sore from yesterday — should I train or rest?",
-  "Suggest a simple meal that fits 40g protein and 500 cal",
-  "What's one form cue I should focus on for squats?",
-  "Help me adjust my plan for a busy week",
+  "Create a 40-minute high-intensity metabolic circuit",
+  "How can I optimize my sleep for better recovery?",
+  "I'm feeling a 4/10 on energy—how should we adjust today?",
+  "Analyze my last session's volume for progression",
+  "Design a high-protein vegan meal plan for this week",
 ];
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -33,29 +30,12 @@ export default function CoachPage() {
   const [planLoading, setPlanLoading] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
   const [logStatus, setLogStatus] = useState<string | null>(null);
-  const [coachImageUrl, setCoachImageUrl] = useState<string>(COACH_IMAGE_FEMALE_PRO);
+  const [coachImageUrl, setCoachImageUrl] = useState<string>(COACH_IMAGE_V1);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  useEffect(() => {
-    const supabase = createClient();
-    if (!supabase) return;
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase
-        .from("user_profile")
-        .select("sex")
-        .eq("user_id", user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          const sex = (data as { sex?: string } | null)?.sex?.toLowerCase();
-          setCoachImageUrl(sex === "female" ? COACH_IMAGE_MALE_PRO : COACH_IMAGE_FEMALE_PRO);
-        });
-    });
-  }, []);
 
   async function generateDailyPlan() {
     setPlanLoading(true);
@@ -147,97 +127,149 @@ export default function CoachPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-shell px-4 py-8 sm:px-6">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
-        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-fn-border shadow-fn-soft sm:h-28 sm:w-28">
-          <Image
-            src={coachImageUrl}
-            alt="FitNova AI Coach"
-            fill
-            className="object-cover"
-            sizes="112px"
-          />
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">Your AI coach</p>
-          <h1 className="mt-2 font-display text-3xl text-fn-ink sm:text-4xl">Daily accountability and decisions</h1>
-          <p className="mt-2 text-fn-muted">Evidence-based training adjustments, nutrition guidance, and clear next steps. Ask anything — form cues, meal ideas, or how to adapt when life gets busy.</p>
+    <div className="mx-auto w-full max-w-shell px-4 py-12 sm:px-8">
+      <header className="mb-10 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
+          <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-xl3 border border-fn-accent/30 shadow-[0_0_30px_rgba(10,217,196,0.2)]">
+            <Image
+              src={coachImageUrl}
+              alt="FitNova AI Coach"
+              fill
+              className="object-cover"
+              sizes="128px"
+            />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent">Elite Protocol</p>
+            <h1 className="mt-2 font-display text-4xl font-black text-white italic tracking-tighter uppercase sm:text-6xl">Coach Room</h1>
+            <p className="mt-4 max-w-2xl text-lg font-medium text-fn-muted leading-relaxed">Direct access to your AI performance lead. Adaptive strategy, metabolic tuning, and absolute accountability.</p>
+          </div>
         </div>
       </header>
 
-      <div className="mb-4 grid gap-4 lg:grid-cols-[1fr_340px]">
-        <Card>
-          <CardHeader title="Plan actions" subtitle="Quick controls before you chat" />
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button onClick={generateDailyPlan} loading={planLoading} size="sm">Generate today&apos;s plan</Button>
-            {dailyPlan && <Button variant="secondary" size="sm" onClick={logPlannedWorkoutComplete}>Log planned workout complete</Button>}
-          </div>
-          <p className="mt-3 text-xs text-fn-muted">Educational AI coaching only. Stop and seek care for severe or worsening symptoms.</p>
-          {planError && <ErrorMessage className="mt-3" message={planError} />}
-          {logStatus && <p className="mt-3 rounded-xl bg-fn-bg-alt px-3 py-2 text-sm text-fn-muted">{logStatus}</p>}
-        </Card>
-
-        {dailyPlan && (
-          <Card>
-            <CardHeader title="Today preview" subtitle={dailyPlan.training_plan.focus} />
-            <p className="mt-2 text-sm text-fn-muted">Target: {dailyPlan.nutrition_plan.calorie_target} cal · Protein {dailyPlan.nutrition_plan.macros.protein_g}g</p>
-            <ul className="mt-3 space-y-1 text-sm text-fn-muted">
-              {dailyPlan.training_plan.exercises.slice(0, 4).map((exercise) => (
-                <li key={exercise.name}>{exercise.name}: {exercise.sets} sets · {exercise.reps}</li>
-              ))}
-            </ul>
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        <div className="space-y-6">
+          <Card padding="lg" className="border-white/5 bg-white/[0.02]">
+            <CardHeader title="Control Center" subtitle="Real-time protocol management" />
+            <div className="mt-6 flex flex-wrap gap-4">
+              <Button onClick={generateDailyPlan} loading={planLoading} size="sm">Generate Today's Protocol</Button>
+              {dailyPlan && <Button variant="secondary" size="sm" onClick={logPlannedWorkoutComplete}>Commit Session</Button>}
+            </div>
+            {planError && <ErrorMessage className="mt-4" message={planError} />}
+            {logStatus && <p className="mt-4 rounded-xl bg-fn-accent/10 border border-fn-accent/20 px-4 py-3 text-sm text-fn-accent font-bold uppercase tracking-wider">{logStatus}</p>}
           </Card>
-        )}
-      </div>
 
-      <Card className="flex h-[65vh] min-h-[400px] flex-col">
-        <CardHeader title="Coach chat" subtitle="Get a clear answer and one concrete next step" />
+          <Card className="flex h-[600px] flex-col border-white/5 bg-white/[0.02]">
+            <div className="flex-1 overflow-y-auto space-y-6 p-6 scrollbar-hide">
+              {messages.length === 0 && (
+                <div className="space-y-8 py-10 text-center">
+                  <p className="text-lg font-medium text-fn-muted max-w-md mx-auto leading-relaxed">System initialized. Secure connection established with Lead Coach. Select a command or type your query.</p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {SUGGESTED_PROMPTS.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        onClick={() => setInput(prompt)}
+                        className="rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-left text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-white/10 hover:border-white/20 active:scale-95"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div className={`max-w-[85%] rounded-2xl px-6 py-4 text-sm font-medium leading-relaxed shadow-xl ${msg.role === "user"
+                    ? "bg-white text-black rounded-tr-none"
+                    : "bg-fn-surface border border-white/5 text-fn-ink rounded-tl-none backdrop-blur-3xl"
+                    }`}>
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="bg-white/5 border border-white/5 rounded-2xl rounded-tl-none px-6 py-4 animate-pulse">
+                    <div className="flex gap-1">
+                      <div className="h-1.5 w-1.5 rounded-full bg-fn-accent" />
+                      <div className="h-1.5 w-1.5 rounded-full bg-fn-accent delay-75" />
+                      <div className="h-1.5 w-1.5 rounded-full bg-fn-accent delay-150" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {error && <ErrorMessage message={error} />}
+              <div ref={bottomRef} />
+            </div>
 
-        <div className="mt-4 flex-1 space-y-3 overflow-y-auto rounded-xl border border-fn-border bg-fn-surface-hover p-3">
-          {messages.length === 0 && (
-            <div className="space-y-4">
-              <p className="text-sm text-fn-muted">Tap a prompt below or type your own. The coach will give you actionable guidance and, when relevant, one alternative option.</p>
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTED_PROMPTS.map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() => setInput(prompt)}
-                    className="rounded-lg border border-fn-border bg-white px-3 py-2 text-left text-sm text-fn-ink hover:bg-fn-surface-hover focus:outline-none focus:ring-2 focus:ring-fn-primary/20"
-                  >
-                    {prompt}
-                  </button>
-                ))}
+            <form onSubmit={handleSubmit} className="p-6 border-t border-white/5 bg-black/20 backdrop-blur-3xl">
+              <div className="relative flex gap-3">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Inquire performance strategy..."
+                  className="flex-1 rounded-xl2 border border-white/10 bg-white/5 px-6 py-4 text-white placeholder-white/30 transition-all focus:border-fn-accent/50 focus:outline-none focus:ring-4 focus:ring-fn-accent/10"
+                  disabled={loading}
+                />
+                <Button type="submit" disabled={loading || !input.trim()} className="px-10">Send</Button>
               </div>
-            </div>
-          )}
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`rounded-xl px-4 py-3 text-sm ${
-                msg.role === "user" ? "ml-4 bg-fn-primary text-white" : "mr-4 bg-white text-fn-ink"
-              }`}
-            >
-              <p className="whitespace-pre-wrap">{msg.content}</p>
-            </div>
-          ))}
-          {loading && <p className="text-sm text-fn-muted">Thinking...</p>}
-          {error && <ErrorMessage message={error} />}
-          <div ref={bottomRef} />
+            </form>
+          </Card>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-4 flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask for a workout, meal idea, or plan adjustment..."
-            className="min-h-touch flex-1 rounded-xl border border-fn-border bg-white px-4 py-3 text-fn-ink placeholder-fn-muted focus:border-fn-primary focus:outline-none focus:ring-2 focus:ring-fn-primary/20"
-            disabled={loading}
-          />
-          <Button type="submit" disabled={loading || !input.trim()}>Send</Button>
-        </form>
-      </Card>
+        <aside className="space-y-6">
+          {dailyPlan ? (
+            <Card className="border-fn-accent/30 bg-fn-accent/5">
+              <CardHeader title="Live Protocol" subtitle={dailyPlan.training_plan.focus} />
+              <div className="mt-6 space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-1">Target</p>
+                    <p className="text-xl font-black text-white">{dailyPlan.nutrition_plan.calorie_target}</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-1">Protein</p>
+                    <p className="text-xl font-black text-white">{dailyPlan.nutrition_plan.macros.protein_g}g</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Session Breakdown</p>
+                  <ul className="space-y-3">
+                    {dailyPlan.training_plan.exercises.slice(0, 4).map((exercise) => (
+                      <li key={exercise.name} className="flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/5">
+                        <span className="text-sm font-bold text-white uppercase italic tracking-tighter">{exercise.name}</span>
+                        <span className="text-xs font-black text-fn-accent">{exercise.sets}×{exercise.reps}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <Card className="border-white/5 bg-white/[0.01] opacity-50">
+              <div className="py-20 text-center">
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-fn-muted mb-4">No Protocol Active</p>
+                <p className="text-sm font-medium text-fn-muted leading-relaxed">Generate your daily targets to activate live monitoring.</p>
+              </div>
+            </Card>
+          )}
+
+          <Card className="border-white/5 bg-white/[0.01]">
+            <CardHeader title="Intelligence" subtitle="System baseline" />
+            <div className="mt-4 space-y-4">
+              <p className="text-xs text-fn-muted leading-relaxed italic">Coach is utilizing available Bio-Sync data, historical volume, and nutritional adherence to synthesize recommendations.</p>
+              <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                <div className="h-full bg-fn-accent w-3/4 animate-pulse" />
+              </div>
+            </div>
+          </Card>
+        </aside>
+      </div>
     </div>
   );
 }

@@ -5,19 +5,14 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import {
   PageLayout,
-  Card,
-  CardHeader,
   Button,
-  Input,
   Label,
   Textarea,
   ErrorMessage,
-  LoadingState,
 } from "@/components/ui";
 import { toLocalDateString } from "@/lib/date/local-date";
 
 const ENERGY_LABELS = ["1 – Low", "2", "3", "4", "5 – High"];
-const ADHERENCE_LABELS = ["1 – Low", "2", "3", "4", "5 – High"];
 
 export default function CheckInPage() {
   const router = useRouter();
@@ -67,9 +62,8 @@ export default function CheckInPage() {
             if (row.adherence_score != null) setAdherenceScore(row.adherence_score);
           }
           setLoading(false);
-        })
-        .then(undefined, () => setLoading(false));
-    }).then(undefined, () => setLoading(false));
+        }).catch(() => setLoading(false));
+    }).catch(() => setLoading(false));
   }, [today]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -127,102 +121,111 @@ export default function CheckInPage() {
 
   if (loading) {
     return (
-      <PageLayout title="Check-in" subtitle="How you're feeling today" backHref="/" backLabel="Home">
-        <LoadingState />
+      <PageLayout title="System Scan" subtitle="Initializing Bio-Sync..." backHref="/">
+        <div className="flex justify-center py-20">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-fn-accent border-t-transparent" />
+        </div>
       </PageLayout>
     );
   }
 
   return (
-    <PageLayout title="Check-in" subtitle="How you're feeling today" backHref="/" backLabel="Home">
-      <Card>
-        <CardHeader
-          title="Today's check-in"
-          subtitle="Consistent entries improve plan adaptation and AI insight quality."
-        />
-        <form onSubmit={handleSubmit} className="mt-4 space-y-5">
-          <div>
-            <Label>Energy (1–5)</Label>
-            <div className="mt-2 flex gap-2">
+    <PageLayout
+      title="Daily Protocol Scan"
+      subtitle="Sync your internal vitals with the machine."
+      backHref="/"
+      backLabel="Cockpit"
+    >
+      <div className="mx-auto max-w-2xl space-y-12 py-10">
+        <header className="text-center">
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4">Readiness Initialization</p>
+          <h1 className="font-display text-5xl font-black text-white italic tracking-tighter uppercase sm:text-7xl">Vital Check</h1>
+        </header>
+
+        <form onSubmit={handleSubmit} className="space-y-12">
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-black uppercase tracking-widest text-fn-muted">System Energy</Label>
+              <span className="text-xs font-bold text-fn-accent">{energyScore ? ENERGY_LABELS[energyScore - 1] : "Required"}</span>
+            </div>
+            <div className="grid grid-cols-5 gap-3">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
                   key={n}
                   type="button"
                   onClick={() => setEnergyScore(n)}
-                  className={`min-h-touch min-w-touch flex-1 rounded-xl border text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-fn-primary/30 ${
-                    energyScore === n
-                      ? "border-fn-primary bg-fn-primary text-white"
-                      : "border-fn-border bg-fn-surface-hover text-fn-ink hover:border-fn-primary/50"
-                  }`}
+                  className={`relative flex flex-col items-center justify-center py-6 rounded-xl border-2 transition-all duration-300 ${energyScore === n
+                    ? "bg-fn-accent border-fn-accent text-black scale-105 shadow-[0_0_20px_rgba(10,217,196,0.3)]"
+                    : "bg-white/5 border-white/5 text-fn-muted hover:border-white/20"
+                    }`}
                 >
-                  {n}
+                  <span className="text-2xl font-black">{n}</span>
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-xs text-fn-muted">{ENERGY_LABELS[energyScore ?? 0] ?? "Select one"}</p>
-          </div>
+          </section>
 
-          <div>
-            <Label htmlFor="sleep">Sleep (hours)</Label>
-            <Input
-              id="sleep"
-              type="number"
-              min={0}
-              max={24}
-              step={0.5}
-              value={sleepHours}
-              onChange={(e) => setSleepHours(e.target.value)}
-              placeholder="e.g. 7"
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="soreness">Soreness or notes</Label>
-            <Textarea
-              id="soreness"
-              value={sorenessNotes}
-              onChange={(e) => setSorenessNotes(e.target.value)}
-              placeholder="e.g. Lower back tight, or leave blank"
-              className="mt-1"
-              rows={3}
-            />
-          </div>
-
-          <div>
-            <Label>Plan to adhere today (1–5, optional)</Label>
-            <div className="mt-2 flex gap-2">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setAdherenceScore(n)}
-                  className={`min-h-touch min-w-touch flex-1 rounded-xl border text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-fn-primary/30 ${
-                    adherenceScore === n
-                      ? "border-fn-primary bg-fn-primary text-white"
-                      : "border-fn-border bg-fn-surface-hover text-fn-ink hover:border-fn-primary/50"
-                  }`}
-                >
-                  {n}
-                </button>
-              ))}
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-black uppercase tracking-widest text-fn-muted">Sleep Duration</Label>
+              <span className="text-xs font-bold text-fn-accent">{sleepHours || 0} Hours</span>
             </div>
-            <p className="mt-1 text-xs text-fn-muted">{adherenceScore != null ? ADHERENCE_LABELS[adherenceScore - 1] : "Optional"}</p>
-          </div>
+            <div className="relative">
+              <input
+                type="range"
+                min="0"
+                max="14"
+                step="0.5"
+                value={sleepHours || "0"}
+                onChange={(e) => setSleepHours(e.target.value)}
+                className="w-full accent-fn-accent bg-white/10 rounded-lg appearance-none cursor-pointer h-2"
+              />
+              <div className="flex justify-between mt-2 text-[10px] font-bold text-fn-muted uppercase tracking-widest">
+                <span>0h</span>
+                <span>7h</span>
+                <span>14h</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-6">
+            <Label className="text-sm font-black uppercase tracking-widest text-fn-muted">Soreness & Notes</Label>
+            <div className="relative">
+              <Textarea
+                value={sorenessNotes}
+                onChange={(e) => setSorenessNotes(e.target.value)}
+                placeholder="Inquire specific muscular tension or constraints..."
+                className="bg-white/[0.02] border-white/5 text-white placeholder-white/20 rounded-xl p-6 focus:ring-fn-accent/20 focus:border-fn-accent/50"
+                rows={4}
+              />
+            </div>
+          </section>
 
           {error && <ErrorMessage message={error} />}
-          <div className="flex flex-wrap gap-3">
-            <Button type="submit" loading={saving} disabled={saving}>
-              {saved ? "Saved" : "Save check-in"}
+
+          <div className="flex flex-col gap-4">
+            <Button
+              type="submit"
+              loading={saving}
+              disabled={saving || !energyScore}
+              className="w-full py-6 text-lg"
+            >
+              {saved ? "Protocol Synced" : "Commit to Analysis"}
             </Button>
+
             {saved && (
-              <Button type="button" variant="secondary" onClick={() => router.push("/")}>
-                Back to home
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => router.push("/")}
+                className="w-full py-6"
+              >
+                Back to Cockpit
               </Button>
             )}
           </div>
         </form>
-      </Card>
+      </div>
     </PageLayout>
   );
 }

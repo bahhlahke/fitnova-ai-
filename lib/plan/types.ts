@@ -21,6 +21,7 @@ export type DailyPlan = {
   };
   nutrition_plan: {
     calorie_target: number;
+    nutrition_mode?: "Performance" | "Baseline" | "Recovery";
     macros: {
       protein_g: number;
       carbs_g: number;

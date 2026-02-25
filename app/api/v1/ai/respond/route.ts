@@ -6,8 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { assembleContext } from "@/lib/ai/assemble-context";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
-
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+import { callModel } from "@/lib/ai/model";
 const SYSTEM_PROMPT_VERSION = "v2-balanced-safety";
 const MAX_MESSAGE_CHARS = 2000;
 const RATE_LIMIT_CAPACITY = 12;
@@ -20,32 +19,6 @@ const SAFETY_POLICY = `Safety policy (balanced):
 - Respect injuries/limitations from profile data and provide safer alternatives.
 - Prefer sustainable, evidence-informed advice over extreme protocols.`;
 
-function withTimeout(ms: number) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), ms);
-  return {
-    signal: controller.signal,
-    done: () => clearTimeout(timeout),
-  };
-}
-
-async function callOpenRouter(payload: object, apiKey: string, originHeader: string | null) {
-  const timeout = withTimeout(15_000);
-  try {
-    return await fetch(OPENROUTER_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        ...(originHeader ? { "HTTP-Referer": originHeader } : {}),
-      },
-      body: JSON.stringify(payload),
-      signal: timeout.signal,
-    });
-  } finally {
-    timeout.done();
-  }
-}
 
 export async function POST(request: Request) {
   const requestId = makeRequestId();
@@ -118,34 +91,21 @@ export async function POST(request: Request) {
       systemPrompt = `${systemPrompt}\n\n${SAFETY_POLICY}`;
     }
 
-    const payload = {
-      model: "openai/gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: message },
-      ],
-      max_tokens: 1024,
-    };
+    const { reply } = await (async () => {
+      try {
+        const content = await callModel({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: message },
+          ],
+        });
+        return { reply: content };
+      } catch (err) {
+        throw err;
+      }
+    })();
 
-    let res = await callOpenRouter(payload, apiKey, request.headers.get("origin"));
-    if (!res.ok && res.status >= 500) {
-      res = await callOpenRouter(payload, apiKey, request.headers.get("origin"));
-    }
-
-    if (!res.ok) {
-      console.error("ai_openrouter_error", {
-        requestId,
-        status: res.status,
-      });
-      return jsonError(502, "UPSTREAM_ERROR", "AI provider request failed.");
-    }
-
-    const data = (await res.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-
-    const content =
-      data.choices?.[0]?.message?.content ?? "I couldn't generate a response.";
+    const content = reply;
 
     if (user?.id) {
       try {

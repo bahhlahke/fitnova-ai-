@@ -14,7 +14,7 @@ export function Card({
   const paddingClass = padding === "lg" ? "p-6" : "p-4";
   return (
     <div
-      className={`rounded-2xl border border-fn-border bg-fn-surface shadow-fn-card ${paddingClass} ${className}`.trim()}
+      className={`rounded-xl2 border border-fn-border bg-fn-surface/50 backdrop-blur-md shadow-fn-card ${paddingClass} ${className}`.trim()}
       {...props}
     >
       {children}
@@ -32,8 +32,8 @@ export function CardHeader({
   className?: string;
 }) {
   return (
-    <div className={className}>
-      <h2 className="text-base font-semibold text-fn-ink">{title}</h2>
+    <div className={`mb-4 ${className}`.trim()}>
+      <h2 className="text-xl font-bold text-fn-ink tracking-tight">{title}</h2>
       {subtitle && <p className="mt-1 text-sm text-fn-muted">{subtitle}</p>}
     </div>
   );

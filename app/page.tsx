@@ -8,7 +8,7 @@ import { Card, CardHeader, Button, LoadingState, EmptyState } from "@/components
 import { toLocalDateString } from "@/lib/date/local-date";
 
 const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1200&q=80";
+  "/Users/blakeaycock/.gemini/antigravity/brain/6dcb9847-0df3-4ceb-8caf-437152f4c67a/future_hero_female_training_v2_1771989434199.png";
 
 type HelpTab = "adaptive" | "nutrition" | "coaching";
 
@@ -39,6 +39,9 @@ export default function HomePage() {
   const [readinessInsight, setReadinessInsight] = useState<string | null>(null);
   const [readinessInsightLoading, setReadinessInsightLoading] = useState(false);
   const [lastWorkoutDate, setLastWorkoutDate] = useState<string | null>(null);
+  const [briefing, setBriefing] = useState<string | null>(null);
+  const [briefingLoading, setBriefingLoading] = useState(false);
+  const [projection, setProjection] = useState<{ current: number; projected_4w: number; projected_12w: number; confidence: number } | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -158,7 +161,7 @@ export default function HomePage() {
       .then((body: { insight?: string | null }) => {
         if (body.insight && typeof body.insight === "string") setReadinessInsight(body.insight);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setReadinessInsightLoading(false));
   }, [authState]);
 
@@ -170,8 +173,28 @@ export default function HomePage() {
       .then((body: { insight?: string | null }) => {
         if (body.insight && typeof body.insight === "string") setWeeklyInsight(body.insight);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setWeeklyInsightLoading(false));
+  }, [authState]);
+  useEffect(() => {
+    if (authState !== "signed_in") return;
+    fetch("/api/v1/ai/projection")
+      .then((r) => r.json())
+      .then((body) => {
+        if (body.current) setProjection(body);
+      })
+      .catch(() => { });
+  }, [authState]);
+  useEffect(() => {
+    if (authState !== "signed_in") return;
+    setBriefingLoading(true);
+    fetch("/api/v1/ai/briefing", { method: "POST" })
+      .then((r) => r.json())
+      .then((body: { briefing?: string | null }) => {
+        if (body.briefing && typeof body.briefing === "string") setBriefing(body.briefing);
+      })
+      .catch(() => { })
+      .finally(() => setBriefingLoading(false));
   }, [authState]);
 
   const streak = useMemo(() => {
@@ -185,7 +208,7 @@ export default function HomePage() {
     if (!lastWorkoutDate) return null;
     return Math.floor(
       (new Date(today).setHours(0, 0, 0, 0) - new Date(lastWorkoutDate).setHours(0, 0, 0, 0)) /
-        (24 * 60 * 60 * 1000)
+      (24 * 60 * 60 * 1000)
     );
   }, [lastWorkoutDate, today]);
   const recoverySuggestion =
@@ -224,235 +247,251 @@ export default function HomePage() {
 
   if (authState === "signed_out") {
     return (
-      <div className="mx-auto w-full max-w-shell px-4 py-8 sm:px-6">
-        <section className="hero-reveal overflow-hidden rounded-3xl border border-fn-border bg-white shadow-fn-card">
-          <div className="relative h-56 w-full sm:h-72 md:h-80">
-            <Image
-              src={HERO_IMAGE}
-              alt="Fitness training"
-              fill
-              className="object-cover"
-              priority
-              sizes="(max-width: 768px) 100vw, 72rem"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-fn-ink/70 via-fn-ink/20 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-white sm:p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/90">AI personal trainer + nutritionist</p>
-              <h1 className="mt-2 max-w-2xl font-display text-3xl sm:text-4xl md:text-5xl">
-                Build a plan for <span className="text-fn-accent">{rotatingGoals[goalIndex]}</span> and execute it daily.
+      <div className="w-full">
+        {/* Hero Section */}
+        <section className="relative min-h-screen w-full flex flex-col justify-end overflow-hidden">
+          <Image
+            src={HERO_IMAGE}
+            alt="Elite training"
+            fill
+            className="object-cover transition-transform duration-1000 hover:scale-105"
+            priority
+            sizes="100vw"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+
+          <div className="relative mx-auto w-full max-w-shell px-6 pb-20 pt-40 sm:px-10">
+            <div className="max-w-4xl">
+              <p className="inline-block rounded-full bg-white/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.3em] text-white/90 backdrop-blur-md ring-1 ring-white/20">
+                FitNova Pro Experience
+              </p>
+              <h1 className="mt-8 font-display text-5xl font-black leading-[1.1] text-white sm:text-7xl md:text-8xl lg:text-9xl tracking-tighter uppercase italic">
+                Build your <span className="text-fn-accent">legend</span>
               </h1>
-            </div>
-          </div>
-          <div className="p-6 sm:p-10">
-            <p className="max-w-2xl text-base text-fn-muted">
-              FitNova combines adaptive workouts, nutrition guidance, and accountability insights into one coaching system.
-            </p>
+              <p className="mt-8 max-w-xl text-xl font-medium text-white/70 sm:text-2xl">
+                The most advanced AI coaching engine ever built. Personalized training, metabolic autopilot, and 24/7 accountability.
+              </p>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/start">
-              <Button>Start 1-minute assessment</Button>
-            </Link>
-            <a href="#how-it-works">
-              <Button variant="secondary">See how it works</Button>
-            </a>
-          </div>
-
-          <div className="mt-7 grid gap-3 sm:grid-cols-3">
-            {["Weight loss", "Muscle gain", "Mobility"].map((item) => (
-              <button
-                key={item}
-                type="button"
-                className="rounded-xl border border-fn-border bg-fn-surface-hover px-4 py-3 text-left text-sm font-semibold text-fn-ink"
-              >
-                I want to focus on {item}
-              </button>
-            ))}
-          </div>
-
-            <div className="mt-7 rounded-2xl border border-fn-border bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.13em] text-fn-muted">Mock weekly plan preview</p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-4">
-                {["Mon Strength", "Tue Recovery", "Wed Hybrid", "Thu Strength"].map((item) => (
-                  <div key={item} className="rounded-xl bg-fn-bg-alt px-3 py-2 text-sm font-semibold text-fn-ink">{item}</div>
-                ))}
+              <div className="mt-12 flex flex-col gap-4 sm:flex-row">
+                <Link href="/start">
+                  <Button className="w-full sm:w-auto">Start Assessment</Button>
+                </Link>
+                <Link href="/auth">
+                  <Button variant="secondary" className="w-full sm:w-auto">Member Access</Button>
+                </Link>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="how-it-works" className="mt-8 grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-          <Card padding="lg" className="rise-reveal">
-            <CardHeader title="How FitNova helps" subtitle="Future-grade structure, AI-first delivery" />
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button type="button" onClick={() => setHelpTab("adaptive")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${helpTab === "adaptive" ? "bg-fn-primary text-white" : "bg-fn-bg-alt text-fn-ink"}`}>Adaptive workouts</button>
-              <button type="button" onClick={() => setHelpTab("nutrition")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${helpTab === "nutrition" ? "bg-fn-primary text-white" : "bg-fn-bg-alt text-fn-ink"}`}>Nutrition intelligence</button>
-              <button type="button" onClick={() => setHelpTab("coaching")} className={`rounded-lg px-3 py-2 text-sm font-semibold ${helpTab === "coaching" ? "bg-fn-primary text-white" : "bg-fn-bg-alt text-fn-ink"}`}>In-workout coaching</button>
-            </div>
-            <h3 className="mt-5 text-lg font-semibold text-fn-ink">{tabContent.title}</h3>
-            <p className="mt-2 text-fn-muted">{tabContent.body}</p>
-          </Card>
-
-          <Card padding="lg" className="rise-reveal rise-reveal-delay-1">
-            <CardHeader title="Adaptive proof" subtitle="Plan updates when life changes" />
-            <ul className="mt-4 space-y-3 text-sm text-fn-muted">
-              <li>Schedule shift leads to rebalanced session time and exercise density.</li>
-              <li>Low recovery day triggers reduced load and joint-friendly alternatives.</li>
-              <li>Strong adherence unlocks progression recommendations with guardrails.</li>
-            </ul>
-          </Card>
-        </section>
-
-        <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            ["Workout", "Guided plan with adaptive alternatives"],
-            ["Nutrition", "Macro gap awareness and next meal guidance"],
-            ["Progress", "Trend interpretation and plateau actions"],
-            ["Insights", "Accountability feed with decision prompts"],
-          ].map(([title, desc], idx) => (
-            <Card key={title} className={`rise-reveal ${idx > 0 ? `rise-reveal-delay-${Math.min(idx, 3)}` : ""}`}>
-              <h3 className="font-semibold text-fn-ink">{title}</h3>
-              <p className="mt-1 text-sm text-fn-muted">{desc}</p>
+        {/* Value Proposition Grid */}
+        <section className="mx-auto max-w-shell px-4 py-24 sm:px-6">
+          <div className="grid gap-8 lg:grid-cols-3">
+            <Card padding="lg" className="border-white/5 bg-white/[0.02]">
+              <div className="h-12 w-12 rounded-xl bg-fn-accent/20 flex items-center justify-center mb-6">
+                <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Adaptive Intensity</h3>
+              <p className="mt-4 text-fn-muted leading-relaxed">FitNova recalibrates your training load in real-time based on Bio-Sync readiness data.</p>
             </Card>
-          ))}
+
+            <Card padding="lg" className="border-white/5 bg-white/[0.02]">
+              <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center mb-6">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Metabolic Autopilot</h3>
+              <p className="mt-4 text-fn-muted leading-relaxed">Dynamic nutrition targets that shift automatically to fuel your performance and recovery.</p>
+            </Card>
+
+            <Card padding="lg" className="border-white/5 bg-white/[0.02]">
+              <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center mb-6">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">AI Motion Lab</h3>
+              <p className="mt-4 text-fn-muted leading-relaxed">Professional-grade form feedback powered by advanced vision AI. Your phone is now your coach.</p>
+            </Card>
+          </div>
         </section>
 
-        <section className="mt-8 rounded-3xl border border-fn-border bg-white p-6 text-center shadow-fn-card sm:p-8">
-          <h2 className="font-display text-3xl text-fn-ink">Start with your personalized baseline</h2>
-          <p className="mt-2 text-fn-muted">No pricing gate here yet. Build your plan first and start training today.</p>
-          <div className="mt-5 flex flex-wrap justify-center gap-3">
-            <Link href="/start"><Button>Start assessment</Button></Link>
-            <Link href="/auth"><Button variant="secondary">I already have an account</Button></Link>
+        {/* CTA Section */}
+        <section className="mx-auto max-w-shell px-4 py-32 sm:px-6">
+          <div className="rounded-xl3 border border-white/5 bg-gradient-to-br from-white/5 to-transparent p-12 text-center backdrop-blur-3xl">
+            <h2 className="font-display text-4xl font-black text-white sm:text-6xl tracking-tighter uppercase italic leading-tight">
+              Ready to redefine <br /> <span className="text-fn-accent">human potential?</span>
+            </h2>
+            <p className="mx-auto mt-8 max-w-2xl text-xl text-fn-muted">
+              Join the elite tier of digital-first coaching. No guesswork, just science and execution.
+            </p>
+            <div className="mt-12">
+              <Link href="/start">
+                <Button>Get Started Now</Button>
+              </Link>
+            </div>
           </div>
-          <p className="mt-3 text-xs text-fn-muted">AI guidance is educational and not medical care.</p>
         </section>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-shell px-4 py-8 sm:px-6">
-      <header className="mb-6 rounded-3xl border border-fn-border bg-white p-6 shadow-fn-card sm:p-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.13em] text-fn-muted">Today&apos;s coaching cockpit</p>
-        <h1 className="mt-2 font-display text-4xl text-fn-ink">FitNova AI</h1>
-        <p className="mt-2 text-fn-muted">Adaptive training, nutrition, and accountability in one view.</p>
+    <div className="mx-auto w-full max-w-shell px-4 py-12 sm:px-8">
+      <header className="mb-12 relative overflow-hidden rounded-xl3 border border-white/5 bg-gradient-to-br from-fn-accent/10 to-transparent p-10 backdrop-blur-3xl shadow-2xl">
+        <div className="absolute top-0 right-0 p-8 opacity-20">
+          <svg className="w-24 h-24 text-fn-accent" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+        </div>
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4">Command Center</p>
+        <h1 className="font-display text-5xl font-black text-white tracking-tighter uppercase italic leading-none">FitNova Pro</h1>
+        <p className="mt-6 text-xl text-fn-muted max-w-xl font-medium">Elite-tier adaptive training and metabolic intelligence.</p>
+
+        {briefing && (
+          <div className="mt-8 flex items-start gap-4 p-6 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-3xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
+            <div className="shrink-0 h-10 w-10 rounded-full border border-fn-accent/30 overflow-hidden bg-black/40 flex items-center justify-center">
+              <span className="text-xs font-black text-fn-accent uppercase tracking-tighter">AI</span>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent mb-2">Lead Coach Briefing</p>
+              <p className="text-lg font-medium text-white/90 leading-relaxed italic">"{briefing}"</p>
+            </div>
+          </div>
+        )}
       </header>
 
-      {(reminders.daily_plan && !hasPlanToday) || (reminders.workout_log && !hasWorkoutToday) || (reminders.weigh_in === "weekly" && (!lastWeighInDate || lastWeighInDate < getWeekStart(new Date()))) ? (
-        <section className="mb-4 rounded-xl border border-fn-primary/30 bg-fn-primary/5 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-fn-muted">Reminders</p>
-          <div className="mt-2 flex flex-wrap gap-3">
-            {reminders.daily_plan && !hasPlanToday && (
-              <Link href="/coach">
-                <Button size="sm">Generate today&apos;s plan</Button>
-              </Link>
-            )}
-            {reminders.workout_log && !hasWorkoutToday && (
-              <Link href="/log/workout">
-                <Button variant="secondary" size="sm">Log workout</Button>
-              </Link>
-            )}
-            {reminders.weigh_in === "weekly" && (!lastWeighInDate || lastWeighInDate < getWeekStart(new Date())) && (
-              <Link href="/progress/add">
-                <Button variant="secondary" size="sm">Weigh-in reminder</Button>
-              </Link>
-            )}
+      {/* Primary Actions Grid */}
+      <section className="grid gap-6 lg:grid-cols-3">
+        <Card padding="lg" className="lg:col-span-2 border-white/10 bg-white/[0.03] flex flex-col justify-between">
+          <div>
+            <CardHeader title="Current Focus" subtitle="Today's optimized training target" />
+            <p className="mt-8 text-4xl sm:text-5xl font-black text-white uppercase italic tracking-tighter leading-tight">
+              {todayPlan?.focus ?? "Initialize Daily Plan"}
+            </p>
+            <p className="mt-4 text-lg text-fn-muted font-medium">
+              {todayPlan ? `Targeting ${todayPlan.calories} calories with progressive load adjustments.` : "Ready for your next evolution? Open Coach to generate your targets."}
+            </p>
           </div>
-        </section>
-      ) : null}
-
-      <section className="grid gap-4 lg:grid-cols-3">
-        <Card padding="lg" className="lg:col-span-2">
-          <CardHeader title="Today" subtitle="Your primary action" />
-          <p className="mt-4 text-2xl font-semibold text-fn-ink">{todayPlan?.focus ?? "Generate today\'s adaptive plan"}</p>
-          <p className="mt-1 text-fn-muted">
-            {todayPlan ? `${todayPlan.calories} calorie target with progressive training cues.` : "Open Coach to generate your personalized workout and nutrition targets."}
-          </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link href="/coach"><Button>Open coach</Button></Link>
-            <Link href="/log/workout"><Button variant="secondary">Log workout</Button></Link>
+          <div className="mt-10 flex flex-wrap gap-4">
+            <Link href="/coach"><Button className="w-full sm:w-auto">Enter Coach Room</Button></Link>
+            <Link href="/log/workout"><Button variant="secondary" className="w-full sm:w-auto">Manual Log</Button></Link>
           </div>
         </Card>
 
-        <Card>
-          <CardHeader title="This week" subtitle="Workouts, streak & AI recap" />
-          <div className="mt-4 space-y-3">
-            <div className="flex justify-between gap-4">
+        <Card padding="lg" className="border-fn-accent/20 bg-fn-accent/5">
+          <CardHeader title="Elite Performance" subtitle="Weekly consistency & trend" />
+          <div className="mt-8 space-y-8">
+            <div className="flex justify-between items-end">
               <div>
-                <p className="text-xs text-fn-muted">Workouts this week</p>
-                <p className="text-2xl font-semibold text-fn-ink">{weekCount}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1">Sessions</p>
+                <p className="text-5xl font-black text-white italic">{weekCount}</p>
               </div>
-              <div>
-                <p className="text-xs text-fn-muted">Logging streak</p>
-                <p className="text-2xl font-semibold text-fn-ink">{streak} day{streak !== 1 ? "s" : ""}</p>
+              <div className="text-right">
+                <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1">Streak</p>
+                <p className="text-5xl font-black text-fn-accent italic">{streak}</p>
               </div>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-fn-bg-alt">
-              <div className="h-full bg-fn-accent" style={{ width: `${Math.min(100, weekCount * 20)}%` }} />
+
+            <div className="h-4 w-full overflow-hidden rounded-full bg-white/5 p-1">
+              <div className="h-full rounded-full bg-fn-accent shadow-[0_0_15px_rgba(10,217,196,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, weekCount * 25)}%` }} />
             </div>
-            {weeklyInsightLoading && (
-              <p className="text-xs text-fn-muted">Generating weekly recap...</p>
-            )}
-            {weeklyInsight && !weeklyInsightLoading && (
-              <p className="rounded-xl bg-fn-bg-alt px-3 py-2 text-sm text-fn-ink">{weeklyInsight}</p>
-            )}
-            {!weeklyInsight && !weeklyInsightLoading && (
-              <p className="text-xs text-fn-muted">Consistency builds automatic weekly progression.</p>
+
+            {weeklyInsight && (
+              <div className="relative p-6 rounded-2xl bg-white/5 border border-white/5 italic text-fn-muted text-sm leading-relaxed">
+                <span className="absolute -top-3 left-4 bg-fn-bg px-2 text-[10px] font-black uppercase tracking-widest text-fn-accent">Coach Insight</span>
+                "{weeklyInsight}"
+              </div>
             )}
           </div>
         </Card>
       </section>
 
-      <section className="mt-4 grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader title="7-day training signal" subtitle="Recent activity trend" />
-          {last7Days.length === 0 ? (
-            <EmptyState className="mt-4" message="No logs yet. Start your first session to activate insight tracking." />
-          ) : (
-            <div className="mt-4 flex h-28 items-end gap-2">
-              {last7Days.map((value, idx) => (
-                <div key={idx} className="flex-1 rounded-t-md bg-fn-primary/70" style={{ height: `${Math.max(8, (value / Math.max(...last7Days, 1)) * 100)}%` }} />
-              ))}
+      {/* Signal Feed */}
+      <section className="mt-6 grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2 border-white/5 bg-white/[0.01]">
+          <CardHeader title="Biological Signal" subtitle="7-day training volume trend" />
+          <div className="mt-8 flex h-40 items-end gap-3 px-2">
+            {last7Days.map((value, idx) => (
+              <div
+                key={idx}
+                className="group relative flex-1"
+              >
+                <div
+                  className="rounded-t-lg bg-white/10 group-hover:bg-white/30 transition-all duration-500 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
+                  style={{ height: `${Math.max(10, (value / Math.max(...last7Days, 1)) * 100)}%` }}
+                />
+                <div className="absolute -bottom-6 left-0 right-0 text-center text-[8px] font-black text-fn-muted uppercase opacity-40">D{7 - idx}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="border-white/5 bg-white/[0.01]">
+          <CardHeader title="Readiness" subtitle="Recovery & adaptive baseline" />
+          <div className="mt-6 space-y-6">
+            {recoverySuggestion && (
+              <p className="text-lg font-bold text-fn-accent uppercase italic leading-tight">{recoverySuggestion}</p>
+            )}
+            {readinessInsight && (
+              <p className="text-fn-muted text-sm leading-relaxed italic border-l-2 border-fn-accent pl-4">{readinessInsight}</p>
+            )}
+            <Link href="/check-in">
+              <Button size="sm" variant="secondary" className="w-full">Update Bio-Data</Button>
+            </Link>
+          </div>
+        </Card>
+
+        {projection && (
+          <Card className="lg:col-span-3 border-fn-accent/10 bg-gradient-to-br from-fn-accent/[0.03] to-transparent">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8 p-8">
+              <div className="flex-1 space-y-4 text-center md:text-left">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent">Performance Projection Engine</p>
+                <h3 className="font-display text-4xl font-black text-white italic tracking-tighter uppercase">Signal Trajectory</h3>
+                <p className="text-fn-muted text-sm max-w-md leading-relaxed">
+                  Based on your current adherence velocity, the system projects your metabolic baseline to shift towards <span className="text-white font-bold">{projection.projected_12w}kg</span> over the next 12 weeks.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-8 md:gap-12 shrink-0">
+                <div className="text-center">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-2">4-Week Target</p>
+                  <p className="text-4xl font-black text-white italic">{projection.projected_4w}kg</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-2">Confidence</p>
+                  <p className="text-4xl font-black text-fn-accent italic">{Math.round(projection.confidence * 100)}%</p>
+                </div>
+              </div>
             </div>
-          )}
-        </Card>
+          </Card>
+        )}
+      </section>
 
-        <Card>
-          <CardHeader title="Today&apos;s readiness" subtitle="Recovery & training" />
-          {recoverySuggestion && (
-            <p className="mt-2 text-sm text-fn-muted">{recoverySuggestion}</p>
-          )}
-          {readinessInsightLoading && (
-            <p className="mt-2 text-sm text-fn-muted">Checking readiness...</p>
-          )}
-          {readinessInsight && !readinessInsightLoading && (
-            <p className="mt-2 rounded-xl bg-fn-bg-alt px-3 py-2 text-sm text-fn-ink">{readinessInsight}</p>
-          )}
-          {!readinessInsight && !readinessInsightLoading && !recoverySuggestion && (
-            <p className="mt-2 text-sm text-fn-muted">Complete a check-in for a readiness insight.</p>
-          )}
-          <Link href="/check-in" className="mt-3 inline-block text-sm font-semibold text-fn-primary hover:underline">Check-in</Link>
-        </Card>
-
-        <Card>
-          <CardHeader title="AI insight feed" subtitle="Unread: 3" />
-          <ul className="mt-4 space-y-2 text-sm text-fn-muted">
-            <li className="rounded-lg bg-fn-bg-alt px-3 py-2">Protein is 20-30g below target for 2 days.</li>
-            <li className="rounded-lg bg-fn-bg-alt px-3 py-2">Your Wednesday volume supports a small load increase.</li>
-            <li className="rounded-lg bg-fn-bg-alt px-3 py-2">Recovery day recommended after current intensity pattern.</li>
+      {/* Feed & Shortcuts */}
+      <section className="mt-6 grid gap-6 lg:grid-cols-2">
+        <Card className="border-white/5 bg-white/[0.01]">
+          <CardHeader title="Intelligence Feed" subtitle="3 critical alerts detected" />
+          <ul className="mt-4 space-y-4">
+            <li className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
+              <div className="h-2 w-2 rounded-full bg-fn-accent mt-2" />
+              <p className="text-sm font-medium text-fn-muted leading-relaxed">System detects protein deficiency for 48h. Adjusting tomorrow's targets.</p>
+            </li>
+            <li className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5 opacity-60">
+              <div className="h-2 w-2 rounded-full bg-white mt-2" />
+              <p className="text-sm font-medium text-fn-muted leading-relaxed">Volume spike on Wednesday. Recommended active recovery session.</p>
+            </li>
           </ul>
-          <Link href="/coach" className="mt-4 inline-block text-sm font-semibold text-fn-primary hover:text-fn-primary-dim">Open full insights</Link>
         </Card>
-      </section>
 
-      <section className="mt-4">
-        <Card>
-          <CardHeader title="Quick actions" subtitle="Secondary shortcuts" />
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/check-in"><Button variant="secondary">Today&apos;s check-in</Button></Link>
-            <Link href="/log/workout"><Button variant="secondary">Workout log</Button></Link>
-            <Link href="/log/nutrition"><Button variant="secondary">Nutrition log</Button></Link>
-            <Link href="/progress"><Button variant="secondary">Progress</Button></Link>
-            {!onboardingComplete && <Link href="/onboarding"><Button variant="secondary">Complete onboarding</Button></Link>}
+        <Card className="border-white/5 bg-white/[0.01]">
+          <CardHeader title="Hyper-Speed Actions" subtitle="Direct routing" />
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Link href="/log/workout"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5">Log Training</Button></Link>
+            <Link href="/log/nutrition"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5">Log Fuel</Button></Link>
+            <Link href="/motion"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5 group-hover:border-fn-accent/50 transition-colors">AI Motion Lab</Button></Link>
+            <Link href="/progress"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5">Signal Analytics</Button></Link>
+            <Link href="/onboarding"><Button size="sm" variant="ghost" className="w-full justify-start border border-fn-accent/30 bg-fn-accent/5">Onboarding</Button></Link>
           </div>
         </Card>
       </section>

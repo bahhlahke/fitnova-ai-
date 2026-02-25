@@ -20,19 +20,19 @@ export function PageLayout({
 }: PageLayoutProps) {
   return (
     <div id="main" className={`mx-auto w-full max-w-shell px-4 py-8 sm:px-6 ${className}`.trim()}>
-      <header className="mb-6">
+      <header className="mb-10 text-center">
         {backHref && (
           <Link
             href={backHref}
-            className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-medium text-fn-muted hover:bg-white hover:text-fn-ink focus:outline-none focus:ring-2 focus:ring-fn-primary/30"
+            className="mb-4 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold uppercase tracking-widest text-fn-ink/60 hover:bg-white/10 hover:text-fn-ink transition-all ring-1 ring-white/10"
           >
             <span aria-hidden>←</span> {backLabel}
           </Link>
         )}
-        <h1 className={backHref ? "mt-3 font-display text-3xl font-semibold text-fn-ink sm:text-4xl" : "font-display text-3xl font-semibold text-fn-ink sm:text-4xl"}>
+        <h1 className="font-display text-4xl font-black text-fn-ink sm:text-6xl tracking-tighter uppercase italic">
           {title}
         </h1>
-        {subtitle && <p className="mt-2 max-w-2xl text-base text-fn-muted">{subtitle}</p>}
+        {subtitle && <p className="mx-auto mt-4 max-w-2xl text-lg font-medium text-fn-muted leading-relaxed">{subtitle}</p>}
       </header>
       {children}
     </div>

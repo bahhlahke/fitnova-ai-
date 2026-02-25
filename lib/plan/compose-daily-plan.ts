@@ -56,7 +56,7 @@ export async function composeDailyPlan(
       .limit(7),
     supabase
       .from("check_ins")
-      .select("date_local, soreness_notes, energy_score")
+      .select("date_local, soreness_notes, energy_score, sleep_hours")
       .eq("user_id", userId)
       .eq("date_local", today)
       .order("created_at", { ascending: false })
@@ -82,7 +82,7 @@ export async function composeDailyPlan(
   const workouts = (workoutsRes.data ?? []) as WorkoutRow[];
   const nutrition = (nutritionRes.data ?? []) as Array<{ total_calories?: number | null }>;
   const progress = (progressRes.data ?? []) as Array<{ weight?: number | null }>;
-  const todayCheckIn = checkInsRes.data as { soreness_notes?: string | null; energy_score?: number | null } | null;
+  const todayCheckIn = checkInsRes.data as { soreness_notes?: string | null; energy_score?: number | null; sleep_hours?: number | null } | null;
   const sorenessFromCheckIn = todayCheckIn?.soreness_notes?.trim() || undefined;
   const effectiveSoreness = todayConstraints?.soreness ?? sorenessFromCheckIn;
 
@@ -135,33 +135,75 @@ export async function composeDailyPlan(
   const exercises: DailyPlanTrainingExercise[] =
     focus.includes("Mobility")
       ? [
-          { name: "World's Greatest Stretch", sets: 2, reps: "6/side", intensity: "Controlled", notes: "Move slowly." },
-          { name: "Couch Stretch", sets: 2, reps: "45s/side", intensity: "Moderate" },
-          { name: "Goblet Squat", sets: 3, reps: "10", intensity: "RPE 6-7" },
-          { name: "Dead Bug", sets: 3, reps: "8/side", intensity: "Controlled" },
-        ]
+        { name: "World's Greatest Stretch", sets: 2, reps: "6/side", intensity: "Controlled", notes: "Move slowly." },
+        { name: "Couch Stretch", sets: 2, reps: "45s/side", intensity: "Moderate" },
+        { name: "Goblet Squat", sets: 3, reps: "10", intensity: "RPE 6-7" },
+        { name: "Dead Bug", sets: 3, reps: "8/side", intensity: "Controlled" },
+      ]
       : [
-          { name: pickFromPool(squatPool, recentExerciseNames), sets: 4, reps: "6-8", intensity: "RPE 7" },
-          { name: pickFromPool(pushPool, recentExerciseNames), sets: 4, reps: "6-10", intensity: "RPE 7" },
-          { name: pickFromPool(hingePool, recentExerciseNames), sets: 3, reps: "8-10", intensity: "RPE 7" },
-          { name: pickFromPool(pullPool, recentExerciseNames), sets: 3, reps: "10-12", intensity: "RPE 7" },
-          {
-            name: "Zone 2 Finisher",
-            sets: 1,
-            reps: `${Math.max(8, Math.floor(minutesAvailable * 0.25))} min`,
-            intensity: "Easy-moderate",
-          },
-        ];
+        { name: pickFromPool(squatPool, recentExerciseNames), sets: 4, reps: "6-8", intensity: "RPE 7" },
+        { name: pickFromPool(pushPool, recentExerciseNames), sets: 4, reps: "6-10", intensity: "RPE 7" },
+        { name: pickFromPool(hingePool, recentExerciseNames), sets: 3, reps: "8-10", intensity: "RPE 7" },
+        { name: pickFromPool(pullPool, recentExerciseNames), sets: 3, reps: "10-12", intensity: "RPE 7" },
+        {
+          name: "Zone 2 Finisher",
+          sets: 1,
+          reps: `${Math.max(8, Math.floor(minutesAvailable * 0.25))} min`,
+          intensity: "Easy-moderate",
+        },
+      ];
 
   const weightKg = Number(profile.weight) || 75;
+  const energyScore = todayCheckIn?.energy_score ?? 7;
+  const sleepHours = todayCheckIn?.sleep_hours ?? 7.5;
+
+  // Metabolic Autopilot: Determine nutrition mode
+  let nutritionMode: "Performance" | "Baseline" | "Recovery" = "Baseline";
+  if (energyScore < 5 || sleepHours < 6 || focus.includes("Mobility")) {
+    nutritionMode = "Recovery";
+  } else if (energyScore >= 8 && sleepHours >= 8 && focus.includes("strength")) {
+    nutritionMode = "Performance";
+  }
+
+  // Bio-Sync Readiness: Volume and Intensity adjustments
+  let volumeMultiplier = 1.0;
+  let intensityAdjustment = "";
+
+  if (sleepHours < 6) {
+    volumeMultiplier = 0.8;
+    intensityAdjustment = " (Reduced volume for recovery)";
+  } else if (sleepHours >= 8 && energyScore >= 8) {
+    volumeMultiplier = 1.1; // Increase sets or reps slightly
+  }
+
   const protein = clamp(Math.round(weightKg * 1.8), 110, 220);
   const calorieTargetBase = goals.some((g) => g.includes("weight") || g.includes("loss"))
     ? Math.round((avgCals || 2200) - 300)
     : Math.round(avgCals || 2300);
+
   const calorieAdjustment = weightTrend > 0.3 ? -100 : weightTrend < -0.5 ? 100 : 0;
-  const calorieTarget = clamp(calorieTargetBase + calorieAdjustment, 1500, 3500);
+
+  // Apply Mode Adjustments
+  let modeAdjustment = 0;
+  if (nutritionMode === "Performance") modeAdjustment = 150;
+  if (nutritionMode === "Recovery") modeAdjustment = -150;
+
+  const calorieTarget = clamp(calorieTargetBase + calorieAdjustment + modeAdjustment, 1500, 3500);
   const fat = clamp(Math.round(weightKg * 0.8), 50, 110);
-  const carbs = clamp(Math.round((calorieTarget - protein * 4 - fat * 9) / 4), 100, 450);
+
+  // Carb cycling based on mode
+  let carbMultiplier = 1.0;
+  if (nutritionMode === "Performance") carbMultiplier = 1.2;
+  if (nutritionMode === "Recovery") carbMultiplier = 0.8;
+
+  const carbs = clamp(Math.round(((calorieTarget - protein * 4 - fat * 9) / 4) * carbMultiplier), 100, 450);
+
+  // Apply Bio-Sync to exercises
+  const adjustedExercises = exercises.map(ex => ({
+    ...ex,
+    sets: Math.max(1, Math.round(ex.sets * volumeMultiplier)),
+    notes: (ex.notes || "") + intensityAdjustment
+  }));
 
   const safetyNotes = [
     "This coach is educational support, not medical diagnosis or treatment.",
@@ -169,6 +211,9 @@ export async function composeDailyPlan(
     "Keep 2-3 reps in reserve on main lifts unless technique is perfect.",
   ];
 
+  if (sleepHours < 6) {
+    safetyNotes.push(`Low sleep detected (${sleepHours}h). Focus on technique and movement quality over maximum load today.`);
+  }
   if (injuries.includes("knee")) {
     safetyNotes.push("Prioritize pain-free knee range and consider split squat or box squat regressions.");
   }
@@ -200,11 +245,12 @@ export async function composeDailyPlan(
       focus,
       duration_minutes: minutesAvailable,
       location_option: location,
-      exercises,
+      exercises: adjustedExercises,
       alternatives,
     },
     nutrition_plan: {
       calorie_target: calorieTarget,
+      nutrition_mode: nutritionMode,
       macros: {
         protein_g: protein,
         carbs_g: carbs,
