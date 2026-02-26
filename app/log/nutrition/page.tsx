@@ -62,6 +62,9 @@ function resizeImage(file: File, maxPx = 960): Promise<string> {
 /* ─────────────────────────────────────────────────────────────────
    SmartMealEntry — describe or snap a photo, AI fills macros
 ───────────────────────────────────────────────────────────────── */
+type EntryMode = "describe" | "photo";
+const ENTRY_MODES: EntryMode[] = ["describe", "photo"];
+
 function SmartMealEntry({
   onAdded,
   existingMeals,
@@ -71,8 +74,7 @@ function SmartMealEntry({
   existingMeals: MealEntry[];
   existingLogId: string | null;
 }) {
-  type Mode = "describe" | "photo";
-  const [mode,         setMode]         = useState<Mode>("describe");
+  const [mode,         setMode]         = useState<EntryMode>("describe");
   const [description,  setDescription]  = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageData,    setImageData]    = useState<string | null>(null);
@@ -107,7 +109,7 @@ function SmartMealEntry({
     setEditFat (String(estimate.fat));
   }, [estimate]);
 
-  function switchMode(m: Mode) {
+  function switchMode(m: EntryMode) {
     setMode(m);
     setEstimate(null); setAiError(null);
     setDescription(""); setImagePreview(null); setImageData(null); setSaveError(null);
@@ -210,7 +212,7 @@ function SmartMealEntry({
 
       {/* ── Mode tabs ───────────────────────────────────────────── */}
       <div className="inline-flex rounded-xl border border-fn-border bg-fn-bg p-1">
-        {(["describe", "photo"] as Mode[]).map((m) => (
+        {ENTRY_MODES.map((m) => (
           <button key={m} type="button" onClick={() => switchMode(m)}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 ${
               mode === m ? "bg-fn-ink-rich text-white shadow-fn-soft" : "text-fn-muted hover:text-fn-ink"
