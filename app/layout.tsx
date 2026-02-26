@@ -29,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${manrope.variable} ${fraunces.variable} min-h-screen flex flex-col font-sans text-fn-ink`}>
+      <body className={`${manrope.variable} ${fraunces.variable} min-h-screen flex flex-col font-sans text-fn-ink antialiased`}>
         <AuthProvider>
           <a
             href="#main"
@@ -37,10 +37,11 @@ export default function RootLayout({
           >
             Skip to main content
           </a>
+          {/* Desktop nav renders at top; mobile nav renders fixed at bottom */}
+          <BottomNav />
           <main id="main" className="flex-1 pb-20 md:pb-0" tabIndex={-1}>
             {children}
           </main>
-          <BottomNav />
         </AuthProvider>
       </body>
     </html>

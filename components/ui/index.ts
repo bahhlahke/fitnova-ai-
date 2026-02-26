@@ -1,7 +1,7 @@
 export { Button } from "./Button";
 export type { ButtonProps } from "./Button";
-export { Card, CardHeader } from "./Card";
-export type { CardProps } from "./Card";
+export { Card, CardHeader, StatCard } from "./Card";
+export type { CardProps, CardVariant, CardPadding } from "./Card";
 export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps } from "./EmptyState";
 export { ErrorMessage } from "./ErrorMessage";
