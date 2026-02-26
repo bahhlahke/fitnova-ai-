@@ -6,17 +6,17 @@ import { useAuth } from "@/components/auth/AuthProvider";
 export function AuthSettings() {
   const { user, loading, signOut } = useAuth();
 
-  if (loading) return <div className="rounded-2xl border border-fn-border bg-white p-4 text-fn-muted">Loading...</div>;
+  if (loading) return <div className="rounded-2xl border border-fn-border bg-white p-4 text-neutral-600">Loading...</div>;
 
   return (
     <div className="rounded-2xl border border-fn-border bg-white p-4">
       {user ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-fn-muted">Signed in as <span className="font-semibold text-fn-ink">{user.email}</span></p>
+          <p className="text-sm text-neutral-600">Signed in as <span className="font-semibold text-black">{user.email}</span></p>
           <button
             type="button"
             onClick={() => signOut()}
-            className="min-h-touch rounded-xl border border-fn-border px-4 py-2 text-sm font-semibold text-fn-ink hover:bg-fn-surface-hover"
+            className="min-h-touch rounded-xl border border-fn-border px-4 py-2 text-sm font-semibold text-black hover:bg-fn-surface-hover"
           >
             Sign out
           </button>

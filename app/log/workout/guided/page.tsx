@@ -268,7 +268,7 @@ export default function GuidedWorkoutPage() {
         <header className="mb-3 flex items-center justify-between">
           <Link
             href="/log/workout"
-            className="min-h-touch min-w-touch rounded-lg px-2 py-2 text-sm font-semibold text-fn-muted hover:bg-white hover:text-fn-ink"
+            className="min-h-touch min-w-touch rounded-lg px-2 py-2 text-sm font-semibold text-fn-muted hover:bg-white hover:text-black"
           >
             ← Back
           </Link>
@@ -321,13 +321,13 @@ export default function GuidedWorkoutPage() {
             </div>
 
             <div className="rounded-2xl border border-fn-border bg-white p-4 shadow-fn-soft">
-              <p className="text-lg font-semibold text-fn-primary">
+              <p className="text-lg font-semibold text-black">
                 {exercise.reps} reps · {exercise.intensity}
               </p>
               {exercise.notes && (
-                <p className="mt-2 text-sm text-fn-muted">{exercise.notes}</p>
+                <p className="mt-2 text-sm text-neutral-600">{exercise.notes}</p>
               )}
-              <p className="mt-3 text-xs text-fn-muted">
+              <p className="mt-3 text-xs text-neutral-500">
                 {planTitle} · AI guidance is educational. Stop if pain worsens.
               </p>
             </div>
@@ -344,7 +344,7 @@ export default function GuidedWorkoutPage() {
               <button
                 type="button"
                 onClick={nextSet}
-                className="min-h-touch w-full rounded-2xl border border-fn-border bg-white py-3 text-base font-semibold text-fn-ink"
+                className="min-h-touch w-full rounded-2xl border border-fn-border bg-white py-3 text-base font-semibold text-black"
               >
                 Skip rest
               </button>
@@ -364,7 +364,7 @@ export default function GuidedWorkoutPage() {
             <button
               type="button"
               onClick={nextSet}
-              className="mt-8 min-h-touch rounded-2xl border border-fn-border bg-white px-8 py-4 text-base font-semibold text-fn-ink"
+              className="mt-8 min-h-touch rounded-2xl border border-fn-border bg-white px-8 py-4 text-base font-semibold text-black"
             >
               Skip rest
             </button>

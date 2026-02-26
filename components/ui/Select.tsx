@@ -1,7 +1,7 @@
 import type { SelectHTMLAttributes } from "react";
 
 const selectBase =
-  "min-h-touch w-full rounded-xl border border-fn-border bg-white px-4 py-3 text-fn-ink focus:border-fn-primary focus:outline-none focus:ring-2 focus:ring-fn-primary/20";
+  "min-h-touch w-full rounded-xl border border-fn-border bg-white px-4 py-3 text-black focus:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-neutral-600/20";
 
 export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {}
 

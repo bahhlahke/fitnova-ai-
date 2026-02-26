@@ -101,7 +101,7 @@ export default function StartAssessmentPage() {
                     className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
                       experience === option
                         ? "border-fn-primary bg-fn-primary text-white"
-                        : "border-fn-border bg-white text-fn-ink hover:bg-fn-surface-hover"
+                        : "border-fn-border bg-white text-black hover:bg-fn-surface-hover"
                     }`}
                   >
                     {option}
@@ -120,7 +120,7 @@ export default function StartAssessmentPage() {
                 className={`min-h-touch rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
                   selectedValue === option
                     ? "border-fn-primary bg-fn-primary text-white"
-                    : "border-fn-border bg-white text-fn-ink hover:bg-fn-surface-hover"
+                    : "border-fn-border bg-white text-black hover:bg-fn-surface-hover"
                 }`}
               >
                 {option}

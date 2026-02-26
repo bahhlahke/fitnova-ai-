@@ -356,7 +356,7 @@ function SmartMealEntry({
                 </span>
               </div>
               <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
-                className="mt-1 w-full bg-transparent text-sm font-semibold text-fn-ink-rich focus:outline-none focus:underline" />
+                className="mt-1 w-full bg-transparent text-sm font-semibold text-black focus:outline-none focus:underline" />
             </div>
             <button type="button" onClick={() => { setEstimate(null); setAiError(null); }}
               className="shrink-0 rounded-lg p-1 text-fn-muted hover:bg-fn-primary/10 hover:text-fn-ink transition-colors"
@@ -379,11 +379,11 @@ function SmartMealEntry({
               <div key={label} className={`flex flex-col items-center px-2 py-3 ${hi ? "bg-fn-primary-light" : "bg-white"}`}>
                 <div className="flex items-baseline gap-0.5">
                   <input type="number" value={field} onChange={(e) => setter(e.target.value)} min="0" max="9999"
-                    className={`w-16 bg-transparent text-center text-lg font-bold focus:outline-none focus:underline ${hi ? "text-fn-primary" : "text-fn-ink-rich"}`}
+                    className="w-16 bg-transparent text-center text-lg font-bold text-black focus:outline-none focus:underline"
                   />
-                  <span className="text-[10px] text-fn-muted">{unit}</span>
+                  <span className="text-[10px] text-neutral-500">{unit}</span>
                 </div>
-                <span className="mt-0.5 text-[10px] font-semibold text-fn-muted">{label}</span>
+                <span className="mt-0.5 text-[10px] font-semibold text-neutral-600">{label}</span>
               </div>
             ))}
           </div>

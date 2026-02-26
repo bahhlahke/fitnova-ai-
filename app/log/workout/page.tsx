@@ -187,7 +187,7 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
               className={`rounded-xl border px-3 py-3 text-left transition ${
                 type === value
                   ? "border-fn-primary bg-fn-primary text-white"
-                  : "border-fn-border bg-white text-fn-ink hover:bg-fn-surface-hover"
+                  : "border-fn-border bg-white text-black hover:bg-fn-surface-hover"
               }`}
             >
               <p className="text-sm font-semibold">{label}</p>

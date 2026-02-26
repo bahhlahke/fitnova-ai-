@@ -101,7 +101,7 @@ export default function HistoryPage() {
           className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
             tab === "workouts"
               ? "border-fn-primary bg-fn-primary text-white"
-              : "border-fn-border bg-white text-fn-ink hover:bg-fn-surface-hover"
+              : "border-fn-border bg-white text-black hover:bg-fn-surface-hover"
           }`}
         >
           Workouts
@@ -112,7 +112,7 @@ export default function HistoryPage() {
           className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
             tab === "nutrition"
               ? "border-fn-primary bg-fn-primary text-white"
-              : "border-fn-border bg-white text-fn-ink hover:bg-fn-surface-hover"
+              : "border-fn-border bg-white text-black hover:bg-fn-surface-hover"
           }`}
         >
           Nutrition
@@ -158,11 +158,11 @@ export default function HistoryPage() {
                     )}
                   </button>
                   {expandedWorkoutId === w.log_id && (
-                    <div className="border-t border-fn-border bg-white px-3 py-3 text-sm text-fn-muted">
+                    <div className="border-t border-fn-border bg-white px-3 py-3 text-sm text-neutral-600">
                       {(w.exercises ?? []).map((e, i) => (
-                        <p key={i}>{e.name ?? "?"} — {e.sets ?? 0} x {e.reps ?? "?"}</p>
+                        <p key={i} className="text-black">{e.name ?? "?"} — {e.sets ?? 0} x {e.reps ?? "?"}</p>
                       ))}
-                      {w.notes && <p className="mt-2 text-fn-ink">{w.notes}</p>}
+                      {w.notes && <p className="mt-2 text-black">{w.notes}</p>}
                     </div>
                   )}
                 </li>
@@ -193,9 +193,9 @@ export default function HistoryPage() {
                       <span className="ml-2 text-fn-muted">{mealCount} meal(s)</span>
                     </button>
                     {expandedNutritionDate === date && (
-                      <div className="border-t border-fn-border bg-white px-3 py-3 text-sm text-fn-muted">
+                      <div className="border-t border-fn-border bg-white px-3 py-3 text-sm text-neutral-600">
                         {rows.flatMap((r) => (r.meals ?? []).map((m, i) => (
-                          <p key={`${r.log_id}-${i}`}>
+                          <p key={`${r.log_id}-${i}`} className="text-black">
                             {m.time} — {m.description}
                             {m.calories != null ? ` (${m.calories} cal)` : ""}
                           </p>

@@ -49,7 +49,7 @@ export default function OnboardingPage() {
   const [resumedFromAssessment, setResumedFromAssessment] = useState(false);
 
   const inputClass =
-    "min-h-touch w-full rounded-xl border border-fn-border bg-white px-4 py-3 text-fn-ink placeholder-fn-muted focus:border-fn-primary focus:outline-none focus:ring-2 focus:ring-fn-primary/20";
+    "min-h-touch w-full rounded-xl border border-fn-border bg-white px-4 py-3 text-black placeholder-neutral-400 focus:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-neutral-600/20";
   const labelClass = "block text-sm font-semibold text-fn-ink-soft mt-4 first:mt-0";
 
   useEffect(() => {
@@ -272,7 +272,7 @@ export default function OnboardingPage() {
                 {goalOptions.map((g) => (
                   <label key={g} className="flex min-h-touch cursor-pointer items-center gap-3 rounded-xl border border-fn-border bg-white px-4 py-3">
                     <input type="checkbox" checked={goals.includes(g)} onChange={() => toggleGoal(g)} className="h-5 w-5 rounded border-fn-border" />
-                    <span className="font-semibold text-fn-ink">{g}</span>
+                    <span className="font-semibold text-black">{g}</span>
                   </label>
                 ))}
               </div>

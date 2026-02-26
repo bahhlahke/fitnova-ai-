@@ -23,7 +23,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           <Link href="/start" className="inline-flex min-h-touch items-center justify-center rounded-xl bg-fn-primary px-6 py-3 font-semibold text-white">
             Start assessment
           </Link>
-          <Link href="/auth" className="inline-flex min-h-touch items-center justify-center rounded-xl border border-fn-border bg-white px-6 py-3 font-semibold text-fn-ink">
+          <Link href="/auth" className="inline-flex min-h-touch items-center justify-center rounded-xl border border-fn-border bg-white px-6 py-3 font-semibold text-black">
             I have an account
           </Link>
         </div>
