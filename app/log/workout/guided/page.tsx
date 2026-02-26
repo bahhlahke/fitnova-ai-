@@ -91,7 +91,7 @@ export default function GuidedWorkoutPage() {
             if (conflict) {
               setInjuryBanner({
                 exercise: conflict.name,
-                message: `This plan includes "${conflict.name}". You noted limitations in your profile. Consider asking the coach for an alternative.`,
+                message: `Protect your body. Tap to swap "${conflict.name}" for a pain-free alternative.`,
               });
             }
           }
@@ -171,23 +171,7 @@ export default function GuidedWorkoutPage() {
     }
   }, [phase, exercise]);
 
-  useEffect(() => {
-    if (phase !== "rest" || restSeconds <= 0) return;
-    const t = setInterval(() => setRestSeconds((s) => s - 1), 1000);
-    return () => clearInterval(t);
-  }, [phase, restSeconds]);
-
-  function startRest() {
-    if (isLastSet && isLastExercise) {
-      setPhase("completed");
-      void persistWorkout();
-      return;
-    }
-    setPhase("rest");
-    setRestSeconds(90);
-  }
-
-  function nextSet() {
+  const nextSet = useCallback(() => {
     if (isLastSet && isLastExercise) {
       setPhase("completed");
       void persistWorkout();
@@ -200,14 +184,37 @@ export default function GuidedWorkoutPage() {
     } else {
       setSetIndex((i) => i + 1);
     }
-  }
+  }, [isLastSet, isLastExercise, persistWorkout]);
+
+  const startRest = useCallback(() => {
+    if (isLastSet && isLastExercise) {
+      setPhase("completed");
+      void persistWorkout();
+      return;
+    }
+    setPhase("rest");
+    setRestSeconds(90);
+  }, [isLastSet, isLastExercise, persistWorkout]);
+
+  useEffect(() => {
+    if (phase !== "rest") return;
+    if (restSeconds <= 0) {
+      if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate([200, 100, 200]);
+      }
+      nextSet();
+      return;
+    }
+    const t = setInterval(() => setRestSeconds((s) => s - 1), 1000);
+    return () => clearInterval(t);
+  }, [phase, restSeconds, nextSet]);
 
   if (phase === "completed") {
     return (
       <div className="mx-auto flex min-h-[80vh] max-w-shell flex-col items-center justify-center px-4 py-10 text-center sm:px-6">
         <h2 className="font-display text-4xl text-fn-ink">Workout complete</h2>
         <p className="mt-2 text-fn-muted">
-          {saved ? "Session saved to your log." : saveError ?? "Session complete."}
+          {saved ? "Great work! Session saved to your log." : saveError ?? "Session complete."}
         </p>
         {postWorkoutInsightLoading && (
           <p className="mt-4 text-sm text-fn-muted">What this means...</p>
@@ -255,7 +262,7 @@ export default function GuidedWorkoutPage() {
           <p className="mt-1">{injuryBanner.message}</p>
           <div className="mt-2 flex flex-wrap gap-2">
             <Link href="/coach" className="text-sm font-semibold text-fn-primary hover:underline">
-              Ask coach for alternative
+              Swap this move
             </Link>
             <button type="button" onClick={() => setInjuryBannerDismissed(true)} className="text-sm font-semibold text-fn-muted hover:underline">
               Dismiss
@@ -327,26 +334,20 @@ export default function GuidedWorkoutPage() {
               {exercise.notes && (
                 <p className="mt-2 text-sm text-neutral-600">{exercise.notes}</p>
               )}
-              <p className="mt-3 text-xs text-neutral-500">
-                {planTitle} · AI guidance is educational. Stop if pain worsens.
-              </p>
             </div>
+
+            <p className="mt-3 px-1 text-center text-xs text-neutral-500">
+              {planTitle} · AI guidance is educational. Stop if pain worsens.
+            </p>
 
             {/* Large gym-friendly actions */}
             <div className="mt-6 flex flex-col gap-3">
               <button
                 type="button"
                 onClick={startRest}
-                className="min-h-touch w-full rounded-2xl bg-fn-primary py-4 text-lg font-semibold text-white shadow-fn-soft"
+                className="min-h-touch w-full rounded-2xl bg-fn-primary py-4 text-lg font-semibold text-white shadow-fn-soft transition-transform active:scale-[0.98]"
               >
-                Done — Start rest
-              </button>
-              <button
-                type="button"
-                onClick={nextSet}
-                className="min-h-touch w-full rounded-2xl border border-fn-border bg-white py-3 text-base font-semibold text-black"
-              >
-                Skip rest
+                Log Set & Rest
               </button>
             </div>
           </>
@@ -364,7 +365,10 @@ export default function GuidedWorkoutPage() {
             <button
               type="button"
               onClick={nextSet}
-              className="mt-8 min-h-touch rounded-2xl border border-fn-border bg-white px-8 py-4 text-base font-semibold text-black"
+              className={`mt-8 min-h-touch rounded-2xl border px-8 py-4 text-base font-semibold transition-all duration-500 ${restSeconds <= 10
+                  ? "border-fn-primary bg-fn-primary/10 text-fn-primary"
+                  : "border-fn-border bg-white text-black"
+                }`}
             >
               Skip rest
             </button>
