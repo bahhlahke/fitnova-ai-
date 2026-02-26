@@ -120,7 +120,7 @@ function SmartMealEntry({
     try {
       const dataUrl = await resizeImage(file);
       setImageData(dataUrl); setImagePreview(dataUrl);
-    } catch { setAiError("Could not process image. Please try again."); }
+    } catch (_e) { setAiError("Could not process image. Please try again."); }
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -140,8 +140,8 @@ function SmartMealEntry({
       } else {
         setEstimate(data.estimate);
       }
-    } catch { setAiError("Network error — check your connection."); }
-    finally   { setAnalyzing(false); }
+    } catch (_e) { setAiError("Network error — check your connection."); }
+    finally      { setAnalyzing(false); }
   }
 
   async function saveMeal() {

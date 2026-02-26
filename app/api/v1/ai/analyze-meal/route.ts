@@ -97,7 +97,7 @@ export async function POST(request: Request) {
   let body: { type?: string; description?: string; data?: string };
   try {
     body = (await request.json()) as typeof body;
-  } catch {
+  } catch (_e) {
     return jsonError(400, "INVALID_JSON", "Invalid JSON body.");
   }
 
@@ -213,7 +213,7 @@ export async function POST(request: Request) {
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
-    } catch {
+    } catch (_e) {
       console.error("analyze_meal_parse_error", { requestId, raw });
       return jsonError(502, "UPSTREAM_ERROR", "AI returned unexpected format.");
     }
