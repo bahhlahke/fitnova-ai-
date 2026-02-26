@@ -7,9 +7,9 @@ import type { DailyPlan } from "@/lib/plan/types";
 import { createClient } from "@/lib/supabase/client";
 import { toLocalDateString } from "@/lib/date/local-date";
 
-/** Fitness professional imagery: tailored to user preference for aesthetic female coaches. */
+/** Fitness professional imagery. Use public/images/coach-female-pro.jpg for a custom asset (see public/images/README.md). */
 const COACH_IMAGE_V1 =
-  "/Users/blakeaycock/.gemini/antigravity/brain/6dcb9847-0df3-4ceb-8caf-437152f4c67a/female_coach_v1_retry_1771989508516.png";
+  "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=600&fit=crop&q=85";
 
 const SUGGESTED_PROMPTS = [
   "Create a 40-minute high-intensity metabolic circuit",
