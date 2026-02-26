@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "default" | "sm";
@@ -23,6 +23,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
+  icon?: ReactNode;
 }
 
 export function Button({
@@ -32,6 +33,7 @@ export function Button({
   disabled,
   className = "",
   type = "button",
+  icon,
   children,
   ...props
 }: ButtonProps) {
@@ -41,6 +43,7 @@ export function Button({
     base,
     variantClasses[variant],
     sizeClasses[size],
+    icon ? "gap-2" : "",
     className,
   ]
     .filter(Boolean)
@@ -53,7 +56,7 @@ export function Button({
       className={combined}
       {...props}
     >
-      {loading ? "..." : children}
+      {loading ? "..." : <>{icon}{children}</>}
     </button>
   );
 }
