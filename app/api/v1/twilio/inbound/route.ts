@@ -4,6 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 import { assembleContext } from "@/lib/ai/assemble-context";
 import { callModel } from "@/lib/ai/model";
 
+export const dynamic = "force-dynamic";
+
 const MessagingResponse = twilio.twiml.MessagingResponse;
 const SAFETY_POLICY = `Safety policy (balanced):
 - Provide educational fitness and nutrition coaching only.
@@ -12,13 +14,11 @@ const SAFETY_POLICY = `Safety policy (balanced):
 - Respect injuries/limitations from profile data and provide safer alternatives.
 - Prefer sustainable, evidence-informed advice over extreme protocols.`;
 
-// Service role to bypass RLS when handling webhook outside of traditional auth session
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(req: Request) {
+    const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     try {
         const text = await req.text();
         const params = new URLSearchParams(text);

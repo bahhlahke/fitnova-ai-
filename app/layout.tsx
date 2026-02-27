@@ -4,6 +4,7 @@ import "./globals.css";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { MetaPixel } from "@/components/tracking/MetaPixel";
+import { Suspense } from "react";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -65,7 +66,9 @@ export default function RootLayout({
           </main>
           <BottomNav />
         </AuthProvider>
-        <MetaPixel />
+        <Suspense fallback={null}>
+          <MetaPixel />
+        </Suspense>
       </body>
     </html>
   );

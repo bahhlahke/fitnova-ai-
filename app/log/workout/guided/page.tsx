@@ -343,7 +343,7 @@ export default function GuidedWorkoutPage() {
 
               {exercise.notes && (
                 <div className="mt-4 rounded-xl bg-black/40 p-4 border border-white/5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Coach's Notes</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Coach&apos;s Notes</p>
                   <p className="text-sm font-medium leading-relaxed text-white/80">{exercise.notes}</p>
                 </div>
               )}
