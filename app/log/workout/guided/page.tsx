@@ -272,14 +272,15 @@ export default function GuidedWorkoutPage() {
       )}
 
       <div className="flex flex-1 flex-col px-4 pb-6 pt-4">
-        <header className="mb-3 flex items-center justify-between">
+        <header className="mb-5 flex items-center justify-between">
           <Link
             href="/log/workout"
-            className="min-h-touch min-w-touch rounded-lg px-2 py-2 text-sm font-semibold text-fn-muted hover:bg-white hover:text-black"
+            className="flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-fn-muted hover:bg-white/10 hover:text-white transition-colors"
           >
-            ← Back
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            End
           </Link>
-          <span className="text-xs font-medium text-fn-muted tabular-nums">
+          <span className="rounded-full bg-fn-accent/10 px-3 py-1 text-xs font-bold tracking-widest text-fn-accent uppercase">
             {progressLabel}
           </span>
         </header>
@@ -287,11 +288,11 @@ export default function GuidedWorkoutPage() {
         {phase === "work" && (
           <>
             {/* Large move media: animated (video/GIF) for form, or static image */}
-            <div className="relative mb-4 aspect-[4/3] w-full overflow-hidden rounded-2xl border border-fn-border bg-white shadow-fn-card">
+            <div className="relative mb-6 aspect-[4/5] sm:aspect-video w-full overflow-hidden rounded-[2rem] border border-white/5 bg-black shadow-2xl">
               {isExerciseVideoUrl(imageUrl) ? (
                 <video
                   src={imageUrl}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-cover opacity-80"
                   loop
                   muted
                   autoPlay
@@ -303,7 +304,7 @@ export default function GuidedWorkoutPage() {
                   src={imageUrl}
                   alt={exercise.name}
                   fill
-                  className="object-cover"
+                  className="object-cover opacity-80"
                   sizes="(max-width: 768px) 100vw, 72rem"
                   unoptimized
                 />
@@ -312,40 +313,52 @@ export default function GuidedWorkoutPage() {
                   src={imageUrl}
                   alt={exercise.name}
                   fill
-                  className="object-cover"
+                  className="object-cover opacity-80"
                   sizes="(max-width: 768px) 100vw, 72rem"
                   priority
                 />
               )}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-fn-ink/80 to-transparent p-4">
-                <h2 className="text-xl font-semibold text-white drop-shadow">
-                  {exercise.name}
-                </h2>
-                <p className="mt-1 text-sm text-white/90">
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
+                <p className="mb-1 text-xs font-black uppercase tracking-[0.3em] text-fn-accent">
                   Set {setIndex + 1} of {totalSets}
                 </p>
+                <h2 className="font-display text-4xl font-black italic tracking-tighter text-white sm:text-5xl uppercase">
+                  {exercise.name}
+                </h2>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-fn-border bg-white p-4 shadow-fn-soft">
-              <p className="text-lg font-semibold text-black">
-                {exercise.reps} reps · {exercise.intensity}
-              </p>
+            <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 shadow-xl backdrop-blur-md">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1">Target</span>
+                  <p className="text-3xl font-black text-white">{exercise.reps} reps</p>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1">Intensity</span>
+                  <p className="text-xl font-black text-fn-accent">{exercise.intensity}</p>
+                </div>
+              </div>
+
               {exercise.notes && (
-                <p className="mt-2 text-sm text-neutral-600">{exercise.notes}</p>
+                <div className="mt-4 rounded-xl bg-black/40 p-4 border border-white/5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Coach's Notes</p>
+                  <p className="text-sm font-medium leading-relaxed text-white/80">{exercise.notes}</p>
+                </div>
               )}
             </div>
 
-            <p className="mt-3 px-1 text-center text-xs text-neutral-500">
+            <p className="mt-6 px-1 text-center text-[10px] font-bold uppercase tracking-widest text-fn-muted/50">
               {planTitle} · AI guidance is educational. Stop if pain worsens.
             </p>
 
             {/* Large gym-friendly actions */}
-            <div className="mt-6 flex flex-col gap-3">
+            <div className="mt-auto pt-6 pb-4">
               <button
                 type="button"
                 onClick={startRest}
-                className="min-h-touch w-full rounded-2xl bg-fn-primary py-4 text-lg font-semibold text-white shadow-fn-soft transition-transform active:scale-[0.98]"
+                className="w-full rounded-full bg-fn-accent py-5 text-lg font-black uppercase tracking-wider text-black shadow-[0_0_30px_rgba(10,217,196,0.3)] transition-transform active:scale-[0.98] hover:bg-white"
               >
                 Log Set & Rest
               </button>
@@ -354,23 +367,38 @@ export default function GuidedWorkoutPage() {
         )}
 
         {phase === "rest" && (
-          <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <p className="text-sm font-medium text-fn-muted">Rest</p>
-            <p className="mt-2 font-mono text-6xl font-bold tabular-nums text-fn-primary">
-              {restSeconds}s
-            </p>
-            <p className="mt-2 text-sm text-fn-muted">
-              Next: {exercise.name} · Set {setIndex + 2} of {totalSets}
-            </p>
+          <div className="flex flex-1 flex-col items-center justify-center text-center p-6">
+            <div className="relative flex items-center justify-center w-64 h-64 mb-8">
+              <svg className="absolute inset-0 w-full h-full transform -rotate-90">
+                <circle cx="128" cy="128" r="120" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
+                <circle cx="128" cy="128" r="120" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={754} strokeDashoffset={754 - (754 * (restSeconds / 90))} className="text-fn-accent transition-all duration-1000 ease-linear" />
+              </svg>
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-muted mb-2">Rest</span>
+                <p className="font-display text-7xl font-black italic tracking-tighter text-white tabular-nums">
+                  {restSeconds}
+                </p>
+                <span className="text-sm font-bold text-fn-muted">sec</span>
+              </div>
+            </div>
+
+            <div className="mb-12">
+              <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2 block">Up Next</p>
+              <p className="text-2xl font-black text-white">
+                {exercise.name}
+              </p>
+              <p className="text-sm font-bold text-fn-muted mt-1">Set {setIndex + 2} of {totalSets}</p>
+            </div>
+
             <button
               type="button"
               onClick={nextSet}
-              className={`mt-8 min-h-touch rounded-2xl border px-8 py-4 text-base font-semibold transition-all duration-500 ${restSeconds <= 10
-                  ? "border-fn-primary bg-fn-primary/10 text-fn-primary"
-                  : "border-fn-border bg-white text-black"
+              className={`w-full max-w-sm rounded-full py-5 text-sm font-black uppercase tracking-widest transition-all duration-300 ${restSeconds <= 10
+                ? "bg-fn-accent text-black shadow-[0_0_30px_rgba(10,217,196,0.3)] hover:bg-white"
+                : "bg-white/10 text-white hover:bg-white/20"
                 }`}
             >
-              Skip rest
+              Skip Rest
             </button>
           </div>
         )}
