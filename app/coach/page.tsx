@@ -6,6 +6,7 @@ import { ErrorMessage, Button, Card, CardHeader } from "@/components/ui";
 import type { DailyPlan } from "@/lib/plan/types";
 import { createClient } from "@/lib/supabase/client";
 import { toLocalDateString } from "@/lib/date/local-date";
+import { coachVoice } from "@/lib/audio/coach-voice";
 
 /** Fitness professional imagery. Use public/images/coach-female-pro.jpg for a custom asset (see public/images/README.md). */
 const COACH_IMAGE_V1 =
@@ -32,7 +33,16 @@ export default function CoachPage() {
   const [logStatus, setLogStatus] = useState<string | null>(null);
   const [coachImageUrl, setCoachImageUrl] = useState<string>(COACH_IMAGE_V1);
   const [activeVideo, setActiveVideo] = useState<{ url: string; name: string } | null>(null);
+  const [isWatchMode, setIsWatchMode] = useState(false);
+  const [watchActiveIndex, setWatchActiveIndex] = useState(0);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    coachVoice.setOnSpeakingChange(setIsSpeaking);
+    return () => coachVoice.setOnSpeakingChange(() => { });
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -127,6 +137,72 @@ export default function CoachPage() {
     }
   }
 
+  if (isWatchMode && dailyPlan) {
+    const activeExercise = dailyPlan.training_plan.exercises[watchActiveIndex];
+    const isCompleted = watchActiveIndex >= dailyPlan.training_plan.exercises.length;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
+        {/* Watch simulated viewport */}
+        <div className="relative flex h-[240px] w-[190px] flex-col overflow-hidden rounded-[40px] border-[6px] border-[#222] bg-black p-4 shadow-[0_0_50px_rgba(255,255,255,0.1)]">
+          <div className="absolute right-[-6px] top-12 h-14 w-2 rounded-l-md bg-[#333]" />
+          <div className="absolute right-[-6px] top-32 h-8 w-1 rounded-l-sm bg-[#333]" />
+
+          <button
+            onClick={() => {
+              setIsWatchMode(false);
+              if (voiceEnabled) coachVoice.speak("Pausing protocol.");
+            }}
+            className="absolute left-2 top-2 z-10 p-1 text-white/50 hover:text-white"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
+          </button>
+
+          {/* Speaking Indicator */}
+          {isSpeaking && (
+            <div className="absolute top-2 right-4 flex gap-1 z-10 opacity-70">
+              <div className="h-1.5 w-1 bg-fn-accent rounded-full animate-[ping_1s_ease-in-out_infinite]" />
+              <div className="h-2 w-1 bg-fn-accent rounded-full animate-[ping_1s_ease-in-out_infinite_100ms]" />
+              <div className="h-1.5 w-1 bg-fn-accent rounded-full animate-[ping_1s_ease-in-out_infinite_200ms]" />
+            </div>
+          )}
+
+          {isCompleted ? (
+            <div className="flex flex-1 flex-col items-center justify-center text-center">
+              <svg className="mb-2 h-10 w-10 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <p className="font-display text-sm font-black uppercase italic tracking-tighter text-white">Session<br />Complete</p>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col justify-between">
+              <div className="mt-4 text-center">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-fn-accent">Set 1 of {activeExercise?.sets || 1}</p>
+                <h2 className="mt-1 line-clamp-2 text-sm font-bold leading-tight text-white">{activeExercise?.name}</h2>
+                <p className="mt-1 text-lg font-black text-white">{activeExercise?.reps} Reps</p>
+              </div>
+              <button
+                onClick={() => {
+                  const nextIdx = watchActiveIndex + 1;
+                  setWatchActiveIndex(nextIdx);
+                  if (voiceEnabled) {
+                    if (nextIdx >= dailyPlan.training_plan.exercises.length) {
+                      coachVoice.speak("Session complete. Excellent work. Hydrate and commence recovery protocol.");
+                    } else {
+                      const nextEx = dailyPlan.training_plan.exercises[nextIdx];
+                      coachVoice.speak(`${nextEx.sets} sets of ${nextEx.reps} ${nextEx.name}. Let's go.`);
+                    }
+                  }
+                }}
+                className="w-full rounded-full bg-fn-accent py-2 text-[11px] font-black uppercase tracking-wider text-black active:bg-fn-accent/80"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-shell px-4 py-12 sm:px-8">
       <header className="mb-10 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
@@ -146,6 +222,33 @@ export default function CoachPage() {
             <p className="mt-4 max-w-2xl text-lg font-medium text-fn-muted leading-relaxed">Direct access to your AI performance lead. Adaptive strategy, metabolic tuning, and absolute accountability.</p>
           </div>
         </div>
+
+        {dailyPlan && (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              onClick={() => {
+                const newState = !voiceEnabled;
+                setVoiceEnabled(newState);
+                coachVoice.toggle(newState);
+                if (newState) coachVoice.speak("Audio coach active. Awaiting your command.");
+              }}
+              className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${voiceEnabled ? "border-fn-accent/50 bg-fn-accent/10 text-fn-accent" : "border-white/10 bg-white/5 text-fn-muted hover:border-white/20"}`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 10v4a2 2 0 002 2h2l4 4V4L9 8H7a2 2 0 00-2 2z" /></svg>
+              Voice {voiceEnabled ? "On" : "Off"}
+            </button>
+            <Button variant="secondary" onClick={() => {
+              setIsWatchMode(true);
+              if (voiceEnabled) {
+                const firstEx = dailyPlan.training_plan.exercises[0];
+                coachVoice.speak(`Protocol initiated. First up: ${firstEx.sets} sets of ${firstEx.reps} ${firstEx.name}.`);
+              }
+            }} className="gap-2">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Enter Watch Mode
+            </Button>
+          </div>
+        )}
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">

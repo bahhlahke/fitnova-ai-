@@ -58,6 +58,15 @@ const config: Config = {
         xl2: "1.5rem",
         xl3: "2rem",
       },
+      keyframes: {
+        scan: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(100vh)" },
+        },
+      },
+      animation: {
+        scan: "scan 3s ease-in-out infinite",
+      },
     },
   },
   plugins: [],

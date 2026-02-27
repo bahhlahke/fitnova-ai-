@@ -2,6 +2,7 @@ export const PREAUTH_STORAGE_KEY = "fitnova_pre_auth_assessment_v1";
 export const PREAUTH_TTL_MS = 72 * 60 * 60 * 1000;
 
 export type PreAuthAssessmentV1 = {
+  email_lead?: string;
   goal: string;
   experience_level: string;
   days_per_week: string;

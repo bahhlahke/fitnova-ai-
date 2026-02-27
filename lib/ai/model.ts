@@ -1,8 +1,14 @@
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
+export type MessageContent = string | Array<{
+    type: "text" | "image_url";
+    text?: string;
+    image_url?: { url: string };
+}>;
+
 export type Message = {
     role: "system" | "user" | "assistant";
-    content: string;
+    content: MessageContent;
 };
 
 export type CallModelOptions = {

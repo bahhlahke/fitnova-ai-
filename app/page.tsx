@@ -34,6 +34,7 @@ export default function HomePage() {
   const [weekCount, setWeekCount] = useState<number>(0);
   const [last7Days, setLast7Days] = useState<number[]>([]);
   const [onboardingComplete, setOnboardingComplete] = useState<boolean>(false);
+  const [isPro, setIsPro] = useState<boolean>(false);
   const [todayPlan, setTodayPlan] = useState<{ focus: string; calories: number } | null>(null);
   const [weeklyInsight, setWeeklyInsight] = useState<string | null>(null);
   const [weeklyInsightLoading, setWeeklyInsightLoading] = useState(false);
@@ -105,7 +106,7 @@ export default function HomePage() {
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle(),
-          supabase.from("user_profile").select("devices").eq("user_id", user.id).maybeSingle(),
+          supabase.from("user_profile").select("devices, subscription_status").eq("user_id", user.id).maybeSingle(),
           supabase
             .from("workout_logs")
             .select("date")
@@ -147,7 +148,11 @@ export default function HomePage() {
             calories: plan.nutrition_plan?.calorie_target ?? 0,
           });
         }
-        const dev = (profileRes.data as { devices?: Record<string, unknown> } | null)?.devices ?? {};
+
+        const profileData = profileRes.data as { devices?: Record<string, unknown>, subscription_status?: string } | null;
+        const dev = profileData?.devices ?? {};
+        setIsPro(profileData?.subscription_status === 'pro');
+
         setReminders((dev.reminders as { daily_plan?: boolean; workout_log?: boolean; weigh_in?: string }) ?? {});
         setHasWorkoutToday(!!(workoutTodayRes.data as { date: string }[] | null)?.length);
         const lastProgress = progressRes.data as { date: string }[] | null;
@@ -242,6 +247,20 @@ export default function HomePage() {
       body: "Get real-time set cues, rest pacing, and simplified alternatives when equipment or energy is limited.",
     };
   }, [helpTab]);
+
+  const handleUpgrade = async () => {
+    try {
+      const res = await fetch("/api/v1/stripe/checkout", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (e) {
+      console.error("Checkout failed", e);
+    }
+  };
 
   if (authState === "loading") {
     return (
@@ -364,6 +383,16 @@ export default function HomePage() {
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent mb-2">Lead Coach Briefing</p>
               <p className="text-lg font-medium text-white/90 leading-relaxed italic">&quot;{briefing}&quot;</p>
             </div>
+          </div>
+        )}
+
+        {!isPro && (
+          <div className="mt-8 flex items-center justify-between p-6 rounded-2xl bg-fn-accent/10 border border-fn-accent/20 backdrop-blur-3xl">
+            <div>
+              <p className="text-sm font-black text-fn-accent uppercase tracking-tighter mb-1">Upgrade Required</p>
+              <p className="text-white/80 font-medium">Unlock full metabolic intelligence and unlimited coaching.</p>
+            </div>
+            <Button onClick={handleUpgrade} size="sm">Upgrade to Pro</Button>
           </div>
         )}
       </header>

@@ -1,0 +1,121 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/Users/blakeaycock/code/fitnessAI[39m
+
+ [31m❯[39m lib/ai/assemble-context.test.ts [2m([22m[2m0 test[22m[2m)[22m
+ [31m❯[39m lib/plan/compose-daily-plan.test.ts [2m([22m[2m0 test[22m[2m)[22m
+ [31m❯[39m app/api/v1/ai/respond/route.test.ts [2m([22m[2m0 test[22m[2m)[22m
+ [31m❯[39m lib/units.test.ts [2m([22m[2m0 test[22m[2m)[22m
+ [31m❯[39m app/api/v1/plan/daily/route.test.ts [2m([22m[2m0 test[22m[2m)[22m
+[90mstderr[2m | lib/jobs/daily-checkin.test.ts[2m > [22m[2mDaily Briefing Cron Job[2m > [22m[2mexits early if missing Twilio credentials
+[22m[39mMissing Twilio credentials
+
+[90mstderr[2m | lib/jobs/daily-checkin.test.ts[2m > [22m[2mDaily Briefing Cron Job[2m > [22m[2mfetches pro users and sends SMS briefings
+[22m[39mMissing Twilio credentials
+
+ [31m❯[39m lib/jobs/daily-checkin.test.ts [2m([22m[2m2 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 11[2mms[22m[39m
+     [32m✓[39m exits early if missing Twilio credentials[32m 4[2mms[22m[39m
+[31m     [31m×[31m fetches pro users and sends SMS briefings[39m[32m 6[2mms[22m[39m
+ [31m❯[39m app/api/v1/stripe/webhook/route.test.ts [2m([22m[2m4 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 16[2mms[22m[39m
+[31m     [31m×[31m returns 400 on missing signature[39m[32m 11[2mms[22m[39m
+     [32m✓[39m returns 400 on signature validation failure[32m 2[2mms[22m[39m
+[31m     [31m×[31m updates user to pro on checkout session completion[39m[32m 1[2mms[22m[39m
+     [32m✓[39m ignores unhandled events gracefully[32m 1[2mms[22m[39m
+ [31m❯[39m app/api/v1/stripe/checkout/route.test.ts [2m([22m[2m2 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 10[2mms[22m[39m
+[31m     [31m×[31m requires authentication[39m[32m 8[2mms[22m[39m
+     [32m✓[39m creates a checkout session and returns url[32m 1[2mms[22m[39m
+ [32m✓[39m app/coach/page.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 390[2mms[22m[39m
+     [33m[2m✓[22m[39m can generate a plan and enter watch mode [33m 333[2mms[22m[39m
+ [32m✓[39m app/start/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 644[2mms[22m[39m
+     [33m[2m✓[22m[39m stores draft and redirects to auth on completion [33m 642[2mms[22m[39m
+ [32m✓[39m lib/funnel/preauth.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m app/auth/page.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 488[2mms[22m[39m
+     [33m[2m✓[22m[39m renders both Google and magic-link auth methods [33m 378[2mms[22m[39m
+ [32m✓[39m app/onboarding/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 769[2mms[22m[39m
+     [33m[2m✓[22m[39m does not mark onboarding completed when saving fails [33m 766[2mms[22m[39m
+ [32m✓[39m app/api/v1/twilio/inbound/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m app/page.test.tsx [2m([22m[2m2 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[32m 170[2mms[22m[39m
+ [32m✓[39m lib/date/local-date.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 1[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Suites 5 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m lib/units.test.ts[2m [ lib/units.test.ts ][22m
+[41m[1m FAIL [22m[49m lib/ai/assemble-context.test.ts[2m [ lib/ai/assemble-context.test.ts ][22m
+[41m[1m FAIL [22m[49m lib/plan/compose-daily-plan.test.ts[2m [ lib/plan/compose-daily-plan.test.ts ][22m
+[41m[1m FAIL [22m[49m app/api/v1/ai/respond/route.test.ts[2m [ app/api/v1/ai/respond/route.test.ts ][22m
+[41m[1m FAIL [22m[49m app/api/v1/plan/daily/route.test.ts[2m [ app/api/v1/plan/daily/route.test.ts ][22m
+[31m[1mReferenceError[22m: window is not defined[39m
+[36m [2m❯[22m vitest.setup.ts:[2m4:1[22m[39m
+    [90m  2| [39m[35mimport[39m { vi } [35mfrom[39m [32m"vitest"[39m[33m;[39m
+    [90m  3| [39m
+    [90m  4| [39mwindow[33m.[39m[33mHTMLElement[39m[33m.[39mprototype[33m.[39mscrollIntoView [33m=[39m vi[33m.[39m[34mfn[39m()[33m;[39m
+    [90m   | [39m[31m^[39m
+    [90m  5| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯[22m[39m
+
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 4 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m lib/jobs/daily-checkin.test.ts[2m > [22mDaily Briefing Cron Job[2m > [22mfetches pro users and sends SMS briefings
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…} ][90m
+
+Number of calls: [1m0[22m
+[31m[39m
+[36m [2m❯[22m lib/jobs/daily-checkin.test.ts:[2m80:35[22m[39m
+    [90m 78| [39m        [35mawait[39m [34mrunDailyBriefing[39m()[33m;[39m
+    [90m 79| [39m
+    [90m 80| [39m        [34mexpect[39m(mockCreateMessage)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                                  [31m^[39m
+    [90m 81| [39m            expect[33m.[39m[34mobjectContaining[39m({
+    [90m 82| [39m                to[33m:[39m [32m"+111"[39m[33m,[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m app/api/v1/stripe/checkout/route.test.ts[2m > [22mPOST /api/v1/stripe/checkout[2m > [22mrequires authentication
+[31m[1mAssertionError[22m: expected 'Unauthorized' to be 'You must be logged in to upgrade.' // Object.is equality[39m
+
+Expected: [32m"You must be logged in to upgrade."[39m
+Received: [31m"Unauthorized"[39m
+
+[36m [2m❯[22m app/api/v1/stripe/checkout/route.test.ts:[2m40:28[22m[39m
+    [90m 38| [39m
+    [90m 39| [39m        [34mexpect[39m(res[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m401[39m)[33m;[39m
+    [90m 40| [39m        [34mexpect[39m(data[33m.[39merror)[33m.[39m[34mtoBe[39m([32m"You must be logged in to upgrade."[39m)[33m;[39m
+    [90m   | [39m                           [31m^[39m
+    [90m 41| [39m    })[33m;[39m
+    [90m 42| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m app/api/v1/stripe/webhook/route.test.ts[2m > [22mPOST /api/v1/stripe/webhook[2m > [22mreturns 400 on missing signature
+[31m[1mTypeError[22m: Cannot read properties of undefined (reading 'type')[39m
+[36m [2m❯[22m Module.POST app/api/v1/stripe/webhook/route.ts:[2m32:19[22m[39m
+    [90m 30| [39m
+    [90m 31| [39m    [90m// Handle the event[39m
+    [90m 32| [39m    [35mswitch[39m (event[33m.[39mtype) {
+    [90m   | [39m                  [31m^[39m
+    [90m 33| [39m        [35mcase[39m [32m"checkout.session.completed"[39m[33m:[39m {
+    [90m 34| [39m            const session = event.data.object as Stripe.Checkout.Sessi…
+[90m [2m❯[22m app/api/v1/stripe/webhook/route.test.ts:[2m40:21[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m app/api/v1/stripe/webhook/route.test.ts[2m > [22mPOST /api/v1/stripe/webhook[2m > [22mupdates user to pro on checkout session completion
+[31m[1mTypeError[22m: Cannot read properties of undefined (reading 'update')[39m
+[36m [2m❯[22m Module.POST app/api/v1/stripe/webhook/route.ts:[2m40:41[22m[39m
+    [90m 38| [39m                [90m// Find existing profile and mark as pro[39m
+    [90m 39| [39m                [35mconst[39m { error } [33m=[39m [35mawait[39m supabaseAdmin
+    [90m 40| [39m                    [33m.[39m[35mfrom[39m([32m"user_profile"[39m)
+    [90m   | [39m                                        [31m^[39m
+    [90m 41| [39m                    [33m.[39m[34mupdate[39m({
+    [90m 42| [39m                        subscription_status[33m:[39m [32m"pro"[39m[33m,[39m
+[90m [2m❯[22m app/api/v1/stripe/webhook/route.test.ts:[2m76:21[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m8 failed[39m[22m[2m | [22m[1m[32m8 passed[39m[22m[90m (16)[39m
+[2m      Tests [22m [1m[31m4 failed[39m[22m[2m | [22m[1m[32m19 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (24)[39m
+[2m   Start at [22m 21:55:44
+[2m   Duration [22m 3.05s[2m (transform 837ms, setup 928ms, import 1.98s, tests 2.51s, environment 9.77s)[22m
+

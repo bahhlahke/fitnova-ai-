@@ -3,6 +3,7 @@ import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { MetaPixel } from "@/components/tracking/MetaPixel";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -19,6 +20,28 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "FitNova AI",
   description: "AI-backed fitness coaching and tracking",
+  openGraph: {
+    title: "FitNova AI | The Ultimate Pro Experience",
+    description: "The most advanced AI coaching engine ever built. Personalized training, metabolic autopilot, and 24/7 accountability.",
+    url: "https://fitnova-ai.com",
+    siteName: "FitNova AI",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "FitNova AI Pro Experience",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FitNova AI | Build your legend",
+    description: "The most advanced AI coaching engine ever built. Personalized training, metabolic autopilot, and 24/7 accountability.",
+    images: ["/og-image.jpg"],
+  },
   ...(process.env.VERCEL_URL && { metadataBase: new URL(`https://${process.env.VERCEL_URL}`) }),
 };
 
@@ -42,6 +65,7 @@ export default function RootLayout({
           </main>
           <BottomNav />
         </AuthProvider>
+        <MetaPixel />
       </body>
     </html>
   );
