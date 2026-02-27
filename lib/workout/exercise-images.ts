@@ -1,130 +1,116 @@
 /**
  * Default demo images per exercise for guided workouts.
- * Keys are normalized (lowercase, trim). Replace with AI-generated or branded assets;
- * see public/images/README.md. Plan exercises can override via optional image_url.
+ * Keys are normalized (lowercase, trim).
  */
-const BY_NAME: Record<string, string> = {
-  "goblet squat": "/images/goblet-squat.mp4",
-  "push-up": "/images/push-ups.mp4",
-  "push up": "/images/push-ups.mp4",
-  "bench press":
-    "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4",
-  "back squat":
-    "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
-  "squat":
-    "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
-  "dumbbell rdl":
-    "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
-  "rdl":
-    "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
-  "deadlift":
-    "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
-  "romanian deadlift":
-    "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
-  "row":
-    "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&h=600&fit=crop&q=85",
-  "dumbbell row":
-    "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
-  "single-arm row":
-    "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
-  "seated row":
-    "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
-  "overhead press":
-    "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&h=600&fit=crop&q=85",
-  "lunges":
-    "https://images.unsplash.com/photo-1434682881908-b43d0467ba58?w=800&h=600&fit=crop&q=85",
-  "lunge":
-    "https://images.unsplash.com/photo-1434682881908-b43d0467ba58?w=800&h=600&fit=crop&q=85",
-  "plank":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "lat pulldown":
-    "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&h=600&fit=crop&q=85",
-  "leg press":
-    "https://images.unsplash.com/photo-1605296867424-35fc25c9212a?w=800&h=600&fit=crop&q=85",
-  "hip thrust":
-    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop&q=85",
-  "curl":
-    "https://images.unsplash.com/photo-1581009146145-b5ef050c149e?w=800&h=600&fit=crop&q=85",
-  "bicep curl":
-    "https://images.unsplash.com/photo-1581009146145-b5ef050c149e?w=800&h=600&fit=crop&q=85",
-  "tricep":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "tricep pushdown":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "incline bench press":
-    "https://images.unsplash.com/photo-1534368959876-e5e9d32c2d3f?w=800&h=600&fit=crop&q=85",
-  "incline dumbbell press":
-    "https://images.unsplash.com/photo-1534368959876-e5e9d32c2d3f?w=800&h=600&fit=crop&q=85",
-  "cable fly":
-    "https://images.unsplash.com/photo-1534368959876-e5e9d32c2d3f?w=800&h=600&fit=crop&q=85",
-  "chest fly":
-    "https://images.unsplash.com/photo-1534368959876-e5e9d32c2d3f?w=800&h=600&fit=crop&q=85",
-  "pull-up":
-    "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&h=600&fit=crop&q=85",
-  "pull up":
-    "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&h=600&fit=crop&q=85",
-  "chin-up":
-    "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&h=600&fit=crop&q=85",
-  "chin up":
-    "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&h=600&fit=crop&q=85",
-  "barbell row":
-    "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&h=600&fit=crop&q=85",
-  "bent over row":
-    "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&h=600&fit=crop&q=85",
-  "cable row":
-    "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&h=600&fit=crop&q=85",
-  "face pull":
-    "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&h=600&fit=crop&q=85",
-  "lateral raise":
-    "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&h=600&fit=crop&q=85",
-  "front raise":
-    "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&h=600&fit=crop&q=85",
-  "bulgarian split squat":
-    "https://images.unsplash.com/photo-1434682881908-b43d0467ba58?w=800&h=600&fit=crop&q=85",
-  "leg curl":
-    "https://images.unsplash.com/photo-1581009146145-b5ef050c149e?w=800&h=600&fit=crop&q=85",
-  "leg extension":
-    "https://images.unsplash.com/photo-1605296867424-35fc25c9212a?w=800&h=600&fit=crop&q=85",
-  "calf raise":
-    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop&q=85",
-  "sumo deadlift":
-    "https://images.unsplash.com/photo-1581009146145-b5ef050c149e?w=800&h=600&fit=crop&q=85",
-  "kettlebell swing":
-    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop&q=85",
-  "box jump":
-    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop&q=85",
-  "burpee":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "mountain climber":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "crunch":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "bicycle crunch":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "russian twist":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "dead bug":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "world's greatest stretch":
-    "https://videos.pexels.com/video-files/4944021/4944021-uhd_2732_1440_24fps.mp4",
-  "glute bridge":
-    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop&q=85",
-  "donkey kick":
-    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop&q=85",
-  "skull crusher":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "hammer curl":
-    "https://images.unsplash.com/photo-1581009146145-b5ef050c149e?w=800&h=600&fit=crop&q=85",
-  "preacher curl":
-    "https://images.unsplash.com/photo-1581009146145-b5ef050c149e?w=800&h=600&fit=crop&q=85",
-  "dips":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
-  "dip":
-    "https://images.unsplash.com/photo-1584735175097-719d848f8449?w=800&h=600&fit=crop&q=85",
+
+const RAW_PEXELS = {
+  gym_dark: "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4",
+  squat_heavy: "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
+  rdl_sweat: "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
+  barbell_row: "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
+  kettlebell_swing: "https://videos.pexels.com/video-files/8056269/8056269-hd_1920_1080_25fps.mp4",
+  battle_ropes: "https://videos.pexels.com/video-files/4761405/4761405-uhd_2560_1440_25fps.mp4",
+  pushups_dark: "https://videos.pexels.com/video-files/5243160/5243160-uhd_2560_1440_25fps.mp4",
+  pullups_intense: "https://videos.pexels.com/video-files/4761793/4761793-uhd_2560_1440_25fps.mp4",
+  deadlift_max: "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4", // re-using bench press dark aesthetic for now
+  stretching_floor: "https://videos.pexels.com/video-files/4944021/4944021-uhd_2732_1440_24fps.mp4",
+  db_curl: "https://videos.pexels.com/video-files/4754029/4754029-uhd_2560_1440_30fps.mp4",
+  core_crunch: "https://videos.pexels.com/video-files/4753956/4753956-uhd_2560_1440_25fps.mp4",
+  sprint_treadmill: "https://videos.pexels.com/video-files/8055998/8055998-hd_1920_1080_25fps.mp4",
+  box_jumps: "https://videos.pexels.com/video-files/7673998/7673998-uhd_2732_1440_25fps.mp4"
 };
 
-const DEFAULT_IMAGE =
-  "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop&q=85";
+const BY_NAME: Record<string, string> = {
+  // --- CHEST ---
+  "bench press": RAW_PEXELS.gym_dark,
+  "barbell bench press": RAW_PEXELS.gym_dark,
+  "dumbbell bench press": RAW_PEXELS.gym_dark,
+  "incline bench press": RAW_PEXELS.gym_dark,
+  "incline dumbbell press": RAW_PEXELS.gym_dark,
+  "push-up": RAW_PEXELS.pushups_dark,
+  "pushups": RAW_PEXELS.pushups_dark,
+  "push up": RAW_PEXELS.pushups_dark,
+  "chest fly": RAW_PEXELS.gym_dark,
+  "cable fly": RAW_PEXELS.gym_dark,
+
+  // --- BACK ---
+  "deadlift": RAW_PEXELS.deadlift_max,
+  "barbell deadlift": RAW_PEXELS.deadlift_max,
+  "sumo deadlift": RAW_PEXELS.deadlift_max,
+  "pull-up": RAW_PEXELS.pullups_intense,
+  "pull up": RAW_PEXELS.pullups_intense,
+  "pullups": RAW_PEXELS.pullups_intense,
+  "chin-up": RAW_PEXELS.pullups_intense,
+  "chin up": RAW_PEXELS.pullups_intense,
+  "lat pulldown": RAW_PEXELS.pullups_intense,
+  "barbell row": RAW_PEXELS.barbell_row,
+  "bent over row": RAW_PEXELS.barbell_row,
+  "dumbbell row": RAW_PEXELS.barbell_row,
+  "single-arm row": RAW_PEXELS.barbell_row,
+  "seated row": RAW_PEXELS.barbell_row,
+  "cable row": RAW_PEXELS.barbell_row,
+  "row": RAW_PEXELS.barbell_row,
+
+  // --- LEGS / GLUTES ---
+  "squat": RAW_PEXELS.squat_heavy,
+  "back squat": RAW_PEXELS.squat_heavy,
+  "barbell squat": RAW_PEXELS.squat_heavy,
+  "front squat": RAW_PEXELS.squat_heavy,
+  "goblet squat": RAW_PEXELS.squat_heavy, // Generic squat visual
+  "bulgarian split squat": RAW_PEXELS.squat_heavy,
+  "lunges": RAW_PEXELS.squat_heavy,
+  "lunge": RAW_PEXELS.squat_heavy,
+  "leg press": RAW_PEXELS.squat_heavy,
+  "rdl": RAW_PEXELS.rdl_sweat,
+  "romanian deadlift": RAW_PEXELS.rdl_sweat,
+  "dumbbell rdl": RAW_PEXELS.rdl_sweat,
+  "stiff-leg deadlift": RAW_PEXELS.rdl_sweat,
+  "hip thrust": RAW_PEXELS.rdl_sweat,
+  "glute bridge": RAW_PEXELS.rdl_sweat,
+  "leg curl": RAW_PEXELS.rdl_sweat,
+  "leg extension": RAW_PEXELS.squat_heavy,
+
+  // --- SHOULDERS ---
+  "overhead press": RAW_PEXELS.barbell_row, // Using row visual as fallback for heavy upper body
+  "military press": RAW_PEXELS.barbell_row,
+  "dumbbell shoulder press": RAW_PEXELS.barbell_row,
+  "lateral raise": RAW_PEXELS.gym_dark,
+  "front raise": RAW_PEXELS.gym_dark,
+  "face pull": RAW_PEXELS.gym_dark,
+
+  // --- ARMS ---
+  "bicep curl": RAW_PEXELS.db_curl,
+  "curl": RAW_PEXELS.db_curl,
+  "dumbbell curl": RAW_PEXELS.db_curl,
+  "hammer curl": RAW_PEXELS.db_curl,
+  "tricep pushdown": RAW_PEXELS.gym_dark,
+  "skull crusher": RAW_PEXELS.gym_dark,
+  "dips": RAW_PEXELS.pushups_dark,
+  "dip": RAW_PEXELS.pushups_dark,
+
+  // --- CORE & CONDITIONING ---
+  "plank": RAW_PEXELS.core_crunch,
+  "crunch": RAW_PEXELS.core_crunch,
+  "bicycle crunch": RAW_PEXELS.core_crunch,
+  "russian twist": RAW_PEXELS.core_crunch,
+  "dead bug": RAW_PEXELS.stretching_floor,
+  "mountain climber": RAW_PEXELS.core_crunch,
+  "burpee": RAW_PEXELS.box_jumps,
+  "box jump": RAW_PEXELS.box_jumps,
+  "kettlebell swing": RAW_PEXELS.kettlebell_swing,
+  "battle ropes": RAW_PEXELS.battle_ropes,
+  "sprints": RAW_PEXELS.sprint_treadmill,
+  "treadmill": RAW_PEXELS.sprint_treadmill,
+
+  // --- MOBILITY ---
+  "world's greatest stretch": RAW_PEXELS.stretching_floor,
+  "stretching": RAW_PEXELS.stretching_floor,
+  "cat cow": RAW_PEXELS.stretching_floor,
+  "childs pose": RAW_PEXELS.stretching_floor,
+};
+
+// Fallback is a dark, intense aesthetic gym shot
+const DEFAULT_VIDEO = RAW_PEXELS.gym_dark;
 
 function normalize(name: string): string {
   return name.toLowerCase().trim().replace(/\s+/g, " ");
@@ -147,5 +133,5 @@ export function getExerciseImageUrl(
 ): string {
   if (overrideUrl?.trim()) return overrideUrl.trim();
   const key = normalize(exerciseName);
-  return BY_NAME[key] ?? DEFAULT_IMAGE;
+  return BY_NAME[key] ?? DEFAULT_VIDEO;
 }
