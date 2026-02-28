@@ -7,7 +7,8 @@ import Image from "next/image";
 
 export default function BodyCompScannerPage() {
     const router = useRouter();
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [images, setImages] = useState<{ front: string | null, side: string | null, back: string | null }>({ front: null, side: null, back: null });
+    const [activeSlot, setActiveSlot] = useState<"front" | "side" | "back" | null>(null);
     const [isScanning, setIsScanning] = useState(false);
     const [result, setResult] = useState<{ body_fat_percent: number; analysis: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -15,7 +16,7 @@ export default function BodyCompScannerPage() {
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
+        if (!file || !activeSlot) return;
 
         // Validate size (keep under 4MB for api limits)
         if (file.size > 4 * 1024 * 1024) {
@@ -25,15 +26,22 @@ export default function BodyCompScannerPage() {
 
         const reader = new FileReader();
         reader.onload = (event) => {
-            setImagePreview(event.target?.result as string);
+            setImages(prev => ({ ...prev, [activeSlot]: event.target?.result as string }));
             setError(null);
             setResult(null);
+            // Reset the input value so the same file could be selected again if needed
+            if (fileInputRef.current) fileInputRef.current.value = "";
         };
         reader.readAsDataURL(file);
     };
 
+    const triggerUpload = (slot: "front" | "side" | "back") => {
+        setActiveSlot(slot);
+        fileInputRef.current?.click();
+    };
+
     const startScan = async () => {
-        if (!imagePreview) return;
+        if (!images.front || !images.side || !images.back) return;
         setIsScanning(true);
         setError(null);
 
@@ -41,7 +49,7 @@ export default function BodyCompScannerPage() {
             const res = await fetch("/api/v1/ai/body-comp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ image: imagePreview }),
+                body: JSON.stringify({ images }),
             });
 
             if (!res.ok) {
@@ -80,41 +88,49 @@ export default function BodyCompScannerPage() {
 
                 {!result ? (
                     <Card className="border-white/5 bg-white/[0.02] overflow-hidden p-6 text-center shadow-2xl">
-                        {imagePreview ? (
-                            <div className="relative mb-6 mx-auto w-full max-w-sm rounded-[2rem] overflow-hidden border-2 border-white/10 aspect-[3/4] bg-black">
-                                <Image
-                                    src={imagePreview}
-                                    alt="Ready for scan"
-                                    fill
-                                    className={`object-cover ${isScanning ? "opacity-50 grayscale transition-all duration-1000" : ""}`}
-                                />
+                        <div className="grid grid-cols-3 gap-3 mb-6">
+                            {(["front", "side", "back"] as const).map((slot) => (
+                                <div
+                                    key={slot}
+                                    onClick={() => !isScanning && triggerUpload(slot)}
+                                    className={`relative rounded-xl overflow-hidden border-2 aspect-[3/4] flex flex-col items-center justify-center transition-all ${isScanning ? "cursor-default" : "cursor-pointer"
+                                        } ${images[slot] ? "border-white/10" : "border-dashed border-white/20 hover:border-fn-accent/50 hover:bg-white/5 group"
+                                        }`}
+                                >
+                                    {images[slot] ? (
+                                        <Image
+                                            src={images[slot]!}
+                                            alt={`${slot} view`}
+                                            fill
+                                            className={`object-cover ${isScanning ? "opacity-50 grayscale transition-all duration-1000" : ""}`}
+                                        />
+                                    ) : (
+                                        <>
+                                            <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                                <svg className="w-5 h-5 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                                </svg>
+                                            </div>
+                                            <p className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wider">{slot}</p>
+                                        </>
+                                    )}
 
-                                {/* Scanning Laser Animation overlay */}
-                                {isScanning && (
-                                    <div className="absolute inset-0 z-10 pointer-events-none">
-                                        <div className="absolute top-0 w-full h-1 bg-fn-accent shadow-[0_0_20px_4px_rgba(10,217,196,0.8)] animate-[scan_2s_ease-in-out_infinite]" />
-                                        <div className="absolute inset-0 bg-fn-accent/10 animate-pulse" />
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <p className="text-fn-accent font-black uppercase tracking-widest bg-black/50 px-4 py-2 rounded-full backdrop-blur-md">
-                                                Analyzing Composition...
-                                            </p>
+                                    {/* Scanning Laser Animation overlay for each image if scanning */}
+                                    {isScanning && images[slot] && (
+                                        <div className="absolute inset-0 z-10 pointer-events-none">
+                                            <div className="absolute top-0 w-full h-1 bg-fn-accent shadow-[0_0_15px_3px_rgba(10,217,196,0.8)] animate-[scan_2s_ease-in-out_infinite]" />
+                                            <div className="absolute inset-0 bg-fn-accent/10 animate-pulse" />
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div
-                                className="mb-6 mx-auto w-full max-w-sm rounded-[2rem] border-2 border-dashed border-white/20 aspect-[3/4] flex flex-col items-center justify-center cursor-pointer hover:border-fn-accent/50 hover:bg-white/5 transition-all group"
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                <div className="h-16 w-16 rounded-full bg-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                    <svg className="w-8 h-8 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
+                                    )}
                                 </div>
-                                <p className="font-bold text-white uppercase tracking-wider">Tap to Camera</p>
-                                <p className="mt-2 text-sm text-fn-muted">Best results in decent lighting.</p>
+                            ))}
+                        </div>
+
+                        {isScanning && (
+                            <div className="mb-6">
+                                <p className="text-fn-accent font-black uppercase tracking-widest bg-fn-accent/10 px-4 py-2 rounded-full inline-block backdrop-blur-md text-sm border border-fn-accent/20">
+                                    Compositing 3D Data...
+                                </p>
                             </div>
                         )}
 
@@ -128,19 +144,17 @@ export default function BodyCompScannerPage() {
                         />
 
                         <div className="flex gap-4 max-w-sm mx-auto">
-                            {!imagePreview && (
-                                <Button className="w-full" onClick={() => fileInputRef.current?.click()}>
-                                    Open Camera
-                                </Button>
+                            {(!images.front || !images.side || !images.back) && (
+                                <p className="text-sm text-fn-muted w-full">Please snap all 3 angles to extract clinical DEXA-grade data.</p>
                             )}
 
-                            {imagePreview && !isScanning && (
+                            {images.front && images.side && images.back && !isScanning && (
                                 <>
-                                    <Button variant="ghost" onClick={() => setImagePreview(null)} className="w-full">
-                                        Retake
+                                    <Button variant="ghost" type="button" onClick={() => setImages({ front: null, side: null, back: null })} className="w-full">
+                                        Retake All
                                     </Button>
-                                    <Button onClick={startScan} className="w-full">
-                                        Extract Data
+                                    <Button onClick={startScan} type="button" className="w-full shadow-[0_0_20px_rgba(10,217,196,0.2)]">
+                                        Analyze Physique
                                     </Button>
                                 </>
                             )}
@@ -161,7 +175,7 @@ export default function BodyCompScannerPage() {
                                 &quot;{result.analysis}&quot;
                             </p>
                             <div className="mt-8 flex gap-4">
-                                <Button variant="secondary" className="w-full" onClick={() => { setResult(null); setImagePreview(null); }}>
+                                <Button variant="secondary" className="w-full" onClick={() => { setResult(null); setImages({ front: null, side: null, back: null }); }}>
                                     Scan Again
                                 </Button>
                                 <Button className="w-full" onClick={() => router.push("/coach")}>

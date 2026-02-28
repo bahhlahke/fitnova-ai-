@@ -12,26 +12,40 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { image } = body as { image: string };
+        const { images } = body as { images: { front: string, side: string, back: string } };
 
-        if (!image) {
-            return NextResponse.json({ error: "No image provided for analysis." }, { status: 400 });
+        if (!images || !images.front || !images.side || !images.back) {
+            return NextResponse.json({ error: "Missing required images for analysis (Front, Side, Back)." }, { status: 400 });
         }
 
         const contentArray: any[] = [
-            { type: "text", text: "You are an elite anthropometrist. Analyze this image and estimate the body fat percentage. Provide a strict JSON response with a number `body_fat_percent` and a string `analysis` explaining your reasoning based on visible definition. Do not wrap the JSON in markdown backticks." },
-            { type: "image_url", image_url: { url: image } }
+            { type: "text", text: "You are an elite anthropometrist and DEXA scan alternative. Analyze the provided front, side, and back images of the user's physique and estimate their total body fat percentage. Since genetic fat distribution varies, carefully composite the 3-dimensional fat volume." },
+            { type: "image_url", image_url: { url: images.front } },
+            { type: "image_url", image_url: { url: images.side } },
+            { type: "image_url", image_url: { url: images.back } }
         ];
 
-        const systemPrompt = "You are an elite AI body composition scanner. Output ONLY pure JSON. Example: {\"body_fat_percent\": 15, \"analysis\": \"Visible abdominal definition but slight subcutaneous fat on the lower torso...\"}";
+        const systemPrompt = `You are an elite AI body composition scanner acting as a clinical DEXA alternative. You must analyze the images and estimate the body fat percentage based strictly on these visual heuristics for males (adjust +8% if female):
+
+1. < 10%: Deep muscle separation. Striations in shoulders/chest. Veins visible on lower abdomen/pelvis. Serratus anterior (finger-like muscles on ribs) are deeply cut.
+2. 10% - 12%: Deeply visible transverse tendinous intersections (six-pack) without flexing. Clear division between obliques and abdominals. Vascularity in arms.
+3. 13% - 15%: Top 4 abs visible, but lower abdomen might have a slight layer of fat. Slight vascularity on forearms. Muscle separation is visible but not deeply cut.
+4. 16% - 19%: Flat stomach, but transverse intersections (abs) are largely invisible or only faintly shadowed. Muscle outlines exist but lack sharp separation.
+5. 20% - 24%: No abdominal definition. Subcutaneous fat pooling around the lower waist (love handles). Chest lacks sharp lower boundary. Roundness in the lower back/glute region.
+6. > 25%: Significant fat accumulation. Roundness around the midsection. No visible vascularity. Significant back folds.
+
+Be extremely critical. Do not flatter the user. If they lack sharp definition, place them higher than 15%. Synthesize the front, side, and back profiles to account for genetic fat storage variations.
+
+Output ONLY pure JSON formatted exactly like this example without markdown wrappers:
+{"body_fat_percent": 16.5, "analysis": "Flat stomach but transverse intersections are entirely obscured by subcutaneous fat. Lower obliques show slight pooling from the side and back angles."}`;
 
         const { content: responseText } = await callModel({
-            model: "openai/gpt-4o-mini", // Use mini with vision capabilities
+            model: "openai/gpt-5.2", // Using an extremely capable vision reasoning model
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: contentArray as any }
             ],
-            maxTokens: 300,
+            maxTokens: 500,
         });
 
         // Parse explicit JSON

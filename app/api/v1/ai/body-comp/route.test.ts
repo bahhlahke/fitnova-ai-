@@ -44,7 +44,7 @@ describe("POST /api/v1/ai/body-comp", () => {
 
         const req = new Request("http://localhost/api/v1/ai/body-comp", {
             method: "POST",
-            body: JSON.stringify({ image: "base64_string" }),
+            body: JSON.stringify({ images: { front: "base64", side: "base64", back: "base64" } }),
         });
 
         const res = await POST(req);
@@ -68,7 +68,7 @@ describe("POST /api/v1/ai/body-comp", () => {
 
         const req = new Request("http://localhost/api/v1/ai/body-comp", {
             method: "POST",
-            body: JSON.stringify({ image: "data:image/png;base64,iVBORw0KGgo..." }),
+            body: JSON.stringify({ images: { front: "data:image/png;base64,1", side: "2", back: "3" } }),
         });
 
         const res = await POST(req);
@@ -89,7 +89,7 @@ describe("POST /api/v1/ai/body-comp", () => {
 
         const req = new Request("http://localhost/api/v1/ai/body-comp", {
             method: "POST",
-            body: JSON.stringify({ image: "data:image/png;base64,VALID_BASE64_STUB" }),
+            body: JSON.stringify({ images: { front: "base64_front", side: "base64_side", back: "base64_back" } }),
         });
 
         const res = await POST(req);
@@ -127,7 +127,7 @@ describe("POST /api/v1/ai/body-comp", () => {
 
         const req = new Request("http://localhost/api/v1/ai/body-comp", {
             method: "POST",
-            body: JSON.stringify({ image: "data:image/png;base64,VALID_BASE64_STUB" }),
+            body: JSON.stringify({ images: { front: "base64", side: "base64", back: "base64" } }),
         });
 
         const res = await POST(req);
