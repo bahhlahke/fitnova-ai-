@@ -223,32 +223,39 @@ export default function CoachPage() {
           </div>
         </div>
 
-        {dailyPlan && (
-          <div className="flex flex-wrap items-center gap-4">
-            <button
-              onClick={() => {
-                const newState = !voiceEnabled;
-                setVoiceEnabled(newState);
-                coachVoice.toggle(newState);
-                if (newState) coachVoice.speak("Audio coach active. Awaiting your command.");
-              }}
-              className={`flex items-center gap-3 rounded-xl border-2 px-6 py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 ${voiceEnabled ? "border-fn-accent/50 bg-fn-accent text-fn-bg shadow-[0_0_30px_rgba(10,217,196,0.3)]" : "border-white/10 bg-white/5 text-fn-muted hover:border-fn-accent/50 hover:text-white"}`}
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 10v4a2 2 0 002 2h2l4 4V4L9 8H7a2 2 0 00-2 2z" /></svg>
-              Voice {voiceEnabled ? "On" : "Off"}
-            </button>
-            <Button variant="secondary" onClick={() => {
+        <div className="flex flex-wrap items-center gap-4">
+          <button
+            disabled={!dailyPlan}
+            title={!dailyPlan ? "Generate a protocol first" : undefined}
+            onClick={() => {
+              const newState = !voiceEnabled;
+              setVoiceEnabled(newState);
+              coachVoice.toggle(newState);
+              if (newState) coachVoice.speak("Audio coach active. Awaiting your command.");
+            }}
+            className={`flex items-center gap-3 rounded-xl border-2 px-6 py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 ${!dailyPlan ? "opacity-30 cursor-not-allowed border-white/10 bg-white/5 text-fn-muted" : voiceEnabled ? "border-fn-accent/50 bg-fn-accent text-fn-bg shadow-[0_0_30px_rgba(10,217,196,0.3)]" : "border-white/10 bg-white/5 text-fn-muted hover:border-fn-accent/50 hover:text-white"}`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 10v4a2 2 0 002 2h2l4 4V4L9 8H7a2 2 0 00-2 2z" /></svg>
+            Voice {voiceEnabled ? "On" : "Off"}
+          </button>
+          <Button
+            variant="secondary"
+            disabled={!dailyPlan}
+            title={!dailyPlan ? "Generate a protocol first" : undefined}
+            onClick={() => {
+              if (!dailyPlan) return;
               setIsWatchMode(true);
               if (voiceEnabled) {
                 const firstEx = dailyPlan.training_plan.exercises[0];
                 coachVoice.speak(`Protocol initiated. First up: ${firstEx.sets} sets of ${firstEx.reps} ${firstEx.name}.`);
               }
-            }} className="gap-3 border-2 h-[52px]">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              Watch Mode
-            </Button>
-          </div>
-        )}
+            }}
+            className={`gap-3 border-2 h-[52px] ${!dailyPlan ? "opacity-30 cursor-not-allowed" : ""}`}
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Watch Mode
+          </Button>
+        </div>
       </header>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
@@ -387,12 +394,20 @@ export default function CoachPage() {
           )}
 
           <Card className="border-white/5 bg-white/[0.01]">
-            <CardHeader title="Intelligence" subtitle="System baseline" />
-            <div className="mt-4 space-y-6">
-              <p className="text-xs text-fn-muted leading-relaxed italic border-l-2 border-fn-accent/30 pl-4">Coach is synthesizing Bio-Sync data, historical force velocity, and adherence peaks to optimize this window.</p>
-              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full bg-fn-accent w-3/4 shadow-[0_0_10px_rgba(10,217,196,0.5)] animate-pulse" />
-              </div>
+            <CardHeader title="Quick Actions" subtitle="Shortcuts" />
+            <div className="mt-4 space-y-2">
+              <a href="/log/workout" className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-xs font-black uppercase tracking-widest text-fn-muted hover:border-fn-accent/20 hover:text-white transition-all">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                Log Workout
+              </a>
+              <a href="/progress" className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-xs font-black uppercase tracking-widest text-fn-muted hover:border-fn-accent/20 hover:text-white transition-all">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                View Progress
+              </a>
+              <a href="/progress/add" className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-xs font-black uppercase tracking-widest text-fn-muted hover:border-fn-accent/20 hover:text-white transition-all">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                Log Check-in
+              </a>
             </div>
           </Card>
         </aside>

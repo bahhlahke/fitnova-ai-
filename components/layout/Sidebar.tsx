@@ -90,14 +90,14 @@ export function Sidebar() {
                 })}
             </nav>
 
-            <div className="mt-auto border-t border-fn-border pt-6 pt-6">
+            <div className="mt-auto border-t border-fn-border pt-6">
                 <div className="flex items-center gap-4 px-2">
-                    <div className="h-10 w-10 rounded-full bg-fn-accent/10 flex items-center justify-center border border-fn-accent/20">
+                    <div className="h-10 w-10 rounded-full bg-fn-accent/10 flex items-center justify-center border border-fn-accent/20 shrink-0">
                         <span className="text-xs font-black text-fn-accent">{user?.email?.[0].toUpperCase() || "U"}</span>
                     </div>
                     <div className="flex-1 overflow-hidden">
-                        <p className="truncate text-xs font-black text-white uppercase tracking-tight">{user?.email}</p>
-                        <p className="text-[10px] font-bold text-fn-accent uppercase tracking-widest leading-none mt-1">Pro Status</p>
+                        <p className="truncate text-xs font-black text-white tracking-tight">{user?.email}</p>
+                        <p className="text-[10px] font-bold text-fn-muted uppercase tracking-widest leading-none mt-1">Member</p>
                     </div>
                 </div>
             </div>

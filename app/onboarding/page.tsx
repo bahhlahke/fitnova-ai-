@@ -19,8 +19,7 @@ const steps = [
   { id: "goals", label: "Goals" },
   { id: "injuries", label: "Injuries" },
   { id: "diet", label: "Diet" },
-  { id: "devices", label: "Devices" },
-  { id: "baseline", label: "Baseline" },
+  { id: "devices", label: "Setup" },
 ] as const;
 
 const goalOptions = [
@@ -49,8 +48,8 @@ export default function OnboardingPage() {
   const [resumedFromAssessment, setResumedFromAssessment] = useState(false);
 
   const inputClass =
-    "min-h-touch w-full rounded-xl border border-fn-border bg-white px-4 py-3 text-black placeholder-neutral-400 focus:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-neutral-600/20";
-  const labelClass = "block text-sm font-semibold text-fn-ink-soft mt-4 first:mt-0";
+    "min-h-touch w-full rounded-xl border border-fn-border bg-fn-surface px-4 py-3 text-fn-ink placeholder-fn-muted focus:border-fn-accent focus:outline-none focus:ring-2 focus:ring-fn-accent/10 transition-colors";
+  const labelClass = "block text-sm font-semibold text-fn-muted mt-4 first:mt-0";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -174,19 +173,23 @@ export default function OnboardingPage() {
 
   if (completed) {
     return (
-      <div className="mx-auto w-full max-w-shell px-4 py-8 sm:px-6">
-        <Card padding="lg" className="mx-auto max-w-xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">Setup complete</p>
-          <h2 className="mt-2 font-display text-3xl text-fn-ink">Your plan is ready</h2>
-          <p className="mt-2 text-fn-muted">
+      <div className="mx-auto w-full max-w-shell px-4 py-16 sm:px-6">
+        <div className="mx-auto max-w-xl text-center">
+          <div className="mx-auto mb-8 h-20 w-20 rounded-full border-2 border-fn-accent/30 bg-fn-accent/10 flex items-center justify-center shadow-[0_0_40px_rgba(10,217,196,0.2)]">
+            <svg className="h-10 w-10 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-fn-accent">Setup complete</p>
+          <h2 className="mt-3 font-display text-5xl font-black text-fn-ink italic uppercase tracking-tight">Your plan is ready</h2>
+          <p className="mt-4 text-fn-muted leading-relaxed">
             {saveError
               ? `Could not complete onboarding: ${saveError}`
-              : "Onboarding complete. Your profile has been saved and your adaptive plan can now guide day one."}
+              : "Profile saved. Your AI coach will now personalize workouts, nutrition targets, and recovery strategy from day one."}
           </p>
-          <Link href="/" className="mt-6 inline-block">
+          <p className="mt-3 text-sm text-fn-muted/60 italic">You can add body metrics and track progress from the Progress screen.</p>
+          <Link href="/" className="mt-8 inline-block">
             <Button>Go to dashboard</Button>
           </Link>
-        </Card>
+        </div>
       </div>
     );
   }
@@ -270,9 +273,9 @@ export default function OnboardingPage() {
             {steps[currentStep].id === "goals" && (
               <div className="mt-4 space-y-2">
                 {goalOptions.map((g) => (
-                  <label key={g} className="flex min-h-touch cursor-pointer items-center gap-3 rounded-xl border border-fn-border bg-white px-4 py-3">
-                    <input type="checkbox" checked={goals.includes(g)} onChange={() => toggleGoal(g)} className="h-5 w-5 rounded border-fn-border" />
-                    <span className="font-semibold text-black">{g}</span>
+                  <label key={g} className={`flex min-h-touch cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-200 ${goals.includes(g) ? "border-fn-accent bg-fn-accent/10" : "border-fn-border bg-fn-surface hover:border-fn-accent/30 hover:bg-fn-surface-hover"}`}>
+                    <input type="checkbox" checked={goals.includes(g)} onChange={() => toggleGoal(g)} className="h-5 w-5 rounded border-fn-border accent-[#0AD9C4]" />
+                    <span className={`font-bold ${goals.includes(g) ? "text-fn-accent" : "text-fn-ink"}`}>{g}</span>
                   </label>
                 ))}
               </div>
@@ -305,10 +308,6 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {steps[currentStep].id === "baseline" && (
-              <p className="mt-4 text-fn-muted">You can add body metrics after onboarding from the progress screen.</p>
-            )}
-
             <div className="mt-6 flex gap-3">
               {currentStep > 0 && (
                 <Button type="button" variant="ghost" onClick={() => setCurrentStep((s) => s - 1)}>
@@ -323,14 +322,23 @@ export default function OnboardingPage() {
           </div>
         </Card>
 
-        <Card padding="lg" className="lg:sticky lg:top-8 lg:h-fit">
-          <h3 className="font-semibold text-fn-ink">Confidence builder</h3>
-          <ul className="mt-3 space-y-2 text-sm text-fn-muted">
-            <li>Adaptive daily plan based on your goal and schedule.</li>
-            <li>Nutrition targets tuned to your progress trend.</li>
-            <li>Safety-aware alternatives for limitations and low-energy days.</li>
+        <Card padding="lg" className="lg:sticky lg:top-8 lg:h-fit border-fn-accent/10 bg-fn-accent/[0.03]">
+          <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-3">What you unlock</p>
+          <ul className="space-y-4">
+            {[
+              { icon: "M13 10V3L4 14h7v7l9-11h-7z", text: "Adaptive daily plan based on your goals and schedule" },
+              { icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", text: "Nutrition targets tuned to your progress trend" },
+              { icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", text: "Safety-aware alternatives for injuries and low-energy days" },
+            ].map(({ icon, text }) => (
+              <li key={text} className="flex items-start gap-3">
+                <div className="mt-0.5 shrink-0 h-6 w-6 rounded-lg bg-fn-accent/10 flex items-center justify-center">
+                  <svg className="h-3.5 w-3.5 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} /></svg>
+                </div>
+                <span className="text-sm text-fn-muted leading-relaxed">{text}</span>
+              </li>
+            ))}
           </ul>
-          <p className="mt-4 text-xs text-fn-muted">Educational AI coaching only. Not medical care.</p>
+          <p className="mt-6 text-[10px] text-fn-muted/50 uppercase tracking-widest">Educational AI coaching · Not medical care</p>
         </Card>
       </div>
     </div>

@@ -55,7 +55,6 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [coachTone, setCoachTone] = useState("balanced");
   const [nudges, setNudges] = useState("standard");
-  const [importStatus, setImportStatus] = useState<string | null>(null);
   const [reminders, setReminders] = useState<{ daily_plan?: boolean; workout_log?: boolean; weigh_in?: "weekly" | "off" }>({
     daily_plan: true,
     workout_log: true,
@@ -213,12 +212,6 @@ export default function SettingsPage() {
       ...profile,
       weight: Number.isFinite(parsed) ? fromDisplayWeight(parsed, unitSystem) : undefined,
     });
-  }
-
-  function handleHealthImport(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImportStatus(`Queued ${file.name}. Import pipeline UI is live; backend parser endpoint wiring can be enabled next.`);
   }
 
   if (loading) {
@@ -403,15 +396,19 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        <Card padding="lg">
-          <CardHeader title="Data sources" subtitle="Import Apple Health exports" />
-          <p className="mt-2 text-sm text-fn-muted">Upload your exported Apple Health file to enrich recovery and readiness insights.</p>
-          <div className="mt-3">
-            <Label htmlFor="healthImport">Apple Health export</Label>
-            <Input id="healthImport" type="file" accept=".zip,.xml" onChange={handleHealthImport} className="mt-1" />
+        <Card padding="lg" className="opacity-60">
+          <div className="flex items-start gap-4">
+            <div className="shrink-0 h-10 w-10 rounded-xl bg-fn-surface-hover border border-fn-border flex items-center justify-center">
+              <svg className="h-5 w-5 text-fn-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+            </div>
+            <div>
+              <div className="flex items-center gap-3">
+                <CardHeader title="Wearable Sync" subtitle="Apple Health · Garmin · Whoop" />
+                <span className="shrink-0 rounded-full border border-fn-border px-3 py-1 text-[10px] font-black uppercase tracking-widest text-fn-muted">Coming soon</span>
+              </div>
+              <p className="mt-2 text-sm text-fn-muted leading-relaxed">Automatic sync with Apple Health, Garmin Connect, and Whoop to enrich your recovery and readiness data. Available in a future update.</p>
+            </div>
           </div>
-          {importStatus && <p className="mt-3 rounded-xl bg-fn-bg-alt px-3 py-2 text-sm text-fn-muted">{importStatus}</p>}
-          <p className="mt-2 text-xs text-fn-muted">Raw files are stored encrypted and retained for 30 days.</p>
         </Card>
 
         {error && <ErrorMessage message={error} />}
