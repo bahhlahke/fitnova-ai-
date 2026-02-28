@@ -46,6 +46,9 @@ export default function HomePage() {
   const [briefing, setBriefing] = useState<string | null>(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [projection, setProjection] = useState<{ current: number; projected_4w: number; projected_12w: number; confidence: number } | null>(null);
+  const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -245,6 +248,28 @@ export default function HomePage() {
       body: "Get real-time set cues, rest pacing, and simplified alternatives when equipment or energy is limited.",
     };
   }, [helpTab]);
+
+  async function handleChatSubmit(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    const text = chatInput.trim();
+    if (!text || chatLoading) return;
+    setChatInput("");
+    setChatMessages((m) => [...m, { role: "user", content: text }]);
+    setChatLoading(true);
+    try {
+      const res = await fetch("/api/v1/ai/respond", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
+      if (res.ok) setChatMessages((m) => [...m, { role: "assistant", content: data.reply }]);
+    } catch {
+      // silent fail — the user can retry
+    } finally {
+      setChatLoading(false);
+    }
+  }
 
   const handleUpgrade = async () => {
     try {
@@ -659,6 +684,86 @@ export default function HomePage() {
               <p className="text-xs font-black text-fn-muted uppercase tracking-widest">Awaiting Data</p>
             </div>
           )}
+        </Card>
+      </section>
+
+      {/* Nova AI — inline chat */}
+      <section className="mt-8">
+        <Card className="border-fn-accent/20 bg-fn-accent/[0.03] overflow-hidden">
+          <div className="p-6 sm:p-8">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-fn-accent/20 bg-fn-accent/10">
+                <svg className="h-5 w-5 text-fn-accent" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-fn-accent leading-none">Nova AI</p>
+                <p className="mt-0.5 text-xs text-fn-muted">Log anything · ask anything</p>
+              </div>
+            </div>
+
+            {/* Messages thread */}
+            {chatMessages.length > 0 && (
+              <div className="mb-4 max-h-56 overflow-y-auto space-y-3">
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm font-medium leading-relaxed ${
+                        msg.role === "user"
+                          ? "bg-fn-accent text-black"
+                          : "border border-fn-border bg-fn-surface text-fn-ink"
+                      }`}
+                    >
+                      {msg.content}
+                    </div>
+                  </div>
+                ))}
+                {chatLoading && (
+                  <div className="flex justify-start">
+                    <div className="flex gap-1 rounded-xl border border-fn-border bg-fn-surface px-4 py-3">
+                      <span className="h-1.5 w-1.5 rounded-full bg-fn-accent animate-bounce [animation-delay:0ms]" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-fn-accent animate-bounce [animation-delay:150ms]" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-fn-accent animate-bounce [animation-delay:300ms]" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Quick-action chips (shown before first message) */}
+            {chatMessages.length === 0 && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {["Log a workout", "I just ate...", "How am I doing?", "Update my weight"].map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => setChatInput(q)}
+                    className="rounded-full border border-fn-accent/20 bg-fn-accent/5 px-3 py-1.5 text-xs font-bold text-fn-accent transition-colors hover:bg-fn-accent/10"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Input */}
+            <form onSubmit={handleChatSubmit} className="flex gap-3">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Tell Nova what you ate, lifted, or ask anything..."
+                className="flex-1 rounded-xl border border-fn-border bg-fn-surface px-4 py-3 text-sm text-white placeholder-fn-muted transition-colors focus:border-fn-accent/50 focus:outline-none"
+                disabled={chatLoading}
+              />
+              <Button type="submit" disabled={chatLoading || !chatInput.trim()}>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </Button>
+            </form>
+          </div>
         </Card>
       </section>
 

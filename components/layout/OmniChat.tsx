@@ -17,30 +17,33 @@ const QUICK_ACTIONS = [
 
 export function OmniChat() {
     const [isOpen, setIsOpen] = useState(false);
-    const [isMounted, setIsMounted] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const pathname = usePathname();
     const { user } = useAuth();
 
     useEffect(() => {
         if (isOpen) {
+            setTimeout(() => inputRef.current?.focus(), 50);
             bottomRef.current?.scrollIntoView({ behavior: "smooth" });
         }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isOpen]);
 
-    const hiddenRoutes = ["/auth", "/start", "/onboarding"];
-    const hide = hiddenRoutes.some((p) => pathname.startsWith(p)) || (!user && pathname === "/");
+    // Hide on homepage (inline chat there) and auth/onboarding routes
+    const hiddenRoutes = ["/auth", "/start", "/onboarding", "/"];
+    const hide = hiddenRoutes.some((p) =>
+        p === "/" ? pathname === "/" : pathname.startsWith(p)
+    ) || !user;
 
     if (hide) return null;
-
-    function openChat() {
-        setIsMounted(true);
-        setIsOpen(true);
-    }
 
     async function handleSubmit(e?: React.FormEvent) {
         if (e) e.preventDefault();
@@ -61,7 +64,6 @@ export function OmniChat() {
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error ?? "Failed to connect to Nova AI");
-
             setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Something went wrong");
@@ -71,138 +73,132 @@ export function OmniChat() {
     }
 
     return (
-        <>
-            {/* Floating Action Button */}
-            <button
-                onClick={() => isOpen ? setIsOpen(false) : openChat()}
-                className="fixed bottom-24 right-6 z-[60] h-14 w-14 rounded-full bg-fn-accent text-fn-bg shadow-[0_0_30px_rgba(10,217,196,0.4)] transition-transform hover:scale-110 active:scale-95 md:bottom-10 md:right-10"
-                aria-label="Ask Nova AI"
-            >
-                <div className="flex h-full w-full items-center justify-center">
-                    {isOpen ? (
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    ) : (
-                        <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                    )}
-                </div>
-            </button>
-
-            {/* Backdrop — only rendered after first open */}
-            {isMounted && isOpen && (
-                <div
-                    className="fixed inset-0 z-[45] bg-black/60 backdrop-blur-sm"
-                    onClick={() => setIsOpen(false)}
-                />
-            )}
-
-            {/* Slide-over Panel — only mounted after first open to avoid backdrop-blur bleed */}
-            {isMounted && (
+        <div className="fixed bottom-24 right-4 z-50 flex flex-col items-end gap-3 md:bottom-10 md:right-8">
+            {/* Popup Card — CSS-toggled, no backdrop-filter bleed issues */}
             <div
-                className={`fixed inset-y-0 right-0 z-50 w-full transform border-l border-fn-border bg-fn-bg/95 transition-transform duration-500 ease-in-out md:w-[450px] ${isOpen ? "translate-x-0" : "translate-x-full"
-                    }`}
+                className={`w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-fn-border bg-fn-bg shadow-2xl transition-all duration-200 origin-bottom-right ${
+                    isOpen
+                        ? "opacity-100 scale-100 pointer-events-auto"
+                        : "opacity-0 scale-95 pointer-events-none"
+                }`}
+                aria-hidden={!isOpen}
             >
-                <div className="flex h-full flex-col">
-                    {/* Header */}
-                    <div className="flex items-center justify-between border-b border-fn-border p-8">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent">Omni-Channel AI</p>
-                            <h2 className="font-display text-2xl font-black text-white italic uppercase tracking-tighter">Nova AI</h2>
-                        </div>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsOpen(false);
-                            }}
-                            className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-fn-muted hover:bg-white/10 hover:text-white transition-all active:scale-90"
-                            aria-label="Close Chat"
-                        >
-                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-fn-border bg-fn-surface/60 px-5 py-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-fn-accent/20 bg-fn-accent/10">
+                            <svg className="h-4 w-4 text-fn-accent" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
-                        </button>
+                        </div>
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-widest text-fn-accent leading-none">Nova AI</p>
+                            <p className="mt-0.5 text-[10px] text-fn-muted">Your personal coach</p>
+                        </div>
                     </div>
+                    <button
+                        type="button"
+                        onClick={() => setIsOpen(false)}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-fn-muted transition-colors hover:bg-white/5 hover:text-white"
+                        aria-label="Close Nova AI"
+                    >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
 
-                    {/* Messages Feed */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
-                        {messages.length === 0 && (
-                            <div className="py-10 text-center">
-                                <div className="mx-auto mb-6 h-20 w-20 rounded-2xl bg-fn-accent/10 border border-fn-accent/20 flex items-center justify-center text-fn-accent animate-pulse">
-                                    <svg className="h-10 w-10" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                </div>
-                                <p className="text-xl font-black text-white uppercase italic tracking-tighter mb-4">Awaiting Command</p>
-                                <p className="text-sm font-medium text-fn-muted leading-relaxed max-w-xs mx-auto mb-10">
-                                    Tell me what you ate, what you lifted, or where you want to go. I handle the rest.
-                                </p>
-                                <div className="flex flex-col gap-3">
-                                    {QUICK_ACTIONS.map((action) => (
-                                        <button
-                                            key={action}
-                                            onClick={() => {
-                                                setInput(action);
-                                            }}
-                                            className="rounded-xl border border-white/5 bg-white/5 p-4 text-left text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-white/10 hover:border-fn-accent/30 active:scale-95"
-                                        >
-                                            {action}
-                                        </button>
-                                    ))}
-                                </div>
+                {/* Messages */}
+                <div className="max-h-80 min-h-[160px] overflow-y-auto p-4 space-y-3">
+                    {messages.length === 0 ? (
+                        <div>
+                            <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-fn-muted">Quick commands</p>
+                            <div className="flex flex-col gap-2">
+                                {QUICK_ACTIONS.map((action) => (
+                                    <button
+                                        key={action}
+                                        type="button"
+                                        onClick={() => setInput(action)}
+                                        className="rounded-xl border border-fn-border bg-fn-surface/40 px-4 py-2.5 text-left text-xs font-medium text-fn-muted transition-all hover:border-fn-accent/20 hover:text-white"
+                                    >
+                                        {action}
+                                    </button>
+                                ))}
                             </div>
-                        )}
-
-                        {messages.map((msg, i) => (
+                        </div>
+                    ) : (
+                        messages.map((msg, i) => (
                             <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                                 <div
-                                    className={`max-w-[85%] rounded-2xl px-6 py-4 text-sm font-medium leading-relaxed shadow-2xl ${msg.role === "user" ? "bg-white text-black rounded-tr-none" : "bg-fn-surface border border-white/5 text-fn-ink rounded-tl-none"
-                                        }`}
+                                    className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm font-medium leading-relaxed ${
+                                        msg.role === "user"
+                                            ? "bg-fn-accent text-black"
+                                            : "border border-fn-border bg-fn-surface text-fn-ink"
+                                    }`}
                                 >
-                                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                                    {msg.content}
                                 </div>
                             </div>
-                        ))}
+                        ))
+                    )}
 
-                        {loading && (
-                            <div className="flex justify-start">
-                                <div className="bg-white/5 border border-white/5 rounded-2xl rounded-tl-none px-6 py-4 animate-pulse">
-                                    <div className="flex gap-1">
-                                        <div className="h-1.5 w-1.5 rounded-full bg-fn-accent" />
-                                        <div className="h-1.5 w-1.5 rounded-full bg-fn-accent delay-75" />
-                                        <div className="h-1.5 w-1.5 rounded-full bg-fn-accent delay-150" />
-                                    </div>
-                                </div>
+                    {loading && (
+                        <div className="flex justify-start">
+                            <div className="flex gap-1 rounded-xl border border-fn-border bg-fn-surface px-4 py-3">
+                                <span className="h-1.5 w-1.5 rounded-full bg-fn-accent animate-bounce [animation-delay:0ms]" />
+                                <span className="h-1.5 w-1.5 rounded-full bg-fn-accent animate-bounce [animation-delay:150ms]" />
+                                <span className="h-1.5 w-1.5 rounded-full bg-fn-accent animate-bounce [animation-delay:300ms]" />
                             </div>
-                        )}
+                        </div>
+                    )}
 
-                        {error && <ErrorMessage message={error} />}
-                        <div ref={bottomRef} />
-                    </div>
+                    {error && <ErrorMessage message={error} />}
+                    <div ref={bottomRef} />
+                </div>
 
-                    {/* Input Area */}
-                    <div className="border-t border-fn-border bg-black/40 p-6 backdrop-blur-3xl">
-                        <form onSubmit={handleSubmit} className="relative flex gap-3">
-                            <input
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                placeholder="Log activity or ask questions..."
-                                className="flex-1 rounded-xl2 border border-white/10 bg-white/5 px-6 py-4 text-white placeholder-white/30 transition-all focus:border-fn-accent/50 focus:outline-none focus:ring-4 focus:ring-fn-accent/10"
-                                disabled={loading}
-                            />
-                            <Button type="submit" disabled={loading || !input.trim()} className="px-6">
-                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                            </Button>
-                        </form>
-                    </div>
+                {/* Input */}
+                <div className="border-t border-fn-border bg-fn-surface/30 p-3">
+                    <form onSubmit={handleSubmit} className="flex gap-2">
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="Log food, workouts, questions..."
+                            className="flex-1 rounded-xl border border-fn-border bg-fn-surface px-4 py-2.5 text-sm text-white placeholder-fn-muted transition-colors focus:border-fn-accent/50 focus:outline-none"
+                            disabled={loading}
+                        />
+                        <Button type="submit" disabled={loading || !input.trim()} size="sm">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                        </Button>
+                    </form>
                 </div>
             </div>
-            )}
-        </>
+
+            {/* FAB */}
+            <button
+                type="button"
+                onClick={() => setIsOpen((o) => !o)}
+                className={`flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
+                    isOpen
+                        ? "border border-fn-border bg-fn-surface text-fn-muted hover:text-white"
+                        : "bg-fn-accent text-fn-bg shadow-[0_0_30px_rgba(10,217,196,0.4)]"
+                }`}
+                aria-label={isOpen ? "Close Nova AI" : "Open Nova AI"}
+                aria-expanded={isOpen}
+            >
+                {isOpen ? (
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                ) : (
+                    <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                )}
+            </button>
+        </div>
     );
 }
