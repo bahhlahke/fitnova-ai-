@@ -6,28 +6,36 @@ import 'dotenv/config';
 // The shape of our ground truth data
 interface GroundTruth {
     id: string;
-    url: string;
+    front: string;
+    side: string;
+    back: string;
     actual_bf: number;
 }
 
 // A generic dataset we can use for testing accuracy
-// In a real production scenario, this would be 100+ images with clinical DEXA results.
+// In a real production scenario, this would be 100+ sets of 3-angle images with clinical DEXA results.
 const DATASET: GroundTruth[] = [
     {
         id: "lean_athletic",
-        url: "https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg",
+        front: "https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg",
+        side: "https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg", // Simulated side
+        back: "https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg", // Simulated back
         // Highly visible abs, serratus clear, low subcutaneous fat
         actual_bf: 10,
     },
     {
         id: "moderate_athletic",
-        url: "https://images.pexels.com/photos/1229356/pexels-photo-1229356.jpeg",
+        front: "https://images.pexels.com/photos/1229356/pexels-photo-1229356.jpeg",
+        side: "https://images.pexels.com/photos/1229356/pexels-photo-1229356.jpeg",
+        back: "https://images.pexels.com/photos/1229356/pexels-photo-1229356.jpeg",
         // Soft abdominal definition
         actual_bf: 15,
     },
     {
         id: "higher_bf",
-        url: "https://images.pexels.com/photos/4164844/pexels-photo-4164844.jpeg",
+        front: "https://images.pexels.com/photos/4164844/pexels-photo-4164844.jpeg",
+        side: "https://images.pexels.com/photos/4164844/pexels-photo-4164844.jpeg",
+        back: "https://images.pexels.com/photos/4164844/pexels-photo-4164844.jpeg",
         // Less definition, higher subcutaneous layers
         actual_bf: 22,
     }
@@ -47,7 +55,7 @@ const callModel = async (systemContent: string, userContent: any[]) => {
             "X-Title": "FitNova Body Comp Benchmark"
         },
         body: JSON.stringify({
-            model: "openai/gpt-4o",
+            model: "openai/gpt-5.2",
             messages: [
                 { role: "system", content: systemContent },
                 { role: "user", content: userContent }
@@ -59,7 +67,7 @@ const callModel = async (systemContent: string, userContent: any[]) => {
     return data.choices[0].message.content;
 };
 
-const systemPrompt = `You are an elite AI body composition scanner acting as a clinical DEXA alternative. You must analyze the image and estimate the body fat percentage based strictly on these visual heuristics for males (adjust +8% if female):
+const systemPrompt = `You are an elite AI body composition scanner acting as a clinical DEXA alternative. You must analyze the images and estimate the body fat percentage based strictly on these visual heuristics for males (adjust +8% if female):
 
 1. < 10%: Deep muscle separation. Striations in shoulders/chest. Veins visible on lower abdomen/pelvis. Serratus anterior (finger-like muscles on ribs) are deeply cut.
 2. 10% - 12%: Deeply visible transverse tendinous intersections (six-pack) without flexing. Clear division between obliques and abdominals. Vascularity in arms.
@@ -71,10 +79,10 @@ const systemPrompt = `You are an elite AI body composition scanner acting as a c
 Be extremely critical. Do not flatter the user. If they lack sharp definition, place them higher than 15%.
 
 Output ONLY pure JSON formatted exactly like this example without markdown wrappers:
-{"body_fat_percent": 16.5, "analysis": "Flat stomach but transverse intersections are entirely obscured by subcutaneous fat. Lower obliques show slight pooling."}`;
+{"body_fat_percent": 16.5, "analysis": "Flat stomach but transverse intersections are entirely obscured by subcutaneous fat. Lower obliques show slight pooling from the side and back angles."}`;
 
 async function runBenchmark() {
-    console.log("🚀 Starting AI Body Comp Benchmarking (Model: gpt-4o)...");
+    console.log("🚀 Starting AI Body Comp Benchmarking (Model: openai/gpt-5.2)...");
 
     let totalError = 0;
     const results = [];
@@ -83,8 +91,10 @@ async function runBenchmark() {
         console.log(`\nScanning ${test.id}... (Actual BF: ${test.actual_bf}%)`);
 
         const contentArray = [
-            { type: "text", text: "You are an elite anthropometrist and DEXA scan alternative. Analyze the provided image of the user's physique and estimate their body fat percentage." },
-            { type: "image_url", image_url: { url: test.url } }
+            { type: "text", text: "You are an elite anthropometrist and DEXA scan alternative. Analyze the provided front, side, and back images of the user's physique and estimate their total body fat percentage. Since genetic fat distribution varies, carefully composite the 3-dimensional fat volume." },
+            { type: "image_url", image_url: { url: test.front } },
+            { type: "image_url", image_url: { url: test.side } },
+            { type: "image_url", image_url: { url: test.back } }
         ];
 
         try {
