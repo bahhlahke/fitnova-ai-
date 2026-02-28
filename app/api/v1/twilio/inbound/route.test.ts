@@ -65,7 +65,7 @@ describe("POST /api/v1/twilio/inbound", () => {
         });
 
         mockAssembleContext.mockResolvedValue({ systemPrompt: "Context assembled" });
-        vi.mocked(aiModel.callModel).mockResolvedValue("Hey! Ready for leg day.");
+        vi.mocked(aiModel.callModel).mockResolvedValue({ content: "Hey! Ready for leg day." });
 
         const req = new Request("http://localhost", {
             method: "POST",

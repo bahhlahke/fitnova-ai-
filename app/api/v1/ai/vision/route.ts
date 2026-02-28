@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
         const systemPrompt = "You are an elite, highly technical biomechanics AI coach. Only respond in pure JSON. Example: {\"score\": 85, \"critique\": \"Knees are caving in at depth.\", \"correction\": \"Drive knees outward and root your feet.\"}";
 
-        const responseText = await callModel({
+        const { content: responseText } = await callModel({
             model: "openai/gpt-4o-mini", // fallback to mini for speed, auto-routes vision on openrouter
             messages: [
                 { role: "system", content: systemPrompt },

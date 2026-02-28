@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       - Focus: Why these targets were chosen (e.g., "Adjusting for low sleep to protect recovery" or "Pushing intensity due to high energy baseline").
     `;
 
-        const briefing = await callModel({
+        const { content: briefing } = await callModel({
             messages: [{ role: "user", content: prompt }],
             maxTokens: 150,
             temperature: 0.7,

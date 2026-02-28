@@ -1,7 +1,7 @@
 /**
  * @vitest-environment node
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { POST } from "./route";
 
 const mockSupabase = {
@@ -125,6 +125,71 @@ describe("POST /api/v1/ai/respond", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.reply).toBe(mockReply);
+  });
+
+  it("processes tool calls and logs biometrics successfully", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    mockSupabase.from.mockImplementation((table: string) => {
+      const mockChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+        update: vi.fn().mockResolvedValue({ error: null }),
+      };
+      return mockChain;
+    });
+
+    const mockToolCallResponse = {
+      content: "",
+      tool_calls: [
+        {
+          id: "call_123",
+          type: "function",
+          function: { name: "log_biometrics", arguments: JSON.stringify({ weight_lbs: 185, body_fat_percent: 12 }) }
+        }
+      ]
+    };
+
+    const mockFinalResponse = {
+      content: "Successfully logged 185 lbs and 12% body fat.",
+    };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockImplementationOnce(() =>
+          Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                choices: [{ message: { content: "", tool_calls: mockToolCallResponse.tool_calls } }],
+              }),
+          } as Response)
+        )
+        .mockImplementationOnce(() =>
+          Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                choices: [{ message: { content: mockFinalResponse.content } }],
+              }),
+          } as Response)
+        )
+    );
+
+    const req = new Request("http://localhost/api/v1/ai/respond", {
+      method: "POST",
+      body: JSON.stringify({ message: "I weigh 185 lbs today at 12% BF." }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.reply).toBe(mockFinalResponse.content);
   });
 
   afterEach(() => {

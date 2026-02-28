@@ -91,14 +91,136 @@ export async function POST(request: Request) {
       systemPrompt = `${systemPrompt}\n\n${SAFETY_POLICY}`;
     }
 
+    const OMNI_TOOLS: any[] = [
+      {
+        type: "function",
+        function: {
+          name: "log_meal",
+          description: "Logs a meal to the user's nutrition log today.",
+          parameters: {
+            type: "object",
+            properties: {
+              food_items: { type: "string", description: "Food items consumed, e.g. '3 eggs and toast'." },
+              calories: { type: "number", description: "Estimated total calories." },
+              protein: { type: "number", description: "Estimated protein in grams." },
+              carbs: { type: "number", description: "Estimated carbs in grams." },
+              fat: { type: "number", description: "Estimated fat in grams." }
+            },
+            required: ["food_items", "calories", "protein", "carbs", "fat"],
+          },
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "log_workout",
+          description: "Logs a completed workout session.",
+          parameters: {
+            type: "object",
+            properties: {
+              workout_type: { type: "string", enum: ["strength", "cardio", "mobility", "other"], description: "Type of workout" },
+              duration_minutes: { type: "number", description: "Duration in minutes" },
+              notes: { type: "string", description: "Summary of the workout" }
+            },
+            required: ["workout_type", "duration_minutes"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "log_biometrics",
+          description: "Logs body weight or body fat percentage progress.",
+          parameters: {
+            type: "object",
+            properties: {
+              weight_lbs: { type: "number", description: "Body weight in lbs" },
+              body_fat_percent: { type: "number", description: "Body fat percentage" }
+            }
+          }
+        }
+      }
+    ];
+
+    let messagesForModel: any[] = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: message },
+    ];
+
     const { reply } = await (async () => {
       try {
-        const content = await callModel({
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: message },
-          ],
+        const { content, tool_calls } = await callModel({
+          messages: messagesForModel,
+          tools: OMNI_TOOLS as any,
+          tool_choice: "auto",
         });
+
+        if (tool_calls && tool_calls.length > 0) {
+          messagesForModel.push({ role: "assistant", content, tool_calls });
+
+          for (const tc of tool_calls) {
+            let resultStr = "";
+            try {
+              const args = JSON.parse(tc.function.arguments);
+              if (tc.function.name === "log_meal") {
+                const today = new Date().toISOString().split("T")[0];
+                const { data: existingLog } = await supabase.from("nutrition_logs")
+                  .select("log_id, meals, total_calories").eq("user_id", userId).eq("date", today).maybeSingle();
+
+                const newMeal = { time: new Date().toTimeString().slice(0, 5), description: args.food_items, calories: args.calories, macros: { protein: args.protein, carbs: args.carbs, fat: args.fat } as any };
+
+                if (existingLog) {
+                  const updatedMeals = [...(Array.isArray(existingLog.meals) ? existingLog.meals : []), newMeal];
+                  const totalCals = updatedMeals.reduce((s: number, m: any) => s + (m.calories || 0), 0);
+                  await supabase.from("nutrition_logs").update({ meals: updatedMeals, total_calories: totalCals }).eq("log_id", existingLog.log_id);
+                } else {
+                  await supabase.from("nutrition_logs").insert({ user_id: userId, date: today, meals: [newMeal], total_calories: args.calories });
+                }
+                resultStr = `Successfully logged meal: ${args.food_items} (${args.calories} cals)`;
+              } else if (tc.function.name === "log_workout") {
+                const today = new Date().toISOString().split("T")[0];
+                await supabase.from("workout_logs").insert({
+                  user_id: userId,
+                  date: today,
+                  workout_type: args.workout_type,
+                  duration_minutes: args.duration_minutes,
+                  exercises: [],
+                  notes: args.notes || "Logged via Nova AI"
+                });
+                resultStr = `Successfully logged workout: ${args.duration_minutes} min ${args.workout_type}`;
+              } else if (tc.function.name === "log_biometrics") {
+                const today = new Date().toISOString().split("T")[0];
+                await supabase.from("progress_tracking").insert({
+                  user_id: userId,
+                  date: today,
+                  weight: args.weight_lbs || null,
+                  body_fat_percent: args.body_fat_percent || null,
+                  measurements: {},
+                  notes: "Logged via Nova AI"
+                });
+                resultStr = `Successfully logged biometrics: ${args.weight_lbs ? args.weight_lbs + " lbs " : ""}${args.body_fat_percent ? args.body_fat_percent + "% body fat" : ""}`;
+              } else {
+                resultStr = "Unknown tool.";
+              }
+            } catch (e) {
+              resultStr = `Failed to execute tool: ${e instanceof Error ? e.message : "unknown error"}`;
+            }
+
+            messagesForModel.push({
+              role: "tool",
+              tool_call_id: tc.id,
+              name: tc.function.name,
+              content: resultStr
+            });
+          }
+
+          // Call model again with the tool output
+          const finalResponse = await callModel({
+            messages: messagesForModel,
+          });
+          return { reply: finalResponse.content };
+        }
+
         return { reply: content };
       } catch (err) {
         throw err;

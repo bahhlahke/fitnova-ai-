@@ -61,7 +61,7 @@ export async function POST(req: Request) {
         }
 
         // 3. Call Model
-        const content = await callModel({
+        const { content } = await callModel({
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: Body },
