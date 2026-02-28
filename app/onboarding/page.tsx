@@ -13,6 +13,7 @@ import {
   heightUnitLabel,
   weightUnitLabel,
 } from "@/lib/units";
+import { normalizePhoneNumber } from "@/lib/phone";
 
 const steps = [
   { id: "stats", label: "Stats" },
@@ -36,7 +37,7 @@ export default function OnboardingPage() {
   const [resume, setResume] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [unitSystem, setUnitSystem] = useState<UnitSystem>(DEFAULT_UNIT_SYSTEM);
-  const [stats, setStats] = useState({ name: "", age: "", sex: "", height: "", weight: "" });
+  const [stats, setStats] = useState({ name: "", phone: "", age: "", sex: "", height: "", weight: "" });
   const [goals, setGoals] = useState<string[]>([]);
   const [injuries, setInjuries] = useState("");
   const [diet, setDiet] = useState("");
@@ -96,6 +97,13 @@ export default function OnboardingPage() {
     const ageNum = stats.age ? parseInt(stats.age, 10) : undefined;
     const heightNum = stats.height ? parseFloat(stats.height) : undefined;
     const weightNum = stats.weight ? parseFloat(stats.weight) : undefined;
+    const phoneInput = stats.phone.trim();
+    const phoneNumber = phoneInput ? normalizePhoneNumber(phoneInput) : null;
+    if (phoneInput && !phoneNumber) {
+      setSaveError("Phone number must include 10-15 digits.");
+      setSaving(false);
+      return;
+    }
     const age = ageNum != null && Number.isFinite(ageNum) && ageNum >= 13 && ageNum <= 120 ? ageNum : null;
     const heightCm = heightNum != null && Number.isFinite(heightNum) ? fromDisplayHeight(heightNum, unitSystem) : undefined;
     const weightKg = weightNum != null && Number.isFinite(weightNum) ? fromDisplayWeight(weightNum, unitSystem) : undefined;
@@ -106,6 +114,7 @@ export default function OnboardingPage() {
         user_id: user.id,
         name: stats.name || null,
         email: user.email || null,
+        phone_number: phoneNumber,
         age,
         sex: stats.sex || null,
         height,
@@ -235,6 +244,8 @@ export default function OnboardingPage() {
               <div className="mt-4 space-y-0">
                 <label className={labelClass}>Name</label>
                 <input type="text" value={stats.name} onChange={(e) => setStats((s) => ({ ...s, name: e.target.value }))} className={inputClass} placeholder="Your name" />
+                <label className={labelClass}>Phone number (optional)</label>
+                <input type="tel" value={stats.phone} onChange={(e) => setStats((s) => ({ ...s, phone: e.target.value }))} className={inputClass} placeholder="+15551234567" />
                 <label className={labelClass}>Age</label>
                 <input type="number" value={stats.age} onChange={(e) => setStats((s) => ({ ...s, age: e.target.value }))} className={inputClass} placeholder="25" min={13} max={120} />
                 <label className={labelClass}>Sex</label>

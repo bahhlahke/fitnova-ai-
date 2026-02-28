@@ -1,84 +1,77 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Card, CardHeader, Button, LoadingState, EmptyState } from "@/components/ui";
 import { toLocalDateString } from "@/lib/date/local-date";
+import { emitDataRefresh, useDataRefresh } from "@/lib/ui/data-sync";
+import { Card, Button, LoadingState } from "@/components/ui";
+import { DashboardHero } from "@/components/dashboard/DashboardHero";
+import { DashboardAiSection } from "@/components/dashboard/DashboardAiSection";
+import {
+  DashboardPlanSection,
+  type DashboardTodayPlan,
+} from "@/components/dashboard/DashboardPlanSection";
+import { DashboardReadinessSection } from "@/components/dashboard/DashboardReadinessSection";
+import {
+  DashboardProgressSection,
+  type DashboardProjection,
+} from "@/components/dashboard/DashboardProgressSection";
+import { DashboardQuickActions } from "@/components/dashboard/DashboardQuickActions";
 
-const HERO_IMAGES = [
-  "/images/refined/hero.png",
-  "https://images.pexels.com/photos/1552249/pexels-photo-1552249.jpeg?auto=compress&cs=tinysrgb&w=1600",
-];
-
-type HelpTab = "adaptive" | "nutrition" | "coaching";
-
-function getWeekStart(d: Date): string {
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(d);
+function getWeekStart(date: Date): string {
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(date);
   monday.setDate(diff);
   return toLocalDateString(monday);
 }
 
-const rotatingGoals = ["weight loss", "muscle", "mobility"];
-
 export default function HomePage() {
-  const [goalIndex, setGoalIndex] = useState(0);
-  const [heroIndex, setHeroIndex] = useState(0);
-  const [helpTab, setHelpTab] = useState<HelpTab>("adaptive");
-  const [authState, setAuthState] = useState<"loading" | "signed_in" | "signed_out">("loading");
-  const [weekCount, setWeekCount] = useState<number>(0);
+  const [authState, setAuthState] = useState<"loading" | "signed_in" | "signed_out">(
+    "loading"
+  );
+  const [weekCount, setWeekCount] = useState(0);
   const [last7Days, setLast7Days] = useState<number[]>([]);
-  const [onboardingComplete, setOnboardingComplete] = useState<boolean>(false);
-  const [isPro, setIsPro] = useState<boolean>(false);
-  const [todayPlan, setTodayPlan] = useState<{ focus: string; calories: number } | null>(null);
-  const [weeklyInsight, setWeeklyInsight] = useState<string | null>(null);
-  const [weeklyInsightLoading, setWeeklyInsightLoading] = useState(false);
-  const [reminders, setReminders] = useState<{ daily_plan?: boolean; workout_log?: boolean; weigh_in?: string }>({});
+  const [todayPlan, setTodayPlan] = useState<DashboardTodayPlan | null>(null);
   const [hasPlanToday, setHasPlanToday] = useState(false);
   const [hasWorkoutToday, setHasWorkoutToday] = useState(false);
-  const [lastWeighInDate, setLastWeighInDate] = useState<string | null>(null);
+  const [isPro, setIsPro] = useState(false);
+  const [weeklyInsight, setWeeklyInsight] = useState<string | null>(null);
+  const [weeklyInsightLoading, setWeeklyInsightLoading] = useState(false);
   const [readinessInsight, setReadinessInsight] = useState<string | null>(null);
   const [readinessInsightLoading, setReadinessInsightLoading] = useState(false);
-  const [lastWorkoutDate, setLastWorkoutDate] = useState<string | null>(null);
   const [briefing, setBriefing] = useState<string | null>(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
-  const [projection, setProjection] = useState<{ current: number; projected_4w: number; projected_12w: number; confidence: number } | null>(null);
-  const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
+  const [projection, setProjection] = useState<DashboardProjection | null>(null);
+  const [lastWorkoutDate, setLastWorkoutDate] = useState<string | null>(null);
+  const [planLoading, setPlanLoading] = useState(false);
+  const [focusAi, setFocusAi] = useState(false);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setGoalIndex((idx) => (idx + 1) % rotatingGoals.length);
-      setHeroIndex((idx) => (idx + 1) % HERO_IMAGES.length);
-    }, 4000); // Slower rotation for hero
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
+  const loadDashboardSnapshot = useCallback(async () => {
     const supabase = createClient();
     if (!supabase) {
       setAuthState("signed_out");
       return;
     }
 
-    supabase.auth
-      .getUser()
-      .then(async ({ data: { user } }) => {
-        if (!user) {
-          setAuthState("signed_out");
-          return;
-        }
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-        setAuthState("signed_in");
+      if (!user) {
+        setAuthState("signed_out");
+        return;
+      }
 
-        const today = toLocalDateString();
-        const weekStart = getWeekStart(new Date());
+      setAuthState("signed_in");
 
-        const [weekRes, last7Res, onboardingRes, planRes, profileRes, workoutTodayRes, progressRes] = await Promise.all([
+      const today = toLocalDateString();
+      const weekStart = getWeekStart(new Date());
+
+      const [weekRes, last7Res, planRes, profileRes, workoutTodayRes] =
+        await Promise.all([
           supabase
             .from("workout_logs")
             .select("date", { count: "exact", head: true })
@@ -89,16 +82,14 @@ export default function HomePage() {
             .from("workout_logs")
             .select("date")
             .eq("user_id", user.id)
-            .gte("date", toLocalDateString(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)))
+            .gte(
+              "date",
+              toLocalDateString(
+                new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+              )
+            )
             .lte("date", today)
             .order("date", { ascending: true }),
-          supabase
-            .from("onboarding")
-            .select("completed_at")
-            .eq("user_id", user.id)
-            .not("completed_at", "is", null)
-            .limit(1)
-            .maybeSingle(),
           supabase
             .from("daily_plans")
             .select("plan_json")
@@ -107,7 +98,11 @@ export default function HomePage() {
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle(),
-          supabase.from("user_profile").select("devices, subscription_status").eq("user_id", user.id).maybeSingle(),
+          supabase
+            .from("user_profile")
+            .select("subscription_status")
+            .eq("user_id", user.id)
+            .maybeSingle(),
           supabase
             .from("workout_logs")
             .select("date")
@@ -115,704 +110,311 @@ export default function HomePage() {
             .eq("date", today)
             .limit(1)
             .maybeSingle(),
-          supabase
-            .from("progress_tracking")
-            .select("date")
-            .eq("user_id", user.id)
-            .order("date", { ascending: false })
-            .limit(1)
-            .maybeSingle(),
         ]);
 
-        setWeekCount(weekRes.count ?? 0);
-        const byDate: Record<string, number> = {};
-        (last7Res.data ?? []).forEach((row: { date: string }) => {
-          byDate[row.date] = (byDate[row.date] ?? 0) + 1;
-        });
-        const days: number[] = [];
-        for (let i = 6; i >= 0; i -= 1) {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          const key = toLocalDateString(d);
-          days.push(byDate[key] ?? 0);
-        }
-        setLast7Days(days);
-        setOnboardingComplete(!!onboardingRes.data);
+      setWeekCount(weekRes.count ?? 0);
 
-        const plan = planRes.data?.plan_json as
-          | { training_plan?: { focus?: string }; nutrition_plan?: { calorie_target?: number } }
-          | undefined;
-        setHasPlanToday(!!plan?.training_plan?.focus);
-        if (plan?.training_plan?.focus) {
-          setTodayPlan({
-            focus: plan.training_plan.focus,
-            calories: plan.nutrition_plan?.calorie_target ?? 0,
-          });
-        }
+      const byDate: Record<string, number> = {};
+      const last7Rows = (last7Res.data ?? []) as Array<{ date: string }>;
+      last7Rows.forEach((row) => {
+        byDate[row.date] = (byDate[row.date] ?? 0) + 1;
+      });
 
-        const profileData = profileRes.data as { devices?: Record<string, unknown>, subscription_status?: string } | null;
-        const dev = profileData?.devices ?? {};
-        setIsPro(profileData?.subscription_status === 'pro');
+      const nextLast7Days: number[] = [];
+      for (let i = 6; i >= 0; i -= 1) {
+        const currentDate = new Date();
+        currentDate.setDate(currentDate.getDate() - i);
+        const key = toLocalDateString(currentDate);
+        nextLast7Days.push(byDate[key] ?? 0);
+      }
+      setLast7Days(nextLast7Days);
+      setLastWorkoutDate(last7Rows.length ? last7Rows[last7Rows.length - 1].date : null);
 
-        setReminders((dev.reminders as { daily_plan?: boolean; workout_log?: boolean; weigh_in?: string }) ?? {});
-        setHasWorkoutToday(!!(workoutTodayRes.data as { date: string }[] | null)?.length);
-        const lastProgress = progressRes.data as { date: string }[] | null;
-        setLastWeighInDate(lastProgress?.[0]?.date ?? null);
-        const last7Data = last7Res.data as { date: string }[] | null;
-        const mostRecent = last7Data?.length ? last7Data[last7Data.length - 1]?.date : null;
-        setLastWorkoutDate(mostRecent ?? null);
-      })
-      .catch(() => setAuthState("signed_out"));
+      const plan = planRes.data?.plan_json as
+        | {
+            training_plan?: { focus?: string };
+            nutrition_plan?: { calorie_target?: number };
+          }
+        | undefined;
+      const nextHasPlan = !!plan?.training_plan?.focus;
+      setHasPlanToday(nextHasPlan);
+      setTodayPlan(
+        nextHasPlan
+          ? {
+              focus: plan?.training_plan?.focus ?? "Today’s protocol",
+              calories: plan?.nutrition_plan?.calorie_target ?? 0,
+            }
+          : null
+      );
+
+      const profileData = profileRes.data as
+        | { subscription_status?: string }
+        | null;
+      setIsPro(profileData?.subscription_status === "pro");
+
+      setHasWorkoutToday(!!workoutTodayRes.data);
+    } catch {
+      setAuthState("signed_out");
+    }
+  }, []);
+
+  const loadReadinessInsight = useCallback(async () => {
+    setReadinessInsightLoading(true);
+    try {
+      const res = await fetch("/api/v1/ai/readiness-insight", { method: "POST" });
+      const body = (await res.json()) as { insight?: string | null };
+      if (typeof body.insight === "string" && body.insight) {
+        setReadinessInsight(body.insight);
+      }
+    } catch {
+      // Ignore degraded AI insight fetches.
+    } finally {
+      setReadinessInsightLoading(false);
+    }
+  }, []);
+
+  const loadWeeklyInsight = useCallback(async () => {
+    setWeeklyInsightLoading(true);
+    try {
+      const res = await fetch("/api/v1/ai/weekly-insight", { method: "POST" });
+      const body = (await res.json()) as { insight?: string | null };
+      if (typeof body.insight === "string" && body.insight) {
+        setWeeklyInsight(body.insight);
+      }
+    } catch {
+      // Ignore degraded AI insight fetches.
+    } finally {
+      setWeeklyInsightLoading(false);
+    }
+  }, []);
+
+  const loadProjection = useCallback(async () => {
+    try {
+      const res = await fetch("/api/v1/ai/projection");
+      const body = (await res.json()) as DashboardProjection;
+      if (body && typeof body.current === "number") {
+        setProjection(body);
+      }
+    } catch {
+      // Ignore degraded projection fetches.
+    }
+  }, []);
+
+  const loadBriefing = useCallback(async () => {
+    setBriefingLoading(true);
+    try {
+      const res = await fetch("/api/v1/ai/briefing", { method: "POST" });
+      const body = (await res.json()) as { briefing?: string | null };
+      if (typeof body.briefing === "string" && body.briefing) {
+        setBriefing(body.briefing);
+      }
+    } catch {
+      // Ignore degraded briefing fetches.
+    } finally {
+      setBriefingLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadDashboardSnapshot();
+  }, [loadDashboardSnapshot]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    setFocusAi(params.get("focus") === "ai");
   }, []);
 
   useEffect(() => {
     if (authState !== "signed_in") return;
-    setReadinessInsightLoading(true);
-    fetch("/api/v1/ai/readiness-insight", { method: "POST" })
-      .then((r) => r.json())
-      .then((body: { insight?: string | null }) => {
-        if (body.insight && typeof body.insight === "string") setReadinessInsight(body.insight);
-      })
-      .catch(() => { })
-      .finally(() => setReadinessInsightLoading(false));
-  }, [authState]);
+    void loadReadinessInsight();
+    void loadWeeklyInsight();
+    void loadProjection();
+    void loadBriefing();
+  }, [
+    authState,
+    loadBriefing,
+    loadProjection,
+    loadReadinessInsight,
+    loadWeeklyInsight,
+  ]);
 
-  useEffect(() => {
+  useDataRefresh(["dashboard"], () => {
     if (authState !== "signed_in") return;
-    setWeeklyInsightLoading(true);
-    fetch("/api/v1/ai/weekly-insight", { method: "POST" })
-      .then((r) => r.json())
-      .then((body: { insight?: string | null }) => {
-        if (body.insight && typeof body.insight === "string") setWeeklyInsight(body.insight);
-      })
-      .catch(() => { })
-      .finally(() => setWeeklyInsightLoading(false));
-  }, [authState]);
-  useEffect(() => {
-    if (authState !== "signed_in") return;
-    fetch("/api/v1/ai/projection")
-      .then((r) => r.json())
-      .then((body) => {
-        if (body.current) setProjection(body);
-      })
-      .catch(() => { });
-  }, [authState]);
-  useEffect(() => {
-    if (authState !== "signed_in") return;
-    setBriefingLoading(true);
-    fetch("/api/v1/ai/briefing", { method: "POST" })
-      .then((r) => r.json())
-      .then((body: { briefing?: string | null }) => {
-        if (body.briefing && typeof body.briefing === "string") setBriefing(body.briefing);
-      })
-      .catch(() => { })
-      .finally(() => setBriefingLoading(false));
-  }, [authState]);
+    void loadDashboardSnapshot();
+    void loadReadinessInsight();
+    void loadWeeklyInsight();
+    void loadProjection();
+    void loadBriefing();
+  });
 
   const streak = useMemo(() => {
     let count = 0;
-    for (let i = last7Days.length - 1; i >= 0 && last7Days[i] > 0; i -= 1) count += 1;
+    for (let i = last7Days.length - 1; i >= 0 && last7Days[i] > 0; i -= 1) {
+      count += 1;
+    }
     return count;
   }, [last7Days]);
 
-  const today = toLocalDateString();
-  const daysSinceLastWorkout = useMemo(() => {
+  const recoverySuggestion = useMemo(() => {
     if (!lastWorkoutDate) return null;
-    return Math.floor(
-      (new Date(today).setHours(0, 0, 0, 0) - new Date(lastWorkoutDate).setHours(0, 0, 0, 0)) /
-      (24 * 60 * 60 * 1000)
+
+    const today = toLocalDateString();
+    const daysSinceLastWorkout = Math.floor(
+      (new Date(today).setHours(0, 0, 0, 0) -
+        new Date(lastWorkoutDate).setHours(0, 0, 0, 0)) /
+        (24 * 60 * 60 * 1000)
     );
-  }, [lastWorkoutDate, today]);
-  const recoverySuggestion =
-    daysSinceLastWorkout === 0
-      ? "You already trained today. Rest or light mobility."
-      : daysSinceLastWorkout === 1
-        ? "Consider rest or light movement—you trained yesterday."
-        : null;
 
-  const tabContent = useMemo(() => {
-    if (helpTab === "adaptive") {
-      return {
-        title: "Adaptive workouts",
-        body: "FitNova recalibrates volume, exercise selection, and session duration when your schedule or recovery changes.",
-      };
+    if (daysSinceLastWorkout === 0) {
+      return "You already trained today. Keep recovery and nutrition clean.";
     }
-    if (helpTab === "nutrition") {
-      return {
-        title: "Nutrition intelligence",
-        body: "Calorie and macro targets adjust around your trend, adherence, and training demands so progress is sustainable.",
-      };
+    if (daysSinceLastWorkout === 1) {
+      return "You trained yesterday. Consider lighter loading or active recovery.";
     }
-    return {
-      title: "In-workout AI coaching",
-      body: "Get real-time set cues, rest pacing, and simplified alternatives when equipment or energy is limited.",
-    };
-  }, [helpTab]);
+    return null;
+  }, [lastWorkoutDate]);
 
-  async function handleChatSubmit(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    const text = chatInput.trim();
-    if (!text || chatLoading) return;
-    setChatInput("");
-    setChatMessages((m) => [...m, { role: "user", content: text }]);
-    setChatLoading(true);
+  async function handleGeneratePlan() {
+    setPlanLoading(true);
+
     try {
-      const res = await fetch("/api/v1/ai/respond", {
+      const res = await fetch("/api/v1/plan/daily", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({}),
       });
-      const data = await res.json();
-      if (res.ok) setChatMessages((m) => [...m, { role: "assistant", content: data.reply }]);
-    } catch {
-      // silent fail — the user can retry
+      const body = (await res.json()) as {
+        plan?: {
+          training_plan?: { focus?: string };
+          nutrition_plan?: { calorie_target?: number };
+        };
+      };
+
+      if (res.ok && body.plan?.training_plan?.focus) {
+        setHasPlanToday(true);
+        setTodayPlan({
+          focus: body.plan.training_plan.focus ?? "Today’s protocol",
+          calories: body.plan.nutrition_plan?.calorie_target ?? 0,
+        });
+        emitDataRefresh(["dashboard", "nutrition", "workout"]);
+        void loadBriefing();
+      }
     } finally {
-      setChatLoading(false);
+      setPlanLoading(false);
     }
   }
-
-  const handleUpgrade = async () => {
-    try {
-      const res = await fetch("/api/v1/stripe/checkout", {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (e) {
-      console.error("Checkout failed", e);
-    }
-  };
 
   if (authState === "loading") {
     return (
       <div className="mx-auto max-w-shell px-4 py-10 sm:px-6">
-        <LoadingState message="Preparing your experience..." />
+        <LoadingState message="Preparing your dashboard..." />
       </div>
     );
   }
 
   if (authState === "signed_out") {
     return (
-      <div className="w-full">
-        {/* Hero Section */}
-        <section className="relative min-h-screen w-full flex flex-col justify-end overflow-hidden">
-          <Image
-            src={HERO_IMAGES[heroIndex]}
-            alt="Elite training"
-            fill
-            className="object-cover transition-opacity duration-1000"
-            priority
-            sizes="100vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+      <div className="mx-auto w-full max-w-shell px-4 py-12 sm:px-6">
+        <section className="rounded-[2rem] border border-white/5 bg-gradient-to-br from-white/5 to-transparent p-8 shadow-2xl backdrop-blur-3xl sm:p-12">
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent">
+            FitNova Pro Experience
+          </p>
+          <h1 className="mt-4 font-display text-5xl font-black uppercase italic tracking-tighter text-white sm:text-7xl">
+            Build your legend
+          </h1>
+          <p className="mt-6 max-w-2xl text-xl font-medium leading-relaxed text-fn-muted">
+            AI-backed fitness coaching with adaptive daily plans, streamlined
+            logging, and a single dashboard command center.
+          </p>
 
-          <div className="relative mx-auto w-full max-w-shell px-6 pb-20 pt-40 sm:px-10">
-            <div className="max-w-4xl">
-              <p className="inline-block rounded-full bg-white/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.3em] text-white/90 backdrop-blur-md ring-1 ring-white/20">
-                FitNova Pro Experience
-              </p>
-              <h1 className="mt-8 font-display text-5xl font-black leading-[1.1] text-white sm:text-7xl md:text-8xl lg:text-9xl tracking-tighter uppercase italic">
-                Build your <span className="text-fn-accent">legend</span>
-              </h1>
-              <p className="mt-8 max-w-xl text-xl font-medium text-white/70 sm:text-2xl">
-                The most advanced AI coaching engine ever built. Personalized training, metabolic autopilot, and 24/7 accountability.
-              </p>
-
-              <div className="mt-12 flex flex-col gap-4 sm:flex-row">
-                <Link href="/start">
-                  <Button className="w-full sm:w-auto">Start Assessment</Button>
-                </Link>
-                <Link href="/auth">
-                  <Button variant="secondary" className="w-full sm:w-auto">Member Access</Button>
-                </Link>
-              </div>
-              <p className="mt-6 text-sm text-white/35 font-medium tracking-wide">
-                No credit card required · Cancel anytime · 14-day free trial
-              </p>
-            </div>
+          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+            <Link href="/start">
+              <Button>Start Assessment</Button>
+            </Link>
+            <Link href="/auth">
+              <Button variant="secondary">Member Access</Button>
+            </Link>
           </div>
         </section>
 
-        {/* Value Proposition Grid */}
-        <section className="mx-auto max-w-shell px-4 py-24 sm:px-6">
-          <div className="mb-16 text-center">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4 shrink-0">Premium Experience Parity</p>
-            <h2 className="font-display text-4xl sm:text-6xl font-black text-white italic uppercase tracking-tighter leading-[1.1]">
-              The $200/mo Coaching Experience.<br />
-              <span className="text-fn-accent">For $9.99/mo.</span>
-            </h2>
-            <p className="mt-6 text-xl text-fn-muted max-w-2xl mx-auto font-medium leading-relaxed">
-              We stripped out the human overhead and automated the exact methodologies used by elite personal trainers, creating a hyper-advanced suite of tools.
+        <section className="mt-8 grid gap-4 md:grid-cols-3">
+          <Card padding="lg">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">
+              Dashboard AI
             </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Omni-Logging */}
-            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300 relative overflow-hidden">
-              <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-40 transition-opacity">
-                <Image src="https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg" alt="omni-log" fill className="object-cover grayscale" />
-              </div>
-              <div className="relative z-10 flex flex-col h-full">
-                <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
-                  <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Omni-Logging AI Chatbot</h3>
-                <p className="mt-3 text-fn-muted leading-relaxed text-sm flex-1">
-                  Zero-Friction Logging. Just text your coach what you ate or what you lifted, and it autonomously parses the data and updates your charts.
-                </p>
-                <Link href="/start" className="mt-6 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">Get started →</Link>
-              </div>
-            </Card>
-
-            {/* SMS Accountability */}
-            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300 relative overflow-hidden">
-              <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-60 transition-opacity">
-                <Image src="/images/refined/sms.png" alt="sms" fill className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700" title="Refined SMS View" />
-              </div>
-              <div className="relative z-10 flex flex-col h-full">
-                <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
-                  <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Smart SMS Accountability</h3>
-                <p className="mt-3 text-fn-muted leading-relaxed text-sm flex-1">
-                  Your Coach in Your Pocket. Proactive daily text messages checking in on your sleep, soreness, and adherence to ensure you never miss a beat.
-                </p>
-                <Link href="/start" className="mt-6 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">Get started →</Link>
-              </div>
-            </Card>
-
-            {/* Cinematic Workouts */}
-            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300 relative overflow-hidden">
-              <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-40 transition-opacity">
-                <Image src="https://images.pexels.com/photos/1552249/pexels-photo-1552249.jpeg" alt="cinematic" fill className="object-cover grayscale" />
-              </div>
-              <div className="relative z-10 flex flex-col h-full">
-                <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
-                  <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Cinematic Guided Workouts</h3>
-                <p className="mt-3 text-fn-muted leading-relaxed text-sm flex-1">
-                  Premium AV Experience. Ditch the generic stick-figures. Train alongside 4K, dark-aesthetic cinematic loops designed to push your limits.
-                </p>
-                <Link href="/start" className="mt-6 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">Get started →</Link>
-              </div>
-            </Card>
-
-            {/* Body Comp Scanner */}
-            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300 relative overflow-hidden">
-              <div className="absolute inset-x-0 bottom-0 h-40 opacity-25 group-hover:opacity-70 transition-opacity">
-                <Image src="/images/refined/scanner.png" alt="body scanner" fill className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700" title="Refined Scanner View" />
-              </div>
-              <div className="relative z-10 flex flex-col h-full">
-                <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
-                  <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">AI Body Comp Scanner</h3>
-                <p className="mt-3 text-fn-muted leading-relaxed text-sm flex-1">
-                  DEXA-Grade Insights. Snap a photo and let our vision AI instantly estimate your body fat composition to feed accurate data directly to your coach.
-                </p>
-                <Link href="/start" className="mt-6 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">Get started →</Link>
-              </div>
-            </Card>
-
-            {/* Real-time Audio */}
-            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300 relative overflow-hidden">
-              <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-40 transition-opacity">
-                <Image src="https://images.pexels.com/photos/1103242/pexels-photo-1103242.jpeg" alt="audio" fill className="object-cover grayscale" />
-              </div>
-              <div className="relative z-10 flex flex-col h-full">
-                <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
-                  <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Real-Time Audio Coach</h3>
-                <p className="mt-3 text-fn-muted leading-relaxed text-sm flex-1">
-                  Voice-Activated Cues. Put your phone away. The system&apos;s neural voice actively guides your pacing, reps, and precise rest times during your session.
-                </p>
-                <Link href="/start" className="mt-6 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">Get started →</Link>
-              </div>
-            </Card>
-
-            {/* Motion Lab */}
-            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300 relative overflow-hidden">
-              <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-60 transition-opacity">
-                <Image src="/images/refined/motion.png" alt="motion lab" fill className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700" title="Refined Motion View" />
-              </div>
-              <div className="relative z-10 flex flex-col h-full">
-                <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
-                  <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Motion Lab: Vision AI</h3>
-                <p className="mt-3 text-fn-muted leading-relaxed text-sm flex-1">
-                  Biological Pathing. Our Vision Lab analyzes your movement frame-by-frame to identify velocity leaks and ensure clinical mechanical efficiency.
-                </p>
-                <Link href="/start" className="mt-6 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">Get started →</Link>
-              </div>
-            </Card>
-          </div>
-        </section>
-
-        {/* How FitNova Adapts — tab section (uses existing helpTab state) */}
-        <section className="mx-auto max-w-shell px-4 py-24 sm:px-6">
-          <div className="text-center mb-12">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4">Adaptive Intelligence</p>
-            <h2 className="font-display text-4xl sm:text-5xl font-black text-white italic uppercase tracking-tighter leading-[1.1]">How FitNova adapts to you</h2>
-          </div>
-          <div className="max-w-3xl mx-auto">
-            <div className="flex gap-2 rounded-2xl border border-white/10 bg-white/5 p-2 backdrop-blur-sm">
-              {(["adaptive", "nutrition", "coaching"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setHelpTab(tab)}
-                  className={`flex-1 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 ${helpTab === tab ? "bg-fn-accent text-black shadow-[0_0_20px_rgba(10,217,196,0.3)]" : "text-fn-muted hover:text-white"}`}
-                >
-                  {tab === "adaptive" ? "Workouts" : tab === "nutrition" ? "Nutrition" : "Coaching"}
-                </button>
-              ))}
-            </div>
-            <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-8 backdrop-blur-sm min-h-[140px]">
-              <h3 className="text-2xl font-black uppercase italic tracking-tight text-white">{tabContent.title}</h3>
-              <p className="mt-4 text-fn-muted leading-relaxed text-lg">{tabContent.body}</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Pricing Section */}
-        <section className="mx-auto max-w-shell px-4 pb-24 sm:px-6">
-          <div className="text-center mb-12">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4">Simple Pricing</p>
-            <h2 className="font-display text-4xl sm:text-5xl font-black text-white italic uppercase tracking-tighter leading-[1.1]">One plan. Everything included.</h2>
-          </div>
-          <div className="mx-auto max-w-md">
-            <Card padding="lg" className="border-fn-accent/20 bg-fn-accent/5 text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4">Pro Membership</p>
-              <div className="flex items-end justify-center gap-2 mb-2">
-                <span className="font-display text-7xl font-black text-white italic tracking-tighter">$9.99</span>
-                <span className="text-fn-muted mb-3 text-lg">/ month</span>
-              </div>
-              <p className="text-sm text-fn-muted mb-8">or $7.99/mo billed annually — save 20%</p>
-              <ul className="text-left space-y-3 mb-10">
-                {[
-                  "Adaptive AI workout generation",
-                  "Nutrition & macro intelligence",
-                  "Real-time audio coaching",
-                  "AI body composition scanner",
-                  "Cinematic guided workouts",
-                  "Smart SMS accountability",
-                  "Motion Lab: Vision AI",
-                  "Unlimited coach conversations",
-                ].map((feature) => (
-                  <li key={feature} className="flex items-center gap-3 text-sm text-fn-ink">
-                    <svg className="h-4 w-4 shrink-0 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/start" className="block">
-                <Button className="w-full">Start Free Assessment</Button>
-              </Link>
-              <p className="mt-4 text-xs text-fn-muted/60">No credit card required · Cancel anytime</p>
-            </Card>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="mx-auto max-w-shell px-4 py-32 sm:px-6">
-          <div className="rounded-xl3 border border-white/5 bg-gradient-to-br from-white/5 to-transparent p-12 text-center backdrop-blur-3xl">
-            <h2 className="font-display text-4xl font-black text-white sm:text-6xl tracking-tighter uppercase italic leading-tight">
-              Ready to redefine <br /> <span className="text-fn-accent">human potential?</span>
+            <h2 className="mt-2 text-xl font-semibold text-fn-ink">
+              One command surface
             </h2>
-            <p className="mx-auto mt-8 max-w-2xl text-xl text-fn-muted">
-              Join the elite tier of digital-first coaching. No guesswork, just science and execution.
+            <p className="mt-2 text-sm text-fn-muted">
+              The dashboard AI logs meals, workouts, and progress while syncing
+              the rest of your app.
             </p>
-            <div className="mt-12">
-              <Link href="/start">
-                <Button>Get Started Now</Button>
-              </Link>
-            </div>
-          </div>
+          </Card>
+          <Card padding="lg">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">
+              Nutrition
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-fn-ink">
+              Fast meal capture
+            </h2>
+            <p className="mt-2 text-sm text-fn-muted">
+              Log by description or photo, track hydration, and stay aligned to
+              your calorie and macro targets.
+            </p>
+          </Card>
+          <Card padding="lg">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">
+              Workout
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-fn-ink">
+              Guided execution
+            </h2>
+            <p className="mt-2 text-sm text-fn-muted">
+              Run guided sessions, quick-log completed work, and use motion
+              analysis to tighten technique.
+            </p>
+          </Card>
         </section>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-shell px-4 py-12 sm:px-8">
-      <header className="mb-12 relative overflow-hidden rounded-xl3 border border-white/5 bg-gradient-to-br from-fn-accent/10 to-transparent p-10 backdrop-blur-3xl shadow-2xl">
-        <div className="absolute top-0 right-0 p-8 opacity-20">
-          <svg className="w-24 h-24 text-fn-accent" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-        </div>
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4">Command Center</p>
-        <h1 className="font-display text-5xl font-black text-white tracking-tighter uppercase italic leading-none">FitNova Pro</h1>
-        <p className="mt-6 text-xl text-fn-muted max-w-xl font-medium">Elite-tier adaptive training and metabolic intelligence.</p>
-
-        {briefing && (
-          <div className="mt-8 flex items-start gap-4 p-6 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-3xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            <div className="shrink-0 h-10 w-10 rounded-full border border-fn-accent/30 overflow-hidden bg-black/40 flex items-center justify-center">
-              <span className="text-xs font-black text-fn-accent uppercase tracking-tighter">AI</span>
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent mb-2">Lead Coach Briefing</p>
-              <p className="text-lg font-medium text-white/90 leading-relaxed italic">&quot;{briefing}&quot;</p>
-            </div>
-          </div>
-        )}
-
-        {!isPro && (
-          <div className="mt-8 flex items-center justify-between p-6 rounded-2xl bg-fn-accent/10 border border-fn-accent/20 backdrop-blur-3xl">
-            <div>
-              <p className="text-sm font-black text-fn-accent uppercase tracking-tighter mb-1">Upgrade Required</p>
-              <p className="text-white/80 font-medium">Unlock full metabolic intelligence and unlimited coaching.</p>
-            </div>
-            <Button onClick={handleUpgrade} size="sm">Upgrade to Pro</Button>
-          </div>
-        )}
-      </header>
-
-      {/* Primary Actions Grid */}
-      {/* Primary Evolution Logic */}
-      <section className="grid gap-6 lg:grid-cols-3">
-        <Card padding="lg" className="lg:col-span-2 border-white/10 bg-white/[0.03] flex flex-col justify-between overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
-            <svg className="w-64 h-64 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-          </div>
-          <div className="relative z-10">
-            <CardHeader title="Current Focus" subtitle="Your next evolution target" />
-            <p className="mt-8 text-5xl sm:text-7xl font-black text-white uppercase italic tracking-tighter leading-tight">
-              {todayPlan?.focus ?? "Initialize Protocol"}
-            </p>
-            <p className="mt-4 text-xl text-fn-muted font-medium max-w-xl">
-              {todayPlan ? `Hyper-personalized targets: ${todayPlan.calories} kcal baseline.` : "Awaiting biometric signal to generate your next training protocol."}
-            </p>
-          </div>
-          <div className="mt-12 flex flex-wrap gap-4 relative z-10">
-            <Link href="/coach"><Button className="w-full sm:w-auto">Enter Coach Room</Button></Link>
-            <Link href="/log/workout"><Button variant="secondary" className="w-full sm:w-auto">Manual Log</Button></Link>
-          </div>
-        </Card>
-
-        <Card padding="lg" className="border-fn-accent/20 bg-fn-accent/5 flex flex-col justify-between">
-          <div>
-            <CardHeader title="Adherence Velocity" subtitle="7-day training momentum" />
-            <div className="mt-10 flex justify-between items-end">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1">Weekly Volume</p>
-                <p className="text-6xl font-black text-white italic">{weekCount}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1">Streak</p>
-                <p className="text-6xl font-black text-fn-accent italic">{streak}</p>
-              </div>
-            </div>
-            <div className="mt-8 h-3 w-full overflow-hidden rounded-full bg-white/5">
-              <div className="h-full rounded-full bg-fn-accent shadow-[0_0_20px_rgba(10,217,196,0.6)] transition-all duration-1000" style={{ width: `${Math.min(100, (weekCount / 5) * 100)}%` }} />
-            </div>
-          </div>
-
-          {weeklyInsight && (
-            <div className="mt-8 p-6 rounded-2xl bg-black/40 border border-white/5 italic text-fn-muted text-sm leading-relaxed relative">
-              <span className="absolute -top-3 left-4 bg-fn-bg px-2 text-[10px] font-black uppercase tracking-widest text-fn-accent">Lead Logic</span>
-              &quot;{weeklyInsight}&quot;
-            </div>
-          )}
-        </Card>
-      </section>
-
-      {/* Biological Analytics Grid */}
-      <section className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="col-span-1 md:col-span-2 border-white/5 bg-white/[0.01] p-8">
-          <CardHeader title="Volume Trend" subtitle="7-day biological load" />
-          <div className="mt-8 flex h-40 items-end gap-3 px-2">
-            {last7Days.map((value, idx) => (
-              <div key={idx} className="group relative flex-1">
-                <div
-                  className="rounded-t-lg bg-white/10 group-hover:bg-fn-accent/40 transition-all duration-500"
-                  style={{ height: `${Math.max(10, (value / Math.max(...last7Days, 1)) * 100)}%` }}
-                />
-                <div className="absolute -bottom-6 left-0 right-0 text-center text-[8px] font-black text-fn-muted uppercase opacity-40">D{7 - idx}</div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card className="border-white/5 bg-white/[0.01] p-8">
-          <CardHeader title="Readiness" subtitle="Recovery baseline" />
-          <div className="mt-8 flex flex-col h-40 justify-between">
-            {recoverySuggestion ? (
-              <p className="text-xl font-black text-fn-accent uppercase italic leading-tight">{recoverySuggestion}</p>
-            ) : (
-              <p className="text-xl font-black text-white uppercase italic leading-tight">Optimal Recovery Detected</p>
-            )}
-            <div className="space-y-4">
-              {readinessInsight && (
-                <p className="text-fn-muted text-xs leading-relaxed italic border-l-2 border-fn-accent pl-4">{readinessInsight}</p>
-              )}
-              <Link href="/check-in">
-                <Button size="sm" variant="ghost" className="w-full border border-white/10">Refine Data</Button>
-              </Link>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="border-white/5 bg-fn-accent/[0.02] p-8">
-          <CardHeader title="Trajectory" subtitle="12-week projection" />
-          {projection ? (
-            <div className="mt-8 flex flex-col h-40 justify-between">
-              <div>
-                <p className="text-4xl font-black text-white italic tracking-tighter">{projection.projected_12w}kg</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mt-2">{Math.round(projection.confidence * 100)}% Confidence</p>
-              </div>
-              <p className="text-[10px] text-fn-muted font-medium italic leading-loose">Based on current metabolic velocity and adherence.</p>
-            </div>
-          ) : (
-            <div className="mt-8 flex flex-col h-40 items-center justify-center text-center">
-              <p className="text-xs font-black text-fn-muted uppercase tracking-widest">Awaiting Data</p>
-            </div>
-          )}
-        </Card>
-      </section>
-
-      {/* Nova AI — inline chat */}
-      <section className="mt-8">
-        <Card className="border-fn-accent/20 bg-fn-accent/[0.03] overflow-hidden">
-          <div className="p-6 sm:p-8">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-fn-accent/20 bg-fn-accent/10">
-                <svg className="h-5 w-5 text-fn-accent" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest text-fn-accent leading-none">Nova AI</p>
-                <p className="mt-0.5 text-xs text-fn-muted">Log anything · ask anything</p>
-              </div>
-            </div>
-
-            {/* Messages thread */}
-            {chatMessages.length > 0 && (
-              <div className="mb-4 max-h-56 overflow-y-auto space-y-3">
-                {chatMessages.map((msg, i) => (
-                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm font-medium leading-relaxed ${
-                        msg.role === "user"
-                          ? "bg-fn-accent text-black"
-                          : "border border-fn-border bg-fn-surface text-fn-ink"
-                      }`}
-                    >
-                      {msg.content}
-                    </div>
-                  </div>
-                ))}
-                {chatLoading && (
-                  <div className="flex justify-start">
-                    <div className="flex gap-1 rounded-xl border border-fn-border bg-fn-surface px-4 py-3">
-                      <span className="h-1.5 w-1.5 rounded-full bg-fn-accent animate-bounce [animation-delay:0ms]" />
-                      <span className="h-1.5 w-1.5 rounded-full bg-fn-accent animate-bounce [animation-delay:150ms]" />
-                      <span className="h-1.5 w-1.5 rounded-full bg-fn-accent animate-bounce [animation-delay:300ms]" />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Quick-action chips (shown before first message) */}
-            {chatMessages.length === 0 && (
-              <div className="mb-4 flex flex-wrap gap-2">
-                {["Log a workout", "I just ate...", "How am I doing?", "Update my weight"].map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => setChatInput(q)}
-                    className="rounded-full border border-fn-accent/20 bg-fn-accent/5 px-3 py-1.5 text-xs font-bold text-fn-accent transition-colors hover:bg-fn-accent/10"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Input */}
-            <form onSubmit={handleChatSubmit} className="flex gap-3">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Tell Nova what you ate, lifted, or ask anything..."
-                className="flex-1 rounded-xl border border-fn-border bg-fn-surface px-4 py-3 text-sm text-white placeholder-fn-muted transition-colors focus:border-fn-accent/50 focus:outline-none"
-                disabled={chatLoading}
-              />
-              <Button type="submit" disabled={chatLoading || !chatInput.trim()}>
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </Button>
-            </form>
-          </div>
-        </Card>
-      </section>
-
-      {/* Today's Checklist */}
-      <section className="mt-8">
-        <Card className="border-white/5 bg-white/[0.01]">
-          <CardHeader title="Today's Checklist" subtitle="Your daily completion status" />
-          <ul className="mt-6 space-y-3">
-            {[
-              {
-                done: hasPlanToday,
-                label: hasPlanToday ? "Daily protocol ready" : "Generate today's protocol",
-                href: "/coach",
-                cta: "Open Coach Room →",
-              },
-              {
-                done: hasWorkoutToday,
-                label: hasWorkoutToday ? "Workout logged" : "Log today's training session",
-                href: "/log/workout",
-                cta: "Log workout →",
-              },
-              {
-                done: !!lastWeighInDate,
-                label: lastWeighInDate ? `Last weigh-in: ${lastWeighInDate}` : "No weigh-in recorded yet",
-                href: "/progress/add",
-                cta: "Add check-in →",
-              },
-              {
-                done: reminders.workout_log !== false && onboardingComplete,
-                label: onboardingComplete ? "Profile complete" : "Complete your coaching profile",
-                href: "/onboarding",
-                cta: "Finish profile →",
-              },
-            ].map(({ done, label, href, cta }) => (
-              <li key={label} className={`flex items-center justify-between gap-4 rounded-2xl border px-5 py-4 transition-all duration-300 ${done ? "border-fn-accent/20 bg-fn-accent/5" : "border-white/5 bg-white/[0.02] hover:border-white/10"}`}>
-                <div className="flex items-center gap-4">
-                  <div className={`h-6 w-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${done ? "border-fn-accent bg-fn-accent/20" : "border-fn-muted/30"}`}>
-                    {done && <svg className="h-3.5 w-3.5 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                  </div>
-                  <span className={`text-sm font-bold ${done ? "text-fn-ink" : "text-fn-muted"}`}>{label}</span>
-                </div>
-                {!done && (
-                  <Link href={href} className="shrink-0 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">{cta}</Link>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      </section>
+    <div className="mx-auto w-full max-w-shell px-4 py-10 sm:px-8">
+      <div className="space-y-8">
+        <DashboardHero
+          briefing={briefing}
+          briefingLoading={briefingLoading}
+          isPro={isPro}
+        />
+        <DashboardAiSection
+          autoFocus={focusAi}
+          planLoading={planLoading}
+          hasPlanToday={hasPlanToday}
+          onGeneratePlan={() => void handleGeneratePlan()}
+        />
+        <DashboardPlanSection
+          todayPlan={todayPlan}
+          weekCount={weekCount}
+          streak={streak}
+          weeklyInsight={weeklyInsight}
+          weeklyInsightLoading={weeklyInsightLoading}
+        />
+        <DashboardReadinessSection
+          recoverySuggestion={recoverySuggestion}
+          readinessInsight={readinessInsight}
+          readinessInsightLoading={readinessInsightLoading}
+        />
+        <DashboardProgressSection
+          last7Days={last7Days}
+          projection={projection}
+        />
+        <DashboardQuickActions
+          hasPlanToday={hasPlanToday}
+          hasWorkoutToday={hasWorkoutToday}
+        />
+      </div>
     </div>
   );
 }

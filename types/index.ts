@@ -6,6 +6,14 @@
 
 export type WorkoutType = "strength" | "cardio" | "mobility" | "other";
 
+export type RefreshScope = "dashboard" | "nutrition" | "workout" | "progress";
+
+export interface AiActionResult {
+  type: "meal_logged" | "workout_logged" | "biometrics_logged";
+  targetRoute: string;
+  summary: string;
+}
+
 export interface ExerciseEntry {
   name: string;
   sets: number;
@@ -53,6 +61,7 @@ export interface UserProfile {
   user_id: string;
   name?: string;
   email?: string;
+  phone_number?: string;
   age?: number;
   sex?: string;
   height?: number;
@@ -62,6 +71,8 @@ export interface UserProfile {
   dietary_preferences?: Record<string, unknown>;
   activity_level?: string;
   devices?: Record<string, unknown>;
+  subscription_status?: "free" | "pro";
+  stripe_customer_id?: string;
   created_at: string;
   updated_at: string;
 }

@@ -11,6 +11,7 @@ import {
   ErrorMessage,
 } from "@/components/ui";
 import { toLocalDateString } from "@/lib/date/local-date";
+import { emitDataRefresh } from "@/lib/ui/data-sync";
 
 const ENERGY_LABELS = ["1 – Low", "2", "3", "4", "5 – High"];
 
@@ -126,6 +127,7 @@ export default function CheckInPage() {
     }
     setSaving(false);
     setSaved(true);
+    emitDataRefresh(["dashboard"]);
   }
 
   if (loading) {

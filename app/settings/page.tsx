@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import JSZip from "jszip";
 import { createClient } from "@/lib/supabase/client";
 import {
   PageLayout,
@@ -28,6 +29,9 @@ import {
   toDisplayWeight,
   weightUnitLabel,
 } from "@/lib/units";
+import { normalizePhoneNumber } from "@/lib/phone";
+import { parseAppleHealthExport } from "@/lib/apple-health/import";
+import { emitDataRefresh } from "@/lib/ui/data-sync";
 
 const GOAL_OPTIONS = [
   "Weight loss",
@@ -45,6 +49,31 @@ const ACTIVITY_LEVELS = [
   { value: "active", label: "Active (5+ days/week)" },
 ];
 
+async function extractAppleHealthXml(file: File): Promise<{
+  xml: string;
+  fileType: "xml" | "zip";
+}> {
+  if (file.name.toLowerCase().endsWith(".xml")) {
+    return { xml: await file.text(), fileType: "xml" };
+  }
+
+  if (file.name.toLowerCase().endsWith(".zip")) {
+    const zip = await JSZip.loadAsync(await file.arrayBuffer());
+    const exportFile = zip.file(/(^|\/)export\.xml$/i)[0];
+
+    if (!exportFile) {
+      throw new Error("Zip file does not contain export.xml.");
+    }
+
+    return {
+      xml: await exportFile.async("string"),
+      fileType: "zip",
+    };
+  }
+
+  throw new Error("Use an Apple Health export .zip or raw export.xml file.");
+}
+
 export default function SettingsPage() {
   const [profile, setProfile] = useState<Partial<UserProfile> | null>(null);
   const [unitSystem, setUnitSystem] = useState<UnitSystem>(DEFAULT_UNIT_SYSTEM);
@@ -52,9 +81,12 @@ export default function SettingsPage() {
   const [weightInput, setWeightInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [importingHealth, setImportingHealth] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [coachTone, setCoachTone] = useState("balanced");
   const [nudges, setNudges] = useState("standard");
+  const [importStatus, setImportStatus] = useState<string | null>(null);
   const [reminders, setReminders] = useState<{ daily_plan?: boolean; workout_log?: boolean; weigh_in?: "weekly" | "off" }>({
     daily_plan: true,
     workout_log: true,
@@ -82,12 +114,15 @@ export default function SettingsPage() {
             const nextProfile: Partial<UserProfile> = fetchError ? {} : ((data as UserProfile) ?? {});
             const nextUnitSystem = readUnitSystemFromProfile(nextProfile as Record<string, unknown>);
             const dev = (nextProfile.devices ?? {}) as Record<string, unknown>;
+            const dietary = (nextProfile.dietary_preferences ?? {}) as Record<string, unknown>;
             const rem = (dev.reminders ?? {}) as { daily_plan?: boolean; workout_log?: boolean; weigh_in?: "weekly" | "off" };
             setReminders({
               daily_plan: rem.daily_plan ?? true,
               workout_log: rem.workout_log ?? true,
               weigh_in: rem.weigh_in ?? "weekly",
             });
+            setCoachTone(typeof dev.ai_coach_tone === "string" ? dev.ai_coach_tone : "balanced");
+            setNudges(typeof dietary.ai_nudges === "string" ? dietary.ai_nudges : "standard");
             setProfile(nextProfile);
             setUnitSystem(nextUnitSystem);
             const nextHeight = nextProfile.height;
@@ -126,6 +161,13 @@ export default function SettingsPage() {
       setSaving(false);
       return;
     }
+    const phoneInput = typeof profile.phone_number === "string" ? profile.phone_number.trim() : "";
+    const phoneNumber = phoneInput ? normalizePhoneNumber(phoneInput) : null;
+    if (phoneInput && !phoneNumber) {
+      setError("Phone number must include 10-15 digits.");
+      setSaving(false);
+      return;
+    }
     const age = profile.age != null && Number.isFinite(profile.age) && profile.age >= 13 && profile.age <= 120 ? profile.age : null;
     const height = profile.height != null && Number.isFinite(profile.height) && profile.height >= 100 && profile.height <= 250 ? profile.height : null;
     const weight = profile.weight != null && Number.isFinite(profile.weight) && profile.weight >= 30 && profile.weight <= 500 ? profile.weight : null;
@@ -134,6 +176,7 @@ export default function SettingsPage() {
         user_id: user.id,
         name: (typeof profile.name === "string" ? profile.name.trim() : null) || null,
         email: user.email ?? null,
+        phone_number: phoneNumber,
         age,
         sex: profile.sex ?? null,
         height,
@@ -214,6 +257,185 @@ export default function SettingsPage() {
     });
   }
 
+  async function handleHealthImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportingHealth(true);
+    setImportStatus(null);
+    setError(null);
+
+    try {
+      const supabase = createClient();
+      if (!supabase) {
+        throw new Error("Supabase not configured.");
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error("Sign in to import Apple Health data.");
+      }
+
+      const { xml, fileType } = await extractAppleHealthXml(file);
+      const imported = parseAppleHealthExport(xml, fileType);
+
+      const rangeStart = imported.summary.range_start;
+      const rangeEnd = imported.summary.range_end;
+
+      const [existingProgressRes, existingCheckInsRes] = await Promise.all([
+        imported.progressEntries.length > 0 && rangeStart && rangeEnd
+          ? supabase
+              .from("progress_tracking")
+              .select("track_id, date")
+              .eq("user_id", user.id)
+              .gte("date", rangeStart)
+              .lte("date", rangeEnd)
+          : Promise.resolve({ data: [] as Array<{ track_id: string; date: string }> }),
+        imported.checkInEntries.length > 0 && rangeStart && rangeEnd
+          ? supabase
+              .from("check_ins")
+              .select("check_in_id, date_local")
+              .eq("user_id", user.id)
+              .gte("date_local", rangeStart)
+              .lte("date_local", rangeEnd)
+          : Promise.resolve({ data: [] as Array<{ check_in_id: string; date_local: string }> }),
+      ]);
+
+      const progressByDate = new Map(
+        ((existingProgressRes.data ?? []) as Array<{ track_id: string; date: string }>).map(
+          (row) => [row.date, row.track_id]
+        )
+      );
+      const checkInsByDate = new Map(
+        ((existingCheckInsRes.data ?? []) as Array<{ check_in_id: string; date_local: string }>).map(
+          (row) => [row.date_local, row.check_in_id]
+        )
+      );
+
+      for (const entry of imported.progressEntries) {
+        const existingId = progressByDate.get(entry.date);
+        if (existingId) {
+          const { error: progressErr } = await supabase
+            .from("progress_tracking")
+            .update({
+              weight: entry.weightKg,
+              notes: "Imported from Apple Health",
+            })
+            .eq("track_id", existingId);
+          if (progressErr) {
+            throw new Error(progressErr.message);
+          }
+        } else {
+          const { error: progressErr } = await supabase.from("progress_tracking").insert({
+            user_id: user.id,
+            date: entry.date,
+            weight: entry.weightKg,
+            measurements: {},
+            notes: "Imported from Apple Health",
+          });
+          if (progressErr) {
+            throw new Error(progressErr.message);
+          }
+        }
+      }
+
+      for (const entry of imported.checkInEntries) {
+        const existingId = checkInsByDate.get(entry.date_local);
+        if (existingId) {
+          const { error: checkInErr } = await supabase
+            .from("check_ins")
+            .update({
+              sleep_hours: entry.sleepHours,
+            })
+            .eq("check_in_id", existingId);
+          if (checkInErr) {
+            throw new Error(checkInErr.message);
+          }
+        } else {
+          const { error: checkInErr } = await supabase.from("check_ins").insert({
+            user_id: user.id,
+            date_local: entry.date_local,
+            sleep_hours: entry.sleepHours,
+          });
+          if (checkInErr) {
+            throw new Error(checkInErr.message);
+          }
+        }
+      }
+
+      const latestWeight = imported.summary.latest_weight_kg;
+      const nextDevices = {
+        ...(profile?.devices ?? {}),
+        apple_health_import: imported.summary,
+      };
+
+      const { error: profileErr } = await supabase.from("user_profile").upsert(
+        {
+          user_id: user.id,
+          email: user.email ?? null,
+          weight:
+            latestWeight != null
+              ? latestWeight
+              : profile?.weight != null
+                ? profile.weight
+                : null,
+          devices: nextDevices,
+        },
+        { onConflict: "user_id" }
+      );
+
+      if (profileErr) {
+        throw new Error(profileErr.message);
+      }
+
+      if (latestWeight != null) {
+        setWeightInput(
+          formatDisplayNumber(toDisplayWeight(latestWeight, unitSystem), 1)
+        );
+      }
+
+      setProfile((current) => ({
+        ...(current ?? {}),
+        user_id: current?.user_id ?? user.id,
+        email: current?.email ?? user.email ?? undefined,
+        weight: latestWeight ?? current?.weight,
+        devices: nextDevices,
+      }));
+
+      setImportStatus(
+        `Imported ${imported.summary.weight_entry_count} weight entr${imported.summary.weight_entry_count === 1 ? "y" : "ies"} and ${imported.summary.sleep_entry_count} sleep day${imported.summary.sleep_entry_count === 1 ? "" : "s"} from Apple Health.`
+      );
+      emitDataRefresh(["dashboard", "progress"]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Apple Health import failed.");
+    } finally {
+      setImportingHealth(false);
+      e.target.value = "";
+    }
+  }
+
+  async function handleUpgrade() {
+    setCheckoutLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/v1/stripe/checkout", {
+        method: "POST",
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        throw new Error(data.error ?? "Checkout failed");
+      }
+
+      window.location.href = data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Checkout failed");
+      setCheckoutLoading(false);
+    }
+  }
+
   if (loading) {
     return (
       <PageLayout title="Settings" subtitle="Profile, AI preferences, and data sources">
@@ -226,6 +448,15 @@ export default function SettingsPage() {
   }
 
   const p = profile ?? {};
+  const isPro = p.subscription_status === "pro";
+  const appleHealthImport = (((p.devices as Record<string, unknown> | undefined)?.apple_health_import ??
+    null) as {
+    imported_at?: string;
+    weight_entry_count?: number;
+    sleep_entry_count?: number;
+    avg_sleep_hours_7d?: number | null;
+    avg_daily_steps_7d?: number | null;
+  } | null);
 
   return (
     <PageLayout title="Settings" subtitle="Profile, AI preferences, and data sources">
@@ -238,6 +469,20 @@ export default function SettingsPage() {
             <div>
               <Label htmlFor="name">Name</Label>
               <Input id="name" type="text" value={p.name ?? ""} onChange={(e) => setProfile({ ...profile!, name: e.target.value })} placeholder="Your name" className="mt-1" />
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={p.phone_number ?? ""}
+                onChange={(e) => setProfile({ ...profile!, phone_number: e.target.value })}
+                placeholder="+15551234567"
+                className="mt-1"
+              />
+              <p className="mt-1 text-xs text-fn-muted">
+                Used for SMS briefings and inbound text coaching.
+              </p>
             </div>
             <div>
               <Label htmlFor="age">Age</Label>
@@ -373,6 +618,27 @@ export default function SettingsPage() {
           </div>
         </Card>
 
+        <Card padding="lg" className="scroll-mt-24" id="billing">
+          <CardHeader title="Billing" subtitle="Manage FitNova Pro access" />
+          <div className="mt-3 rounded-2xl border border-fn-border bg-fn-bg-alt p-4">
+            <p className="text-sm font-semibold text-fn-ink">
+              {isPro ? "FitNova Pro is active." : "You are currently on the free plan."}
+            </p>
+            <p className="mt-1 text-sm text-fn-muted">
+              {isPro
+                ? "Your dashboard AI and advanced coaching features are unlocked."
+                : "Upgrade here to unlock the full coaching experience. Billing has been moved out of the dashboard to keep the main command surface focused."}
+            </p>
+          </div>
+          {!isPro && (
+            <div className="mt-4">
+              <Button type="button" loading={checkoutLoading} onClick={handleUpgrade}>
+                Upgrade to Pro
+              </Button>
+            </div>
+          )}
+        </Card>
+
         <Card padding="lg">
           <CardHeader title="Export data" subtitle="Download your data" />
           <p className="mt-2 text-sm text-fn-muted">Download workouts, nutrition logs, and progress as JSON or CSV.</p>
@@ -396,19 +662,29 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        <Card padding="lg" className="opacity-60">
-          <div className="flex items-start gap-4">
-            <div className="shrink-0 h-10 w-10 rounded-xl bg-fn-surface-hover border border-fn-border flex items-center justify-center">
-              <svg className="h-5 w-5 text-fn-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-            </div>
-            <div>
-              <div className="flex items-center gap-3">
-                <CardHeader title="Wearable Sync" subtitle="Apple Health · Garmin · Whoop" />
-                <span className="shrink-0 rounded-full border border-fn-border px-3 py-1 text-[10px] font-black uppercase tracking-widest text-fn-muted">Coming soon</span>
-              </div>
-              <p className="mt-2 text-sm text-fn-muted leading-relaxed">Automatic sync with Apple Health, Garmin Connect, and Whoop to enrich your recovery and readiness data. Available in a future update.</p>
-            </div>
+        <Card padding="lg">
+          <CardHeader title="Data sources" subtitle="Import Apple Health exports" />
+          <p className="mt-2 text-sm text-fn-muted">Upload your exported Apple Health file to enrich recovery and readiness insights.</p>
+          <div className="mt-3">
+            <Label htmlFor="healthImport">Apple Health export</Label>
+            <Input id="healthImport" type="file" accept=".zip,.xml" onChange={handleHealthImport} className="mt-1" disabled={importingHealth} />
           </div>
+          {importStatus && <p className="mt-3 rounded-xl bg-fn-bg-alt px-3 py-2 text-sm text-fn-muted">{importStatus}</p>}
+          {appleHealthImport && (
+            <div className="mt-3 rounded-xl bg-fn-bg-alt px-3 py-3 text-sm text-fn-muted">
+              <p className="font-semibold text-fn-ink">Last import</p>
+              <p className="mt-1">
+                {appleHealthImport.weight_entry_count ?? 0} weight entries, {appleHealthImport.sleep_entry_count ?? 0} sleep days
+              </p>
+              <p className="mt-1">
+                7-day averages: {appleHealthImport.avg_sleep_hours_7d ?? "n/a"}h sleep, {appleHealthImport.avg_daily_steps_7d ?? "n/a"} steps
+              </p>
+              {appleHealthImport.imported_at && (
+                <p className="mt-1 text-xs">Imported {new Date(appleHealthImport.imported_at).toLocaleString()}</p>
+              )}
+            </div>
+          )}
+          <p className="mt-2 text-xs text-fn-muted">Supports standard Apple Health export `.zip` bundles and raw `export.xml` files.</p>
         </Card>
 
         {error && <ErrorMessage message={error} />}

@@ -3,6 +3,7 @@ import twilio from "twilio";
 import { createClient } from "@supabase/supabase-js";
 import { assembleContext } from "@/lib/ai/assemble-context";
 import { callModel } from "@/lib/ai/model";
+import { normalizePhoneNumber } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 
@@ -37,11 +38,12 @@ export async function POST(req: Request) {
         // We assume the user profile has a 'phone' column or similar. For now we will look up by auth.users metadata if needed.
         // For this implementation, we will mock finding a user or query a specific column if it existed.
         // Assuming `user_profile` has a `phone_number` field:
+        const normalizedFrom = normalizePhoneNumber(From) ?? From;
         const { data: profile } = await supabaseAdmin
             .from("user_profile")
             .select("user_id")
             // In a real app we would strictly format the phone number.
-            .eq("phone_number", From)
+            .eq("phone_number", normalizedFrom)
             .maybeSingle();
 
         if (!profile) {

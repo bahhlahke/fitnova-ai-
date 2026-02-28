@@ -38,8 +38,8 @@ export async function POST(req: Request) {
                     quantity: 1,
                 },
             ],
-            success_url: `${origin}/coach?session_id={CHECKOUT_SESSION_ID}&upgraded=true`,
-            cancel_url: `${origin}/auth?canceled=true`,
+            success_url: `${origin}/settings?upgraded=true#billing`,
+            cancel_url: `${origin}/settings?canceled=true#billing`,
         });
 
         return NextResponse.json({ url: session.url });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import {
@@ -19,6 +19,7 @@ import {
   toDisplayWeight,
   weightUnitLabel,
 } from "@/lib/units";
+import { useDataRefresh } from "@/lib/ui/data-sync";
 
 type Entry = {
   date: string;
@@ -35,7 +36,7 @@ export default function ProgressPage() {
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [aiInsightLoading, setAiInsightLoading] = useState(false);
 
-  useEffect(() => {
+  const loadProgress = useCallback(() => {
     const supabase = createClient();
     if (!supabase) {
       setLoading(false);
@@ -70,6 +71,16 @@ export default function ProgressPage() {
         });
     }).then(undefined, () => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    loadProgress();
+  }, [loadProgress]);
+
+  useDataRefresh(["progress"], () => {
+    setLoading(true);
+    loadProgress();
+  });
 
   const weights = entries.filter((e) => e.weight != null) as { date: string; weight: number }[];
   const latestWeight = weights[0]?.weight;

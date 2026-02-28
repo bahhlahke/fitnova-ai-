@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { PageLayout, Card, Button, CardHeader } from "@/components/ui";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { emitDataRefresh } from "@/lib/ui/data-sync";
 
 export default function BodyCompScannerPage() {
     const router = useRouter();
@@ -60,6 +61,7 @@ export default function BodyCompScannerPage() {
             if (data.error) throw new Error(data.error);
 
             setResult(data);
+            emitDataRefresh(["dashboard", "progress"]);
         } catch (err: any) {
             setError(err.message || "Something went wrong.");
         } finally {
@@ -241,8 +243,8 @@ export default function BodyCompScannerPage() {
                                 <Button variant="secondary" className="w-full" onClick={() => { setResult(null); setImages({ front: null, side: null, back: null }); }}>
                                     Scan Again
                                 </Button>
-                                <Button className="w-full shadow-[0_0_20px_rgba(10,217,196,0.1)] hover:shadow-[0_0_30px_rgba(10,217,196,0.25)]" onClick={() => router.push("/coach")}>
-                                    Return to Coach
+                                <Button className="w-full shadow-[0_0_20px_rgba(10,217,196,0.1)] hover:shadow-[0_0_30px_rgba(10,217,196,0.25)]" onClick={() => router.push("/?focus=ai")}>
+                                    Return to Dashboard AI
                                 </Button>
                             </div>
                         </div>

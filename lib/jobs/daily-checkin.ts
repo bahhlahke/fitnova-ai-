@@ -1,5 +1,6 @@
 import twilio from 'twilio';
 import { createClient } from "@supabase/supabase-js";
+import { normalizePhoneNumber } from "@/lib/phone";
 
 // This file is intended to be executed by a job scheduler like GitHub Actions or Vercel Cron
 
@@ -56,7 +57,7 @@ export async function runDailyBriefing() {
             await client.messages.create({
                 body: messageBody,
                 from: twilioNumber,
-                to: user.phone_number
+                to: normalizePhoneNumber(user.phone_number) ?? user.phone_number
             });
 
             console.log(`Sent briefing to ${user.phone_number}`);

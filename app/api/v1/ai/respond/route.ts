@@ -7,6 +7,7 @@ import { assembleContext } from "@/lib/ai/assemble-context";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
 import { callModel } from "@/lib/ai/model";
+import type { AiActionResult, RefreshScope } from "@/types";
 const SYSTEM_PROMPT_VERSION = "v2-balanced-safety";
 const MAX_MESSAGE_CHARS = 2000;
 const RATE_LIMIT_CAPACITY = 12;
@@ -142,6 +143,9 @@ export async function POST(request: Request) {
       }
     ];
 
+    const actions: AiActionResult[] = [];
+    const refreshScopes = new Set<RefreshScope>();
+
     let messagesForModel: any[] = [
       { role: "system", content: systemPrompt },
       { role: "user", content: message },
@@ -151,8 +155,8 @@ export async function POST(request: Request) {
       try {
         const { content, tool_calls } = await callModel({
           messages: messagesForModel,
-          tools: OMNI_TOOLS as any,
-          tool_choice: "auto",
+          tools: user?.id ? (OMNI_TOOLS as any) : undefined,
+          tool_choice: user?.id ? "auto" : undefined,
         });
 
         if (tool_calls && tool_calls.length > 0) {
@@ -177,6 +181,13 @@ export async function POST(request: Request) {
                   await supabase.from("nutrition_logs").insert({ user_id: userId, date: today, meals: [newMeal], total_calories: args.calories });
                 }
                 resultStr = `Successfully logged meal: ${args.food_items} (${args.calories} cals)`;
+                actions.push({
+                  type: "meal_logged",
+                  targetRoute: "/log/nutrition",
+                  summary: "Meal logged",
+                });
+                refreshScopes.add("dashboard");
+                refreshScopes.add("nutrition");
               } else if (tc.function.name === "log_workout") {
                 const today = new Date().toISOString().split("T")[0];
                 await supabase.from("workout_logs").insert({
@@ -188,6 +199,13 @@ export async function POST(request: Request) {
                   notes: args.notes || "Logged via Nova AI"
                 });
                 resultStr = `Successfully logged workout: ${args.duration_minutes} min ${args.workout_type}`;
+                actions.push({
+                  type: "workout_logged",
+                  targetRoute: "/log/workout",
+                  summary: "Workout logged",
+                });
+                refreshScopes.add("dashboard");
+                refreshScopes.add("workout");
               } else if (tc.function.name === "log_biometrics") {
                 const today = new Date().toISOString().split("T")[0];
                 await supabase.from("progress_tracking").insert({
@@ -199,6 +217,13 @@ export async function POST(request: Request) {
                   notes: "Logged via Nova AI"
                 });
                 resultStr = `Successfully logged biometrics: ${args.weight_lbs ? args.weight_lbs + " lbs " : ""}${args.body_fat_percent ? args.body_fat_percent + "% body fat" : ""}`;
+                actions.push({
+                  type: "biometrics_logged",
+                  targetRoute: "/progress",
+                  summary: "Progress updated",
+                });
+                refreshScopes.add("dashboard");
+                refreshScopes.add("progress");
               } else {
                 resultStr = "Unknown tool.";
               }
@@ -276,7 +301,12 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ reply: content });
+    return NextResponse.json({
+      reply: content,
+      actions: actions.length > 0 ? actions : undefined,
+      refreshScopes:
+        refreshScopes.size > 0 ? Array.from(refreshScopes) : undefined,
+    });
   } catch (error) {
     console.error("ai_respond_unhandled", {
       requestId,

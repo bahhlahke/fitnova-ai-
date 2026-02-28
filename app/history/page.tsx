@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { WorkoutType } from "@/types";
 import type { MealEntry } from "@/types";
 import {
@@ -35,6 +36,7 @@ type NutritionRow = {
 const WORKOUT_TYPES: WorkoutType[] = ["strength", "cardio", "mobility", "other"];
 
 export default function HistoryPage() {
+  const router = useRouter();
   const [tab, setTab] = useState<"workouts" | "nutrition">("workouts");
   const [workouts, setWorkouts] = useState<WorkoutRow[]>([]);
   const [nutrition, setNutrition] = useState<NutritionRow[]>([]);
@@ -80,6 +82,17 @@ export default function HistoryPage() {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const requestedTab = new URLSearchParams(window.location.search).get("tab");
+    if (requestedTab === "nutrition") {
+      setTab("nutrition");
+      return;
+    }
+    setTab("workouts");
+  }, []);
+
   const filteredWorkouts =
     workoutTypeFilter === "all"
       ? workouts
@@ -93,11 +106,19 @@ export default function HistoryPage() {
   const nutritionDates = Object.keys(nutritionByDate).sort((a, b) => b.localeCompare(a));
 
   return (
-    <PageLayout title="History" subtitle="Past workouts and nutrition" backHref="/log" backLabel="Log">
+    <PageLayout
+      title="History"
+      subtitle="Past workouts and nutrition"
+      backHref={tab === "nutrition" ? "/log/nutrition" : "/log/workout"}
+      backLabel={tab === "nutrition" ? "Nutrition" : "Workout"}
+    >
       <div className="mb-4 flex gap-2">
         <button
           type="button"
-          onClick={() => setTab("workouts")}
+          onClick={() => {
+            setTab("workouts");
+            router.replace("/history?tab=workouts", { scroll: false });
+          }}
           className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
             tab === "workouts"
               ? "border-fn-primary bg-fn-primary text-white"
@@ -108,7 +129,10 @@ export default function HistoryPage() {
         </button>
         <button
           type="button"
-          onClick={() => setTab("nutrition")}
+          onClick={() => {
+            setTab("nutrition");
+            router.replace("/history?tab=nutrition", { scroll: false });
+          }}
           className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
             tab === "nutrition"
               ? "border-fn-primary bg-fn-primary text-white"
@@ -211,8 +235,10 @@ export default function HistoryPage() {
       )}
 
       <div className="mt-6">
-        <Link href="/log">
-          <Button variant="secondary">Back to Log</Button>
+        <Link href={tab === "nutrition" ? "/log/nutrition" : "/log/workout"}>
+          <Button variant="secondary">
+            Back to {tab === "nutrition" ? "Nutrition" : "Workout"}
+          </Button>
         </Link>
       </div>
     </PageLayout>

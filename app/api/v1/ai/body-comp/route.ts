@@ -56,7 +56,7 @@ Output ONLY pure JSON formatted exactly like this example without markdown wrapp
             const today = new Date().toISOString().split("T")[0];
             const { data: existingTarget } = await supabase
                 .from("progress_tracking")
-                .select("id")
+                .select("track_id")
                 .eq("user_id", user.id)
                 .eq("date", today)
                 .maybeSingle();
@@ -65,7 +65,7 @@ Output ONLY pure JSON formatted exactly like this example without markdown wrapp
                 await supabase
                     .from("progress_tracking")
                     .update({ body_fat_percent: parsed.body_fat_percent, notes: "Logged via AI Body Comp Scanner" })
-                    .eq("id", existingTarget.id);
+                    .eq("track_id", existingTarget.track_id);
             } else {
                 await supabase
                     .from("progress_tracking")

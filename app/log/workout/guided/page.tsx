@@ -12,6 +12,7 @@ import {
   isExerciseVideoUrl,
 } from "@/lib/workout/exercise-images";
 import { Button } from "@/components/ui";
+import { emitDataRefresh } from "@/lib/ui/data-sync";
 
 type GuidedExercise = {
   name: string;
@@ -151,6 +152,7 @@ export default function GuidedWorkoutPage() {
       return;
     }
     setSaved(true);
+    emitDataRefresh(["dashboard", "workout"]);
   }, [exercises, planTitle]);
 
   useEffect(() => {
@@ -261,7 +263,7 @@ export default function GuidedWorkoutPage() {
           <p className="font-semibold">Injury note</p>
           <p className="mt-1">{injuryBanner.message}</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Link href="/coach" className="text-sm font-semibold text-fn-primary hover:underline">
+            <Link href="/?focus=ai" className="text-sm font-semibold text-fn-primary hover:underline">
               Swap this move
             </Link>
             <button type="button" onClick={() => setInjuryBannerDismissed(true)} className="text-sm font-semibold text-fn-muted hover:underline">

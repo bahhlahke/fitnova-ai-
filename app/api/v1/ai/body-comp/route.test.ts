@@ -112,7 +112,7 @@ describe("POST /api/v1/ai/body-comp", () => {
 
     it("updates existing record if user already checked in today", async () => {
         // Stage existing record
-        mockSupabase.from().maybeSingle.mockResolvedValue({ data: { id: "record_555" } });
+        mockSupabase.from().maybeSingle.mockResolvedValue({ data: { track_id: "record_555" } });
         const mockUpdateEq = vi.fn().mockResolvedValue({ error: null });
         mockSupabase.from().update.mockReturnValue({ eq: mockUpdateEq });
 
@@ -142,7 +142,7 @@ describe("POST /api/v1/ai/body-comp", () => {
             body_fat_percent: 18.2,
             notes: "Logged via AI Body Comp Scanner",
         });
-        expect(mockUpdateEq).toHaveBeenCalledWith("id", "record_555");
+        expect(mockUpdateEq).toHaveBeenCalledWith("track_id", "record_555");
         // Ensure insert wasn't called
         expect(mockSupabase.from().insert).not.toHaveBeenCalled();
     });

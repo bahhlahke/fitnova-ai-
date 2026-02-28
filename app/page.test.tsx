@@ -7,6 +7,12 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: vi.fn(),
 }));
 
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => ({
+    get: () => null,
+  }),
+}));
+
 describe("Home page", () => {
   beforeEach(() => {
     vi.mocked(createClient).mockClear();

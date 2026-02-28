@@ -24,6 +24,7 @@ import {
   toDisplayWeight,
   weightUnitLabel,
 } from "@/lib/units";
+import { emitDataRefresh } from "@/lib/ui/data-sync";
 
 export default function AddProgressPage() {
   const router = useRouter();
@@ -142,6 +143,7 @@ export default function AddProgressPage() {
       setError(err.message);
       return;
     }
+    emitDataRefresh(["dashboard", "progress"]);
     router.push("/progress");
   }
 

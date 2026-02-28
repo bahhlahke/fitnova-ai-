@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { WorkoutType } from "@/types";
 import { PageLayout, Card, CardHeader, Button, Input, Label, EmptyState, LoadingState, ErrorMessage } from "@/components/ui";
 import { toLocalDateString } from "@/lib/date/local-date";
+import { emitDataRefresh, useDataRefresh } from "@/lib/ui/data-sync";
 
 const WORKOUT_TYPES: { value: WorkoutType; label: string; hint: string }[] = [
   { value: "strength", label: "Strength", hint: "Progressive overload" },
@@ -53,8 +54,12 @@ export default function WorkoutLogPage() {
     fetchWorkouts();
   }, [fetchWorkouts, refetch]);
 
+  useDataRefresh(["workout"], () => {
+    setRefetch((current) => current + 1);
+  });
+
   return (
-    <PageLayout title="Workout" subtitle="Capture sessions and keep progression visible" backHref="/log" backLabel="Log">
+    <PageLayout title="Workout" subtitle="Capture sessions and keep progression visible">
       <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
         <Link href="/log/workout/guided" className="block">
           <Card padding="lg" className="h-full border-fn-accent/30 bg-fn-accent/5 transition hover:-translate-y-0.5 hover:border-fn-accent/50 hover:shadow-[0_0_30px_rgba(10,217,196,0.1)]">
@@ -68,6 +73,16 @@ export default function WorkoutLogPage() {
         <Card>
           <CardHeader title="AI suggestion" subtitle="Use this when your day is constrained" />
           <p className="mt-3 text-sm text-fn-muted">If time is limited, do your first three compound movements and one finisher interval.</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/motion">
+              <Button variant="secondary" size="sm">Motion Lab</Button>
+            </Link>
+            <Link href="/?focus=ai">
+              <Button variant="ghost" size="sm" className="border border-fn-border">
+                Ask AI on Dashboard
+              </Button>
+            </Link>
+          </div>
         </Card>
       </div>
 
@@ -76,6 +91,7 @@ export default function WorkoutLogPage() {
         <WorkoutQuickForm
           onSuccess={() => {
             setRefetch((n) => n + 1);
+            emitDataRefresh(["dashboard", "workout"]);
             setPostWorkoutInsight(null);
             setPostWorkoutInsightLoading(true);
             fetch("/api/v1/ai/post-workout-insight", { method: "POST" })
@@ -122,6 +138,16 @@ export default function WorkoutLogPage() {
             <EmptyState className="mt-4" message="No workouts yet. Start a guided session or quick log above." action={<Link href="/log/workout/guided"><Button variant="secondary" size="sm">Start guided workout</Button></Link>} />
           )}
         </Card>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link href="/history?tab=workouts">
+            <Button variant="secondary" size="sm">View history</Button>
+          </Link>
+          <Link href="/motion">
+            <Button variant="ghost" size="sm" className="border border-fn-border">
+              Analyze movement
+            </Button>
+          </Link>
+        </div>
       </section>
     </PageLayout>
   );

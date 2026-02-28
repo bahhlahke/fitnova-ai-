@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { MealEntry } from "@/types";
 import { PageLayout, Card, CardHeader, Button, ErrorMessage, LoadingState, EmptyState } from "@/components/ui";
 import { toLocalDateString } from "@/lib/date/local-date";
+import { emitDataRefresh, useDataRefresh } from "@/lib/ui/data-sync";
 
 /* ── Types ──────────────────────────────────────────────────────── */
 type NutritionPlanTargets = {
@@ -486,6 +488,10 @@ export default function NutritionLogPage() {
 
   useEffect(() => { setLoading(true); fetchToday(); }, [fetchToday, refetch]);
 
+  useDataRefresh(["nutrition"], () => {
+    setRefetch((current) => current + 1);
+  });
+
   useEffect(() => {
     if (loading) return;
     setAiInsightLoading(true);
@@ -521,6 +527,7 @@ export default function NutritionLogPage() {
       if (data) setLogId((data as { log_id: string }).log_id);
     }
     setHydrationLiters(next);
+    emitDataRefresh(["dashboard", "nutrition"]);
   }
 
   async function loadFromPlan() {
@@ -542,10 +549,11 @@ export default function NutritionLogPage() {
     }
     setMeals(updated);
     setRefetch(n => n + 1);
+    emitDataRefresh(["dashboard", "nutrition"]);
   }
 
   return (
-    <PageLayout title="Nutrition" subtitle="Meal timeline · macro tracking" backHref="/log" backLabel="Log">
+    <PageLayout title="Nutrition" subtitle="Meal timeline · macro tracking">
       <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr]">
 
         {/* ── Smart entry ─────────────────────────────────────── */}
@@ -564,11 +572,29 @@ export default function NutritionLogPage() {
               if (newLogId != null) setLogId(newLogId);
               if (newMeals != null) setMeals(newMeals);
               setRefetch(n => n + 1);
+              emitDataRefresh(["dashboard", "nutrition"]);
             }}
             existingMeals={meals}
             existingLogId={logId}
           />
           {pageError && <ErrorMessage className="mt-3" message={pageError} />}
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/history?tab=nutrition">
+              <Button type="button" variant="secondary" size="sm">
+                View history
+              </Button>
+            </Link>
+            <Link href="/?focus=ai">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="border border-white/10"
+              >
+                Ask AI on Dashboard
+              </Button>
+            </Link>
+          </div>
         </Card>
 
         {/* ── Macro summary ────────────────────────────────────── */}

@@ -190,6 +190,16 @@ describe("POST /api/v1/ai/respond", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.reply).toBe(mockFinalResponse.content);
+    expect(data.actions).toEqual([
+      {
+        type: "biometrics_logged",
+        targetRoute: "/progress",
+        summary: "Progress updated",
+      },
+    ]);
+    expect(data.refreshScopes).toEqual(
+      expect.arrayContaining(["dashboard", "progress"])
+    );
   });
 
   afterEach(() => {

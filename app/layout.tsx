@@ -5,6 +5,8 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { MetaPixel } from "@/components/tracking/MetaPixel";
 import { Suspense } from "react";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { AiCoachPanel } from "@/components/ai/AiCoachPanel";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -46,9 +48,6 @@ export const metadata: Metadata = {
   ...(process.env.VERCEL_URL && { metadataBase: new URL(`https://${process.env.VERCEL_URL}`) }),
 };
 
-import { Sidebar } from "@/components/layout/Sidebar";
-import { OmniChat } from "@/components/layout/OmniChat";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -70,7 +69,7 @@ export default function RootLayout({
               {children}
             </main>
             <BottomNav />
-            <OmniChat />
+            <AiCoachPanel mode="launcher" />
           </div>
         </AuthProvider>
         <Suspense fallback={null}>
