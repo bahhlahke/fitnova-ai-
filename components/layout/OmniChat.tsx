@@ -17,6 +17,7 @@ const QUICK_ACTIONS = [
 
 export function OmniChat() {
     const [isOpen, setIsOpen] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -35,6 +36,11 @@ export function OmniChat() {
     const hide = hiddenRoutes.some((p) => pathname.startsWith(p)) || (!user && pathname === "/");
 
     if (hide) return null;
+
+    function openChat() {
+        setIsMounted(true);
+        setIsOpen(true);
+    }
 
     async function handleSubmit(e?: React.FormEvent) {
         if (e) e.preventDefault();
@@ -68,7 +74,7 @@ export function OmniChat() {
         <>
             {/* Floating Action Button */}
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => isOpen ? setIsOpen(false) : openChat()}
                 className="fixed bottom-24 right-6 z-[60] h-14 w-14 rounded-full bg-fn-accent text-fn-bg shadow-[0_0_30px_rgba(10,217,196,0.4)] transition-transform hover:scale-110 active:scale-95 md:bottom-10 md:right-10"
                 aria-label="Ask Nova AI"
             >
@@ -85,17 +91,18 @@ export function OmniChat() {
                 </div>
             </button>
 
-            {/* Backdrop */}
-            {isOpen && (
+            {/* Backdrop — only rendered after first open */}
+            {isMounted && isOpen && (
                 <div
-                    className="fixed inset-0 z-[45] bg-black/60 backdrop-blur-sm transition-opacity duration-500"
+                    className="fixed inset-0 z-[45] bg-black/60 backdrop-blur-sm"
                     onClick={() => setIsOpen(false)}
                 />
             )}
 
-            {/* Slide-over Panel */}
+            {/* Slide-over Panel — only mounted after first open to avoid backdrop-blur bleed */}
+            {isMounted && (
             <div
-                className={`fixed inset-y-0 right-0 z-50 w-full transform border-l border-fn-border bg-black/20 backdrop-blur-3xl transition-transform duration-500 ease-in-out md:w-[450px] ${isOpen ? "translate-x-0" : "translate-x-full"
+                className={`fixed inset-y-0 right-0 z-50 w-full transform border-l border-fn-border bg-fn-bg/95 transition-transform duration-500 ease-in-out md:w-[450px] ${isOpen ? "translate-x-0" : "translate-x-full"
                     }`}
             >
                 <div className="flex h-full flex-col">
@@ -195,6 +202,7 @@ export function OmniChat() {
                     </div>
                 </div>
             </div>
+            )}
         </>
     );
 }
