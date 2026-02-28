@@ -69,14 +69,14 @@ export default function BodyCompScannerPage() {
 
     return (
         <PageLayout title="AI Body Comp Scan" subtitle="Visual Analysis Engine">
-            <main className="mx-auto max-w-shell px-4 pt-6 sm:px-6">
+            <main className="mx-auto max-w-shell px-4 pt-6 sm:px-6 pb-20">
                 <header className="mb-8 text-center">
                     <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-2">DEXA-Grade Insights</p>
                     <h1 className="font-display text-4xl font-black italic uppercase tracking-tighter sm:text-5xl">
                         Body Comp <span className="text-fn-accent">Scanner</span>
                     </h1>
-                    <p className="mt-4 text-fn-muted max-w-md mx-auto">
-                        Upload a photo of your physique. The Vision AI will estimate your body fat composition to feed accurate metabolic targets to your coaching engine.
+                    <p className="mt-4 text-fn-muted max-w-md mx-auto text-sm">
+                        Capture 3 profiles to extract your biological data. This drives the Coach Engine&apos;s precise metabolic targets.
                     </p>
                 </header>
 
@@ -87,48 +87,121 @@ export default function BodyCompScannerPage() {
                 )}
 
                 {!result ? (
-                    <Card className="border-white/5 bg-white/[0.02] overflow-hidden p-6 text-center shadow-2xl">
-                        <div className="grid grid-cols-3 gap-3 mb-6">
-                            {(["front", "side", "back"] as const).map((slot) => (
-                                <div
-                                    key={slot}
-                                    onClick={() => !isScanning && triggerUpload(slot)}
-                                    className={`relative rounded-xl overflow-hidden border-2 aspect-[3/4] flex flex-col items-center justify-center transition-all ${isScanning ? "cursor-default" : "cursor-pointer"
-                                        } ${images[slot] ? "border-white/10" : "border-dashed border-white/20 hover:border-fn-accent/50 hover:bg-white/5 group"
-                                        }`}
-                                >
-                                    {images[slot] ? (
-                                        <Image
-                                            src={images[slot]!}
-                                            alt={`${slot} view`}
-                                            fill
-                                            className={`object-cover ${isScanning ? "opacity-50 grayscale transition-all duration-1000" : ""}`}
-                                        />
+                    <Card className="border-white/5 bg-white/[0.02] overflow-hidden p-6 text-center shadow-2xl relative min-h-[460px] flex flex-col justify-center">
+                        {images.front && images.side && images.back ? (
+                            <div className="py-4 animate-in fade-in zoom-in duration-500">
+                                <div className="h-16 w-16 mx-auto bg-fn-accent/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(10,217,196,0.2)]">
+                                    <svg className="w-8 h-8 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-2xl font-black italic uppercase text-white mb-2">Data Collected</h3>
+                                <p className="text-fn-muted mb-8 text-sm">3D biological markers are queued for extraction.</p>
+
+                                <div className="grid grid-cols-3 gap-3 mb-8 px-2 opacity-60 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-500 cursor-pointer">
+                                    <div className="aspect-[3/4] relative bg-black rounded-lg overflow-hidden border border-white/10" onClick={() => triggerUpload("front")}>
+                                        <Image src={images.front} alt="front" fill className="object-cover" />
+                                        <div className="absolute bottom-1 right-1 bg-black/50 rounded-full p-1"><svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></div>
+                                    </div>
+                                    <div className="aspect-[3/4] relative bg-black rounded-lg overflow-hidden border border-white/10" onClick={() => triggerUpload("side")}>
+                                        <Image src={images.side} alt="side" fill className="object-cover" />
+                                        <div className="absolute bottom-1 right-1 bg-black/50 rounded-full p-1"><svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></div>
+                                    </div>
+                                    <div className="aspect-[3/4] relative bg-black rounded-lg overflow-hidden border border-white/10" onClick={() => triggerUpload("back")}>
+                                        <Image src={images.back} alt="back" fill className="object-cover" />
+                                        <div className="absolute bottom-1 right-1 bg-black/50 rounded-full p-1"><svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <Button variant="ghost" className="w-[100px]" onClick={() => setImages({ front: null, side: null, back: null })}>
+                                        Reset
+                                    </Button>
+                                    <Button className="flex-1 shadow-[0_0_20px_rgba(10,217,196,0.3)] animate-pulse" onClick={startScan} disabled={isScanning}>
+                                        Analyze Physique
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center flex-1 h-full py-2">
+                                {/* Progress Tracker */}
+                                <div className="flex justify-center gap-3 w-full mb-10">
+                                    {(['front', 'side', 'back'] as const).map((step) => {
+                                        const isCompleted = !!images[step];
+                                        const isCurrent = (!images.front && step === 'front') || (images.front && !images.side && step === 'side') || (images.front && images.side && !images.back && step === 'back');
+
+                                        return (
+                                            <div key={step} className="flex-1 flex flex-col gap-2 relative">
+                                                {isCurrent && <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-fn-accent animate-bounce"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg></div>}
+                                                <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${isCompleted ? 'bg-fn-accent shadow-[0_0_10px_rgba(10,217,196,0.5)]' : isCurrent ? 'bg-white/40' : 'bg-white/10'}`} />
+                                                <p className={`text-[9px] uppercase font-black tracking-widest ${isCompleted ? 'text-fn-accent' : isCurrent ? 'text-white drop-shadow-md' : 'text-white/30'}`}>
+                                                    {step}
+                                                </p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Current Step Instructions */}
+                                <div className="mb-10 h-32 flex flex-col justify-center animate-in fade-in slide-in-from-right-4 duration-500 w-full" key={!images.front ? 'front' : !images.side ? 'side' : 'back'}>
+                                    {!images.front ? (
+                                        <>
+                                            <h3 className="text-2xl font-black italic uppercase text-white mb-3">Step 1: Front Profile</h3>
+                                            <p className="text-sm text-fn-muted max-w-[280px] mx-auto leading-relaxed">Face the camera directly. Keep your arms slightly flared to reveal your torso outline.</p>
+                                        </>
+                                    ) : !images.side ? (
+                                        <>
+                                            <h3 className="text-2xl font-black italic uppercase text-white mb-3">Step 2: Side Profile</h3>
+                                            <p className="text-sm text-fn-muted max-w-[280px] mx-auto leading-relaxed">Turn 90 degrees. Let your arms hang naturally. Keep your posture relaxed.</p>
+                                        </>
                                     ) : (
                                         <>
-                                            <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                                <svg className="w-5 h-5 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                                </svg>
-                                            </div>
-                                            <p className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wider">{slot}</p>
+                                            <h3 className="text-2xl font-black italic uppercase text-white mb-3">Step 3: Back Profile</h3>
+                                            <p className="text-sm text-fn-muted max-w-[280px] mx-auto leading-relaxed">Face away from the lens. Flex your upper back slightly to reveal definition.</p>
                                         </>
                                     )}
-
-                                    {/* Scanning Laser Animation overlay for each image if scanning */}
-                                    {isScanning && images[slot] && (
-                                        <div className="absolute inset-0 z-10 pointer-events-none">
-                                            <div className="absolute top-0 w-full h-1 bg-fn-accent shadow-[0_0_15px_3px_rgba(10,217,196,0.8)] animate-[scan_2s_ease-in-out_infinite]" />
-                                            <div className="absolute inset-0 bg-fn-accent/10 animate-pulse" />
-                                        </div>
-                                    )}
                                 </div>
-                            ))}
-                        </div>
+
+                                {/* Big Camera Button */}
+                                <div className="mt-auto perspective-1000 relative">
+                                    <div
+                                        className="relative w-40 h-40 rounded-full border-4 border-dashed border-white/20 flex items-center justify-center cursor-pointer group mb-4 shadow-xl active:scale-95 transition-all duration-300"
+                                        onClick={() => triggerUpload(!images.front ? 'front' : !images.side ? 'side' : 'back')}
+                                        style={{ transformStyle: 'preserve-3d' }}
+                                    >
+                                        <div className="absolute inset-0 rounded-full bg-fn-accent opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
+                                        {/* Outer glowing pulse ring */}
+                                        <div className="absolute -inset-4 rounded-full border border-fn-accent/30 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]" />
+
+                                        <div className="h-24 w-24 rounded-full bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center group-hover:bg-white/10 group-hove:scale-110 shadow-[inset_0_0_20px_rgba(255,255,255,0.05)] transition-all duration-300">
+                                            <svg className="w-10 h-10 text-white/80 group-hover:text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p className="text-[10px] font-black tracking-widest text-white/40 uppercase mb-2">Tap to Capture Filter</p>
+                            </div>
+                        )}
 
                         {isScanning && (
-                            <div className="mb-6">
-                                <p className="text-fn-accent font-black uppercase tracking-widest bg-fn-accent/10 px-4 py-2 rounded-full inline-block backdrop-blur-md text-sm border border-fn-accent/20">
+                            <div className="absolute inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col items-center justify-center animate-in fade-in duration-300 rounded-2xl">
+                                <div className="relative w-48 h-48 mb-8">
+                                    {/* 3D wireframe or abstract rotating element to depict 3D compositing */}
+                                    <div className="absolute inset-0 rounded-full border-2 border-fn-accent/20 animate-spin" style={{ animationDuration: '3s' }} />
+                                    <div className="absolute inset-4 rounded-full border-2 border-dashed border-white/30 animate-spin-slow" />
+                                    <div className="absolute inset-8 rounded-full border-2 border-fn-accent/60 animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }} />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <svg className="w-12 h-12 text-white animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div className="w-full max-w-[200px] relative h-1 bg-white/10 rounded-full overflow-hidden mb-6">
+                                    <div className="absolute top-0 bottom-0 left-0 bg-fn-accent shadow-[0_0_15px_rgba(10,217,196,1)] w-1/2 animate-[scan_1.5s_ease-in-out_infinite_alternate]" />
+                                </div>
+                                <p className="text-fn-accent font-black uppercase tracking-widest text-sm drop-shadow-[0_0_10px_rgba(10,217,196,0.5)]">
                                     Compositing 3D Data...
                                 </p>
                             </div>
@@ -137,28 +210,13 @@ export default function BodyCompScannerPage() {
                         <input
                             type="file"
                             accept="image/*"
+                            capture="environment"
                             className="hidden"
                             ref={fileInputRef}
                             onChange={handleImageUpload}
                             disabled={isScanning}
                         />
 
-                        <div className="flex gap-4 max-w-sm mx-auto">
-                            {(!images.front || !images.side || !images.back) && (
-                                <p className="text-sm text-fn-muted w-full">Please snap all 3 angles to extract clinical DEXA-grade data.</p>
-                            )}
-
-                            {images.front && images.side && images.back && !isScanning && (
-                                <>
-                                    <Button variant="ghost" type="button" onClick={() => setImages({ front: null, side: null, back: null })} className="w-full">
-                                        Retake All
-                                    </Button>
-                                    <Button onClick={startScan} type="button" className="w-full shadow-[0_0_20px_rgba(10,217,196,0.2)]">
-                                        Analyze Physique
-                                    </Button>
-                                </>
-                            )}
-                        </div>
                     </Card>
                 ) : (
                     <Card className="border-fn-accent/20 bg-gradient-to-br from-fn-accent/10 to-transparent overflow-hidden shadow-[0_0_40px_rgba(10,217,196,0.15)] animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -171,14 +229,14 @@ export default function BodyCompScannerPage() {
                         </div>
                         <div className="p-6 bg-black/20">
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent mb-4">Vision Analysis</p>
-                            <p className="text-fn-muted leading-relaxed italic border-l-2 border-fn-accent pl-4">
+                            <p className="text-fn-muted leading-relaxed italic border-l-2 border-fn-accent pl-4 text-sm">
                                 &quot;{result.analysis}&quot;
                             </p>
                             <div className="mt-8 flex gap-4">
                                 <Button variant="secondary" className="w-full" onClick={() => { setResult(null); setImages({ front: null, side: null, back: null }); }}>
                                     Scan Again
                                 </Button>
-                                <Button className="w-full" onClick={() => router.push("/coach")}>
+                                <Button className="w-full shadow-[0_0_20px_rgba(10,217,196,0.1)] hover:shadow-[0_0_30px_rgba(10,217,196,0.25)]" onClick={() => router.push("/coach")}>
                                     Return to Coach
                                 </Button>
                             </div>
@@ -187,13 +245,14 @@ export default function BodyCompScannerPage() {
                 )}
             </main>
 
-            {/* Global CSS for the scan line animation specifically for this page if not exported globally */}
             <style dangerouslySetInnerHTML={{
                 __html: `
         @keyframes scan {
-          0% { transform: translateY(0); }
-          50% { transform: translateY(1000%); }
-          100% { transform: translateY(0); }
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+        .animate-spin-slow {
+          animation: spin 8s linear infinite;
         }
       ` }} />
         </PageLayout>
