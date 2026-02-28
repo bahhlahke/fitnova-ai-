@@ -20,9 +20,9 @@ describe("Onboarding page", () => {
   it("does not mark onboarding completed when saving fails", async () => {
     render(<OnboardingPage />);
 
-    for (let i = 0; i < 6; i += 1) {
+    for (let i = 0; i < 5; i += 1) {
       const nextBtn = screen.getByRole("button", {
-        name: i < 5 ? /next/i : /finish/i,
+        name: i < 4 ? /next/i : /finish/i,
       });
       fireEvent.click(nextBtn);
     }
