@@ -303,6 +303,9 @@ export default function HomePage() {
                   <Button variant="secondary" className="w-full sm:w-auto">Member Access</Button>
                 </Link>
               </div>
+              <p className="mt-6 text-sm text-white/35 font-medium tracking-wide">
+                No credit card required · Cancel anytime · 14-day free trial
+              </p>
             </div>
           </div>
         </section>
@@ -326,16 +329,17 @@ export default function HomePage() {
               <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-40 transition-opacity">
                 <Image src="https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg" alt="omni-log" fill className="object-cover grayscale" />
               </div>
-              <div className="relative z-10">
+              <div className="relative z-10 flex flex-col h-full">
                 <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
                   <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                   </svg>
                 </div>
                 <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Omni-Logging AI Chatbot</h3>
-                <p className="mt-3 text-fn-muted leading-relaxed text-sm">
+                <p className="mt-3 text-fn-muted leading-relaxed text-sm flex-1">
                   Zero-Friction Logging. Just text your coach what you ate or what you lifted, and it autonomously parses the data and updates your charts.
                 </p>
+                <Link href="/start" className="mt-6 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">Get started →</Link>
               </div>
             </Card>
 
@@ -344,16 +348,17 @@ export default function HomePage() {
               <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-60 transition-opacity">
                 <Image src="/images/refined/sms.png" alt="sms" fill className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700" title="Refined SMS View" />
               </div>
-              <div className="relative z-10">
+              <div className="relative z-10 flex flex-col h-full">
                 <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
                   <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                 </div>
                 <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Smart SMS Accountability</h3>
-                <p className="mt-3 text-fn-muted leading-relaxed text-sm">
+                <p className="mt-3 text-fn-muted leading-relaxed text-sm flex-1">
                   Your Coach in Your Pocket. Proactive daily text messages checking in on your sleep, soreness, and adherence to ensure you never miss a beat.
                 </p>
+                <Link href="/start" className="mt-6 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">Get started →</Link>
               </div>
             </Card>
 
@@ -362,7 +367,7 @@ export default function HomePage() {
               <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-40 transition-opacity">
                 <Image src="https://images.pexels.com/photos/1552249/pexels-photo-1552249.jpeg" alt="cinematic" fill className="object-cover grayscale" />
               </div>
-              <div className="relative z-10">
+              <div className="relative z-10 flex flex-col h-full">
                 <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
                   <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -370,9 +375,10 @@ export default function HomePage() {
                   </svg>
                 </div>
                 <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Cinematic Guided Workouts</h3>
-                <p className="mt-3 text-fn-muted leading-relaxed text-sm">
+                <p className="mt-3 text-fn-muted leading-relaxed text-sm flex-1">
                   Premium AV Experience. Ditch the generic stick-figures. Train alongside 4K, dark-aesthetic cinematic loops designed to push your limits.
                 </p>
+                <Link href="/start" className="mt-6 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">Get started →</Link>
               </div>
             </Card>
 
@@ -381,7 +387,7 @@ export default function HomePage() {
               <div className="absolute inset-x-0 bottom-0 h-40 opacity-25 group-hover:opacity-70 transition-opacity">
                 <Image src="/images/refined/scanner.png" alt="body scanner" fill className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700" title="Refined Scanner View" />
               </div>
-              <div className="relative z-10">
+              <div className="relative z-10 flex flex-col h-full">
                 <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
                   <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -389,9 +395,10 @@ export default function HomePage() {
                   </svg>
                 </div>
                 <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">AI Body Comp Scanner</h3>
-                <p className="mt-3 text-fn-muted leading-relaxed text-sm">
+                <p className="mt-3 text-fn-muted leading-relaxed text-sm flex-1">
                   DEXA-Grade Insights. Snap a photo and let our vision AI instantly estimate your body fat composition to feed accurate data directly to your coach.
                 </p>
+                <Link href="/start" className="mt-6 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">Get started →</Link>
               </div>
             </Card>
 
@@ -400,16 +407,17 @@ export default function HomePage() {
               <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-40 transition-opacity">
                 <Image src="https://images.pexels.com/photos/1103242/pexels-photo-1103242.jpeg" alt="audio" fill className="object-cover grayscale" />
               </div>
-              <div className="relative z-10">
+              <div className="relative z-10 flex flex-col h-full">
                 <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
                   <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                   </svg>
                 </div>
                 <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Real-Time Audio Coach</h3>
-                <p className="mt-3 text-fn-muted leading-relaxed text-sm">
+                <p className="mt-3 text-fn-muted leading-relaxed text-sm flex-1">
                   Voice-Activated Cues. Put your phone away. The system&apos;s neural voice actively guides your pacing, reps, and precise rest times during your session.
                 </p>
+                <Link href="/start" className="mt-6 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">Get started →</Link>
               </div>
             </Card>
 
@@ -418,17 +426,82 @@ export default function HomePage() {
               <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-60 transition-opacity">
                 <Image src="/images/refined/motion.png" alt="motion lab" fill className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700" title="Refined Motion View" />
               </div>
-              <div className="relative z-10">
+              <div className="relative z-10 flex flex-col h-full">
                 <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
                   <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Motion Lab: Vision AI</h3>
-                <p className="mt-3 text-fn-muted leading-relaxed text-sm">
+                <p className="mt-3 text-fn-muted leading-relaxed text-sm flex-1">
                   Biological Pathing. Our Vision Lab analyzes your movement frame-by-frame to identify velocity leaks and ensure clinical mechanical efficiency.
                 </p>
+                <Link href="/start" className="mt-6 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">Get started →</Link>
               </div>
+            </Card>
+          </div>
+        </section>
+
+        {/* How FitNova Adapts — tab section (uses existing helpTab state) */}
+        <section className="mx-auto max-w-shell px-4 py-24 sm:px-6">
+          <div className="text-center mb-12">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4">Adaptive Intelligence</p>
+            <h2 className="font-display text-4xl sm:text-5xl font-black text-white italic uppercase tracking-tighter leading-[1.1]">How FitNova adapts to you</h2>
+          </div>
+          <div className="max-w-3xl mx-auto">
+            <div className="flex gap-2 rounded-2xl border border-white/10 bg-white/5 p-2 backdrop-blur-sm">
+              {(["adaptive", "nutrition", "coaching"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setHelpTab(tab)}
+                  className={`flex-1 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 ${helpTab === tab ? "bg-fn-accent text-black shadow-[0_0_20px_rgba(10,217,196,0.3)]" : "text-fn-muted hover:text-white"}`}
+                >
+                  {tab === "adaptive" ? "Workouts" : tab === "nutrition" ? "Nutrition" : "Coaching"}
+                </button>
+              ))}
+            </div>
+            <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-8 backdrop-blur-sm min-h-[140px]">
+              <h3 className="text-2xl font-black uppercase italic tracking-tight text-white">{tabContent.title}</h3>
+              <p className="mt-4 text-fn-muted leading-relaxed text-lg">{tabContent.body}</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section className="mx-auto max-w-shell px-4 pb-24 sm:px-6">
+          <div className="text-center mb-12">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4">Simple Pricing</p>
+            <h2 className="font-display text-4xl sm:text-5xl font-black text-white italic uppercase tracking-tighter leading-[1.1]">One plan. Everything included.</h2>
+          </div>
+          <div className="mx-auto max-w-md">
+            <Card padding="lg" className="border-fn-accent/20 bg-fn-accent/5 text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4">Pro Membership</p>
+              <div className="flex items-end justify-center gap-2 mb-2">
+                <span className="font-display text-7xl font-black text-white italic tracking-tighter">$9.99</span>
+                <span className="text-fn-muted mb-3 text-lg">/ month</span>
+              </div>
+              <p className="text-sm text-fn-muted mb-8">or $7.99/mo billed annually — save 20%</p>
+              <ul className="text-left space-y-3 mb-10">
+                {[
+                  "Adaptive AI workout generation",
+                  "Nutrition & macro intelligence",
+                  "Real-time audio coaching",
+                  "AI body composition scanner",
+                  "Cinematic guided workouts",
+                  "Smart SMS accountability",
+                  "Motion Lab: Vision AI",
+                  "Unlimited coach conversations",
+                ].map((feature) => (
+                  <li key={feature} className="flex items-center gap-3 text-sm text-fn-ink">
+                    <svg className="h-4 w-4 shrink-0 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/start" className="block">
+                <Button className="w-full">Start Free Assessment</Button>
+              </Link>
+              <p className="mt-4 text-xs text-fn-muted/60">No credit card required · Cancel anytime</p>
             </Card>
           </div>
         </section>
@@ -589,30 +662,50 @@ export default function HomePage() {
         </Card>
       </section>
 
-      {/* Intelligence Feed & Shortcuts */}
-      <section className="mt-8 grid gap-8 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-white/5 bg-white/[0.01]">
-          <CardHeader title="Intelligence Feed" subtitle="System alerts" />
-          <ul className="mt-6 space-y-4">
-            <li className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 border border-white/5 animate-in slide-in-from-left duration-500">
-              <div className="h-2 w-2 rounded-full bg-fn-accent mt-2 shadow-[0_0_10px_rgba(10,217,196,1)]" />
-              <p className="text-sm font-medium text-fn-muted leading-relaxed">System detects protein deficiency for 48h. Adjusting tomorrow&apos;s targets.</p>
-            </li>
-            <li className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 border border-white/5 opacity-60 animate-in slide-in-from-left duration-700">
-              <div className="h-2 w-2 rounded-full bg-white mt-2" />
-              <p className="text-sm font-medium text-fn-muted leading-relaxed">Volume spike on Wednesday. Recommended active recovery session.</p>
-            </li>
-          </ul>
-        </Card>
-
+      {/* Today's Checklist */}
+      <section className="mt-8">
         <Card className="border-white/5 bg-white/[0.01]">
-          <CardHeader title="Hyper-Speed" subtitle="Direct routing" />
-          <div className="mt-8 grid grid-cols-1 gap-3">
-            <Link href="/log/workout"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5 hover:bg-white/10">Log Training</Button></Link>
-            <Link href="/log/nutrition"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5 hover:bg-white/10">Log Fuel</Button></Link>
-            <Link href="/motion"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5 hover:bg-white/10">Motion Lab</Button></Link>
-            <Link href="/progress"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5 hover:bg-white/10">Analytics</Button></Link>
-          </div>
+          <CardHeader title="Today's Checklist" subtitle="Your daily completion status" />
+          <ul className="mt-6 space-y-3">
+            {[
+              {
+                done: hasPlanToday,
+                label: hasPlanToday ? "Daily protocol ready" : "Generate today's protocol",
+                href: "/coach",
+                cta: "Open Coach Room →",
+              },
+              {
+                done: hasWorkoutToday,
+                label: hasWorkoutToday ? "Workout logged" : "Log today's training session",
+                href: "/log/workout",
+                cta: "Log workout →",
+              },
+              {
+                done: !!lastWeighInDate,
+                label: lastWeighInDate ? `Last weigh-in: ${lastWeighInDate}` : "No weigh-in recorded yet",
+                href: "/progress/add",
+                cta: "Add check-in →",
+              },
+              {
+                done: reminders.workout_log !== false && onboardingComplete,
+                label: onboardingComplete ? "Profile complete" : "Complete your coaching profile",
+                href: "/onboarding",
+                cta: "Finish profile →",
+              },
+            ].map(({ done, label, href, cta }) => (
+              <li key={label} className={`flex items-center justify-between gap-4 rounded-2xl border px-5 py-4 transition-all duration-300 ${done ? "border-fn-accent/20 bg-fn-accent/5" : "border-white/5 bg-white/[0.02] hover:border-white/10"}`}>
+                <div className="flex items-center gap-4">
+                  <div className={`h-6 w-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${done ? "border-fn-accent bg-fn-accent/20" : "border-fn-muted/30"}`}>
+                    {done && <svg className="h-3.5 w-3.5 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  </div>
+                  <span className={`text-sm font-bold ${done ? "text-fn-ink" : "text-fn-muted"}`}>{label}</span>
+                </div>
+                {!done && (
+                  <Link href={href} className="shrink-0 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:text-white transition-colors">{cta}</Link>
+                )}
+              </li>
+            ))}
+          </ul>
         </Card>
       </section>
     </div>

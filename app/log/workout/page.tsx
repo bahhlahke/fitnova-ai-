@@ -57,11 +57,11 @@ export default function WorkoutLogPage() {
     <PageLayout title="Workout" subtitle="Capture sessions and keep progression visible" backHref="/log" backLabel="Log">
       <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
         <Link href="/log/workout/guided" className="block">
-          <Card padding="lg" className="h-full border-fn-primary/20 bg-gradient-to-br from-white to-fn-bg-alt transition hover:-translate-y-0.5">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">Guided mode</p>
-            <h2 className="mt-2 text-xl font-semibold text-fn-ink">Start today&apos;s coached session</h2>
-            <p className="mt-2 text-sm text-fn-muted">Step-by-step flow with plan-aware exercise sequence and rest pacing.</p>
-            <p className="mt-4 text-sm font-semibold text-fn-primary">Open guided workout →</p>
+          <Card padding="lg" className="h-full border-fn-accent/30 bg-fn-accent/5 transition hover:-translate-y-0.5 hover:border-fn-accent/50 hover:shadow-[0_0_30px_rgba(10,217,196,0.1)]">
+            <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Guided mode</p>
+            <h2 className="mt-2 text-xl font-black text-fn-ink uppercase italic tracking-tight">Start today&apos;s coached session</h2>
+            <p className="mt-2 text-sm text-fn-muted leading-relaxed">Step-by-step flow with plan-aware exercise sequence and rest pacing.</p>
+            <p className="mt-4 text-xs font-black uppercase tracking-widest text-fn-accent">Open guided workout →</p>
           </Card>
         </Link>
 
@@ -91,10 +91,10 @@ export default function WorkoutLogPage() {
           <p className="mt-4 text-sm text-fn-muted">Generating insight...</p>
         )}
         {postWorkoutInsight && !postWorkoutInsightLoading && (
-          <div className="mt-4 rounded-xl border border-fn-border bg-fn-bg-alt px-4 py-3 text-sm text-fn-ink">
-            <p className="font-semibold">What this means</p>
-            <p className="mt-1">{postWorkoutInsight}</p>
-            <button type="button" onClick={() => setPostWorkoutInsight(null)} className="mt-2 text-xs font-semibold text-fn-primary hover:underline">
+          <div className="mt-4 rounded-2xl border border-fn-accent/20 bg-white/5 px-5 py-4 text-sm text-fn-ink animate-in fade-in duration-300">
+            <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Coach Insight</p>
+            <p className="leading-relaxed text-fn-ink">{postWorkoutInsight}</p>
+            <button type="button" onClick={() => setPostWorkoutInsight(null)} className="mt-3 text-[10px] font-black uppercase tracking-widest text-fn-muted hover:text-white transition-colors">
               Dismiss
             </button>
           </div>
@@ -184,14 +184,14 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
               key={value}
               type="button"
               onClick={() => setType(value)}
-              className={`rounded-xl border px-3 py-3 text-left transition ${
+              className={`rounded-xl border px-4 py-3 text-left transition-all duration-200 ${
                 type === value
-                  ? "border-fn-primary bg-fn-primary text-white"
-                  : "border-fn-border bg-white text-black hover:bg-fn-surface-hover"
+                  ? "border-fn-accent bg-fn-accent/10 shadow-[0_0_20px_rgba(10,217,196,0.1)]"
+                  : "border-fn-border bg-fn-surface text-fn-muted hover:bg-fn-surface-hover hover:text-fn-ink hover:border-fn-accent/30"
               }`}
             >
-              <p className="text-sm font-semibold">{label}</p>
-              <p className={`mt-1 text-xs ${type === value ? "text-white/85" : "text-fn-muted"}`}>{hint}</p>
+              <p className={`text-sm font-black uppercase tracking-tight ${type === value ? "text-fn-accent" : "text-fn-ink"}`}>{label}</p>
+              <p className={`mt-1 text-xs ${type === value ? "text-fn-accent/70" : "text-fn-muted"}`}>{hint}</p>
             </button>
           ))}
         </div>

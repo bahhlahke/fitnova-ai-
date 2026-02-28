@@ -56,7 +56,15 @@ export function Button({
       className={combined}
       {...props}
     >
-      {loading ? "..." : <>{icon}{children}</>}
+      {loading ? (
+        <span className="flex items-center gap-1" aria-label="Loading">
+          <span className="h-1.5 w-1.5 rounded-full bg-current animate-bounce [animation-delay:0ms]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-current animate-bounce [animation-delay:150ms]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-current animate-bounce [animation-delay:300ms]" />
+        </span>
+      ) : (
+        <>{icon}{children}</>
+      )}
     </button>
   );
 }
