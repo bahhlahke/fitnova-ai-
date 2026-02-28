@@ -10,7 +10,7 @@ import { coachVoice } from "@/lib/audio/coach-voice";
 
 /** Fitness professional imagery. Use public/images/coach-female-pro.jpg for a custom asset (see public/images/README.md). */
 const COACH_IMAGE_V1 =
-  "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=600&fit=crop&q=85";
+  "/images/refined/hero.png";
 
 const SUGGESTED_PROMPTS = [
   "Create a 40-minute high-intensity metabolic circuit",

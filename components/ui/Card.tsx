@@ -14,7 +14,7 @@ export function Card({
   const paddingClass = padding === "lg" ? "p-6" : "p-4";
   return (
     <div
-      className={`rounded-xl2 border border-fn-border bg-fn-surface/50 backdrop-blur-md shadow-fn-card ${paddingClass} ${className}`.trim()}
+      className={`rounded-xl2 border border-white/10 bg-fn-surface/40 backdrop-blur-xl shadow-[0_0_50px_rgba(0,0,0,0.3)] hover:border-fn-accent/30 hover:shadow-[0_0_30px_rgba(10,217,196,0.1)] transition-all duration-500 ${paddingClass} ${className}`.trim()}
       {...props}
     >
       {children}

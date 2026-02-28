@@ -186,24 +186,29 @@ export default function BodyCompScannerPage() {
                         )}
 
                         {isScanning && (
-                            <div className="absolute inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col items-center justify-center animate-in fade-in duration-300 rounded-2xl">
-                                <div className="relative w-48 h-48 mb-8">
+                            <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl z-50 flex flex-col items-center justify-center animate-in fade-in duration-500 rounded-2xl overflow-hidden">
+                                <div className="absolute inset-0 opacity-40">
+                                    <Image src="/images/refined/scanner.png" alt="wireframe" fill className="object-cover animate-pulse" />
+                                </div>
+                                <div className="relative w-56 h-56 mb-10">
                                     {/* 3D wireframe or abstract rotating element to depict 3D compositing */}
-                                    <div className="absolute inset-0 rounded-full border-2 border-fn-accent/20 animate-spin" style={{ animationDuration: '3s' }} />
-                                    <div className="absolute inset-4 rounded-full border-2 border-dashed border-white/30 animate-spin-slow" />
-                                    <div className="absolute inset-8 rounded-full border-2 border-fn-accent/60 animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }} />
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <svg className="w-12 h-12 text-white animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+                                    <div className="absolute inset-0 rounded-full border-[3px] border-fn-accent/30 animate-spin" style={{ animationDuration: '4s' }} />
+                                    <div className="absolute inset-4 rounded-full border-[2px] border-dashed border-white/20 animate-spin-slow" />
+                                    <div className="absolute inset-8 rounded-full border-[1px] border-fn-accent/80 animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }} />
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                        <svg className="w-16 h-16 text-white animate-pulse drop-shadow-[0_0_15px_rgba(10,217,196,1)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
                                         </svg>
+                                        <p className="mt-4 text-[9px] font-black uppercase tracking-[0.5em] text-fn-accent">Scanning Depth</p>
                                     </div>
                                 </div>
-                                <div className="w-full max-w-[200px] relative h-1 bg-white/10 rounded-full overflow-hidden mb-6">
-                                    <div className="absolute top-0 bottom-0 left-0 bg-fn-accent shadow-[0_0_15px_rgba(10,217,196,1)] w-1/2 animate-[scan_1.5s_ease-in-out_infinite_alternate]" />
+                                <div className="w-full max-w-[240px] relative h-1 bg-white/5 rounded-full overflow-hidden mb-6">
+                                    <div className="absolute top-0 bottom-0 left-0 bg-fn-accent shadow-[0_0_20px_rgba(10,217,196,1)] w-full animate-[scan_2s_ease-in-out_infinite]" />
                                 </div>
-                                <p className="text-fn-accent font-black uppercase tracking-widest text-sm drop-shadow-[0_0_10px_rgba(10,217,196,0.5)]">
-                                    Compositing 3D Data...
+                                <p className="text-white font-black uppercase italic tracking-[0.3em] text-base drop-shadow-[0_0_20px_rgba(10,217,196,0.6)]">
+                                    Compositing <span className="text-fn-accent">3D Physique</span>
                                 </p>
+                                <p className="mt-2 text-[10px] text-fn-muted uppercase font-bold tracking-widest">Medical Heuristics Active</p>
                             </div>
                         )}
 

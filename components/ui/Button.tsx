@@ -5,7 +5,7 @@ type ButtonSize = "default" | "sm";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-fn-primary text-black shadow-fn-soft hover:bg-fn-primary-dim focus:ring-fn-primary/40 disabled:opacity-50",
+    "bg-fn-primary text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:bg-white hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-0.5 focus:ring-fn-primary/40 disabled:opacity-50",
   secondary:
     "border border-fn-border bg-transparent text-fn-ink hover:bg-fn-surface-hover focus:ring-fn-primary/30 backdrop-blur-sm",
   ghost:
@@ -38,7 +38,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    "inline-flex items-center justify-center rounded-xl2 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-fn-bg";
+    "inline-flex items-center justify-center rounded-xl2 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) active:scale-95 active:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-fn-bg";
   const combined = [
     base,
     variantClasses[variant],

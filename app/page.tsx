@@ -8,10 +8,8 @@ import { Card, CardHeader, Button, LoadingState, EmptyState } from "@/components
 import { toLocalDateString } from "@/lib/date/local-date";
 
 const HERO_IMAGES = [
+  "/images/refined/hero.png",
   "https://images.pexels.com/photos/1552249/pexels-photo-1552249.jpeg?auto=compress&cs=tinysrgb&w=1600",
-  "https://images.pexels.com/photos/3076511/pexels-photo-3076511.jpeg?auto=compress&cs=tinysrgb&w=1600",
-  "https://images.pexels.com/photos/13822300/pexels-photo-13822300.jpeg?auto=compress&cs=tinysrgb&w=1600",
-  "https://images.pexels.com/photos/3253501/pexels-photo-3253501.jpeg?auto=compress&cs=tinysrgb&w=1600",
 ];
 
 type HelpTab = "adaptive" | "nutrition" | "coaching";
@@ -324,8 +322,11 @@ export default function HomePage() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {/* Omni-Logging */}
-            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300">
-              <div>
+            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-40 transition-opacity">
+                <Image src="https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg" alt="omni-log" fill className="object-cover grayscale" />
+              </div>
+              <div className="relative z-10">
                 <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
                   <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -339,8 +340,11 @@ export default function HomePage() {
             </Card>
 
             {/* SMS Accountability */}
-            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300">
-              <div>
+            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-60 transition-opacity">
+                <Image src="/images/refined/sms.png" alt="sms" fill className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700" title="Refined SMS View" />
+              </div>
+              <div className="relative z-10">
                 <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
                   <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -354,8 +358,11 @@ export default function HomePage() {
             </Card>
 
             {/* Cinematic Workouts */}
-            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300">
-              <div>
+            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-40 transition-opacity">
+                <Image src="https://images.pexels.com/photos/1552249/pexels-photo-1552249.jpeg" alt="cinematic" fill className="object-cover grayscale" />
+              </div>
+              <div className="relative z-10">
                 <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
                   <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -370,8 +377,11 @@ export default function HomePage() {
             </Card>
 
             {/* Body Comp Scanner */}
-            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300">
-              <div>
+            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute inset-x-0 bottom-0 h-40 opacity-25 group-hover:opacity-70 transition-opacity">
+                <Image src="/images/refined/scanner.png" alt="body scanner" fill className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700" title="Refined Scanner View" />
+              </div>
+              <div className="relative z-10">
                 <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
                   <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -386,8 +396,11 @@ export default function HomePage() {
             </Card>
 
             {/* Real-time Audio */}
-            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300">
-              <div>
+            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-40 transition-opacity">
+                <Image src="https://images.pexels.com/photos/1103242/pexels-photo-1103242.jpeg" alt="audio" fill className="object-cover grayscale" />
+              </div>
+              <div className="relative z-10">
                 <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
                   <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
@@ -400,17 +413,20 @@ export default function HomePage() {
               </div>
             </Card>
 
-            {/* Apple Watch Sim */}
-            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300">
-              <div>
+            {/* Motion Lab */}
+            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute inset-x-0 bottom-0 h-40 opacity-20 group-hover:opacity-60 transition-opacity">
+                <Image src="/images/refined/motion.png" alt="motion lab" fill className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700" title="Refined Motion View" />
+              </div>
+              <div className="relative z-10">
                 <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
                   <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Immersive Watch Simulator</h3>
+                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Motion Lab: Vision AI</h3>
                 <p className="mt-3 text-fn-muted leading-relaxed text-sm">
-                  Distraction-Free Tracking. A deeply immersive, WatchOS-style condensed interface for laser focus mid-set without navigating clunky menus.
+                  Biological Pathing. Our Vision Lab analyzes your movement frame-by-frame to identify velocity leaks and ensure clinical mechanical efficiency.
                 </p>
               </div>
             </Card>
