@@ -204,27 +204,27 @@ export default function CoachPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-shell px-4 py-12 sm:px-8">
-      <header className="mb-10 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
-          <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-xl3 border border-fn-accent/30 shadow-[0_0_30px_rgba(10,217,196,0.2)]">
+    <div className="mx-auto w-full max-w-shell px-4 py-16 sm:px-12">
+      <header className="mb-16 flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-center">
+          <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-xl3 border-2 border-fn-accent/30 shadow-[0_0_50px_rgba(10,217,196,0.3)]">
             <Image
               src={coachImageUrl}
               alt="FitNova AI Coach"
               fill
-              className="object-cover"
-              sizes="128px"
+              className="object-cover scale-110 grayscale-[30%] hover:grayscale-0 transition-all duration-700"
+              sizes="160px"
             />
           </div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent">Elite Protocol</p>
-            <h1 className="mt-2 font-display text-4xl font-black text-white italic tracking-tighter uppercase sm:text-6xl">Coach Room</h1>
-            <p className="mt-4 max-w-2xl text-lg font-medium text-fn-muted leading-relaxed">Direct access to your AI performance lead. Adaptive strategy, metabolic tuning, and absolute accountability.</p>
+          <div className="max-w-xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.5em] text-fn-accent mb-3">Live Protocol Node</p>
+            <h1 className="font-display text-5xl font-black text-white italic tracking-tighter uppercase sm:text-7xl leading-[0.9]">Coach Room</h1>
+            <p className="mt-6 text-xl font-medium text-fn-muted leading-relaxed">Direct access to your AI performance lead. Adaptive strategy and absolute accountability.</p>
           </div>
         </div>
 
         {dailyPlan && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap items-center gap-4">
             <button
               onClick={() => {
                 const newState = !voiceEnabled;
@@ -232,9 +232,9 @@ export default function CoachPage() {
                 coachVoice.toggle(newState);
                 if (newState) coachVoice.speak("Audio coach active. Awaiting your command.");
               }}
-              className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${voiceEnabled ? "border-fn-accent/50 bg-fn-accent/10 text-fn-accent" : "border-white/10 bg-white/5 text-fn-muted hover:border-white/20"}`}
+              className={`flex items-center gap-3 rounded-xl border-2 px-6 py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 ${voiceEnabled ? "border-fn-accent/50 bg-fn-accent text-fn-bg shadow-[0_0_30px_rgba(10,217,196,0.3)]" : "border-white/10 bg-white/5 text-fn-muted hover:border-fn-accent/50 hover:text-white"}`}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 10v4a2 2 0 002 2h2l4 4V4L9 8H7a2 2 0 00-2 2z" /></svg>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 10v4a2 2 0 002 2h2l4 4V4L9 8H7a2 2 0 00-2 2z" /></svg>
               Voice {voiceEnabled ? "On" : "Off"}
             </button>
             <Button variant="secondary" onClick={() => {
@@ -243,38 +243,43 @@ export default function CoachPage() {
                 const firstEx = dailyPlan.training_plan.exercises[0];
                 coachVoice.speak(`Protocol initiated. First up: ${firstEx.sets} sets of ${firstEx.reps} ${firstEx.name}.`);
               }
-            }} className="gap-2">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              Enter Watch Mode
+            }} className="gap-3 border-2 h-[52px]">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Watch Mode
             </Button>
           </div>
         )}
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="space-y-6">
-          <Card padding="lg" className="border-white/5 bg-white/[0.02]">
+      <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
+        <div className="space-y-8">
+          <Card className="border-white/5 bg-white/[0.01]">
             <CardHeader title="Control Center" subtitle="Real-time protocol management" />
-            <div className="mt-6 flex flex-wrap gap-4">
-              <Button onClick={generateDailyPlan} loading={planLoading} size="sm">Generate Today&apos;s Protocol</Button>
-              {dailyPlan && <Button variant="secondary" size="sm" onClick={logPlannedWorkoutComplete}>Commit Session</Button>}
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Button onClick={generateDailyPlan} loading={planLoading}>Generate Protocol</Button>
+              {dailyPlan && <Button variant="secondary" onClick={logPlannedWorkoutComplete}>Commit Session</Button>}
             </div>
             {planError && <ErrorMessage className="mt-4" message={planError} />}
-            {logStatus && <p className="mt-4 rounded-xl bg-fn-accent/10 border border-fn-accent/20 px-4 py-3 text-sm text-fn-accent font-bold uppercase tracking-wider">{logStatus}</p>}
+            {logStatus && (
+              <div className="mt-6 flex items-center gap-3 rounded-2xl bg-fn-accent/10 border border-fn-accent/20 px-6 py-4 animate-in fade-in zoom-in duration-300">
+                <svg className="w-5 h-5 text-fn-accent" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+                <span className="text-sm text-fn-accent font-black uppercase tracking-widest">{logStatus}</span>
+              </div>
+            )}
           </Card>
 
-          <Card className="flex h-[600px] flex-col border-white/5 bg-white/[0.02]">
-            <div className="flex-1 overflow-y-auto space-y-6 p-6 scrollbar-hide">
+          <Card className="flex h-[700px] flex-col border-white/5 bg-white/[0.01] p-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto space-y-8 p-10 scrollbar-hide">
               {messages.length === 0 && (
-                <div className="space-y-8 py-10 text-center">
-                  <p className="text-lg font-medium text-fn-muted max-w-md mx-auto leading-relaxed">System initialized. Secure connection established with Lead Coach. Select a command or type your query.</p>
-                  <div className="flex flex-wrap justify-center gap-3">
+                <div className="space-y-12 py-12 text-center">
+                  <p className="text-xl font-medium text-fn-muted max-w-md mx-auto leading-relaxed">Secure connection established. Lead Coach is awaiting your command.</p>
+                  <div className="flex flex-wrap justify-center gap-4">
                     {SUGGESTED_PROMPTS.map((prompt) => (
                       <button
                         key={prompt}
                         type="button"
                         onClick={() => setInput(prompt)}
-                        className="rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-left text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-white/10 hover:border-white/20 active:scale-95"
+                        className="rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-white/10 hover:border-fn-accent/30 active:scale-95"
                       >
                         {prompt}
                       </button>
@@ -287,7 +292,7 @@ export default function CoachPage() {
                   key={i}
                   className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 >
-                  <div className={`max-w-[85%] rounded-2xl px-6 py-4 text-sm font-medium leading-relaxed shadow-xl ${msg.role === "user"
+                  <div className={`max-w-[85%] rounded-3xl px-8 py-5 text-sm font-medium leading-relaxed shadow-2xl ${msg.role === "user"
                     ? "bg-white text-black rounded-tr-none"
                     : "bg-fn-surface border border-white/5 text-fn-ink rounded-tl-none backdrop-blur-3xl"
                     }`}>
@@ -297,11 +302,11 @@ export default function CoachPage() {
               ))}
               {loading && (
                 <div className="flex justify-start">
-                  <div className="bg-white/5 border border-white/5 rounded-2xl rounded-tl-none px-6 py-4 animate-pulse">
-                    <div className="flex gap-1">
-                      <div className="h-1.5 w-1.5 rounded-full bg-fn-accent" />
-                      <div className="h-1.5 w-1.5 rounded-full bg-fn-accent delay-75" />
-                      <div className="h-1.5 w-1.5 rounded-full bg-fn-accent delay-150" />
+                  <div className="bg-white/5 border border-white/5 rounded-3xl rounded-tl-none px-8 py-5 animate-pulse">
+                    <div className="flex gap-1.5">
+                      <div className="h-2 w-2 rounded-full bg-fn-accent" />
+                      <div className="h-2 w-2 rounded-full bg-fn-accent delay-75" />
+                      <div className="h-2 w-2 rounded-full bg-fn-accent delay-150" />
                     </div>
                   </div>
                 </div>
@@ -310,55 +315,58 @@ export default function CoachPage() {
               <div ref={bottomRef} />
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 border-t border-white/5 bg-black/20 backdrop-blur-3xl">
-              <div className="relative flex gap-3">
+            <form onSubmit={handleSubmit} className="p-8 border-t border-white/5 bg-black/40 backdrop-blur-3xl">
+              <div className="relative flex gap-4">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Inquire performance strategy..."
-                  className="flex-1 rounded-xl2 border border-white/10 bg-white/5 px-6 py-4 text-white placeholder-white/30 transition-all focus:border-fn-accent/50 focus:outline-none focus:ring-4 focus:ring-fn-accent/10"
+                  className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-8 py-5 text-white placeholder-white/20 transition-all focus:border-fn-accent/50 focus:outline-none focus:ring-4 focus:ring-fn-accent/10"
                   disabled={loading}
                 />
-                <Button type="submit" disabled={loading || !input.trim()} className="px-10">Send</Button>
+                <Button type="submit" disabled={loading || !input.trim()} className="px-12">Submit</Button>
               </div>
             </form>
           </Card>
         </div>
 
-        <aside className="space-y-6">
+        <aside className="space-y-8">
           {dailyPlan ? (
-            <Card className="border-fn-accent/30 bg-fn-accent/5">
+            <Card className="border-fn-accent/20 bg-fn-accent/5">
               <CardHeader title="Live Protocol" subtitle={dailyPlan.training_plan.focus} />
-              <div className="mt-6 space-y-6">
+              <div className="mt-8 space-y-8">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-black/40 border border-white/5">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-1">Target</p>
-                    <p className="text-xl font-black text-white">{dailyPlan.nutrition_plan.calorie_target}</p>
+                  <div className="p-5 rounded-2xl bg-black/60 border border-white/10">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Target</p>
+                    <p className="text-2xl font-black text-white italic">{dailyPlan.nutrition_plan.calorie_target}</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-black/40 border border-white/5">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-1">Protein</p>
-                    <p className="text-xl font-black text-white">{dailyPlan.nutrition_plan.macros.protein_g}g</p>
+                  <div className="p-5 rounded-2xl bg-black/60 border border-white/10">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Protein</p>
+                    <p className="text-2xl font-black text-white italic">{dailyPlan.nutrition_plan.macros.protein_g}g</p>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Session Breakdown</p>
-                  <ul className="space-y-3">
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted flex items-center gap-2">
+                    <span className="h-1 w-4 bg-fn-accent rounded-full" />
+                    Session Breakdown
+                  </p>
+                  <ul className="space-y-4">
                     {dailyPlan.training_plan.exercises.slice(0, 6).map((exercise) => (
-                      <li key={exercise.name} className="group flex flex-col gap-2 p-3 rounded-xl bg-white/5 border border-white/5 transition-all hover:bg-white/10">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-bold text-white uppercase italic tracking-tighter">{exercise.name}</span>
-                          <span className="text-xs font-black text-fn-accent">{exercise.sets}×{exercise.reps}</span>
+                      <li key={exercise.name} className="group flex flex-col gap-3 p-5 rounded-2xl bg-white/5 border border-white/5 transition-all hover:bg-white/10 hover:border-fn-accent/20">
+                        <div className="flex justify-between items-start">
+                          <span className="text-base font-black text-white uppercase italic tracking-tighter leading-tight max-w-[70%]">{exercise.name}</span>
+                          <span className="text-xs font-black text-fn-accent bg-fn-accent/10 px-2 py-1 rounded-md">{exercise.sets}×{exercise.reps}</span>
                         </div>
                         {exercise.video_url && (
                           <button
                             onClick={() => setActiveVideo({ url: exercise.video_url!, name: exercise.name })}
                             className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-fn-accent/70 hover:text-fn-accent transition-colors"
                           >
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M8 5v14l11-7z" />
                             </svg>
-                            Watch Demo
+                            Demo Sequence
                           </button>
                         )}
                       </li>
@@ -368,20 +376,22 @@ export default function CoachPage() {
               </div>
             </Card>
           ) : (
-            <Card className="border-white/5 bg-white/[0.01] opacity-50">
-              <div className="py-20 text-center">
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-fn-muted mb-4">No Protocol Active</p>
-                <p className="text-sm font-medium text-fn-muted leading-relaxed">Generate your daily targets to activate live monitoring.</p>
+            <Card className="border-white/5 bg-white/[0.01] opacity-60">
+              <div className="py-24 text-center">
+                <div className="mx-auto mb-6 h-12 w-12 rounded-full border border-white/10 flex items-center justify-center opacity-20">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                </div>
+                <p className="text-xs font-black uppercase tracking-[0.4em] text-fn-muted">Protocol Dormant</p>
               </div>
             </Card>
           )}
 
           <Card className="border-white/5 bg-white/[0.01]">
             <CardHeader title="Intelligence" subtitle="System baseline" />
-            <div className="mt-4 space-y-4">
-              <p className="text-xs text-fn-muted leading-relaxed italic">Coach is utilizing available Bio-Sync data, historical volume, and nutritional adherence to synthesize recommendations.</p>
-              <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full bg-fn-accent w-3/4 animate-pulse" />
+            <div className="mt-4 space-y-6">
+              <p className="text-xs text-fn-muted leading-relaxed italic border-l-2 border-fn-accent/30 pl-4">Coach is synthesizing Bio-Sync data, historical force velocity, and adherence peaks to optimize this window.</p>
+              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                <div className="h-full bg-fn-accent w-3/4 shadow-[0_0_10px_rgba(10,217,196,0.5)] animate-pulse" />
               </div>
             </div>
           </Card>

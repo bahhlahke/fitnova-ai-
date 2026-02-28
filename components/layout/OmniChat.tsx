@@ -85,24 +85,36 @@ export function OmniChat() {
                 </div>
             </button>
 
+            {/* Backdrop */}
+            {isOpen && (
+                <div
+                    className="fixed inset-0 z-[45] bg-black/60 backdrop-blur-sm transition-opacity duration-500"
+                    onClick={() => setIsOpen(false)}
+                />
+            )}
+
             {/* Slide-over Panel */}
             <div
-                className={`fixed inset-y-0 right-0 z-50 w-full transform border-l border-fn-border bg-black/40 backdrop-blur-3xl transition-transform duration-500 ease-in-out md:w-[450px] ${isOpen ? "translate-x-0" : "translate-x-full"
+                className={`fixed inset-y-0 right-0 z-50 w-full transform border-l border-fn-border bg-black/20 backdrop-blur-3xl transition-transform duration-500 ease-in-out md:w-[450px] ${isOpen ? "translate-x-0" : "translate-x-full"
                     }`}
             >
                 <div className="flex h-full flex-col">
                     {/* Header */}
-                    <div className="flex items-center justify-between border-b border-fn-border p-6">
+                    <div className="flex items-center justify-between border-b border-fn-border p-8">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent">Omni-Channel AI</p>
                             <h2 className="font-display text-2xl font-black text-white italic uppercase tracking-tighter">Nova AI</h2>
                         </div>
                         <button
-                            onClick={() => setIsOpen(false)}
-                            className="rounded-full bg-white/5 p-2 text-fn-muted hover:text-white transition-colors"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsOpen(false);
+                            }}
+                            className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-fn-muted hover:bg-white/10 hover:text-white transition-all active:scale-90"
+                            aria-label="Close Chat"
                         >
                             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>

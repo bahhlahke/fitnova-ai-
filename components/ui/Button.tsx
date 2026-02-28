@@ -38,7 +38,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    "inline-flex items-center justify-center rounded-xl2 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) active:scale-95 active:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-fn-bg";
+    "inline-flex items-center justify-center rounded-xl font-black uppercase tracking-widest transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) active:scale-95 active:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-fn-bg";
   const combined = [
     base,
     variantClasses[variant],

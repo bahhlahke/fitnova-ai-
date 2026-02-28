@@ -590,28 +590,28 @@ export default function HomePage() {
       </section>
 
       {/* Intelligence Feed & Shortcuts */}
-      <section className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-white/5 bg-white/[0.01] p-8">
+      <section className="mt-8 grid gap-8 lg:grid-cols-3">
+        <Card className="lg:col-span-2 border-white/5 bg-white/[0.01]">
           <CardHeader title="Intelligence Feed" subtitle="System alerts" />
           <ul className="mt-6 space-y-4">
-            <li className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
+            <li className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 border border-white/5 animate-in slide-in-from-left duration-500">
               <div className="h-2 w-2 rounded-full bg-fn-accent mt-2 shadow-[0_0_10px_rgba(10,217,196,1)]" />
               <p className="text-sm font-medium text-fn-muted leading-relaxed">System detects protein deficiency for 48h. Adjusting tomorrow&apos;s targets.</p>
             </li>
-            <li className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5 opacity-60">
+            <li className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 border border-white/5 opacity-60 animate-in slide-in-from-left duration-700">
               <div className="h-2 w-2 rounded-full bg-white mt-2" />
               <p className="text-sm font-medium text-fn-muted leading-relaxed">Volume spike on Wednesday. Recommended active recovery session.</p>
             </li>
           </ul>
         </Card>
 
-        <Card className="border-white/5 bg-white/[0.01] p-8">
+        <Card className="border-white/5 bg-white/[0.01]">
           <CardHeader title="Hyper-Speed" subtitle="Direct routing" />
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <Link href="/log/workout"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5">Log Training</Button></Link>
-            <Link href="/log/nutrition"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5">Log Fuel</Button></Link>
-            <Link href="/motion"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5">Motion Lab</Button></Link>
-            <Link href="/progress"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5">Analytics</Button></Link>
+          <div className="mt-8 grid grid-cols-1 gap-3">
+            <Link href="/log/workout"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5 hover:bg-white/10">Log Training</Button></Link>
+            <Link href="/log/nutrition"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5 hover:bg-white/10">Log Fuel</Button></Link>
+            <Link href="/motion"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5 hover:bg-white/10">Motion Lab</Button></Link>
+            <Link href="/progress"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5 hover:bg-white/10">Analytics</Button></Link>
           </div>
         </Card>
       </section>

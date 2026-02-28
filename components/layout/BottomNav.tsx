@@ -23,24 +23,25 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-fn-border bg-black/40 backdrop-blur-xl nav-safe md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/5 bg-black/40 backdrop-blur-3xl nav-safe md:hidden shadow-[0_-10px_50px_rgba(0,0,0,0.5)]"
       role="navigation"
       aria-label="Main"
     >
-      <div className="mx-auto flex max-w-shell justify-around md:justify-center md:gap-4 md:px-4 md:py-6">
+      <div className="mx-auto flex max-w-shell justify-between px-6 py-4">
         {navItems.map(({ href, label }) => {
           const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
           return (
             <Link
               key={href}
               href={href}
-              className={`relative flex min-h-touch min-w-touch items-center justify-center rounded-2xl px-6 py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 md:min-h-0 md:min-w-0 ${isActive
-                ? "bg-white text-black scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]"
-                : "text-fn-muted hover:text-white hover:bg-white/5"
+              className={`relative flex flex-col items-center justify-center transition-all duration-300 ${isActive
+                ? "text-fn-accent scale-110"
+                : "text-fn-muted hover:text-white"
                 }`}
               aria-current={isActive ? "page" : undefined}
             >
-              {label}
+              <div className={`h-1.5 w-1.5 rounded-full mb-1 transition-all ${isActive ? "bg-fn-accent shadow-[0_0_10px_rgba(10,217,196,1)] scale-100" : "bg-transparent scale-0"}`} />
+              <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
             </Link>
           );
         })}

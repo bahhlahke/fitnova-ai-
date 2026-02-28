@@ -38,12 +38,12 @@ describe("Coach Room Apple Watch UI", () => {
         render(<CoachPage />);
 
         // Generate plan
-        const genBtn = screen.getByRole("button", { name: /Generate Today's Protocol/i });
+        const genBtn = screen.getByRole("button", { name: /Generate Protocol/i });
         fireEvent.click(genBtn);
 
         // Wait for plan to load
         await waitFor(() => {
-            expect(screen.getByText(/Enter Watch Mode/i)).toBeInTheDocument();
+            expect(screen.getByText(/Watch Mode/i)).toBeInTheDocument();
         });
 
         // Enter Watch Mode
