@@ -46,6 +46,9 @@ export const metadata: Metadata = {
   ...(process.env.VERCEL_URL && { metadataBase: new URL(`https://${process.env.VERCEL_URL}`) }),
 };
 
+import { Sidebar } from "@/components/layout/Sidebar";
+import { OmniChat } from "@/components/layout/OmniChat";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -53,7 +56,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${manrope.variable} ${fraunces.variable} min-h-screen flex flex-col font-sans text-fn-ink`}>
+      <body className={`${manrope.variable} ${fraunces.variable} min-h-screen flex flex-row font-sans text-fn-ink bg-black`}>
         <AuthProvider>
           <a
             href="#main"
@@ -61,10 +64,14 @@ export default function RootLayout({
           >
             Skip to main content
           </a>
-          <main id="main" className="flex-1 pb-20 md:pb-0" tabIndex={-1}>
-            {children}
-          </main>
-          <BottomNav />
+          <Sidebar />
+          <div className="flex flex-1 flex-col md:pl-64">
+            <main id="main" className="flex-1 pb-20 md:pb-10" tabIndex={-1}>
+              {children}
+            </main>
+            <BottomNav />
+            <OmniChat />
+          </div>
         </AuthProvider>
         <Suspense fallback={null}>
           <MetaPixel />

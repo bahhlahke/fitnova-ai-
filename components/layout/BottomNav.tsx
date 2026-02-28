@@ -23,7 +23,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-fn-border bg-black/40 backdrop-blur-xl nav-safe md:relative md:border-t-0 md:bg-transparent"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-fn-border bg-black/40 backdrop-blur-xl nav-safe md:hidden"
       role="navigation"
       aria-label="Main"
     >
@@ -35,8 +35,8 @@ export function BottomNav() {
               key={href}
               href={href}
               className={`relative flex min-h-touch min-w-touch items-center justify-center rounded-2xl px-6 py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 md:min-h-0 md:min-w-0 ${isActive
-                  ? "bg-white text-black scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]"
-                  : "text-fn-muted hover:text-white hover:bg-white/5"
+                ? "bg-white text-black scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                : "text-fn-muted hover:text-white hover:bg-white/5"
                 }`}
               aria-current={isActive ? "page" : undefined}
             >

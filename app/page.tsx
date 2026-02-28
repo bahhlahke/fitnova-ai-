@@ -487,63 +487,63 @@ export default function HomePage() {
       </header>
 
       {/* Primary Actions Grid */}
+      {/* Primary Evolution Logic */}
       <section className="grid gap-6 lg:grid-cols-3">
-        <Card padding="lg" className="lg:col-span-2 border-white/10 bg-white/[0.03] flex flex-col justify-between">
-          <div>
-            <CardHeader title="Current Focus" subtitle="Today's optimized training target" />
-            <p className="mt-8 text-4xl sm:text-5xl font-black text-white uppercase italic tracking-tighter leading-tight">
-              {todayPlan?.focus ?? "Initialize Daily Plan"}
+        <Card padding="lg" className="lg:col-span-2 border-white/10 bg-white/[0.03] flex flex-col justify-between overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
+            <svg className="w-64 h-64 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          </div>
+          <div className="relative z-10">
+            <CardHeader title="Current Focus" subtitle="Your next evolution target" />
+            <p className="mt-8 text-5xl sm:text-7xl font-black text-white uppercase italic tracking-tighter leading-tight">
+              {todayPlan?.focus ?? "Initialize Protocol"}
             </p>
-            <p className="mt-4 text-lg text-fn-muted font-medium">
-              {todayPlan ? `Targeting ${todayPlan.calories} calories with progressive load adjustments.` : "Ready for your next evolution? Open Coach to generate your targets."}
+            <p className="mt-4 text-xl text-fn-muted font-medium max-w-xl">
+              {todayPlan ? `Hyper-personalized targets: ${todayPlan.calories} kcal baseline.` : "Awaiting biometric signal to generate your next training protocol."}
             </p>
           </div>
-          <div className="mt-10 flex flex-wrap gap-4">
+          <div className="mt-12 flex flex-wrap gap-4 relative z-10">
             <Link href="/coach"><Button className="w-full sm:w-auto">Enter Coach Room</Button></Link>
             <Link href="/log/workout"><Button variant="secondary" className="w-full sm:w-auto">Manual Log</Button></Link>
           </div>
         </Card>
 
-        <Card padding="lg" className="border-fn-accent/20 bg-fn-accent/5">
-          <CardHeader title="Elite Performance" subtitle="Weekly consistency & trend" />
-          <div className="mt-8 space-y-8">
-            <div className="flex justify-between items-end">
+        <Card padding="lg" className="border-fn-accent/20 bg-fn-accent/5 flex flex-col justify-between">
+          <div>
+            <CardHeader title="Adherence Velocity" subtitle="7-day training momentum" />
+            <div className="mt-10 flex justify-between items-end">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1">Sessions</p>
-                <p className="text-5xl font-black text-white italic">{weekCount}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1">Weekly Volume</p>
+                <p className="text-6xl font-black text-white italic">{weekCount}</p>
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1">Streak</p>
-                <p className="text-5xl font-black text-fn-accent italic">{streak}</p>
+                <p className="text-6xl font-black text-fn-accent italic">{streak}</p>
               </div>
             </div>
-
-            <div className="h-4 w-full overflow-hidden rounded-full bg-white/5 p-1">
-              <div className="h-full rounded-full bg-fn-accent shadow-[0_0_15px_rgba(10,217,196,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, weekCount * 25)}%` }} />
+            <div className="mt-8 h-3 w-full overflow-hidden rounded-full bg-white/5">
+              <div className="h-full rounded-full bg-fn-accent shadow-[0_0_20px_rgba(10,217,196,0.6)] transition-all duration-1000" style={{ width: `${Math.min(100, (weekCount / 5) * 100)}%` }} />
             </div>
-
-            {weeklyInsight && (
-              <div className="relative p-6 rounded-2xl bg-white/5 border border-white/5 italic text-fn-muted text-sm leading-relaxed">
-                <span className="absolute -top-3 left-4 bg-fn-bg px-2 text-[10px] font-black uppercase tracking-widest text-fn-accent">Coach Insight</span>
-                &quot;{weeklyInsight}&quot;
-              </div>
-            )}
           </div>
+
+          {weeklyInsight && (
+            <div className="mt-8 p-6 rounded-2xl bg-black/40 border border-white/5 italic text-fn-muted text-sm leading-relaxed relative">
+              <span className="absolute -top-3 left-4 bg-fn-bg px-2 text-[10px] font-black uppercase tracking-widest text-fn-accent">Lead Logic</span>
+              &quot;{weeklyInsight}&quot;
+            </div>
+          )}
         </Card>
       </section>
 
-      {/* Signal Feed */}
-      <section className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-white/5 bg-white/[0.01]">
-          <CardHeader title="Biological Signal" subtitle="7-day training volume trend" />
+      {/* Biological Analytics Grid */}
+      <section className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="col-span-1 md:col-span-2 border-white/5 bg-white/[0.01] p-8">
+          <CardHeader title="Volume Trend" subtitle="7-day biological load" />
           <div className="mt-8 flex h-40 items-end gap-3 px-2">
             {last7Days.map((value, idx) => (
-              <div
-                key={idx}
-                className="group relative flex-1"
-              >
+              <div key={idx} className="group relative flex-1">
                 <div
-                  className="rounded-t-lg bg-white/10 group-hover:bg-white/30 transition-all duration-500 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
+                  className="rounded-t-lg bg-white/10 group-hover:bg-fn-accent/40 transition-all duration-500"
                   style={{ height: `${Math.max(10, (value / Math.max(...last7Days, 1)) * 100)}%` }}
                 />
                 <div className="absolute -bottom-6 left-0 right-0 text-center text-[8px] font-black text-fn-muted uppercase opacity-40">D{7 - idx}</div>
@@ -552,53 +552,50 @@ export default function HomePage() {
           </div>
         </Card>
 
-        <Card className="border-white/5 bg-white/[0.01]">
-          <CardHeader title="Readiness" subtitle="Recovery & adaptive baseline" />
-          <div className="mt-6 space-y-6">
-            {recoverySuggestion && (
-              <p className="text-lg font-bold text-fn-accent uppercase italic leading-tight">{recoverySuggestion}</p>
+        <Card className="border-white/5 bg-white/[0.01] p-8">
+          <CardHeader title="Readiness" subtitle="Recovery baseline" />
+          <div className="mt-8 flex flex-col h-40 justify-between">
+            {recoverySuggestion ? (
+              <p className="text-xl font-black text-fn-accent uppercase italic leading-tight">{recoverySuggestion}</p>
+            ) : (
+              <p className="text-xl font-black text-white uppercase italic leading-tight">Optimal Recovery Detected</p>
             )}
-            {readinessInsight && (
-              <p className="text-fn-muted text-sm leading-relaxed italic border-l-2 border-fn-accent pl-4">{readinessInsight}</p>
-            )}
-            <Link href="/check-in">
-              <Button size="sm" variant="secondary" className="w-full">Update Bio-Data</Button>
-            </Link>
+            <div className="space-y-4">
+              {readinessInsight && (
+                <p className="text-fn-muted text-xs leading-relaxed italic border-l-2 border-fn-accent pl-4">{readinessInsight}</p>
+              )}
+              <Link href="/check-in">
+                <Button size="sm" variant="ghost" className="w-full border border-white/10">Refine Data</Button>
+              </Link>
+            </div>
           </div>
         </Card>
 
-        {projection && (
-          <Card className="lg:col-span-3 border-fn-accent/10 bg-gradient-to-br from-fn-accent/[0.03] to-transparent">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8 p-8">
-              <div className="flex-1 space-y-4 text-center md:text-left">
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent">Performance Projection Engine</p>
-                <h3 className="font-display text-4xl font-black text-white italic tracking-tighter uppercase">Signal Trajectory</h3>
-                <p className="text-fn-muted text-sm max-w-md leading-relaxed">
-                  Based on your current adherence velocity, the system projects your metabolic baseline to shift towards <span className="text-white font-bold">{projection.projected_12w}kg</span> over the next 12 weeks.
-                </p>
+        <Card className="border-white/5 bg-fn-accent/[0.02] p-8">
+          <CardHeader title="Trajectory" subtitle="12-week projection" />
+          {projection ? (
+            <div className="mt-8 flex flex-col h-40 justify-between">
+              <div>
+                <p className="text-4xl font-black text-white italic tracking-tighter">{projection.projected_12w}kg</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mt-2">{Math.round(projection.confidence * 100)}% Confidence</p>
               </div>
-              <div className="grid grid-cols-2 gap-8 md:gap-12 shrink-0">
-                <div className="text-center">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-2">4-Week Target</p>
-                  <p className="text-4xl font-black text-white italic">{projection.projected_4w}kg</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-2">Confidence</p>
-                  <p className="text-4xl font-black text-fn-accent italic">{Math.round(projection.confidence * 100)}%</p>
-                </div>
-              </div>
+              <p className="text-[10px] text-fn-muted font-medium italic leading-loose">Based on current metabolic velocity and adherence.</p>
             </div>
-          </Card>
-        )}
+          ) : (
+            <div className="mt-8 flex flex-col h-40 items-center justify-center text-center">
+              <p className="text-xs font-black text-fn-muted uppercase tracking-widest">Awaiting Data</p>
+            </div>
+          )}
+        </Card>
       </section>
 
-      {/* Feed & Shortcuts */}
-      <section className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Card className="border-white/5 bg-white/[0.01]">
-          <CardHeader title="Intelligence Feed" subtitle="3 critical alerts detected" />
-          <ul className="mt-4 space-y-4">
+      {/* Intelligence Feed & Shortcuts */}
+      <section className="mt-6 grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2 border-white/5 bg-white/[0.01] p-8">
+          <CardHeader title="Intelligence Feed" subtitle="System alerts" />
+          <ul className="mt-6 space-y-4">
             <li className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
-              <div className="h-2 w-2 rounded-full bg-fn-accent mt-2" />
+              <div className="h-2 w-2 rounded-full bg-fn-accent mt-2 shadow-[0_0_10px_rgba(10,217,196,1)]" />
               <p className="text-sm font-medium text-fn-muted leading-relaxed">System detects protein deficiency for 48h. Adjusting tomorrow&apos;s targets.</p>
             </li>
             <li className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5 opacity-60">
@@ -608,14 +605,13 @@ export default function HomePage() {
           </ul>
         </Card>
 
-        <Card className="border-white/5 bg-white/[0.01]">
-          <CardHeader title="Hyper-Speed Actions" subtitle="Direct routing" />
-          <div className="mt-4 grid grid-cols-2 gap-3">
+        <Card className="border-white/5 bg-white/[0.01] p-8">
+          <CardHeader title="Hyper-Speed" subtitle="Direct routing" />
+          <div className="mt-6 grid grid-cols-2 gap-3">
             <Link href="/log/workout"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5">Log Training</Button></Link>
             <Link href="/log/nutrition"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5">Log Fuel</Button></Link>
-            <Link href="/motion"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5 group-hover:border-fn-accent/50 transition-colors">AI Motion Lab</Button></Link>
-            <Link href="/progress"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5">Signal Analytics</Button></Link>
-            <Link href="/onboarding"><Button size="sm" variant="ghost" className="w-full justify-start border border-fn-accent/30 bg-fn-accent/5">Onboarding</Button></Link>
+            <Link href="/motion"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5">Motion Lab</Button></Link>
+            <Link href="/progress"><Button size="sm" variant="ghost" className="w-full justify-start border border-white/5 bg-white/5">Analytics</Button></Link>
           </div>
         </Card>
       </section>
