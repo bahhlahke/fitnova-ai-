@@ -1,7 +1,5 @@
 // scripts/benchmark_body_comp.ts
-import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });// Make sure to load env vars for OpenRouter
-import 'dotenv/config';
+// Make sure to pass OPENROUTER_API_KEY via CLI when running
 
 // The shape of our ground truth data
 interface GroundTruth {
