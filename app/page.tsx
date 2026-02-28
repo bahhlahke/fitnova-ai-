@@ -311,35 +311,108 @@ export default function HomePage() {
 
         {/* Value Proposition Grid */}
         <section className="mx-auto max-w-shell px-4 py-24 sm:px-6">
-          <div className="grid gap-8 lg:grid-cols-3">
-            <Card padding="lg" className="border-white/5 bg-white/[0.02]">
-              <div className="h-12 w-12 rounded-xl bg-fn-accent/20 flex items-center justify-center mb-6">
-                <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+          <div className="mb-16 text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4 shrink-0">Premium Experience Parity</p>
+            <h2 className="font-display text-4xl sm:text-6xl font-black text-white italic uppercase tracking-tighter leading-[1.1]">
+              The $200/mo Coaching Experience.<br />
+              <span className="text-fn-accent">For $9.99/mo.</span>
+            </h2>
+            <p className="mt-6 text-xl text-fn-muted max-w-2xl mx-auto font-medium leading-relaxed">
+              We stripped out the human overhead and automated the exact methodologies used by elite personal trainers, creating a hyper-advanced suite of tools.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Omni-Logging */}
+            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300">
+              <div>
+                <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Omni-Logging AI Chatbot</h3>
+                <p className="mt-3 text-fn-muted leading-relaxed text-sm">
+                  Zero-Friction Logging. Just text your coach what you ate or what you lifted, and it autonomously parses the data and updates your charts.
+                </p>
               </div>
-              <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Adaptive Intensity</h3>
-              <p className="mt-4 text-fn-muted leading-relaxed">FitNova recalibrates your training load in real-time based on Bio-Sync readiness data.</p>
             </Card>
 
-            <Card padding="lg" className="border-white/5 bg-white/[0.02]">
-              <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center mb-6">
-                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+            {/* SMS Accountability */}
+            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300">
+              <div>
+                <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Smart SMS Accountability</h3>
+                <p className="mt-3 text-fn-muted leading-relaxed text-sm">
+                  Your Coach in Your Pocket. Proactive daily text messages checking in on your sleep, soreness, and adherence to ensure you never miss a beat.
+                </p>
               </div>
-              <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Metabolic Autopilot</h3>
-              <p className="mt-4 text-fn-muted leading-relaxed">Dynamic nutrition targets that shift automatically to fuel your performance and recovery.</p>
             </Card>
 
-            <Card padding="lg" className="border-white/5 bg-white/[0.02]">
-              <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center mb-6">
-                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
+            {/* Cinematic Workouts */}
+            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300">
+              <div>
+                <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Cinematic Guided Workouts</h3>
+                <p className="mt-3 text-fn-muted leading-relaxed text-sm">
+                  Premium AV Experience. Ditch the generic stick-figures. Train alongside 4K, dark-aesthetic cinematic loops designed to push your limits.
+                </p>
               </div>
-              <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">AI Motion Lab</h3>
-              <p className="mt-4 text-fn-muted leading-relaxed">Professional-grade form feedback powered by advanced vision AI. Your phone is now your coach.</p>
+            </Card>
+
+            {/* Body Comp Scanner */}
+            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300">
+              <div>
+                <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">AI Body Comp Scanner</h3>
+                <p className="mt-3 text-fn-muted leading-relaxed text-sm">
+                  DEXA-Grade Insights. Snap a photo and let our vision AI instantly estimate your body fat composition to feed accurate data directly to your coach.
+                </p>
+              </div>
+            </Card>
+
+            {/* Real-time Audio */}
+            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300">
+              <div>
+                <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Real-Time Audio Coach</h3>
+                <p className="mt-3 text-fn-muted leading-relaxed text-sm">
+                  Voice-Activated Cues. Put your phone away. The system&apos;s neural voice actively guides your pacing, reps, and precise rest times during your session.
+                </p>
+              </div>
+            </Card>
+
+            {/* Apple Watch Sim */}
+            <Card padding="lg" className="border-white/5 bg-white/[0.02] flex flex-col justify-between group hover:border-fn-accent/30 transition-all duration-300">
+              <div>
+                <div className="h-12 w-12 rounded-xl bg-fn-accent/10 flex items-center justify-center mb-6 border border-fn-accent/20 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Immersive Watch Simulator</h3>
+                <p className="mt-3 text-fn-muted leading-relaxed text-sm">
+                  Distraction-Free Tracking. A deeply immersive, WatchOS-style condensed interface for laser focus mid-set without navigating clunky menus.
+                </p>
+              </div>
             </Card>
           </div>
         </section>
