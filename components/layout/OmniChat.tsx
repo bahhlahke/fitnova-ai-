@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { toLocalDateString } from "@/lib/date/local-date";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -59,7 +60,10 @@ export function OmniChat() {
             const res = await fetch("/api/v1/ai/respond", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: text }),
+                body: JSON.stringify({
+                    message: text,
+                    localDate: toLocalDateString(),
+                }),
             });
 
             const data = await res.json();

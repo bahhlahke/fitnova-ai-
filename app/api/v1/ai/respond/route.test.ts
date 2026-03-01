@@ -129,17 +129,41 @@ describe("POST /api/v1/ai/respond", () => {
 
   it("processes tool calls and logs biometrics successfully", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+
+    const progressInsert = vi.fn().mockResolvedValue({ error: null });
+    const progressUpdateEq = vi.fn().mockResolvedValue({ error: null });
+    const progressUpdate = vi.fn().mockReturnValue({ eq: progressUpdateEq });
+
     mockSupabase.from.mockImplementation((table: string) => {
-      const mockChain = {
+      if (table === "progress_tracking") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          insert: progressInsert,
+          update: progressUpdate,
+        };
+      }
+
+      if (table === "ai_conversations") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          insert: vi.fn().mockResolvedValue({ error: null }),
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+        };
+      }
+
+      return {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null }),
-        insert: vi.fn().mockResolvedValue({ error: null }),
-        update: vi.fn().mockResolvedValue({ error: null }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
-      return mockChain;
     });
 
     const mockToolCallResponse = {
@@ -182,7 +206,10 @@ describe("POST /api/v1/ai/respond", () => {
 
     const req = new Request("http://localhost/api/v1/ai/respond", {
       method: "POST",
-      body: JSON.stringify({ message: "I weigh 185 lbs today at 12% BF." }),
+      body: JSON.stringify({
+        message: "I weigh 185 lbs today at 12% BF.",
+        localDate: "2026-02-28",
+      }),
       headers: { "Content-Type": "application/json" },
     });
 
@@ -200,6 +227,15 @@ describe("POST /api/v1/ai/respond", () => {
     expect(data.refreshScopes).toEqual(
       expect.arrayContaining(["dashboard", "progress"])
     );
+    expect(progressInsert).toHaveBeenCalledWith({
+      user_id: "u1",
+      date: "2026-02-28",
+      weight: 83.9,
+      body_fat_percent: 12,
+      measurements: {},
+      notes: "Logged via Nova AI",
+    });
+    expect(progressUpdate).not.toHaveBeenCalled();
   });
 
   afterEach(() => {

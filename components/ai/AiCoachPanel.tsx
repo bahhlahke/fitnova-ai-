@@ -7,6 +7,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { emitDataRefresh } from "@/lib/ui/data-sync";
+import { toLocalDateString } from "@/lib/date/local-date";
 import type { AiActionResult, RefreshScope } from "@/types";
 
 type Message = {
@@ -79,7 +80,10 @@ export function AiCoachPanel({
       const res = await fetch("/api/v1/ai/respond", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({
+          message: text,
+          localDate: toLocalDateString(),
+        }),
       });
 
       const data = (await res.json()) as AiResponse;

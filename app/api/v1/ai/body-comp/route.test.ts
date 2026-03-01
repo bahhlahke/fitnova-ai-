@@ -89,7 +89,10 @@ describe("POST /api/v1/ai/body-comp", () => {
 
         const req = new Request("http://localhost/api/v1/ai/body-comp", {
             method: "POST",
-            body: JSON.stringify({ images: { front: "base64_front", side: "base64_side", back: "base64_back" } }),
+            body: JSON.stringify({
+                images: { front: "base64_front", side: "base64_side", back: "base64_back" },
+                localDate: "2026-02-28",
+            }),
         });
 
         const res = await POST(req);
@@ -103,7 +106,7 @@ describe("POST /api/v1/ai/body-comp", () => {
         expect(mockSupabase.from).toHaveBeenCalledWith("progress_tracking");
         expect(mockSupabase.from().insert).toHaveBeenCalledWith({
             user_id: "user_123",
-            date: expect.any(String), // today's date
+            date: "2026-02-28",
             body_fat_percent: 14.5,
             measurements: {},
             notes: "Logged via AI Body Comp Scanner",

@@ -5,6 +5,7 @@ import { PageLayout, Card, Button, CardHeader } from "@/components/ui";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { emitDataRefresh } from "@/lib/ui/data-sync";
+import { toLocalDateString } from "@/lib/date/local-date";
 
 export default function BodyCompScannerPage() {
     const router = useRouter();
@@ -50,7 +51,10 @@ export default function BodyCompScannerPage() {
             const res = await fetch("/api/v1/ai/body-comp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ images }),
+                body: JSON.stringify({
+                    images,
+                    localDate: toLocalDateString(),
+                }),
             });
 
             if (!res.ok) {

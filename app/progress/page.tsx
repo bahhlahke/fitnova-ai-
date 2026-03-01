@@ -22,6 +22,8 @@ import {
 import { useDataRefresh } from "@/lib/ui/data-sync";
 
 type Entry = {
+  track_id: string;
+  created_at: string;
   date: string;
   weight?: number;
   body_fat_percent?: number;
@@ -49,9 +51,10 @@ export default function ProgressPage() {
       }
       supabase
         .from("progress_tracking")
-        .select("date, weight, body_fat_percent, measurements, notes")
+        .select("track_id, created_at, date, weight, body_fat_percent, measurements, notes")
         .eq("user_id", user.id)
         .order("date", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(30)
         .then(
           ({ data }) => {
@@ -82,7 +85,11 @@ export default function ProgressPage() {
     loadProgress();
   });
 
-  const weights = entries.filter((e) => e.weight != null) as { date: string; weight: number }[];
+  const weights = entries.filter((e) => e.weight != null) as {
+    track_id: string;
+    date: string;
+    weight: number;
+  }[];
   const latestWeight = weights[0]?.weight;
   const previousWeight = weights[1]?.weight;
   const latestWeightDisplay = latestWeight != null ? formatDisplayNumber(toDisplayWeight(latestWeight, unitSystem), 1) : null;
@@ -209,7 +216,7 @@ export default function ProgressPage() {
                     const heightPct = Math.max(8, (e.weight / maxWeight) * 90);
                     const dayLabel = new Date(e.date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short" }).slice(0, 1);
                     return (
-                      <div key={e.date} className="flex flex-1 flex-col items-center gap-1">
+                      <div key={e.track_id} className="flex flex-1 flex-col items-center gap-1">
                         <div
                           className="w-full rounded-t-lg bg-fn-accent/50 hover:bg-fn-accent transition-colors duration-200 cursor-default"
                           style={{ height: `${heightPct}%` }}
@@ -274,7 +281,7 @@ export default function ProgressPage() {
               ) : (
                 <ul className="mt-4 space-y-2">
                   {entries.slice(0, 10).map((e) => (
-                    <li key={e.date} className="flex justify-between rounded-xl border border-fn-border bg-fn-surface-hover px-4 py-3 text-sm">
+                    <li key={e.track_id} className="flex justify-between rounded-xl border border-fn-border bg-fn-surface-hover px-4 py-3 text-sm">
                       <span className="font-bold text-fn-ink">{e.date}</span>
                       <span className="text-fn-muted">
                         {[

@@ -8,6 +8,7 @@ import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
 import { callModel } from "@/lib/ai/model";
 import type { AiActionResult, RefreshScope } from "@/types";
+
 const SYSTEM_PROMPT_VERSION = "v2-balanced-safety";
 const MAX_MESSAGE_CHARS = 2000;
 const RATE_LIMIT_CAPACITY = 12;
@@ -20,6 +21,31 @@ const SAFETY_POLICY = `Safety policy (balanced):
 - Respect injuries/limitations from profile data and provide safer alternatives.
 - Prefer sustainable, evidence-informed advice over extreme protocols.`;
 
+type RequestBody = {
+  message?: string;
+  localDate?: string;
+};
+
+function isValidLocalDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value
+  );
+}
+
+function resolveLogDate(localDate: string | undefined): string {
+  if (typeof localDate === "string") {
+    const trimmed = localDate.trim();
+    if (isValidLocalDate(trimmed)) return trimmed;
+  }
+  return new Date().toISOString().slice(0, 10);
+}
+
+function toKgFromLbs(lbs: number): number {
+  return Math.round(lbs * 0.45359237 * 10) / 10;
+}
 
 export async function POST(request: Request) {
   const requestId = makeRequestId();
@@ -32,14 +58,15 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { message?: string };
+  let body: RequestBody;
   try {
-    body = (await request.json()) as { message?: string };
+    body = (await request.json()) as RequestBody;
   } catch {
     return jsonError(400, "INVALID_JSON", "Invalid JSON body.");
   }
 
   const message = typeof body.message === "string" ? body.message.trim() : "";
+  const logDate = resolveLogDate(body.localDate);
   if (!message) {
     return jsonError(400, "VALIDATION_ERROR", "message is required.");
   }
@@ -167,20 +194,56 @@ export async function POST(request: Request) {
             try {
               const args = JSON.parse(tc.function.arguments);
               if (tc.function.name === "log_meal") {
-                const today = new Date().toISOString().split("T")[0];
-                const { data: existingLog } = await supabase.from("nutrition_logs")
-                  .select("log_id, meals, total_calories").eq("user_id", userId).eq("date", today).maybeSingle();
+                const calories = Number(args.calories);
+                const protein = Number(args.protein);
+                const carbs = Number(args.carbs);
+                const fat = Number(args.fat);
+                if (
+                  typeof args.food_items !== "string" ||
+                  !Number.isFinite(calories) ||
+                  !Number.isFinite(protein) ||
+                  !Number.isFinite(carbs) ||
+                  !Number.isFinite(fat)
+                ) {
+                  throw new Error("Meal payload is incomplete.");
+                }
 
-                const newMeal = { time: new Date().toTimeString().slice(0, 5), description: args.food_items, calories: args.calories, macros: { protein: args.protein, carbs: args.carbs, fat: args.fat } as any };
+                const { data: existingLog, error: existingLogError } = await supabase
+                  .from("nutrition_logs")
+                  .select("log_id, meals, total_calories")
+                  .eq("user_id", userId)
+                  .eq("date", logDate)
+                  .maybeSingle();
+
+                if (existingLogError) throw new Error(existingLogError.message);
+
+                const newMeal = {
+                  time: new Date().toTimeString().slice(0, 5),
+                  description: args.food_items,
+                  calories,
+                  macros: { protein, carbs, fat } as any,
+                };
 
                 if (existingLog) {
                   const updatedMeals = [...(Array.isArray(existingLog.meals) ? existingLog.meals : []), newMeal];
                   const totalCals = updatedMeals.reduce((s: number, m: any) => s + (m.calories || 0), 0);
-                  await supabase.from("nutrition_logs").update({ meals: updatedMeals, total_calories: totalCals }).eq("log_id", existingLog.log_id);
+                  const { error: updateError } = await supabase
+                    .from("nutrition_logs")
+                    .update({ meals: updatedMeals, total_calories: totalCals })
+                    .eq("log_id", existingLog.log_id);
+                  if (updateError) throw new Error(updateError.message);
                 } else {
-                  await supabase.from("nutrition_logs").insert({ user_id: userId, date: today, meals: [newMeal], total_calories: args.calories });
+                  const { error: insertError } = await supabase
+                    .from("nutrition_logs")
+                    .insert({
+                      user_id: userId,
+                      date: logDate,
+                      meals: [newMeal],
+                      total_calories: calories,
+                    });
+                  if (insertError) throw new Error(insertError.message);
                 }
-                resultStr = `Successfully logged meal: ${args.food_items} (${args.calories} cals)`;
+                resultStr = `Successfully logged meal: ${args.food_items} (${Math.round(calories)} cals)`;
                 actions.push({
                   type: "meal_logged",
                   targetRoute: "/log/nutrition",
@@ -189,16 +252,29 @@ export async function POST(request: Request) {
                 refreshScopes.add("dashboard");
                 refreshScopes.add("nutrition");
               } else if (tc.function.name === "log_workout") {
-                const today = new Date().toISOString().split("T")[0];
-                await supabase.from("workout_logs").insert({
+                const workoutType =
+                  typeof args.workout_type === "string"
+                    ? args.workout_type
+                    : "other";
+                const durationMinutes = Number(args.duration_minutes);
+                if (
+                  !Number.isFinite(durationMinutes) ||
+                  durationMinutes < 1 ||
+                  durationMinutes > 600
+                ) {
+                  throw new Error("Workout duration must be 1-600 minutes.");
+                }
+
+                const { error: insertError } = await supabase.from("workout_logs").insert({
                   user_id: userId,
-                  date: today,
-                  workout_type: args.workout_type,
-                  duration_minutes: args.duration_minutes,
+                  date: logDate,
+                  workout_type: workoutType,
+                  duration_minutes: Math.round(durationMinutes),
                   exercises: [],
                   notes: args.notes || "Logged via Nova AI"
                 });
-                resultStr = `Successfully logged workout: ${args.duration_minutes} min ${args.workout_type}`;
+                if (insertError) throw new Error(insertError.message);
+                resultStr = `Successfully logged workout: ${Math.round(durationMinutes)} min ${workoutType}`;
                 actions.push({
                   type: "workout_logged",
                   targetRoute: "/log/workout",
@@ -207,16 +283,64 @@ export async function POST(request: Request) {
                 refreshScopes.add("dashboard");
                 refreshScopes.add("workout");
               } else if (tc.function.name === "log_biometrics") {
-                const today = new Date().toISOString().split("T")[0];
-                await supabase.from("progress_tracking").insert({
-                  user_id: userId,
-                  date: today,
-                  weight: args.weight_lbs || null,
-                  body_fat_percent: args.body_fat_percent || null,
-                  measurements: {},
-                  notes: "Logged via Nova AI"
-                });
-                resultStr = `Successfully logged biometrics: ${args.weight_lbs ? args.weight_lbs + " lbs " : ""}${args.body_fat_percent ? args.body_fat_percent + "% body fat" : ""}`;
+                const weightLbs = Number(args.weight_lbs);
+                const bodyFatPercent = Number(args.body_fat_percent);
+                const hasWeight = Number.isFinite(weightLbs) && weightLbs > 0;
+                const hasBodyFat =
+                  Number.isFinite(bodyFatPercent) &&
+                  bodyFatPercent >= 0 &&
+                  bodyFatPercent <= 100;
+
+                if (!hasWeight && !hasBodyFat) {
+                  throw new Error("No valid biometrics provided.");
+                }
+
+                const { data: existingTarget, error: existingTargetError } = await supabase
+                  .from("progress_tracking")
+                  .select("track_id")
+                  .eq("user_id", userId)
+                  .eq("date", logDate)
+                  .maybeSingle();
+                if (existingTargetError) throw new Error(existingTargetError.message);
+
+                if (existingTarget?.track_id) {
+                  const updatePayload: {
+                    notes: string;
+                    weight?: number;
+                    body_fat_percent?: number;
+                  } = {
+                    notes: "Logged via Nova AI",
+                  };
+                  if (hasWeight) updatePayload.weight = toKgFromLbs(weightLbs);
+                  if (hasBodyFat) updatePayload.body_fat_percent = bodyFatPercent;
+
+                  const { error: updateError } = await supabase
+                    .from("progress_tracking")
+                    .update(updatePayload)
+                    .eq("track_id", existingTarget.track_id);
+                  if (updateError) throw new Error(updateError.message);
+                } else {
+                  const { error: insertError } = await supabase
+                    .from("progress_tracking")
+                    .insert({
+                      user_id: userId,
+                      date: logDate,
+                      weight: hasWeight ? toKgFromLbs(weightLbs) : null,
+                      body_fat_percent: hasBodyFat ? bodyFatPercent : null,
+                      measurements: {},
+                      notes: "Logged via Nova AI",
+                    });
+                  if (insertError) throw new Error(insertError.message);
+                }
+
+                const summaryParts: string[] = [];
+                if (hasWeight) {
+                  summaryParts.push(
+                    `${Math.round(weightLbs * 10) / 10} lbs (${toKgFromLbs(weightLbs)} kg)`
+                  );
+                }
+                if (hasBodyFat) summaryParts.push(`${bodyFatPercent}% body fat`);
+                resultStr = `Successfully logged biometrics: ${summaryParts.join(", ")}`;
                 actions.push({
                   type: "biometrics_logged",
                   targetRoute: "/progress",

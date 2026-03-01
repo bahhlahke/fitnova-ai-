@@ -35,14 +35,10 @@ export async function POST(req: Request) {
         }
 
         // 1. Find user by phone number
-        // We assume the user profile has a 'phone' column or similar. For now we will look up by auth.users metadata if needed.
-        // For this implementation, we will mock finding a user or query a specific column if it existed.
-        // Assuming `user_profile` has a `phone_number` field:
         const normalizedFrom = normalizePhoneNumber(From) ?? From;
         const { data: profile } = await supabaseAdmin
             .from("user_profile")
             .select("user_id")
-            // In a real app we would strictly format the phone number.
             .eq("phone_number", normalizedFrom)
             .maybeSingle();
 
@@ -50,7 +46,6 @@ export async function POST(req: Request) {
             twiml.message("Sorry, I don't recognize this number. Please update your FitNova profile with this phone number to enable SMS coaching.");
             return new NextResponse(twiml.toString(), { headers: { "Content-Type": "text/xml" } });
         }
-
         const userId = profile.user_id;
 
         // 2. Assemble Context

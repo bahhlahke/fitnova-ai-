@@ -2,6 +2,25 @@ import { NextResponse } from "next/server";
 import { callModel } from "@/lib/ai/model";
 import { createClient } from "@/lib/supabase/server";
 
+type BodyCompRequest = {
+    images?: { front: string; side: string; back: string };
+    localDate?: string;
+};
+
+function isValidLocalDate(value: string): boolean {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const parsed = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function resolveLogDate(localDate: string | undefined): string {
+    if (typeof localDate === "string") {
+        const trimmed = localDate.trim();
+        if (isValidLocalDate(trimmed)) return trimmed;
+    }
+    return new Date().toISOString().slice(0, 10);
+}
+
 export async function POST(req: Request) {
     try {
         const supabase = await createClient();
@@ -11,8 +30,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized. Please log in to access the Body Comp Scanner." }, { status: 401 });
         }
 
-        const body = await req.json();
-        const { images } = body as { images: { front: string, side: string, back: string } };
+        const body = (await req.json()) as BodyCompRequest;
+        const { images } = body;
+        const logDate = resolveLogDate(body.localDate);
 
         if (!images || !images.front || !images.side || !images.back) {
             return NextResponse.json({ error: "Missing required images for analysis (Front, Side, Back)." }, { status: 400 });
@@ -53,29 +73,34 @@ Output ONLY pure JSON formatted exactly like this example without markdown wrapp
             const parsed = JSON.parse(responseText.trim());
 
             // Log it directly into progress tracking
-            const today = new Date().toISOString().split("T")[0];
-            const { data: existingTarget } = await supabase
+            const { data: existingTarget, error: existingTargetError } = await supabase
                 .from("progress_tracking")
                 .select("track_id")
                 .eq("user_id", user.id)
-                .eq("date", today)
+                .eq("date", logDate)
                 .maybeSingle();
 
+            if (existingTargetError) {
+                throw new Error(existingTargetError.message);
+            }
+
             if (existingTarget) {
-                await supabase
+                const { error: updateError } = await supabase
                     .from("progress_tracking")
                     .update({ body_fat_percent: parsed.body_fat_percent, notes: "Logged via AI Body Comp Scanner" })
                     .eq("track_id", existingTarget.track_id);
+                if (updateError) throw new Error(updateError.message);
             } else {
-                await supabase
+                const { error: insertError } = await supabase
                     .from("progress_tracking")
                     .insert({
                         user_id: user.id,
-                        date: today,
+                        date: logDate,
                         body_fat_percent: parsed.body_fat_percent,
                         measurements: {},
                         notes: "Logged via AI Body Comp Scanner"
                     });
+                if (insertError) throw new Error(insertError.message);
             }
 
             return NextResponse.json(parsed);

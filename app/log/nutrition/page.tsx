@@ -190,18 +190,49 @@ function SmartMealEntry({
     e.preventDefault();
     if (!description.trim()) return;
     setSaving(true);
+    setSaveError(null);
     const supabase = createClient();
-    if (!supabase) { setSaving(false); return; }
+    if (!supabase) {
+      setSaveError("Supabase not configured.");
+      setSaving(false);
+      return;
+    }
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); return; }
+    if (!user) {
+      setSaveError("Sign in to log meals.");
+      setSaving(false);
+      return;
+    }
     const newMeal: MealEntry = { time, description: description.trim() };
     const updated = [...existingMeals, newMeal];
+    const totalCals = updated.reduce((s, m) => s + (m.calories ?? 0), 0);
     if (existingLogId) {
-      await supabase.from("nutrition_logs").update({ meals: updated }).eq("log_id", existingLogId);
+      const { error } = await supabase
+        .from("nutrition_logs")
+        .update({ meals: updated, total_calories: totalCals || null })
+        .eq("log_id", existingLogId);
+      if (error) {
+        setSaveError(error.message);
+        setSaving(false);
+        return;
+      }
       onAdded(undefined, updated);
     } else {
-      const { data } = await supabase.from("nutrition_logs")
-        .insert({ user_id: user.id, date: today, meals: updated }).select("log_id").single();
+      const { data, error } = await supabase
+        .from("nutrition_logs")
+        .insert({
+          user_id: user.id,
+          date: today,
+          meals: updated,
+          total_calories: totalCals || null,
+        })
+        .select("log_id")
+        .single();
+      if (error) {
+        setSaveError(error.message);
+        setSaving(false);
+        return;
+      }
       onAdded((data as { log_id?: string })?.log_id ?? null, updated);
     }
     setDescription(""); setSaving(false);
