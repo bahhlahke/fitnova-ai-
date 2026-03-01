@@ -1,18 +1,28 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    remotePatterns: [
+  async redirects() {
+    return [
       {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-        pathname: "/**",
+        source: "/coach",
+        destination: "/?focus=ai",
+        permanent: true,
       },
       {
-        protocol: "https",
-        hostname: "images.pexels.com",
-        pathname: "/**",
+        source: "/omni",
+        destination: "/?focus=ai",
+        permanent: true,
       },
-    ],
+      {
+        source: "/log",
+        destination: "/log/workout",
+        permanent: true,
+      },
+      {
+        source: "/coach/motion-lab",
+        destination: "/motion",
+        permanent: true,
+      },
+    ];
   },
 };
 

@@ -90,3 +90,74 @@ Builds and stores a personalized day plan for the signed-in user.
 | 401 | `{ "error": "...", "code": "AUTH_REQUIRED" }` | No signed-in user. |
 | 429 | `{ "error": "...", "code": "RATE_LIMITED" }` | User exceeded request limit. |
 | 500 | `{ "error": "...", "code": "INTERNAL_ERROR" }` | Plan generation or persistence failed. |
+
+## GET/POST `/api/v1/plan/weekly`
+
+Returns or regenerates a 7-day microcycle plan based on goals, recent training, recovery signals, and schedule preferences.
+
+- `GET`: returns existing weekly plan for current local week; `?refresh=1` regenerates.
+- `POST`: forces regeneration and persistence.
+
+## POST `/api/v1/plan/swap-exercise`
+
+Returns a substitution for the current guided exercise.
+
+**Request example**
+
+```json
+{
+  "currentExercise": "Back Squat",
+  "reason": "knee soreness",
+  "location": "gym",
+  "sets": 4,
+  "reps": "6-8",
+  "intensity": "RPE 7"
+}
+```
+
+**Response**
+
+```json
+{
+  "replacement": {
+    "name": "Box Squat",
+    "sets": 4,
+    "reps": "6-8",
+    "intensity": "RPE 6-7",
+    "notes": "Use pain-free depth and slow tempo."
+  },
+  "reliability": {
+    "confidence_score": 0.77,
+    "explanation": "...",
+    "limitations": ["..."]
+  }
+}
+```
+
+## POST `/api/v1/ai/retention-risk`
+
+Computes near-term churn/adherence risk from logging cadence and plan/check-in behavior. Also seeds `coach_nudges` when risk is medium/high.
+
+## GET `/api/v1/analytics/performance`
+
+Returns a 14-day analytics summary:
+- workout days/minutes
+- estimated set volume
+- push/pull balance
+- recovery debt
+- nutrition compliance (if enough data exists)
+
+## GET/POST `/api/v1/coach/escalate`
+
+Hybrid coach escalation flow.
+
+- `GET`: fetch recent escalation requests for current user.
+- `POST`: submit escalation request.
+
+## POST `/api/v1/jobs/reminders`
+
+Runs reminder/nudge dispatch job (cron endpoint).
+
+- Optional secret gate via `CRON_SECRET` with header:
+  - `x-cron-secret: <CRON_SECRET>` or
+  - `Authorization: Bearer <CRON_SECRET>`

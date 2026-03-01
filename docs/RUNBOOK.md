@@ -12,10 +12,15 @@
 
 | Variable | Where | Required |
 |----------|--------|----------|
+| `NEXT_PUBLIC_SITE_URL` | Vercel + `.env.local` | Recommended (canonical metadata/share URL) |
 | `NEXT_PUBLIC_SUPABASE_URL` | Vercel + `.env.local` | Yes (for auth and data) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Vercel + `.env.local` | Yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | Vercel + `.env.local` (server only) | Yes for cron jobs/webhooks/import pipelines |
 | `OPENROUTER_API_KEY` | Vercel + `.env.local` (server only) | Yes (for AI coach) |
 | `ALLOW_DEV_ANON_AI` | `.env.local` | No (dev only; defaults to false) |
+| `CRON_SECRET` | Vercel + `.env.local` | Recommended (protect job endpoints) |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Vercel + `.env.local` | Required for billing routes |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` | Vercel + `.env.local` | Required for SMS coaching/reminders |
 
 - Never expose `OPENROUTER_API_KEY` to the client. It is used only in `app/api/v1/ai/respond/route.ts`.
 - Keep `ALLOW_DEV_ANON_AI=false` for production/private launch.
@@ -40,6 +45,7 @@
 
 1. Connect the repo to Vercel.
 2. In Vercel project settings → Environment Variables, add:
+   - `NEXT_PUBLIC_SITE_URL` (for example, `https://fitnova.ai`)
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `OPENROUTER_API_KEY` (sensitive; server-only).
@@ -50,6 +56,8 @@
 - **App:** `GET /` — should return 200 and the dashboard.
 - **AI route:** `POST /api/v1/ai/respond` requires session and body `{ "message": "Hi" }`; returns `{ "reply": "..." }` on success.
 - **Daily plan route:** `POST /api/v1/plan/daily` requires session; returns `{ "plan": { ... } }` and persists to `daily_plans`.
+- **Weekly plan route:** `GET /api/v1/plan/weekly` requires session; returns `{ "plan": { ... } }` and persists to `weekly_plans`.
+- **Reminder job route:** `POST /api/v1/jobs/reminders` with `x-cron-secret` if `CRON_SECRET` is configured.
 
 ## Data retention (future)
 

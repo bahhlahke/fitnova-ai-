@@ -7,6 +7,12 @@ type VisionResult = {
   score: number;
   critique: string;
   correction: string;
+  confidence_score?: number;
+  reliability?: {
+    confidence_score?: number;
+    explanation?: string;
+    limitations?: string[];
+  };
 };
 
 export default function MotionLabPage() {
@@ -185,6 +191,9 @@ export default function MotionLabPage() {
                   <p className="rounded-xl border border-white/5 bg-black/40 p-4 text-sm font-medium leading-relaxed text-white">
                     {result.critique}
                   </p>
+                  <p className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-fn-muted">
+                    AI confidence {Math.round(((result.confidence_score ?? result.reliability?.confidence_score ?? 0.6) * 100))}%
+                  </p>
                 </div>
 
                 <div>
@@ -194,6 +203,11 @@ export default function MotionLabPage() {
                   <p className="rounded-xl bg-fn-accent p-4 text-sm font-bold leading-relaxed text-black shadow-[0_0_30px_rgba(10,217,196,0.2)]">
                     {result.correction}
                   </p>
+                  {result.reliability?.limitations?.length ? (
+                    <p className="mt-2 text-xs text-fn-muted">
+                      Limitation: {result.reliability.limitations[0]}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             ) : (

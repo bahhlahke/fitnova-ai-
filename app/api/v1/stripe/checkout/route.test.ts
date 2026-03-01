@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 import * as serverLib from "@/lib/supabase/server";
 
@@ -23,8 +23,20 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 describe("POST /api/v1/stripe/checkout", () => {
+    const originalStripeSecret = process.env.STRIPE_SECRET_KEY;
+
     beforeEach(() => {
         vi.resetAllMocks();
+        process.env.STRIPE_SECRET_KEY = "sk_test_123";
+    });
+
+    it("returns 503 when billing is not configured", async () => {
+        delete process.env.STRIPE_SECRET_KEY;
+
+        const req = new Request("http://localhost/api/v1/stripe/checkout", { method: "POST" });
+        const res = await POST(req);
+
+        expect(res.status).toBe(503);
     });
 
     it("requires authentication", async () => {
@@ -60,5 +72,9 @@ describe("POST /api/v1/stripe/checkout", () => {
                 customer_email: "test@example.com",
             })
         );
+    });
+
+    afterEach(() => {
+        process.env.STRIPE_SECRET_KEY = originalStripeSecret;
     });
 });

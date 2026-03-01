@@ -37,6 +37,15 @@ export default function ProgressPage() {
   const [loading, setLoading] = useState(true);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [aiInsightLoading, setAiInsightLoading] = useState(false);
+  const [analytics, setAnalytics] = useState<{
+    workout_days: number;
+    workout_minutes: number;
+    estimated_total_sets: number;
+    push_pull_balance: number;
+    recovery_debt: number;
+    nutrition_compliance: number | null;
+  } | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   const loadProgress = useCallback(() => {
     const supabase = createClient();
@@ -127,6 +136,20 @@ export default function ProgressPage() {
       .catch(() => { })
       .finally(() => setAiInsightLoading(false));
   }, [entries.length]);
+
+  useEffect(() => {
+    if (loading) return;
+    setAnalyticsLoading(true);
+    fetch("/api/v1/analytics/performance")
+      .then((r) => r.json())
+      .then((body) => {
+        if (typeof body.workout_days === "number") {
+          setAnalytics(body);
+        }
+      })
+      .catch(() => { })
+      .finally(() => setAnalyticsLoading(false));
+  }, [loading]);
 
   const aiNarrative = aiInsight ?? fallbackNarrative;
 
@@ -297,6 +320,47 @@ export default function ProgressPage() {
               )}
             </Card>
           </div>
+
+          <Card className="mt-4">
+            <CardHeader title="Advanced Analytics" subtitle="Training load, balance, and recovery risk" />
+            {analyticsLoading ? (
+              <div className="mt-4 space-y-3">
+                <div className="h-4 w-full rounded-full bg-white/5" />
+                <div className="h-4 w-4/5 rounded-full bg-white/5" />
+              </div>
+            ) : analytics ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="rounded-xl border border-fn-border bg-fn-surface-hover px-4 py-3 text-sm">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Workout Days</p>
+                  <p className="mt-1 text-lg font-bold text-fn-ink">{analytics.workout_days}</p>
+                </div>
+                <div className="rounded-xl border border-fn-border bg-fn-surface-hover px-4 py-3 text-sm">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Workout Minutes</p>
+                  <p className="mt-1 text-lg font-bold text-fn-ink">{analytics.workout_minutes}</p>
+                </div>
+                <div className="rounded-xl border border-fn-border bg-fn-surface-hover px-4 py-3 text-sm">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Estimated Sets</p>
+                  <p className="mt-1 text-lg font-bold text-fn-ink">{analytics.estimated_total_sets}</p>
+                </div>
+                <div className="rounded-xl border border-fn-border bg-fn-surface-hover px-4 py-3 text-sm">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Push/Pull Balance</p>
+                  <p className="mt-1 text-lg font-bold text-fn-ink">{analytics.push_pull_balance}</p>
+                </div>
+                <div className="rounded-xl border border-fn-border bg-fn-surface-hover px-4 py-3 text-sm">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Recovery Debt</p>
+                  <p className="mt-1 text-lg font-bold text-fn-ink">{Math.round(analytics.recovery_debt * 100)}%</p>
+                </div>
+                <div className="rounded-xl border border-fn-border bg-fn-surface-hover px-4 py-3 text-sm">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Nutrition Compliance</p>
+                  <p className="mt-1 text-lg font-bold text-fn-ink">
+                    {analytics.nutrition_compliance != null ? `${Math.round(analytics.nutrition_compliance * 100)}%` : "n/a"}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-fn-muted">Analytics unavailable. Add more activity data.</p>
+            )}
+          </Card>
         </>
       )}
     </PageLayout>

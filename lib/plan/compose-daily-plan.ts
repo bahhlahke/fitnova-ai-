@@ -9,6 +9,26 @@ function normalizeExerciseName(name: string): string {
   return name.toLowerCase().trim().replace(/\s+/g, " ");
 }
 
+function getWeekStartLocal(date: Date): string {
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(date);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(diff);
+  return toLocalDateString(monday);
+}
+
+function parsePreferredTrainingDays(profile: Record<string, unknown>): number[] {
+  const devices = (profile.devices ?? {}) as Record<string, unknown>;
+  const schedule = (devices.training_schedule ?? {}) as Record<string, unknown>;
+  const days = schedule.preferred_training_days;
+  if (!Array.isArray(days)) return [1, 2, 3, 4, 5];
+  const normalized = days
+    .map((entry) => Number(entry))
+    .filter((entry) => Number.isInteger(entry) && entry >= 0 && entry <= 6);
+  return normalized.length > 0 ? normalized : [1, 2, 3, 4, 5];
+}
+
 /** Exercise pools per movement slot; [0] is preferred when not recently done. */
 const SQUAT_POOL_GYM = ["Back Squat", "Goblet Squat", "Leg Press", "Front Squat"];
 const SQUAT_POOL_HOME = ["Dumbbell Goblet Squat", "Goblet Squat", "Bodyweight Squat"];
@@ -48,7 +68,8 @@ export async function composeDailyPlan(
   const { todayConstraints } = inputs;
 
   const today = toLocalDateString();
-  const [profileRes, workoutsRes, nutritionRes, progressRes, checkInsRes] = await Promise.all([
+  const weekStartLocal = getWeekStartLocal(new Date());
+  const [profileRes, workoutsRes, nutritionRes, progressRes, checkInsRes, weeklyPlanRes] = await Promise.all([
     supabase.from("user_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase
       .from("workout_logs")
@@ -76,6 +97,12 @@ export async function composeDailyPlan(
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("weekly_plans")
+      .select("plan_json")
+      .eq("user_id", userId)
+      .eq("week_start_local", weekStartLocal)
+      .maybeSingle(),
   ]);
 
   const profile = (profileRes.data ?? {}) as Record<string, unknown>;
@@ -97,8 +124,23 @@ export async function composeDailyPlan(
   const nutrition = (nutritionRes.data ?? []) as Array<{ total_calories?: number | null }>;
   const progress = (progressRes.data ?? []) as Array<{ weight?: number | null }>;
   const todayCheckIn = checkInsRes.data as { soreness_notes?: string | null; energy_score?: number | null; sleep_hours?: number | null } | null;
+  const weeklyPlan = (weeklyPlanRes.data?.plan_json ?? null) as
+    | {
+        days?: Array<{
+          date_local?: string;
+          focus?: string;
+          intensity?: "low" | "moderate" | "high";
+          target_duration_minutes?: number;
+        }>;
+      }
+    | null;
   const sorenessFromCheckIn = todayCheckIn?.soreness_notes?.trim() || undefined;
   const effectiveSoreness = todayConstraints?.soreness ?? sorenessFromCheckIn;
+  const preferredTrainingDays = parsePreferredTrainingDays(profile);
+  const todayWeekday = new Date(`${today}T00:00:00`).getDay();
+  const isPreferredTrainingDay = preferredTrainingDays.includes(todayWeekday);
+  const todayWeeklySlot = weeklyPlan?.days?.find((slot) => slot?.date_local === today);
+  const weeklyIntensityTarget = todayWeeklySlot?.intensity ?? "moderate";
 
   const lastWorkoutDate = workouts[0]?.date ?? null;
   let daysSinceLastWorkout: number | null = null;
@@ -129,7 +171,11 @@ export async function composeDailyPlan(
 
   const workoutCount = workouts.length;
   const recentStrengthCount = workouts.filter((w) => w.workout_type === "strength").length;
-  const minutesAvailable = clamp(todayConstraints?.minutesAvailable ?? 45, 20, 120);
+  let minutesAvailable = clamp(
+    todayConstraints?.minutesAvailable ?? todayWeeklySlot?.target_duration_minutes ?? 45,
+    20,
+    120
+  );
   const location: "gym" | "home" = todayConstraints?.location ?? "gym";
 
   let focus = "Full body strength";
@@ -139,6 +185,14 @@ export async function composeDailyPlan(
     focus = "Cardio endurance and aerobic base";
   } else if (goals.some((g) => g.includes("mobility"))) {
     focus = "Mobility and movement quality";
+  }
+
+  if (todayWeeklySlot?.focus) {
+    focus = todayWeeklySlot.focus;
+  }
+  if (!isPreferredTrainingDay && !todayConstraints?.minutesAvailable) {
+    focus = "Recovery and movement quality";
+    minutesAvailable = Math.min(minutesAvailable, 35);
   }
 
   const squatPool = location === "gym" ? SQUAT_POOL_GYM : SQUAT_POOL_HOME;
@@ -188,6 +242,12 @@ export async function composeDailyPlan(
     intensityAdjustment = " (Reduced volume for recovery)";
   } else if (sleepHours >= 8 && energyScore >= 8) {
     volumeMultiplier = 1.1; // Increase sets or reps slightly
+  }
+  if (weeklyIntensityTarget === "low") {
+    volumeMultiplier *= 0.85;
+    intensityAdjustment = `${intensityAdjustment} (Weekly low-intensity slot)`.trim();
+  } else if (weeklyIntensityTarget === "high") {
+    volumeMultiplier *= 1.05;
   }
 
   const protein = clamp(Math.round(weightKg * 1.8), 110, 220);

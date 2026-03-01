@@ -42,15 +42,19 @@ export async function GET(request: Request) {
       );
     }
 
-    const [workoutsRes, nutritionRes, progressRes] = await Promise.all([
+    const [workoutsRes, nutritionRes, progressRes, weeklyPlansRes, escalationsRes] = await Promise.all([
       supabase.from("workout_logs").select("*").eq("user_id", user.id).order("date", { ascending: false }),
       supabase.from("nutrition_logs").select("*").eq("user_id", user.id).order("date", { ascending: false }),
       supabase.from("progress_tracking").select("*").eq("user_id", user.id).order("date", { ascending: false }),
+      supabase.from("weekly_plans").select("*").eq("user_id", user.id).order("week_start_local", { ascending: false }),
+      supabase.from("coach_escalations").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
     ]);
 
     const workouts = workoutsRes.data ?? [];
     const nutrition = nutritionRes.data ?? [];
     const progress = progressRes.data ?? [];
+    const weeklyPlans = weeklyPlansRes.data ?? [];
+    const escalations = escalationsRes.data ?? [];
 
     if (format === "csv") {
       const workoutRows = workouts as Record<string, unknown>[];
@@ -82,7 +86,25 @@ export async function GET(request: Request) {
           .map((r) => progressHeader.map((h) => escapeCsvCell(h === "measurements" ? JSON.stringify(r[h]) : r[h])).join(","))
           .join("\n");
 
-      const combined = `# Workouts\n${workoutCsv}\n\n# Nutrition\n${nutritionCsv}\n\n# Progress\n${progressCsv}`;
+      const weeklyRows = weeklyPlans as Record<string, unknown>[];
+      const weeklyHeader = ["week_start_local", "plan_json"];
+      const weeklyCsv =
+        weeklyHeader.join(",") +
+        "\n" +
+        weeklyRows
+          .map((r) => weeklyHeader.map((h) => escapeCsvCell(h === "plan_json" ? JSON.stringify(r[h]) : r[h])).join(","))
+          .join("\n");
+
+      const escalationRows = escalations as Record<string, unknown>[];
+      const escalationHeader = ["created_at", "topic", "urgency", "preferred_channel", "status", "details"];
+      const escalationCsv =
+        escalationHeader.join(",") +
+        "\n" +
+        escalationRows
+          .map((r) => escalationHeader.map((h) => escapeCsvCell(r[h])).join(","))
+          .join("\n");
+
+      const combined = `# Workouts\n${workoutCsv}\n\n# Nutrition\n${nutritionCsv}\n\n# Progress\n${progressCsv}\n\n# Weekly Plans\n${weeklyCsv}\n\n# Coach Escalations\n${escalationCsv}`;
       return new NextResponse(combined, {
         headers: {
           "Content-Type": "text/csv; charset=utf-8",
@@ -96,6 +118,8 @@ export async function GET(request: Request) {
       workouts,
       nutrition,
       progress,
+      weekly_plans: weeklyPlans,
+      coach_escalations: escalations,
     };
     return NextResponse.json(payload, {
       headers: {

@@ -39,7 +39,7 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 
 2. **Environment**
    - Copy `.env.local.example` to `.env.local`.
-   - Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `OPENROUTER_API_KEY` (`ALLOW_DEV_ANON_AI=false` for launch). See [docs/RUNBOOK.md](docs/RUNBOOK.md#environment-variables).
+   - Set `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `OPENROUTER_API_KEY` (`ALLOW_DEV_ANON_AI=false` for launch). See [docs/RUNBOOK.md](docs/RUNBOOK.md#environment-variables).
 
 3. **Database**
    - Run `supabase/migrations/20250222000001_initial_schema.sql` in the Supabase SQL editor (or `supabase db push` if using Supabase CLI).
@@ -60,7 +60,7 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 
 1. **Vercel**
    - Connect the GitHub repo to Vercel.
-   - Add environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENROUTER_API_KEY`.
+   - Add environment variables: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `OPENROUTER_API_KEY`.
    - Deploy. Use the default `*.vercel.app` URL for MVP.
 2. **Supabase**
    - Run the SQL in `supabase/migrations/20250222000001_initial_schema.sql` in your project’s SQL editor (or `supabase db push` if using Supabase CLI).
@@ -78,14 +78,20 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 | `npm test` | Run Vitest once. |
 | `npm run test:watch` | Run Vitest in watch mode. |
 | `npm run validate` | Lint, build, and test. |
+| `npm run workflow:validate:ai` | Run AI-assisted workflow validator and write report to `docs/reports/`. |
+| `npm run reminders:dispatch` | Trigger reminder/nudge dispatch job (uses service role + optional Twilio creds). |
 
 ## Project structure
 
 | Path | Description |
 |------|-------------|
-| `app/` | App Router routes: `/` (adaptive home), `/start`, `/auth`, `/onboarding`, `/log`, `/log/workout`, `/log/nutrition`, `/log/workout/guided`, `/coach`, `/progress`, `/progress/add`, `/settings`. |
+| `app/` | App Router routes: `/` (adaptive home), `/start`, `/auth`, `/onboarding`, `/log`, `/log/workout`, `/log/nutrition`, `/log/workout/guided`, `/coach`, `/coach/escalate`, `/progress`, `/progress/add`, `/settings`. |
 | `app/api/v1/ai/respond/` | POST API for AI coach; see [docs/API.md](docs/API.md). |
 | `app/api/v1/plan/daily/` | POST API for personalized daily plan generation and persistence. |
+| `app/api/v1/plan/weekly/` | GET/POST API for weekly microcycle generation and storage. |
+| `app/api/v1/analytics/performance/` | GET analytics API for performance/risk metrics. |
+| `app/api/v1/coach/escalate/` | GET/POST hybrid coach escalation API. |
+| `app/api/v1/jobs/reminders/` | POST cron-style reminder dispatch endpoint. |
 | `components/ui/` | Design primitives: Button, Card, Input, Label, Select, Textarea, EmptyState, LoadingState, ErrorMessage, PageLayout. |
 | `components/layout/` | BottomNav. |
 | `components/auth/` | AuthProvider, AuthGuard, AuthSettings. |
@@ -102,6 +108,11 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 | [docs/API.md](docs/API.md) | AI respond API contract. |
 | [docs/SMOKE-CHECKLIST.md](docs/SMOKE-CHECKLIST.md) | Pre-launch smoke run for daily planning and logging flow. |
 | [docs/SAAS-EXTENSION.md](docs/SAAS-EXTENSION.md) | Outline for multi-tenant SaaS (M5+). |
+| [docs/PRODUCT-AUDIT-2026-03-01.md](docs/PRODUCT-AUDIT-2026-03-01.md) | Comprehensive feature and AI improvement audit. |
+| [docs/COMPETITOR-BENCHMARK-2026-03-01.md](docs/COMPETITOR-BENCHMARK-2026-03-01.md) | Competitor comparison and feature gap matrix. |
+| [docs/COMPETITOR-PARITY-PASS-2026-03-01.md](docs/COMPETITOR-PARITY-PASS-2026-03-01.md) | Implementation-level quality parity assessment vs Future and peers. |
+| [docs/IMPLEMENTATION-ROLLUP-2026-03-01.md](docs/IMPLEMENTATION-ROLLUP-2026-03-01.md) | Delivered P0/P1/P2 implementation summary. |
+| [docs/AI-WORKFLOW-VALIDATION.md](docs/AI-WORKFLOW-VALIDATION.md) | AI workflow validator usage and workflow coverage. |
 
 ## Milestones
 

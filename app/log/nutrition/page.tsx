@@ -27,6 +27,12 @@ interface MealEstimate {
   notes: string;
 }
 
+type EstimateReliability = {
+  confidence_score: number;
+  explanation: string;
+  limitations: string[];
+};
+
 /* ── Constants ──────────────────────────────────────────────────── */
 const FALLBACK_PROTEIN_TARGET = 150;
 
@@ -85,6 +91,7 @@ function SmartMealEntry({
   // AI state
   const [analyzing,    setAnalyzing]    = useState(false);
   const [estimate,     setEstimate]     = useState<MealEstimate | null>(null);
+  const [reliability,  setReliability]  = useState<EstimateReliability | null>(null);
   const [aiError,      setAiError]      = useState<string | null>(null);
 
   // Editable estimate fields
@@ -114,13 +121,14 @@ function SmartMealEntry({
   function switchMode(m: EntryMode) {
     setMode(m);
     setEstimate(null); setAiError(null);
+    setReliability(null);
     setDescription(""); setImagePreview(null); setImageData(null); setSaveError(null);
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setAiError(null); setEstimate(null);
+    setAiError(null); setEstimate(null); setReliability(null);
     try {
       const dataUrl = await resizeImage(file);
       setImageData(dataUrl); setImagePreview(dataUrl);
@@ -129,7 +137,7 @@ function SmartMealEntry({
   }
 
   async function analyzeWithAI() {
-    setAnalyzing(true); setAiError(null); setEstimate(null);
+    setAnalyzing(true); setAiError(null); setEstimate(null); setReliability(null);
     try {
       const body = mode === "describe"
         ? { type: "text", description }
@@ -138,11 +146,12 @@ function SmartMealEntry({
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json() as { estimate?: MealEstimate; error?: string };
+      const data = await res.json() as { estimate?: MealEstimate; reliability?: EstimateReliability; error?: string };
       if (!res.ok || !data.estimate) {
         setAiError(data.error ?? "Could not estimate nutrition. Please try again.");
       } else {
         setEstimate(data.estimate);
+        if (data.reliability) setReliability(data.reliability);
       }
     } catch (_e) { setAiError("Network error — check your connection."); }
     finally      { setAnalyzing(false); }
@@ -181,7 +190,7 @@ function SmartMealEntry({
       onAdded((data as { log_id: string })?.log_id ?? null, updated);
     }
     // Reset
-    setDescription(""); setImagePreview(null); setImageData(null); setEstimate(null);
+    setDescription(""); setImagePreview(null); setImageData(null); setEstimate(null); setReliability(null);
     setEditName(""); setEditCal(""); setEditPro(""); setEditCarb(""); setEditFat("");
     setSaving(false);
   }
@@ -425,6 +434,19 @@ function SmartMealEntry({
           {estimate.notes && (
             <div className="px-4 py-3">
               <p className="text-xs text-fn-muted leading-relaxed">{estimate.notes}</p>
+              {reliability && (
+                <div className="mt-2 rounded-lg border border-fn-border bg-white px-2 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-fn-muted">
+                    AI confidence {Math.round(reliability.confidence_score * 100)}%
+                  </p>
+                  <p className="mt-1 text-[11px] text-fn-muted">{reliability.explanation}</p>
+                  {reliability.limitations.length > 0 && (
+                    <p className="mt-1 text-[10px] text-fn-muted">
+                      Limitation: {reliability.limitations[0]}
+                    </p>
+                  )}
+                </div>
+              )}
               {/* Macro sanity check */}
               {(() => {
                 const cal  = Number(editCal);

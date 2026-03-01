@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { callModel } from "@/lib/ai/model";
 import { createClient } from "@/lib/supabase/server";
+import { clampConfidence, defaultLimitations } from "@/lib/ai/reliability";
 
 type BodyCompRequest = {
     images?: { front: string; side: string; back: string };
@@ -57,7 +58,7 @@ export async function POST(req: Request) {
 Be extremely critical. Do not flatter the user. If they lack sharp definition, place them higher than 15%. Synthesize the front, side, and back profiles to account for genetic fat storage variations.
 
 Output ONLY pure JSON formatted exactly like this example without markdown wrappers:
-{"body_fat_percent": 16.5, "analysis": "Flat stomach but transverse intersections are entirely obscured by subcutaneous fat. Lower obliques show slight pooling from the side and back angles."}`;
+{"body_fat_percent": 16.5, "analysis": "Flat stomach but transverse intersections are entirely obscured by subcutaneous fat. Lower obliques show slight pooling from the side and back angles.", "confidence_score": 0.62}`;
 
         const { content: responseText } = await callModel({
             model: "openai/gpt-5.2", // Using an extremely capable vision reasoning model
@@ -103,7 +104,19 @@ Output ONLY pure JSON formatted exactly like this example without markdown wrapp
                 if (insertError) throw new Error(insertError.message);
             }
 
-            return NextResponse.json(parsed);
+            const confidence = clampConfidence(
+                typeof parsed.confidence_score === "number" ? parsed.confidence_score : 0.58
+            );
+
+            return NextResponse.json({
+                ...parsed,
+                confidence_score: confidence,
+                reliability: {
+                    confidence_score: confidence,
+                    explanation: "Confidence reflects image quality and consistency across front/side/back markers.",
+                    limitations: defaultLimitations("body_comp"),
+                },
+            });
         } catch (e) {
             console.error("Failed to parse Body Comp JSON response:", responseText);
             return NextResponse.json({

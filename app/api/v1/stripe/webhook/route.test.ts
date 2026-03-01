@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
     const mockEq = vi.fn().mockResolvedValue({ error: null });
@@ -28,8 +28,17 @@ vi.mock("@supabase/supabase-js", () => ({
 import { POST } from "./route";
 
 describe("POST /api/v1/stripe/webhook", () => {
+    const originalStripeSecret = process.env.STRIPE_SECRET_KEY;
+    const originalWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const originalSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const originalServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
     beforeEach(() => {
         vi.clearAllMocks();
+        process.env.STRIPE_SECRET_KEY = "sk_test_123";
+        process.env.STRIPE_WEBHOOK_SECRET = "whsec_test_123";
+        process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+        process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
     });
 
     it("returns 400 on missing signature", async () => {
@@ -68,5 +77,12 @@ describe("POST /api/v1/stripe/webhook", () => {
 
         const res = await POST(req);
         expect(res.status).toBe(200);
+    });
+
+    afterEach(() => {
+        process.env.STRIPE_SECRET_KEY = originalStripeSecret;
+        process.env.STRIPE_WEBHOOK_SECRET = originalWebhookSecret;
+        process.env.NEXT_PUBLIC_SUPABASE_URL = originalSupabaseUrl;
+        process.env.SUPABASE_SERVICE_ROLE_KEY = originalServiceRoleKey;
     });
 });

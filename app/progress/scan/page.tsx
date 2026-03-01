@@ -12,7 +12,16 @@ export default function BodyCompScannerPage() {
     const [images, setImages] = useState<{ front: string | null, side: string | null, back: string | null }>({ front: null, side: null, back: null });
     const [activeSlot, setActiveSlot] = useState<"front" | "side" | "back" | null>(null);
     const [isScanning, setIsScanning] = useState(false);
-    const [result, setResult] = useState<{ body_fat_percent: number; analysis: string } | null>(null);
+    const [result, setResult] = useState<{
+        body_fat_percent: number;
+        analysis: string;
+        confidence_score?: number;
+        reliability?: {
+            confidence_score?: number;
+            explanation?: string;
+            limitations?: string[];
+        };
+    } | null>(null);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -243,6 +252,17 @@ export default function BodyCompScannerPage() {
                             <p className="text-fn-muted leading-relaxed italic border-l-2 border-fn-accent pl-4 text-sm">
                                 &quot;{result.analysis}&quot;
                             </p>
+                            <p className="mt-3 text-[10px] font-semibold uppercase tracking-widest text-fn-muted">
+                                AI confidence {Math.round(((result.confidence_score ?? result.reliability?.confidence_score ?? 0.58) * 100))}%
+                            </p>
+                            {result.reliability?.explanation && (
+                                <p className="mt-1 text-xs text-fn-muted">{result.reliability.explanation}</p>
+                            )}
+                            {result.reliability?.limitations?.length ? (
+                                <p className="mt-1 text-[11px] text-fn-muted">
+                                    Limitation: {result.reliability.limitations[0]}
+                                </p>
+                            ) : null}
                             <div className="mt-8 flex gap-4">
                                 <Button variant="secondary" className="w-full" onClick={() => { setResult(null); setImages({ front: null, side: null, back: null }); }}>
                                     Scan Again

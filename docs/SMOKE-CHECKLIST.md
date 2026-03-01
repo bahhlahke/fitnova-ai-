@@ -33,3 +33,13 @@ Run `/motion` video analysis and `/progress/scan` body-comp scan; confirm result
 Save profile changes (including phone), run Apple Health import (xml/zip), and verify import summary updates.
 14. History deep-links:
 Open `/history?tab=workouts` and `/history?tab=nutrition` and confirm each tab initializes correctly.
+15. Weekly planning + schedule personalization:
+In Settings, change preferred training days/window, save, then refresh `/` and confirm weekly microcycle card updates.
+16. Guided workout adaptation:
+In `/log/workout/guided`, trigger `Swap Exercise` and confirm current move updates with substitution feedback.
+17. Retention + nudge surface:
+On `/`, verify retention risk card renders and coach nudges appear when risk/reminders are present.
+18. Hybrid coach escalation:
+Open `/coach/escalate`, submit a request, and confirm it appears in recent requests.
+19. Reminder dispatch endpoint:
+Call `POST /api/v1/jobs/reminders` (with `x-cron-secret` when configured) and confirm response includes processed/nudges counts.

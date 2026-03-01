@@ -49,6 +49,23 @@ const ACTIVITY_LEVELS = [
   { value: "active", label: "Active (5+ days/week)" },
 ];
 
+const WEEKDAY_OPTIONS = [
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+  { value: 0, label: "Sun" },
+];
+
+const TRAINING_WINDOWS = [
+  { value: "morning", label: "Morning" },
+  { value: "midday", label: "Midday" },
+  { value: "evening", label: "Evening" },
+  { value: "flexible", label: "Flexible" },
+];
+
 async function extractAppleHealthXml(file: File): Promise<{
   xml: string;
   fileType: "xml" | "zip";
@@ -92,6 +109,13 @@ export default function SettingsPage() {
     workout_log: true,
     weigh_in: "weekly",
   });
+  const [trainingSchedule, setTrainingSchedule] = useState<{
+    preferred_training_days: number[];
+    preferred_training_window: string;
+  }>({
+    preferred_training_days: [1, 2, 3, 4, 5],
+    preferred_training_window: "morning",
+  });
 
   useEffect(() => {
     const supabase = createClient();
@@ -116,10 +140,25 @@ export default function SettingsPage() {
             const dev = (nextProfile.devices ?? {}) as Record<string, unknown>;
             const dietary = (nextProfile.dietary_preferences ?? {}) as Record<string, unknown>;
             const rem = (dev.reminders ?? {}) as { daily_plan?: boolean; workout_log?: boolean; weigh_in?: "weekly" | "off" };
+            const schedule = (dev.training_schedule ?? {}) as {
+              preferred_training_days?: number[];
+              preferred_training_window?: string;
+            };
             setReminders({
               daily_plan: rem.daily_plan ?? true,
               workout_log: rem.workout_log ?? true,
               weigh_in: rem.weigh_in ?? "weekly",
+            });
+            setTrainingSchedule({
+              preferred_training_days: Array.isArray(schedule.preferred_training_days)
+                ? schedule.preferred_training_days
+                    .map((entry) => Number(entry))
+                    .filter((entry) => Number.isInteger(entry) && entry >= 0 && entry <= 6)
+                : [1, 2, 3, 4, 5],
+              preferred_training_window:
+                typeof schedule.preferred_training_window === "string"
+                  ? schedule.preferred_training_window
+                  : "morning",
             });
             setCoachTone(typeof dev.ai_coach_tone === "string" ? dev.ai_coach_tone : "balanced");
             setNudges(typeof dietary.ai_nudges === "string" ? dietary.ai_nudges : "standard");
@@ -193,6 +232,7 @@ export default function SettingsPage() {
           ai_coach_tone: coachTone,
           units_system: unitSystem,
           reminders,
+          training_schedule: trainingSchedule,
         },
       },
       { onConflict: "user_id" }
@@ -210,6 +250,20 @@ export default function SettingsPage() {
     setProfile({
       ...profile,
       goals: goals.includes(g) ? goals.filter((x) => x !== g) : [...goals, g],
+    });
+  }
+
+  function toggleTrainingDay(day: number) {
+    setTrainingSchedule((current) => {
+      const hasDay = current.preferred_training_days.includes(day);
+      const nextDays = hasDay
+        ? current.preferred_training_days.filter((entry) => entry !== day)
+        : [...current.preferred_training_days, day].sort((a, b) => a - b);
+
+      return {
+        ...current,
+        preferred_training_days: nextDays.length > 0 ? nextDays : [1, 3, 5],
+      };
     });
   }
 
@@ -615,6 +669,46 @@ export default function SettingsPage() {
                 <option value="off">Off</option>
               </Select>
             </div>
+          </div>
+        </Card>
+
+        <Card padding="lg">
+          <CardHeader title="Training schedule" subtitle="Used to personalize weekly and daily planning" />
+          <div className="mt-4">
+            <Label>Preferred training days</Label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {WEEKDAY_OPTIONS.map(({ value, label }) => (
+                <Button
+                  key={label}
+                  type="button"
+                  variant={trainingSchedule.preferred_training_days.includes(value) ? "primary" : "secondary"}
+                  size="sm"
+                  onClick={() => toggleTrainingDay(value)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div className="mt-4 max-w-[220px]">
+            <Label htmlFor="trainingWindow">Preferred training window</Label>
+            <Select
+              id="trainingWindow"
+              value={trainingSchedule.preferred_training_window}
+              onChange={(e) =>
+                setTrainingSchedule((current) => ({
+                  ...current,
+                  preferred_training_window: e.target.value,
+                }))
+              }
+              className="mt-1"
+            >
+              {TRAINING_WINDOWS.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
           </div>
         </Card>
 

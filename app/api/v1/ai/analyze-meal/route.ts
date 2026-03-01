@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { callModel } from "@/lib/ai/model";
 import { createClient } from "@/lib/supabase/server";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
+import { confidenceFromBucket, defaultLimitations } from "@/lib/ai/reliability";
 
 type AnalyzeMealRequest =
   | { type: "text"; description: string }
@@ -114,7 +115,19 @@ export async function POST(request: Request) {
       throw new Error("Failed to parse AI response.");
     }
 
-    return NextResponse.json({ estimate });
+    return NextResponse.json({
+      estimate,
+      reliability: {
+        confidence_score: confidenceFromBucket(estimate.confidence),
+        explanation:
+          estimate.confidence === "high"
+            ? "Clear meal signal and internally consistent macro estimate."
+            : estimate.confidence === "medium"
+              ? "Estimate is directionally useful; confirm portions for higher precision."
+              : "High uncertainty detected. Prefer manual edits before saving.",
+        limitations: defaultLimitations("nutrition"),
+      },
+    });
   } catch (error) {
     console.error("analyze_meal_unhandled", {
       requestId,

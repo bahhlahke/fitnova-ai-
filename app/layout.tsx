@@ -8,6 +8,37 @@ import { Suspense } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { AiCoachPanel } from "@/components/ai/AiCoachPanel";
 
+const DEFAULT_SITE_URL = "https://fitnova-ai.com";
+
+function normalizeUrl(value: string): string {
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+  return `https://${value}`;
+}
+
+function resolveMetadataBase(): URL {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (siteUrl) {
+    try {
+      return new URL(normalizeUrl(siteUrl));
+    } catch {
+      // fall through to next source
+    }
+  }
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl) {
+    try {
+      return new URL(normalizeUrl(vercelUrl));
+    } catch {
+      // fall through to default
+    }
+  }
+
+  return new URL(DEFAULT_SITE_URL);
+}
+
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
@@ -20,13 +51,17 @@ const fraunces = Fraunces({
   display: "swap",
 });
 
+const metadataBase = resolveMetadataBase();
+const siteUrl = metadataBase.toString().replace(/\/$/, "");
+
 export const metadata: Metadata = {
+  metadataBase,
   title: "FitNova AI",
   description: "AI-backed fitness coaching and tracking",
   openGraph: {
     title: "FitNova AI | The Ultimate Pro Experience",
     description: "The most advanced AI coaching engine ever built. Personalized training, metabolic autopilot, and 24/7 accountability.",
-    url: "https://fitnova-ai.com",
+    url: siteUrl,
     siteName: "FitNova AI",
     images: [
       {
@@ -45,7 +80,6 @@ export const metadata: Metadata = {
     description: "The most advanced AI coaching engine ever built. Personalized training, metabolic autopilot, and 24/7 accountability.",
     images: ["/og-image.jpg"],
   },
-  ...(process.env.VERCEL_URL && { metadataBase: new URL(`https://${process.env.VERCEL_URL}`) }),
 };
 
 export default function RootLayout({

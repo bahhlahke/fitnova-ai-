@@ -18,6 +18,16 @@ import {
   type DashboardProjection,
 } from "@/components/dashboard/DashboardProgressSection";
 import { DashboardQuickActions } from "@/components/dashboard/DashboardQuickActions";
+import {
+  DashboardAnalyticsSection,
+  type DashboardPerformanceAnalytics,
+  type DashboardWeeklyPlanSummary,
+} from "@/components/dashboard/DashboardAnalyticsSection";
+import {
+  DashboardRetentionSection,
+  type DashboardNudge,
+  type DashboardRetentionRisk,
+} from "@/components/dashboard/DashboardRetentionSection";
 
 function getWeekStart(date: Date): string {
   const day = date.getDay();
@@ -47,6 +57,13 @@ export default function HomePage() {
   const [lastWorkoutDate, setLastWorkoutDate] = useState<string | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
   const [focusAi, setFocusAi] = useState(false);
+  const [weeklyPlan, setWeeklyPlan] = useState<DashboardWeeklyPlanSummary | null>(null);
+  const [weeklyPlanLoading, setWeeklyPlanLoading] = useState(false);
+  const [performanceAnalytics, setPerformanceAnalytics] = useState<DashboardPerformanceAnalytics | null>(null);
+  const [performanceAnalyticsLoading, setPerformanceAnalyticsLoading] = useState(false);
+  const [retentionRisk, setRetentionRisk] = useState<DashboardRetentionRisk | null>(null);
+  const [retentionRiskLoading, setRetentionRiskLoading] = useState(false);
+  const [nudges, setNudges] = useState<DashboardNudge[]>([]);
 
   const loadDashboardSnapshot = useCallback(async () => {
     const supabase = createClient();
@@ -153,6 +170,18 @@ export default function HomePage() {
       setIsPro(profileData?.subscription_status === "pro");
 
       setHasWorkoutToday(!!workoutTodayRes.data);
+      try {
+        const { data } = await supabase
+          .from("coach_nudges")
+          .select("nudge_id, nudge_type, message, risk_level")
+          .eq("user_id", user.id)
+          .eq("date_local", today)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        setNudges((data ?? []) as DashboardNudge[]);
+      } catch {
+        setNudges([]);
+      }
     } catch {
       setAuthState("signed_out");
     }
@@ -215,6 +244,49 @@ export default function HomePage() {
     }
   }, []);
 
+  const loadWeeklyPlan = useCallback(async () => {
+    setWeeklyPlanLoading(true);
+    try {
+      const res = await fetch("/api/v1/plan/weekly");
+      const body = (await res.json()) as { plan?: DashboardWeeklyPlanSummary };
+      if (body.plan) setWeeklyPlan(body.plan);
+    } catch {
+      // Ignore degraded weekly-plan requests.
+    } finally {
+      setWeeklyPlanLoading(false);
+    }
+  }, []);
+
+  const loadPerformanceAnalytics = useCallback(async () => {
+    setPerformanceAnalyticsLoading(true);
+    try {
+      const res = await fetch("/api/v1/analytics/performance");
+      const body = (await res.json()) as DashboardPerformanceAnalytics;
+      if (typeof body.period_days === "number") {
+        setPerformanceAnalytics(body);
+      }
+    } catch {
+      // Ignore degraded analytics requests.
+    } finally {
+      setPerformanceAnalyticsLoading(false);
+    }
+  }, []);
+
+  const loadRetentionRisk = useCallback(async () => {
+    setRetentionRiskLoading(true);
+    try {
+      const res = await fetch("/api/v1/ai/retention-risk", { method: "POST" });
+      const body = (await res.json()) as DashboardRetentionRisk;
+      if (typeof body.risk_score === "number") {
+        setRetentionRisk(body);
+      }
+    } catch {
+      // Ignore degraded retention-risk requests.
+    } finally {
+      setRetentionRiskLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadDashboardSnapshot();
   }, [loadDashboardSnapshot]);
@@ -231,11 +303,17 @@ export default function HomePage() {
     void loadWeeklyInsight();
     void loadProjection();
     void loadBriefing();
+    void loadWeeklyPlan();
+    void loadPerformanceAnalytics();
+    void loadRetentionRisk();
   }, [
     authState,
     loadBriefing,
+    loadPerformanceAnalytics,
     loadProjection,
     loadReadinessInsight,
+    loadRetentionRisk,
+    loadWeeklyPlan,
     loadWeeklyInsight,
   ]);
 
@@ -246,6 +324,9 @@ export default function HomePage() {
     void loadWeeklyInsight();
     void loadProjection();
     void loadBriefing();
+    void loadWeeklyPlan();
+    void loadPerformanceAnalytics();
+    void loadRetentionRisk();
   });
 
   const streak = useMemo(() => {
@@ -299,6 +380,8 @@ export default function HomePage() {
         });
         emitDataRefresh(["dashboard", "nutrition", "workout"]);
         void loadBriefing();
+        void loadWeeklyPlan();
+        void loadRetentionRisk();
       }
     } finally {
       setPlanLoading(false);
@@ -409,6 +492,17 @@ export default function HomePage() {
         <DashboardProgressSection
           last7Days={last7Days}
           projection={projection}
+        />
+        <DashboardAnalyticsSection
+          weeklyPlan={weeklyPlan}
+          weeklyPlanLoading={weeklyPlanLoading}
+          analytics={performanceAnalytics}
+          analyticsLoading={performanceAnalyticsLoading}
+        />
+        <DashboardRetentionSection
+          retentionRisk={retentionRisk}
+          retentionLoading={retentionRiskLoading}
+          nudges={nudges}
         />
         <DashboardQuickActions
           hasPlanToday={hasPlanToday}

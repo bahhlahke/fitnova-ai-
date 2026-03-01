@@ -9,7 +9,9 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "validate": "npm run lint && npm run build && npm run test"
+    "validate": "npm run lint && npm run build && npm run test",
+    "workflow:validate:ai": "node scripts/ai-workflow-validator.mjs",
+    "reminders:dispatch": "node scripts/run-reminders-dispatch.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",

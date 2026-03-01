@@ -43,6 +43,8 @@ export default function GuidedWorkoutPage() {
   const [exercises, setExercises] = useState<GuidedExercise[]>(FALLBACK_EXERCISES);
   const [injuryBanner, setInjuryBanner] = useState<{ exercise: string; message: string } | null>(null);
   const [injuryBannerDismissed, setInjuryBannerDismissed] = useState(false);
+  const [swapLoading, setSwapLoading] = useState(false);
+  const [swapFeedback, setSwapFeedback] = useState<string | null>(null);
   const workoutStartedAt = useRef<number | null>(null);
 
   useEffect(() => {
@@ -188,6 +190,58 @@ export default function GuidedWorkoutPage() {
     }
   }, [isLastSet, isLastExercise, persistWorkout]);
 
+  const swapCurrentExercise = useCallback(
+    async (reason: string) => {
+      if (!exercise) return;
+      setSwapLoading(true);
+      setSwapFeedback(null);
+      try {
+        const res = await fetch("/api/v1/plan/swap-exercise", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            currentExercise: exercise.name,
+            reason,
+            sets: exercise.sets,
+            reps: exercise.reps,
+            intensity: exercise.intensity,
+          }),
+        });
+        const body = (await res.json()) as {
+          replacement?: GuidedExercise;
+          reliability?: { confidence_score?: number; explanation?: string };
+          error?: string;
+        };
+        if (!res.ok || !body.replacement) {
+          setSwapFeedback(body.error ?? "Could not generate substitution.");
+          return;
+        }
+        setExercises((current) =>
+          current.map((entry, index) =>
+            index === exerciseIndex
+              ? {
+                  ...entry,
+                  ...body.replacement,
+                }
+              : entry
+          )
+        );
+        setSwapFeedback(
+          `Swapped to ${body.replacement.name}. ` +
+            (body.reliability?.confidence_score != null
+              ? `AI confidence ${Math.round(body.reliability.confidence_score * 100)}%.`
+              : "")
+        );
+        setInjuryBannerDismissed(true);
+      } catch {
+        setSwapFeedback("Substitution failed. Try again.");
+      } finally {
+        setSwapLoading(false);
+      }
+    },
+    [exercise, exerciseIndex]
+  );
+
   const startRest = useCallback(() => {
     if (isLastSet && isLastExercise) {
       setPhase("completed");
@@ -263,9 +317,14 @@ export default function GuidedWorkoutPage() {
           <p className="font-semibold">Injury note</p>
           <p className="mt-1">{injuryBanner.message}</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Link href="/?focus=ai" className="text-sm font-semibold text-fn-primary hover:underline">
-              Swap this move
-            </Link>
+            <button
+              type="button"
+              onClick={() => void swapCurrentExercise("pain or injury concern")}
+              disabled={swapLoading}
+              className="text-sm font-semibold text-fn-primary hover:underline disabled:opacity-60"
+            >
+              {swapLoading ? "Swapping..." : "Swap this move"}
+            </button>
             <button type="button" onClick={() => setInjuryBannerDismissed(true)} className="text-sm font-semibold text-fn-muted hover:underline">
               Dismiss
             </button>
@@ -349,6 +408,19 @@ export default function GuidedWorkoutPage() {
                   <p className="text-sm font-medium leading-relaxed text-white/80">{exercise.notes}</p>
                 </div>
               )}
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => void swapCurrentExercise("equipment or comfort adjustment")}
+                  disabled={swapLoading}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-fn-accent transition-colors hover:bg-white/5 disabled:opacity-60"
+                >
+                  {swapLoading ? "Swapping..." : "Swap Exercise"}
+                </button>
+                {swapFeedback && (
+                  <p className="text-xs text-fn-muted">{swapFeedback}</p>
+                )}
+              </div>
             </div>
 
             <p className="mt-6 px-1 text-center text-[10px] font-bold uppercase tracking-widest text-fn-muted/50">
