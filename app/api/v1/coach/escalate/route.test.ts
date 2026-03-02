@@ -46,17 +46,17 @@ describe("coach escalation route", () => {
     });
 
     const from = vi.fn((table: string) => {
-      if (table === "coach_escalations") {
-        return {
-          insert: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single }) }),
-        };
-      }
-      return {
+      const mockChain = {
+        insert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({ data: [] }),
+        in: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        single: single,
+        maybeSingle: vi.fn().mockResolvedValue({ data: null }),
       };
+      return mockChain as any;
     });
 
     vi.mocked(createClient).mockResolvedValue({

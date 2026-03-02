@@ -37,9 +37,9 @@ type EstimateReliability = {
 const FALLBACK_PROTEIN_TARGET = 150;
 
 const CONFIDENCE_BADGE: Record<MealEstimate["confidence"], { label: string; cls: string }> = {
-  high:   { label: "High confidence",   cls: "bg-fn-accent-light text-fn-accent"  },
-  medium: { label: "Medium confidence", cls: "bg-amber-50 text-amber-700"          },
-  low:    { label: "Low confidence",    cls: "bg-fn-danger-light text-fn-danger"   },
+  high: { label: "High confidence", cls: "bg-fn-accent-light text-fn-accent" },
+  medium: { label: "Medium confidence", cls: "bg-amber-50 text-amber-700" },
+  low: { label: "Low confidence", cls: "bg-fn-danger-light text-fn-danger" },
 };
 
 /* ── Image resize helper ─────────────────────────────────────────── */
@@ -49,8 +49,8 @@ function resizeImage(file: File, maxPx = 960): Promise<string> {
     reader.onload = (ev) => {
       const img = new window.Image();
       img.onload = () => {
-        const scale  = Math.min(1, maxPx / Math.max(img.width, img.height));
-        const w = Math.round(img.width  * scale);
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
         const h = Math.round(img.height * scale);
         const canvas = document.createElement("canvas");
         canvas.width = w; canvas.height = h;
@@ -77,46 +77,67 @@ function SmartMealEntry({
   onAdded,
   existingMeals,
   existingLogId,
+  editIndex = null,
+  onCancelEdit,
 }: {
   onAdded: (newLogId?: string | null, newMeals?: MealEntry[]) => void;
   existingMeals: MealEntry[];
   existingLogId: string | null;
+  editIndex?: number | null;
+  onCancelEdit?: () => void;
 }) {
-  const [mode,         setMode]         = useState<EntryMode>("describe");
-  const [description,  setDescription]  = useState("");
+  const [mode, setMode] = useState<EntryMode>("describe");
+  const [description, setDescription] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageData,    setImageData]    = useState<string | null>(null);
+  const [imageData, setImageData] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // AI state
-  const [analyzing,    setAnalyzing]    = useState(false);
-  const [estimate,     setEstimate]     = useState<MealEstimate | null>(null);
-  const [reliability,  setReliability]  = useState<EstimateReliability | null>(null);
-  const [aiError,      setAiError]      = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [estimate, setEstimate] = useState<MealEstimate | null>(null);
+  const [reliability, setReliability] = useState<EstimateReliability | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   // Editable estimate fields
-  const [editName,     setEditName]     = useState("");
-  const [editCal,      setEditCal]      = useState("");
-  const [editPro,      setEditPro]      = useState("");
-  const [editCarb,     setEditCarb]     = useState("");
-  const [editFat,      setEditFat]      = useState("");
+  const [editName, setEditName] = useState("");
+  const [editCal, setEditCal] = useState("");
+  const [editPro, setEditPro] = useState("");
+  const [editCarb, setEditCarb] = useState("");
+  const [editFat, setEditFat] = useState("");
 
   // Save state
-  const [saving,       setSaving]       = useState(false);
-  const [saveError,    setSaveError]    = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const today = toLocalDateString();
-  const time  = new Date().toTimeString().slice(0, 5);
+  const time = new Date().toTimeString().slice(0, 5);
 
-  // Populate editable fields when estimate arrives
+  // Populate editable fields when estimate arrives OR when editing starts
   useEffect(() => {
-    if (!estimate) return;
-    setEditName(estimate.name);
-    setEditCal (String(estimate.calories));
-    setEditPro (String(estimate.protein));
-    setEditCarb(String(estimate.carbs));
-    setEditFat (String(estimate.fat));
-  }, [estimate]);
+    if (editIndex !== null && existingMeals[editIndex]) {
+      const m = existingMeals[editIndex];
+      setEditName(m.description);
+      setEditCal(String(m.calories ?? ""));
+      setEditPro(String(m.macros?.protein ?? ""));
+      setEditCarb(String(m.macros?.carbs ?? ""));
+      setEditFat(String(m.macros?.fat ?? ""));
+      setEstimate({
+        name: m.description,
+        calories: m.calories ?? 0,
+        protein: m.macros?.protein ?? 0,
+        carbs: m.macros?.carbs ?? 0,
+        fat: m.macros?.fat ?? 0,
+        confidence: "high",
+        notes: "Editing existing entry",
+      });
+    } else if (estimate) {
+      setEditName(estimate.name);
+      setEditCal(String(estimate.calories));
+      setEditPro(String(estimate.protein));
+      setEditCarb(String(estimate.carbs));
+      setEditFat(String(estimate.fat));
+    }
+  }, [estimate, editIndex, existingMeals]);
 
   function switchMode(m: EntryMode) {
     setMode(m);
@@ -142,7 +163,7 @@ function SmartMealEntry({
       const body = mode === "describe"
         ? { type: "text", description }
         : { type: "image", data: imageData };
-      const res  = await fetch("/api/v1/ai/analyze-meal", {
+      const res = await fetch("/api/v1/ai/analyze-meal", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
@@ -154,15 +175,15 @@ function SmartMealEntry({
         if (data.reliability) setReliability(data.reliability);
       }
     } catch (_e) { setAiError("Network error — check your connection."); }
-    finally      { setAnalyzing(false); }
+    finally { setAnalyzing(false); }
   }
 
   async function saveMeal() {
-    const name     = editName.trim() || description.trim() || "Meal";
-    const calories = Number(editCal)  || 0;
-    const protein  = Number(editPro)  || 0;
-    const carbs    = Number(editCarb) || 0;
-    const fat      = Number(editFat)  || 0;
+    const name = editName.trim() || description.trim() || "Meal";
+    const calories = Number(editCal) || 0;
+    const protein = Number(editPro) || 0;
+    const carbs = Number(editCarb) || 0;
+    const fat = Number(editFat) || 0;
     setSaving(true); setSaveError(null);
     const supabase = createClient();
     if (!supabase) { setSaveError("Supabase not configured."); setSaving(false); return; }
@@ -170,11 +191,19 @@ function SmartMealEntry({
     if (!user) { setSaveError("Sign in to log meals."); setSaving(false); return; }
 
     const newMeal: MealEntry = {
-      time, description: name,
+      time: editIndex !== null ? existingMeals[editIndex].time : time,
+      description: name,
       calories: calories > 0 ? calories : undefined,
       macros: { protein, carbs, fat },
     };
-    const updated   = [...existingMeals, newMeal];
+
+    let updated: MealEntry[];
+    if (editIndex !== null) {
+      updated = [...existingMeals];
+      updated[editIndex] = newMeal;
+    } else {
+      updated = [...existingMeals, newMeal];
+    }
     const totalCals = updated.reduce((s, m) => s + (m.calories ?? 0), 0);
 
     if (existingLogId) {
@@ -193,6 +222,7 @@ function SmartMealEntry({
     setDescription(""); setImagePreview(null); setImageData(null); setEstimate(null); setReliability(null);
     setEditName(""); setEditCal(""); setEditPro(""); setEditCarb(""); setEditFat("");
     setSaving(false);
+    if (onCancelEdit) onCancelEdit();
   }
 
   async function quickSave(e: React.FormEvent) {
@@ -255,9 +285,8 @@ function SmartMealEntry({
       <div className="inline-flex rounded-xl border border-fn-border bg-fn-bg p-1">
         {ENTRY_MODES.map((m) => (
           <button key={m} type="button" onClick={() => switchMode(m)}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 ${
-              mode === m ? "bg-fn-ink-rich text-white shadow-fn-soft" : "text-fn-muted hover:text-fn-ink"
-            }`}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 ${mode === m ? "bg-fn-ink-rich text-white shadow-fn-soft" : "text-fn-muted hover:text-fn-ink"
+              }`}
           >
             {m === "describe" ? (
               <>
@@ -323,11 +352,10 @@ function SmartMealEntry({
             role="button" tabIndex={0}
             onClick={() => fileInputRef.current?.click()}
             onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
-            className={`relative flex min-h-[180px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 transition-all duration-200 ${
-              imagePreview
+            className={`relative flex min-h-[180px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 transition-all duration-200 ${imagePreview
                 ? "border-fn-primary/30"
                 : "border-dashed border-fn-border hover:border-fn-primary/50 hover:bg-fn-primary-light/30"
-            }`}
+              }`}
           >
             {imagePreview ? (
               <>
@@ -413,10 +441,10 @@ function SmartMealEntry({
           {/* Macro grid — all editable */}
           <div className="grid grid-cols-4 gap-px bg-fn-primary/10 border-b border-fn-primary/10">
             {[
-              { label: "Calories", field: editCal,  setter: setEditCal,  unit: "kcal", hi: true },
-              { label: "Protein",  field: editPro,  setter: setEditPro,  unit: "g" },
-              { label: "Carbs",    field: editCarb, setter: setEditCarb, unit: "g" },
-              { label: "Fat",      field: editFat,  setter: setEditFat,  unit: "g" },
+              { label: "Calories", field: editCal, setter: setEditCal, unit: "kcal", hi: true },
+              { label: "Protein", field: editPro, setter: setEditPro, unit: "g" },
+              { label: "Carbs", field: editCarb, setter: setEditCarb, unit: "g" },
+              { label: "Fat", field: editFat, setter: setEditFat, unit: "g" },
             ].map(({ label, field, setter, unit, hi }) => (
               <div key={label} className={`flex flex-col items-center px-2 py-3 ${hi ? "bg-fn-primary-light" : "bg-white"}`}>
                 <div className="flex items-baseline gap-0.5">
@@ -449,7 +477,7 @@ function SmartMealEntry({
               )}
               {/* Macro sanity check */}
               {(() => {
-                const cal  = Number(editCal);
+                const cal = Number(editCal);
                 const calc = Number(editPro) * 4 + Number(editCarb) * 4 + Number(editFat) * 9;
                 if (cal > 0 && Math.abs(cal - calc) > cal * 0.2) {
                   return (
@@ -464,12 +492,15 @@ function SmartMealEntry({
           )}
 
           {/* Save */}
-          <div className="border-t border-fn-primary/10 px-4 py-3">
-            <Button className="w-full" loading={saving} onClick={saveMeal}
+          <div className="border-t border-fn-primary/10 px-4 py-3 flex gap-2">
+            <Button className="flex-1" loading={saving} onClick={saveMeal}
               icon={<svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
             >
-              Add to log
+              {editIndex !== null ? "Update meal" : "Add to log"}
             </Button>
+            {editIndex !== null && (
+              <Button variant="ghost" onClick={onCancelEdit}>Cancel</Button>
+            )}
           </div>
         </div>
       )}
@@ -491,19 +522,20 @@ function SmartMealEntry({
    Main page
 ───────────────────────────────────────────────────────────────── */
 export default function NutritionLogPage() {
-  const [meals,             setMeals]           = useState<MealEntry[]>([]);
-  const [logId,             setLogId]           = useState<string | null>(null);
-  const [planTargets,       setPlanTargets]     = useState<NutritionPlanTargets | null>(null);
+  const [meals, setMeals] = useState<MealEntry[]>([]);
+  const [logId, setLogId] = useState<string | null>(null);
+  const [planTargets, setPlanTargets] = useState<NutritionPlanTargets | null>(null);
   const [planMealStructure, setPlanMealStructure] = useState<string[]>([]);
-  const [hydrationLiters,   setHydrationLiters] = useState<number | null>(null);
-  const [hydrationGoal,     setHydrationGoal]   = useState<number>(2.5);
-  const [loading,           setLoading]         = useState(true);
-  const [refetch,           setRefetch]         = useState(0);
-  const [pageError,         setPageError]       = useState<string | null>(null);
-  const [aiInsight,         setAiInsight]       = useState<string | null>(null);
-  const [aiInsightLoading,  setAiInsightLoading]= useState(false);
-  const [mealSuggestions,   setMealSuggestions] = useState<Array<{ name: string; calories?: number; protein_g?: number; note?: string }>>([]);
-  const [suggestLoading,    setSuggestLoading]  = useState(false);
+  const [hydrationLiters, setHydrationLiters] = useState<number | null>(null);
+  const [hydrationGoal, setHydrationGoal] = useState<number>(2.5);
+  const [loading, setLoading] = useState(true);
+  const [refetch, setRefetch] = useState(0);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [aiInsightLoading, setAiInsightLoading] = useState(false);
+  const [mealSuggestions, setMealSuggestions] = useState<Array<{ name: string; calories?: number; protein_g?: number; note?: string }>>([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const today = toLocalDateString();
 
   const fetchToday = useCallback(() => {
@@ -550,20 +582,20 @@ export default function NutritionLogPage() {
     setAiInsightLoading(true);
     fetch("/api/v1/ai/nutrition-insight", { method: "POST" })
       .then(r => r.json()).then((b: { insight?: string | null }) => { if (b.insight) setAiInsight(b.insight); })
-      .catch(() => {}).finally(() => setAiInsightLoading(false));
+      .catch(() => { }).finally(() => setAiInsightLoading(false));
   }, [loading, refetch]);
 
   // Derived totals
   const totalCalories = meals.reduce((s, m) => s + (m.calories ?? 0), 0);
-  const totalProtein  = meals.reduce((s, m) => s + (m.macros?.protein ?? 0), 0) || Math.round(meals.length * 28);
-  const totalCarbs    = meals.reduce((s, m) => s + (m.macros?.carbs   ?? 0), 0);
-  const totalFat      = meals.reduce((s, m) => s + (m.macros?.fat     ?? 0), 0);
+  const totalProtein = meals.reduce((s, m) => s + (m.macros?.protein ?? 0), 0) || Math.round(meals.length * 28);
+  const totalCarbs = meals.reduce((s, m) => s + (m.macros?.carbs ?? 0), 0);
+  const totalFat = meals.reduce((s, m) => s + (m.macros?.fat ?? 0), 0);
   const proteinTarget = planTargets?.protein_g ?? FALLBACK_PROTEIN_TARGET;
   const calorieTarget = planTargets?.calorie_target ?? null;
-  const calPct        = calorieTarget ? Math.min(100, (totalCalories / calorieTarget) * 100) : 0;
-  const proPct        = Math.min(100, (totalProtein / proteinTarget) * 100);
-  const carbPct       = planTargets?.carbs_g ? Math.min(100, (totalCarbs / planTargets.carbs_g) * 100) : 0;
-  const fatPct        = planTargets?.fat_g   ? Math.min(100, (totalFat   / planTargets.fat_g)   * 100) : 0;
+  const calPct = calorieTarget ? Math.min(100, (totalCalories / calorieTarget) * 100) : 0;
+  const proPct = Math.min(100, (totalProtein / proteinTarget) * 100);
+  const carbPct = planTargets?.carbs_g ? Math.min(100, (totalCarbs / planTargets.carbs_g) * 100) : 0;
+  const fatPct = planTargets?.fat_g ? Math.min(100, (totalFat / planTargets.fat_g) * 100) : 0;
 
   async function addHydration(amt: number) {
     const next = (hydrationLiters ?? 0) + amt;
@@ -581,6 +613,26 @@ export default function NutritionLogPage() {
     }
     setHydrationLiters(next);
     emitDataRefresh(["dashboard", "nutrition"]);
+  }
+
+  async function resetHydration() {
+    const supabase = createClient();
+    if (!supabase || !logId) return;
+    await supabase.from("nutrition_logs").update({ hydration_liters: 0 }).eq("log_id", logId);
+    setHydrationLiters(0);
+    emitDataRefresh(["dashboard", "nutrition"]);
+  }
+
+  async function deleteMeal(index: number) {
+    const updated = meals.filter((_, i) => i !== index);
+    const totalCal = updated.reduce((s, m) => s + (m.calories ?? 0), 0);
+    const supabase = createClient();
+    if (!supabase || !logId) return;
+    const { error } = await supabase.from("nutrition_logs").update({ meals: updated, total_calories: totalCal || null }).eq("log_id", logId);
+    if (!error) {
+      setMeals(updated);
+      emitDataRefresh(["dashboard", "nutrition"]);
+    }
   }
 
   async function loadFromPlan() {
@@ -626,9 +678,12 @@ export default function NutritionLogPage() {
               if (newMeals != null) setMeals(newMeals);
               setRefetch(n => n + 1);
               emitDataRefresh(["dashboard", "nutrition"]);
+              setEditingIndex(null);
             }}
             existingMeals={meals}
             existingLogId={logId}
+            editIndex={editingIndex}
+            onCancelEdit={() => setEditingIndex(null)}
           />
           {pageError && <ErrorMessage className="mt-3" message={pageError} />}
           <div className="mt-4 flex flex-wrap gap-3">
@@ -673,9 +728,9 @@ export default function NutritionLogPage() {
               </div>
               <div className="flex-1 space-y-2">
                 {[
-                  { label: "Protein", val: totalProtein, target: proteinTarget,        pct: proPct,  color: "bg-fn-primary" },
-                  { label: "Carbs",   val: totalCarbs,   target: planTargets?.carbs_g, pct: carbPct, color: "bg-amber-400"  },
-                  { label: "Fat",     val: totalFat,     target: planTargets?.fat_g,   pct: fatPct,  color: "bg-fn-accent"  },
+                  { label: "Protein", val: totalProtein, target: proteinTarget, pct: proPct, color: "bg-fn-primary" },
+                  { label: "Carbs", val: totalCarbs, target: planTargets?.carbs_g, pct: carbPct, color: "bg-amber-400" },
+                  { label: "Fat", val: totalFat, target: planTargets?.fat_g, pct: fatPct, color: "bg-fn-accent" },
                 ].map(({ label, val, target, pct, color }) => (
                   <div key={label}>
                     <div className="flex justify-between text-xs mb-0.5">
@@ -704,7 +759,7 @@ export default function NutritionLogPage() {
                   fetch("/api/v1/ai/meal-suggestions", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
                     .then(r => r.json())
                     .then((b: { suggestions?: Array<{ name: string; calories?: number; protein_g?: number; note?: string }> }) => setMealSuggestions(b.suggestions ?? []))
-                    .catch(() => {}).finally(() => setSuggestLoading(false));
+                    .catch(() => { }).finally(() => setSuggestLoading(false));
                 }}
               >
                 {suggestLoading ? "Loading…" : "Suggest next meal"}
@@ -756,6 +811,13 @@ export default function NutritionLogPage() {
                       +{amt} L
                     </button>
                   ))}
+                  {(hydrationLiters ?? 0) > 0 && (
+                    <button type="button" onClick={resetHydration}
+                      className="rounded-lg border border-fn-danger/20 px-3 py-1.5 text-xs font-semibold text-fn-danger hover:bg-fn-danger-light transition-all duration-200"
+                    >
+                      Reset
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -774,9 +836,23 @@ export default function NutritionLogPage() {
               <li key={i} className="flex items-center gap-3 rounded-xl border border-fn-border bg-fn-surface-hover p-3">
                 <span className="shrink-0 rounded-lg bg-fn-bg-alt px-2 py-1 text-xs font-semibold text-fn-muted">{meal.time}</span>
                 <span className="flex-1 text-sm text-fn-ink">{meal.description}</span>
-                <div className="shrink-0 text-right">
-                  {meal.calories != null && <span className="text-xs font-semibold text-fn-ink">{meal.calories} kcal</span>}
-                  {meal.macros?.protein != null && <span className="ml-2 text-xs text-fn-muted">{meal.macros.protein}g P</span>}
+                <div className="shrink-0 text-right flex items-center gap-4">
+                  <div>
+                    {meal.calories != null && <p className="text-xs font-semibold text-fn-ink">{meal.calories} kcal</p>}
+                    {meal.macros?.protein != null && <p className="text-[10px] text-fn-muted">{meal.macros.protein}g P</p>}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => { setEditingIndex(i); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="p-1 text-fn-muted hover:text-fn-primary">
+                      <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                      </svg>
+                    </button>
+                    <button onClick={() => deleteMeal(i)} className="p-1 text-fn-muted hover:text-fn-danger">
+                      <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </li>
             ))}

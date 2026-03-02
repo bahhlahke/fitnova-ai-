@@ -99,7 +99,7 @@ export default function WorkoutLogPage() {
               .then((body: { insight?: string | null }) => {
                 if (body.insight && typeof body.insight === "string") setPostWorkoutInsight(body.insight);
               })
-              .catch(() => {})
+              .catch(() => { })
               .finally(() => setPostWorkoutInsightLoading(false));
           }}
         />
@@ -125,12 +125,31 @@ export default function WorkoutLogPage() {
           ) : workouts.length > 0 ? (
             <ul className="mt-3 space-y-2">
               {workouts.map((w) => (
-                <li key={w.log_id} className="rounded-xl border border-fn-border bg-fn-surface-hover px-3 py-3 text-sm text-fn-ink">
-                  <p className="font-semibold">{w.date} · {w.workout_type}</p>
-                  <p className="mt-1 text-fn-muted">
-                    {w.duration_minutes != null ? `${w.duration_minutes} min` : "Duration not set"}
-                    {w.notes ? ` · ${w.notes}` : ""}
-                  </p>
+                <li key={w.log_id} className="flex items-center justify-between rounded-xl border border-fn-border bg-fn-surface-hover px-3 py-3 text-sm text-fn-ink">
+                  <div>
+                    <p className="font-semibold">{w.date} · {w.workout_type}</p>
+                    <p className="mt-1 text-fn-muted">
+                      {w.duration_minutes != null ? `${w.duration_minutes} min` : "Duration not set"}
+                      {w.notes ? ` · ${w.notes}` : ""}
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const supabase = createClient();
+                      if (!supabase) return;
+                      const { error } = await supabase.from("workout_logs").delete().eq("log_id", w.log_id);
+                      if (!error) {
+                        setWorkouts(prev => prev.filter(item => item.log_id !== w.log_id));
+                        emitDataRefresh(["dashboard", "workout"]);
+                      }
+                    }}
+                    className="p-1 text-fn-muted hover:text-fn-danger transition-colors"
+                    title="Delete workout"
+                  >
+                    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -210,11 +229,10 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
               key={value}
               type="button"
               onClick={() => setType(value)}
-              className={`rounded-xl border px-4 py-3 text-left transition-all duration-200 ${
-                type === value
+              className={`rounded-xl border px-4 py-3 text-left transition-all duration-200 ${type === value
                   ? "border-fn-accent bg-fn-accent/10 shadow-[0_0_20px_rgba(10,217,196,0.1)]"
                   : "border-fn-border bg-fn-surface text-fn-muted hover:bg-fn-surface-hover hover:text-fn-ink hover:border-fn-accent/30"
-              }`}
+                }`}
             >
               <p className={`text-sm font-black uppercase tracking-tight ${type === value ? "text-fn-accent" : "text-fn-ink"}`}>{label}</p>
               <p className={`mt-1 text-xs ${type === value ? "text-fn-accent/70" : "text-fn-muted"}`}>{hint}</p>

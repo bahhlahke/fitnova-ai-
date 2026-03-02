@@ -1,0 +1,71 @@
+
+> fitnova-ai@0.1.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/Users/blakeaycock/code/fitnessAI[39m
+
+ [32m✓[39m app/api/v1/coach/escalate/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m app/api/v1/ai/retention-risk/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32m✓[39m app/api/v1/ai/respond/route.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m app/history/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 292[2mms[22m[39m
+ [32m✓[39m app/auth/page.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 435[2mms[22m[39m
+ [32m✓[39m app/start/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 563[2mms[22m[39m
+     [33m[2m✓[22m[39m stores draft and redirects to auth on completion [33m 562[2mms[22m[39m
+ [32m✓[39m app/onboarding/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 564[2mms[22m[39m
+     [33m[2m✓[22m[39m does not mark onboarding completed when saving fails [33m 562[2mms[22m[39m
+[90mstderr[2m | app/api/v1/ai/body-comp/route.test.ts[2m > [22m[2mPOST /api/v1/ai/body-comp[2m > [22m[2mreturns 500 when AI model returns invalid JSON
+[22m[39mFailed to parse Body Comp JSON response: I'm sorry, I cannot process this image.
+
+ [32m✓[39m app/api/v1/ai/body-comp/route.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m app/page.test.tsx [2m([22m[2m2 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[32m 175[2mms[22m[39m
+ [32m✓[39m app/api/v1/coach/nudges/[nudgeId]/ack/route.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m lib/analytics/progression.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m app/settings/page.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 753[2mms[22m[39m
+     [33m[2m✓[22m[39m normalizes phone number before saving profile [33m 483[2mms[22m[39m
+ [32m✓[39m app/api/v1/jobs/reminders/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m app/api/v1/integrations/whoop/connect/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m app/api/v1/nutrition/adherence/daily/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m app/api/v1/plan/adapt-session/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+[90mstderr[2m | lib/jobs/daily-checkin.test.ts[2m > [22m[2mDaily Briefing Cron Job[2m > [22m[2mexits early if missing Twilio credentials
+[22m[39mMissing Twilio credentials
+
+ [32m✓[39m app/api/v1/plan/daily/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+[90mstdout[2m | lib/jobs/daily-checkin.test.ts[2m > [22m[2mDaily Briefing Cron Job[2m > [22m[2mfetches pro users and sends SMS briefings
+[22m[39mSent briefing to +111
+
+ [32m✓[39m lib/jobs/daily-checkin.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m app/api/v1/progression/next-targets/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m lib/apple-health/import.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 34[2mms[22m[39m
+ [32m✓[39m app/api/v1/progression/recompute/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m app/api/v1/telemetry/event/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m app/api/v1/nutrition/targets/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m app/api/v1/stripe/checkout/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m lib/progression/compute.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m app/api/v1/ai/analyze-meal/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m app/api/v1/admin/coach/escalations/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m app/api/v1/admin/coach/escalations/[escalationId]/reply/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m app/api/v1/admin/coach/escalations/[escalationId]/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m app/api/v1/ai/feedback/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m lib/ai/assemble-context.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m app/api/v1/plan/weekly/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m app/api/v1/coach/escalate/[escalationId]/messages/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m app/api/v1/stripe/webhook/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m app/api/v1/plan/swap-exercise/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m app/api/v1/twilio/inbound/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m lib/plan/compose-daily-plan.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m app/api/v1/coach/escalate/active/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m app/api/v1/integrations/whoop/callback/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m lib/units.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m lib/funnel/preauth.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m app/coach/motion-lab/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m app/omni/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m app/log/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m app/coach/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m lib/date/local-date.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 1[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m46 passed[39m[22m[90m (46)[39m
+[2m      Tests [22m [1m[32m106 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (107)[39m
+[2m   Start at [22m 20:02:09
+[2m   Duration [22m 4.12s[2m (transform 1.80s, setup 3.07s, import 4.81s, tests 3.12s, environment 10.49s)[22m
+

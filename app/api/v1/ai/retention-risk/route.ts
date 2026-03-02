@@ -30,8 +30,16 @@ function toRiskLevel(score: number): RiskLevel {
 
 export async function POST(req: Request) {
   const requestId = makeRequestId();
-  const body = await req.json().catch(() => ({}));
-  const localDate = body.localDate || toLocalDateString();
+  let body: any = {};
+  try {
+    const text = await req.text();
+    if (text) {
+      body = JSON.parse(text);
+    }
+  } catch (e) {
+    // Ignore parse errors, use empty body
+  }
+  const localDate = body?.localDate || toLocalDateString();
 
   try {
     const supabase = await createClient();

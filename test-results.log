@@ -1,0 +1,131 @@
+
+> fitnova-ai@0.1.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/Users/blakeaycock/code/fitnessAI[39m
+
+[90mstderr[2m | app/api/v1/coach/escalate/route.test.ts[2m > [22m[2mcoach escalation route[2m > [22m[2mPOST stores escalation request
+[22m[39mcoach_escalation_post_unhandled {
+  requestId: [32m'mm8h0nku-lzl8z65r'[39m,
+  error: [32m'supabase.from(...).insert is not a function'[39m
+}
+
+ [31m❯[39m app/api/v1/ai/retention-risk/route.test.ts [2m([22m[2m2 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 16[2mms[22m[39m
+[31m     [31m×[31m requires authentication[39m[32m 12[2mms[22m[39m
+[31m     [31m×[31m returns risk payload for authenticated user[39m[32m 1[2mms[22m[39m
+ [31m❯[39m app/api/v1/coach/escalate/route.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 24[2mms[22m[39m
+     [32m✓[39m GET requires auth[32m 7[2mms[22m[39m
+     [32m✓[39m POST validates topic[32m 2[2mms[22m[39m
+[31m     [31m×[31m POST stores escalation request[39m[32m 14[2mms[22m[39m
+ [32m✓[39m app/api/v1/admin/coach/escalations/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m app/auth/page.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 372[2mms[22m[39m
+ [32m✓[39m app/page.test.tsx [2m([22m[2m2 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[32m 252[2mms[22m[39m
+ [32m✓[39m app/start/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 487[2mms[22m[39m
+     [33m[2m✓[22m[39m stores draft and redirects to auth on completion [33m 486[2mms[22m[39m
+[90mstderr[2m | lib/jobs/daily-checkin.test.ts[2m > [22m[2mDaily Briefing Cron Job[2m > [22m[2mexits early if missing Twilio credentials
+[22m[39mMissing Twilio credentials
+
+[90mstdout[2m | lib/jobs/daily-checkin.test.ts[2m > [22m[2mDaily Briefing Cron Job[2m > [22m[2mfetches pro users and sends SMS briefings
+[22m[39mSent briefing to +111
+
+ [32m✓[39m lib/jobs/daily-checkin.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m app/history/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 303[2mms[22m[39m
+     [33m[2m✓[22m[39m initializes the nutrition tab from the query string [33m 301[2mms[22m[39m
+ [32m✓[39m lib/analytics/progression.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m app/onboarding/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 627[2mms[22m[39m
+     [33m[2m✓[22m[39m does not mark onboarding completed when saving fails [33m 626[2mms[22m[39m
+ [32m✓[39m app/settings/page.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 633[2mms[22m[39m
+     [33m[2m✓[22m[39m normalizes phone number before saving profile [33m 449[2mms[22m[39m
+ [32m✓[39m app/api/v1/coach/nudges/[nudgeId]/ack/route.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m app/api/v1/plan/swap-exercise/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m app/api/v1/ai/respond/route.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32m✓[39m app/api/v1/admin/coach/escalations/[escalationId]/reply/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m app/api/v1/nutrition/targets/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m app/api/v1/integrations/whoop/callback/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m app/api/v1/ai/feedback/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m app/api/v1/plan/weekly/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m app/api/v1/progression/next-targets/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+[90mstderr[2m | app/api/v1/ai/body-comp/route.test.ts[2m > [22m[2mPOST /api/v1/ai/body-comp[2m > [22m[2mreturns 500 when AI model returns invalid JSON
+[22m[39mFailed to parse Body Comp JSON response: I'm sorry, I cannot process this image.
+
+ [32m✓[39m app/api/v1/ai/body-comp/route.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m lib/apple-health/import.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m app/api/v1/plan/adapt-session/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m app/api/v1/progression/recompute/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m app/api/v1/telemetry/event/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m lib/plan/compose-daily-plan.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m app/api/v1/twilio/inbound/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m app/api/v1/coach/escalate/active/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m lib/ai/assemble-context.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m app/api/v1/admin/coach/escalations/[escalationId]/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m app/api/v1/ai/analyze-meal/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m app/api/v1/nutrition/adherence/daily/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m app/api/v1/coach/escalate/[escalationId]/messages/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m app/api/v1/plan/daily/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m lib/units.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m app/api/v1/stripe/checkout/route.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m app/api/v1/jobs/reminders/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m app/api/v1/integrations/whoop/connect/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m lib/progression/compute.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m app/api/v1/stripe/webhook/route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m app/omni/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m lib/funnel/preauth.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m app/log/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m app/coach/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m app/coach/motion-lab/page.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m lib/date/local-date.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 1[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 3 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m app/api/v1/ai/retention-risk/route.test.ts[2m > [22mretention-risk route[2m > [22mrequires authentication
+[31m[1mTypeError[22m: Cannot read properties of undefined (reading 'json')[39m
+[36m [2m❯[22m Module.POST app/api/v1/ai/retention-risk/route.ts:[2m33:26[22m[39m
+    [90m 31| [39m[35mexport[39m [35masync[39m [35mfunction[39m [33mPOST[39m(req[33m:[39m [33mRequest[39m) {
+    [90m 32| [39m  [35mconst[39m requestId [33m=[39m [34mmakeRequestId[39m()[33m;[39m
+    [90m 33| [39m  [35mconst[39m body [33m=[39m [35mawait[39m req[33m.[39m[34mjson[39m()[33m.[39m[35mcatch[39m(() [33m=>[39m ({}))[33m;[39m
+    [90m   | [39m                         [31m^[39m
+    [90m 34| [39m  [35mconst[39m localDate [33m=[39m body[33m.[39mlocalDate [33m||[39m [34mtoLocalDateString[39m()[33m;[39m
+    [90m 35| [39m
+[90m [2m❯[22m app/api/v1/ai/retention-risk/route.test.ts:[2m22:23[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m app/api/v1/ai/retention-risk/route.test.ts[2m > [22mretention-risk route[2m > [22mreturns risk payload for authenticated user
+[31m[1mTypeError[22m: Cannot read properties of undefined (reading 'json')[39m
+[36m [2m❯[22m Module.POST app/api/v1/ai/retention-risk/route.ts:[2m33:26[22m[39m
+    [90m 31| [39m[35mexport[39m [35masync[39m [35mfunction[39m [33mPOST[39m(req[33m:[39m [33mRequest[39m) {
+    [90m 32| [39m  [35mconst[39m requestId [33m=[39m [34mmakeRequestId[39m()[33m;[39m
+    [90m 33| [39m  [35mconst[39m body [33m=[39m [35mawait[39m req[33m.[39m[34mjson[39m()[33m.[39m[35mcatch[39m(() [33m=>[39m ({}))[33m;[39m
+    [90m   | [39m                         [31m^[39m
+    [90m 34| [39m  [35mconst[39m localDate [33m=[39m body[33m.[39mlocalDate [33m||[39m [34mtoLocalDateString[39m()[33m;[39m
+    [90m 35| [39m
+[90m [2m❯[22m app/api/v1/ai/retention-risk/route.test.ts:[2m53:23[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m app/api/v1/coach/escalate/route.test.ts[2m > [22mcoach escalation route[2m > [22mPOST stores escalation request
+[31m[1mAssertionError[22m: expected 500 to be 200 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 200[39m
+[31m+ 500[39m
+
+[36m [2m❯[22m app/api/v1/coach/escalate/route.test.ts:[2m75:24[22m[39m
+    [90m 73| [39m    )[33m;[39m
+    [90m 74| [39m
+    [90m 75| [39m    [34mexpect[39m(res[33m.[39mstatus)[33m.[39m[34mtoBe[39m([34m200[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m 76| [39m    [35mconst[39m body [33m=[39m [35mawait[39m res[33m.[39m[34mjson[39m()[33m;[39m
+    [90m 77| [39m    [34mexpect[39m(body[33m.[39mrequest[33m.[39mescalation_id)[33m.[39m[34mtoBe[39m([32m"e1"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m44 passed[39m[22m[90m (46)[39m
+[2m      Tests [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m103 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (107)[39m
+[2m   Start at [22m 19:58:54
+[2m   Duration [22m 3.80s[2m (transform 1.90s, setup 2.94s, import 4.51s, tests 3.01s, environment 8.64s)[22m
+

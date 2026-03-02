@@ -304,16 +304,34 @@ export default function ProgressPage() {
               ) : (
                 <ul className="mt-4 space-y-2">
                   {entries.slice(0, 10).map((e) => (
-                    <li key={e.track_id} className="flex justify-between rounded-xl border border-fn-border bg-fn-surface-hover px-4 py-3 text-sm">
-                      <span className="font-bold text-fn-ink">{e.date}</span>
-                      <span className="text-fn-muted">
-                        {[
-                          e.weight != null ? `${formatDisplayNumber(toDisplayWeight(e.weight, unitSystem), 1)} ${unitLabel}` : "",
-                          e.body_fat_percent != null ? `${e.body_fat_percent}%` : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" · ") || "—"}
-                      </span>
+                    <li key={e.track_id} className="flex items-center justify-between rounded-xl border border-fn-border bg-fn-surface-hover px-4 py-3 text-sm">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-fn-ink">{e.date}</span>
+                        <span className="text-fn-muted">
+                          {[
+                            e.weight != null ? `${formatDisplayNumber(toDisplayWeight(e.weight, unitSystem), 1)} ${unitLabel}` : "",
+                            e.body_fat_percent != null ? `${e.body_fat_percent}%` : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || "—"}
+                        </span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const supabase = createClient();
+                          if (!supabase) return;
+                          const { error } = await supabase.from("progress_tracking").delete().eq("track_id", e.track_id);
+                          if (!error) {
+                            setEntries(prev => prev.filter(item => item.track_id !== e.track_id));
+                          }
+                        }}
+                        className="p-1 text-fn-muted hover:text-fn-danger transition-colors"
+                        title="Delete entry"
+                      >
+                        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </button>
                     </li>
                   ))}
                 </ul>
