@@ -190,7 +190,11 @@ export default function HomePage() {
   const loadReadinessInsight = useCallback(async () => {
     setReadinessInsightLoading(true);
     try {
-      const res = await fetch("/api/v1/ai/readiness-insight", { method: "POST" });
+      const res = await fetch("/api/v1/ai/readiness-insight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ localDate: toLocalDateString() }),
+      });
       const body = (await res.json()) as { insight?: string | null };
       if (typeof body.insight === "string" && body.insight) {
         setReadinessInsight(body.insight);
@@ -236,7 +240,11 @@ export default function HomePage() {
   const loadBriefing = useCallback(async () => {
     setBriefingLoading(true);
     try {
-      const res = await fetch("/api/v1/ai/briefing", { method: "POST" });
+      const res = await fetch("/api/v1/ai/briefing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ localDate: toLocalDateString() }),
+      });
       const body = (await res.json()) as { briefing?: string | null };
       if (typeof body.briefing === "string" && body.briefing) {
         setBriefing(body.briefing);
@@ -279,7 +287,11 @@ export default function HomePage() {
   const loadRetentionRisk = useCallback(async () => {
     setRetentionRiskLoading(true);
     try {
-      const res = await fetch("/api/v1/ai/retention-risk", { method: "POST" });
+      const res = await fetch("/api/v1/ai/retention-risk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ localDate: toLocalDateString() }),
+      });
       const body = (await res.json()) as DashboardRetentionRisk;
       if (typeof body.risk_score === "number") {
         setRetentionRisk(body);

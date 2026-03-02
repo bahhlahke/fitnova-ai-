@@ -16,8 +16,11 @@ export async function POST(request: Request) {
             return jsonError(401, "AUTH_REQUIRED", "Sign in is required.");
         }
 
+        const body = await request.json().catch(() => ({}));
+        const localDate = body.localDate || new Date().toISOString().split('T')[0];
+
         // Fetch today's plan and check-in
-        const today = new Date().toISOString().split('T')[0];
+        const today = localDate;
         const [planRes, checkInRes] = await Promise.all([
             supabase.from("daily_plans").select("plan_json").eq("user_id", user.id).eq("date_local", today).maybeSingle(),
             supabase.from("check_ins").select("*").eq("user_id", user.id).eq("date_local", today).maybeSingle(),

@@ -17,9 +17,12 @@ function withTimeout(ms: number) {
   return { signal: controller.signal, done: () => clearTimeout(timeout) };
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   const requestId = makeRequestId();
+  const body = await req.json().catch(() => ({}));
+  const localDate = body.localDate || toLocalDateString();
   const apiKey = process.env.OPENROUTER_API_KEY;
+
   if (!apiKey) {
     return jsonError(503, "SERVICE_UNAVAILABLE", "AI service is not configured.");
   }
@@ -45,7 +48,7 @@ export async function POST() {
       );
     }
 
-    const today = toLocalDateString();
+    const today = localDate;
     const [workoutsRes, checkInsRes, planRes] = await Promise.all([
       supabase
         .from("workout_logs")
@@ -78,9 +81,9 @@ export async function POST() {
     const daysSinceLast =
       lastWorkoutDate != null
         ? Math.floor(
-            (new Date(today).setHours(0, 0, 0, 0) - new Date(lastWorkoutDate).setHours(0, 0, 0, 0)) /
-              (24 * 60 * 60 * 1000)
-          )
+          (new Date(today).setHours(0, 0, 0, 0) - new Date(lastWorkoutDate).setHours(0, 0, 0, 0)) /
+          (24 * 60 * 60 * 1000)
+        )
         : null;
     const consecutiveDays = (() => {
       let count = 0;
@@ -89,7 +92,7 @@ export async function POST() {
         if (prev && w.date !== prev) {
           const diff = Math.floor(
             (new Date(prev).setHours(0, 0, 0, 0) - new Date(w.date).setHours(0, 0, 0, 0)) /
-              (24 * 60 * 60 * 1000)
+            (24 * 60 * 60 * 1000)
           );
           if (diff !== 1) break;
         }

@@ -17,9 +17,12 @@ function withTimeout(ms: number) {
   return { signal: controller.signal, done: () => clearTimeout(timeout) };
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   const requestId = makeRequestId();
+  const body = await req.json().catch(() => ({}));
+  const localDate = body.localDate || toLocalDateString();
   const apiKey = process.env.OPENROUTER_API_KEY;
+
   if (!apiKey) {
     return jsonError(503, "SERVICE_UNAVAILABLE", "AI service is not configured.");
   }
@@ -45,7 +48,7 @@ export async function POST() {
       );
     }
 
-    const today = toLocalDateString();
+    const today = localDate;
     const [nutritionRes, planRes, profileRes] = await Promise.all([
       supabase
         .from("nutrition_logs")

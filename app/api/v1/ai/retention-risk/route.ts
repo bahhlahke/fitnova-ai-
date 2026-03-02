@@ -28,8 +28,10 @@ function toRiskLevel(score: number): RiskLevel {
   return "low";
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   const requestId = makeRequestId();
+  const body = await req.json().catch(() => ({}));
+  const localDate = body.localDate || toLocalDateString();
 
   try {
     const supabase = await createClient();
@@ -53,7 +55,7 @@ export async function POST() {
       );
     }
 
-    const today = toLocalDateString();
+    const today = localDate;
 
     const [workoutRes, nutritionRes, progressRes, planRes, checkInRes] = await Promise.all([
       supabase

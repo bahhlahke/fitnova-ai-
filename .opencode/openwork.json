@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "workspace": {
+    "name": "fitnessAI",
+    "createdAt": 1772388672935,
+    "preset": "starter"
+  },
+  "authorizedRoots": [
+    "/Users/blakeaycock/code/fitnessAI"
+  ]
+}
