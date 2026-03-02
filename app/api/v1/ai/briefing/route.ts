@@ -21,25 +21,45 @@ export async function POST(request: Request) {
 
         // Fetch today's plan and check-in
         const today = localDate;
-        const [planRes, checkInRes] = await Promise.all([
+        const [planRes, checkInRes, workoutRes] = await Promise.all([
             supabase.from("daily_plans").select("plan_json").eq("user_id", user.id).eq("date_local", today).maybeSingle(),
             supabase.from("check_ins").select("*").eq("user_id", user.id).eq("date_local", today).maybeSingle(),
+            supabase.from("workout_logs").select("*").eq("user_id", user.id).eq("date", today).limit(1).maybeSingle(),
         ]);
 
         const plan = planRes.data?.plan_json;
         const checkIn = checkInRes.data;
+        const workout = workoutRes.data;
 
-        if (!plan) {
+        if (!plan && !workout) {
             return NextResponse.json({ briefing: "Protocol not yet initialized for today. Enter the Coach Room to generate your targets." });
         }
 
-        const prompt = `
+        let prompt;
+        if (!plan && workout) {
+            prompt = `
+      You are an elite AI Performance Coach. Provide a concise, 2-3 sentence "Daily Briefing" for the user.
+      The user executed a workout today but did not generate a prescribed protocol.
+      
+      User Data:
+      - Workout Type: ${workout.workout_type || 'Unknown'}
+      - Workout Duration: ${workout.duration_minutes || 'Unknown'} min
+      - Readiness Energy: ${checkIn?.energy_score ?? 'Not provided'}
+      - Sleep: ${checkIn?.sleep_hours ?? 'Not provided'}h
+      
+      Requirements:
+      - Tone: Professional, authoritative, elite, encouraging.
+      - Length: Max 250 characters.
+      - Focus: Acknowledge their initiative and provide a sharp recovery or nutrition tip (e.g., protein synthesis, hydration).
+    `;
+        } else {
+            prompt = `
       You are an elite AI Performance Coach. Provide a concise, 2-3 sentence "Daily Briefing" for the user.
       Focus on the RATIONALE behind today's plan based on their readiness.
       
       User Data:
-      - Plan Focus: ${plan.training_plan.focus}
-      - Calorie Target: ${plan.nutrition_plan.calorie_target}
+      - Plan Focus: ${plan?.training_plan?.focus ?? 'General'}
+      - Calorie Target: ${plan?.nutrition_plan?.calorie_target ?? 'Maintenance'}
       - Readiness Energy: ${checkIn?.energy_score ?? 'Not provided'}
       - Sleep: ${checkIn?.sleep_hours ?? 'Not provided'}h
       - Soreness: ${checkIn?.soreness_notes ?? 'None'}
@@ -49,6 +69,7 @@ export async function POST(request: Request) {
       - Length: Max 250 characters.
       - Focus: Why these targets were chosen (e.g., "Adjusting for low sleep to protect recovery" or "Pushing intensity due to high energy baseline").
     `;
+        }
 
         const { content: briefing } = await callModel({
             messages: [{ role: "user", content: prompt }],

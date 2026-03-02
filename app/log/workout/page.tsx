@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { WorkoutType } from "@/types";
-import { PageLayout, Card, CardHeader, Button, Input, Label, EmptyState, LoadingState, ErrorMessage } from "@/components/ui";
+import { PageLayout, Card, CardHeader, Button, Input, Label, EmptyState, LoadingState, ErrorMessage, Select } from "@/components/ui";
 import { toLocalDateString } from "@/lib/date/local-date";
 import { emitDataRefresh, useDataRefresh } from "@/lib/ui/data-sync";
 
@@ -21,6 +21,9 @@ export default function WorkoutLogPage() {
   const [refetch, setRefetch] = useState(0);
   const [postWorkoutInsight, setPostWorkoutInsight] = useState<string | null>(null);
   const [postWorkoutInsightLoading, setPostWorkoutInsightLoading] = useState(false);
+  const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
+  const [editWorkoutData, setEditWorkoutData] = useState<{ type: string; duration: string; notes: string }>({ type: "strength", duration: "", notes: "" });
+  const [workoutSaveStatus, setWorkoutSaveStatus] = useState<"idle" | "saving" | "error">("idle");
 
   const fetchWorkouts = useCallback(() => {
     const supabase = createClient();
@@ -57,6 +60,33 @@ export default function WorkoutLogPage() {
   useDataRefresh(["workout"], () => {
     setRefetch((current) => current + 1);
   });
+
+  async function handleSaveWorkoutEdit(e: React.FormEvent, log_id: string) {
+    e.preventDefault();
+    setWorkoutSaveStatus("saving");
+    const supabase = createClient();
+    if (!supabase) return;
+    const durationNum = editWorkoutData.duration.trim() ? parseInt(editWorkoutData.duration, 10) : null;
+    const { error } = await supabase.from("workout_logs").update({
+      workout_type: editWorkoutData.type,
+      duration_minutes: durationNum,
+      notes: editWorkoutData.notes.trim() || null,
+    }).eq("log_id", log_id);
+
+    if (error) {
+      setWorkoutSaveStatus("error");
+      return;
+    }
+
+    setWorkouts(prev => prev.map(w => w.log_id === log_id ? {
+      ...w,
+      workout_type: editWorkoutData.type,
+      duration_minutes: durationNum ?? undefined,
+      notes: editWorkoutData.notes.trim() || undefined,
+    } : w));
+    setWorkoutSaveStatus("idle");
+    setEditingWorkoutId(null);
+  }
 
   return (
     <PageLayout title="Workout" subtitle="Capture sessions and keep progression visible">
@@ -125,31 +155,75 @@ export default function WorkoutLogPage() {
           ) : workouts.length > 0 ? (
             <ul className="mt-3 space-y-2">
               {workouts.map((w) => (
-                <li key={w.log_id} className="flex items-center justify-between rounded-xl border border-fn-border bg-fn-surface-hover px-3 py-3 text-sm text-fn-ink">
-                  <div>
-                    <p className="font-semibold">{w.date} · {w.workout_type}</p>
-                    <p className="mt-1 text-fn-muted">
-                      {w.duration_minutes != null ? `${w.duration_minutes} min` : "Duration not set"}
-                      {w.notes ? ` · ${w.notes}` : ""}
-                    </p>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      const supabase = createClient();
-                      if (!supabase) return;
-                      const { error } = await supabase.from("workout_logs").delete().eq("log_id", w.log_id);
-                      if (!error) {
-                        setWorkouts(prev => prev.filter(item => item.log_id !== w.log_id));
-                        emitDataRefresh(["dashboard", "workout"]);
-                      }
-                    }}
-                    className="p-1 text-fn-muted hover:text-fn-danger transition-colors"
-                    title="Delete workout"
-                  >
-                    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </button>
+                <li key={w.log_id} className="rounded-xl border border-fn-border bg-fn-surface-hover px-3 py-3 text-sm text-fn-ink">
+                  {editingWorkoutId === w.log_id ? (
+                    <form onSubmit={(e) => handleSaveWorkoutEdit(e, w.log_id)} className="space-y-3">
+                      <div>
+                        <Label>Type</Label>
+                        <Select value={editWorkoutData.type} onChange={(e) => setEditWorkoutData({ ...editWorkoutData, type: e.target.value })} className="mt-1">
+                          {WORKOUT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Duration (min)</Label>
+                        <Input type="number" value={editWorkoutData.duration} onChange={(e) => setEditWorkoutData({ ...editWorkoutData, duration: e.target.value })} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label>Notes</Label>
+                        <Input type="text" value={editWorkoutData.notes} onChange={(e) => setEditWorkoutData({ ...editWorkoutData, notes: e.target.value })} className="mt-1" />
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button type="submit" size="sm" loading={workoutSaveStatus === "saving"}>Save</Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => setEditingWorkoutId(null)}>Cancel</Button>
+                      </div>
+                      {workoutSaveStatus === "error" && <p className="text-fn-danger text-xs mt-1">Failed to save.</p>}
+                    </form>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">{w.date} · {w.workout_type}</p>
+                        <p className="mt-1 text-fn-muted">
+                          {w.duration_minutes != null ? `${w.duration_minutes} min` : "Duration not set"}
+                          {w.notes ? ` · ${w.notes}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => {
+                            setEditingWorkoutId(w.log_id);
+                            setEditWorkoutData({
+                              type: w.workout_type,
+                              duration: w.duration_minutes ? String(w.duration_minutes) : "",
+                              notes: w.notes || "",
+                            });
+                          }}
+                          className="p-1 text-fn-muted hover:text-fn-ink transition-colors"
+                          title="Edit workout"
+                        >
+                          <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-2.207 2.207L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const supabase = createClient();
+                            if (!supabase) return;
+                            const { error } = await supabase.from("workout_logs").delete().eq("log_id", w.log_id);
+                            if (!error) {
+                              setWorkouts(prev => prev.filter(item => item.log_id !== w.log_id));
+                              emitDataRefresh(["dashboard", "workout"]);
+                            }
+                          }}
+                          className="p-1 text-fn-muted hover:text-fn-danger transition-colors"
+                          title="Delete workout"
+                        >
+                          <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -230,8 +304,8 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
               type="button"
               onClick={() => setType(value)}
               className={`rounded-xl border px-4 py-3 text-left transition-all duration-200 ${type === value
-                  ? "border-fn-accent bg-fn-accent/10 shadow-[0_0_20px_rgba(10,217,196,0.1)]"
-                  : "border-fn-border bg-fn-surface text-fn-muted hover:bg-fn-surface-hover hover:text-fn-ink hover:border-fn-accent/30"
+                ? "border-fn-accent bg-fn-accent/10 shadow-[0_0_20px_rgba(10,217,196,0.1)]"
+                : "border-fn-border bg-fn-surface text-fn-muted hover:bg-fn-surface-hover hover:text-fn-ink hover:border-fn-accent/30"
                 }`}
             >
               <p className={`text-sm font-black uppercase tracking-tight ${type === value ? "text-fn-accent" : "text-fn-ink"}`}>{label}</p>
@@ -240,14 +314,47 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
           ))}
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-5">
         <div>
-          <Label htmlFor="duration">Duration (min)</Label>
-          <Input id="duration" type="number" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="30" className="mt-1" />
+          <Label>Duration (min)</Label>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {["15", "30", "45", "60"].map(val => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => setDuration(val)}
+                className={`flex-1 rounded-xl border px-3 py-2.5 text-sm font-black transition-all ${duration === val ? "border-fn-accent bg-fn-accent/10 shadow-[0_0_20px_rgba(10,217,196,0.1)] text-fn-accent" : "border-fn-border bg-fn-surface text-fn-muted hover:border-fn-accent/50 hover:text-white"}`}
+              >
+                {val}m
+              </button>
+            ))}
+            <input
+              type="number"
+              placeholder="Other"
+              value={!["15", "30", "45", "60"].includes(duration) ? duration : ""}
+              onChange={(e) => setDuration(e.target.value)}
+              className={`w-20 rounded-xl border px-3 py-2 text-center text-sm font-black focus:outline-none transition-all ${!["15", "30", "45", "60", ""].includes(duration) ? "border-fn-accent bg-fn-accent/10 text-fn-accent" : "border-fn-border bg-fn-surface text-fn-muted hover:border-fn-accent/50 hover:text-white"}`}
+            />
+          </div>
         </div>
         <div>
-          <Label htmlFor="notes">Notes</Label>
-          <Input id="notes" type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="How did it feel?" className="mt-1" />
+          <div className="flex justify-between items-end mb-2">
+            <Label>Intensity / RPE</Label>
+            <span className={`text-xs font-bold ${notes ? "text-fn-accent" : "text-fn-muted"}`}>{notes ? `${notes}/10` : "Select 1-10"}</span>
+          </div>
+          <div className="flex items-center gap-3 bg-fn-surface border border-fn-border rounded-xl px-4 py-3">
+            <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Light</span>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              step="1"
+              value={notes || "5"}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full accent-fn-accent h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer"
+            />
+            <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Max</span>
+          </div>
         </div>
       </div>
       {error && <ErrorMessage message={error} />}

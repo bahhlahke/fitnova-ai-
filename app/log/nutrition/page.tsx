@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -86,7 +87,7 @@ function SmartMealEntry({
   editIndex?: number | null;
   onCancelEdit?: () => void;
 }) {
-  const [mode, setMode] = useState<EntryMode>("describe");
+  const [mode, setMode] = useState<EntryMode>("photo");
   const [description, setDescription] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageData, setImageData] = useState<string | null>(null);
@@ -109,7 +110,8 @@ function SmartMealEntry({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const today = toLocalDateString();
+  const searchParams = useSearchParams();
+  const today = searchParams.get("date") || toLocalDateString();
   const time = new Date().toTimeString().slice(0, 5);
 
   // Populate editable fields when estimate arrives OR when editing starts
@@ -353,8 +355,8 @@ function SmartMealEntry({
             onClick={() => fileInputRef.current?.click()}
             onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
             className={`relative flex min-h-[180px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 transition-all duration-200 ${imagePreview
-                ? "border-fn-primary/30"
-                : "border-dashed border-fn-border hover:border-fn-primary/50 hover:bg-fn-primary-light/30"
+              ? "border-fn-primary/30"
+              : "border-dashed border-fn-border hover:border-fn-primary/50 hover:bg-fn-primary-light/30"
               }`}
           >
             {imagePreview ? (
@@ -521,7 +523,11 @@ function SmartMealEntry({
 /* ─────────────────────────────────────────────────────────────────
    Main page
 ───────────────────────────────────────────────────────────────── */
-export default function NutritionLogPage() {
+function NutritionLogContent() {
+  const searchParams = useSearchParams();
+  const targetDate = searchParams.get("date") || toLocalDateString();
+  const isPastDay = targetDate !== toLocalDateString();
+
   const [meals, setMeals] = useState<MealEntry[]>([]);
   const [logId, setLogId] = useState<string | null>(null);
   const [planTargets, setPlanTargets] = useState<NutritionPlanTargets | null>(null);
@@ -536,9 +542,8 @@ export default function NutritionLogPage() {
   const [mealSuggestions, setMealSuggestions] = useState<Array<{ name: string; calories?: number; protein_g?: number; note?: string }>>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const today = toLocalDateString();
 
-  const fetchToday = useCallback(() => {
+  const fetchTargetDate = useCallback(() => {
     const supabase = createClient();
     if (!supabase) { setLoading(false); return; }
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -547,11 +552,11 @@ export default function NutritionLogPage() {
       Promise.all([
         supabase.from("nutrition_logs")
           .select("log_id, meals, total_calories, hydration_liters")
-          .eq("user_id", user.id).eq("date", today)
+          .eq("user_id", user.id).eq("date", targetDate)
           .order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("daily_plans")
           .select("plan_json")
-          .eq("user_id", user.id).eq("date_local", today)
+          .eq("user_id", user.id).eq("date_local", targetDate)
           .order("created_at", { ascending: false }).limit(1).maybeSingle(),
       ]).then(([logRes, planRes]) => {
         if (logRes.data) {
@@ -569,9 +574,9 @@ export default function NutritionLogPage() {
         setLoading(false);
       }).catch(() => { setPageError("Failed to load nutrition log."); setLoading(false); });
     }).catch(() => { setPageError("Failed to load nutrition log."); setLoading(false); });
-  }, [today]);
+  }, [targetDate]);
 
-  useEffect(() => { setLoading(true); fetchToday(); }, [fetchToday, refetch]);
+  useEffect(() => { setLoading(true); fetchTargetDate(); }, [fetchTargetDate, refetch]);
 
   useDataRefresh(["nutrition"], () => {
     setRefetch((current) => current + 1);
@@ -607,7 +612,7 @@ export default function NutritionLogPage() {
       await supabase.from("nutrition_logs").update({ hydration_liters: next }).eq("log_id", logId);
     } else {
       const { data } = await supabase.from("nutrition_logs")
-        .insert({ user_id: user.id, date: today, meals: [], hydration_liters: next })
+        .insert({ user_id: user.id, date: targetDate, meals: [], hydration_liters: next })
         .select("log_id").single();
       if (data) setLogId((data as { log_id: string }).log_id);
     }
@@ -648,7 +653,7 @@ export default function NutritionLogPage() {
       await supabase.from("nutrition_logs").update({ meals: updated, total_calories: totalCal || null }).eq("log_id", logId);
     } else {
       const { data } = await supabase.from("nutrition_logs")
-        .insert({ user_id: user.id, date: today, meals: updated, total_calories: totalCal || null })
+        .insert({ user_id: user.id, date: targetDate, meals: updated, total_calories: totalCal || null })
         .select("log_id").single();
       if (data) setLogId((data as { log_id: string }).log_id);
     }
@@ -658,7 +663,7 @@ export default function NutritionLogPage() {
   }
 
   return (
-    <PageLayout title="Nutrition" subtitle="Meal timeline · macro tracking">
+    <PageLayout title="Nutrition" subtitle={isPastDay ? `Viewing ${targetDate}` : "Meal timeline · macro tracking"}>
       <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr]">
 
         {/* ── Smart entry ─────────────────────────────────────── */}

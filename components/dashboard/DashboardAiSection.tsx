@@ -36,7 +36,7 @@ export function DashboardAiSection({
           </h2>
         </div>
         <Button onClick={onGeneratePlan} loading={planLoading}>
-          {hasPlanToday ? "Refresh Protocol" : "Generate Protocol"}
+          {hasPlanToday ? "Recalibrate My Day" : "Optimize Plan"}
         </Button>
       </div>
 

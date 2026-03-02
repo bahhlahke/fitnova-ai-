@@ -52,6 +52,7 @@ export function AiCoachPanel({
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [showTooltip, setShowTooltip] = useState(true);
 
   const hide =
     HIDDEN_ROUTES.some((route) => pathname.startsWith(route)) ||
@@ -116,16 +117,39 @@ export function AiCoachPanel({
     if (pathname === "/") return null;
 
     return (
-      <button
-        type="button"
-        onClick={() => router.push("/?focus=ai")}
-        className={`fixed bottom-24 right-6 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-fn-accent text-fn-bg shadow-[0_0_30px_rgba(10,217,196,0.4)] transition-transform hover:scale-110 active:scale-95 md:bottom-10 md:right-10 ${className}`.trim()}
-        aria-label="Open Dashboard AI"
-      >
-        <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-      </button>
+      <div className={`fixed bottom-24 right-6 z-[60] flex flex-col items-end md:bottom-10 md:right-10 ${className}`.trim()}>
+        {showTooltip && (
+          <div className="mb-3 animate-in fade-in slide-in-from-bottom-2 duration-500 relative mr-2">
+            <div className="rounded-xl border border-fn-accent/30 bg-fn-bg px-4 py-2.5 shadow-[0_0_20px_rgba(10,217,196,0.2)] flex items-center gap-3">
+              <span className="text-xs font-black uppercase tracking-widest text-fn-accent whitespace-nowrap">Coach Nova is ready</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowTooltip(false); }}
+                className="text-fn-muted hover:text-white transition-colors"
+                aria-label="Dismiss tooltip"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            {/* Tooltip triangle */}
+            <div className="absolute -bottom-1.5 right-4 w-3 h-3 rotate-45 border-r border-b border-fn-accent/30 bg-fn-bg" />
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            setShowTooltip(false);
+            router.push("/?focus=ai");
+          }}
+          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-fn-accent text-fn-bg shadow-[0_0_30px_rgba(10,217,196,0.4)] transition-transform hover:scale-110 active:scale-95 group"
+          aria-label="Open Dashboard AI"
+        >
+          {/* Subtle breathing animation ring */}
+          <div className="absolute inset-0 rounded-full border-2 border-fn-accent/50 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite] opacity-75" />
+          <svg className="h-8 w-8 relative z-10" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </button>
+      </div>
     );
   }
 
@@ -182,13 +206,26 @@ export function AiCoachPanel({
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[88%] rounded-3xl px-5 py-4 text-sm font-medium leading-relaxed shadow-2xl ${
-                message.role === "user"
-                  ? "rounded-tr-none bg-white text-black"
-                  : "rounded-tl-none border border-white/5 bg-fn-surface text-fn-ink"
-              }`}
+              className={`max-w-[88%] rounded-3xl px-5 py-4 text-sm font-medium leading-relaxed shadow-2xl ${message.role === "user"
+                ? "rounded-tr-none bg-white text-black"
+                : "rounded-tl-none border border-white/5 bg-fn-surface text-fn-ink"
+                }`}
             >
-              <p className="whitespace-pre-wrap">{message.content}</p>
+              <div
+                className="whitespace-pre-wrap [&>strong]:font-black [&>em]:italic"
+                dangerouslySetInnerHTML={{
+                  __html: message.content
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+                    .replace(/_(.*?)_/g, "<em>$1</em>")
+                    .replace(/\n((?:-|\d+\.)\s+.*)/g, "<br/>$1")
+                    .replace(/\n\n/g, "<br/><br/>")
+                    .replace(/\n/g, "<br/>"),
+                }}
+              />
               {message.actions && message.actions.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {message.actions.map((action) => (

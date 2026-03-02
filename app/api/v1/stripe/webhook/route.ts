@@ -48,11 +48,11 @@ export async function POST(req: Request) {
 
       const { error } = await supabaseAdmin
         .from("user_profile")
-        .update({
+        .upsert({
+          user_id: userId,
           subscription_status: "pro",
           stripe_customer_id: session.customer as string,
-        })
-        .eq("user_id", userId);
+        }, { onConflict: "user_id" });
 
       if (error) {
         console.error("stripe_webhook_user_upgrade_failed", {

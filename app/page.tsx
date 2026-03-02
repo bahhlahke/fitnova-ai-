@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toLocalDateString } from "@/lib/date/local-date";
 import { emitDataRefresh, useDataRefresh } from "@/lib/ui/data-sync";
+import { DEFAULT_UNIT_SYSTEM, type UnitSystem, readUnitSystemFromProfile } from "@/lib/units";
 import { Card, Button, LoadingState } from "@/components/ui";
 import { DashboardHero } from "@/components/dashboard/DashboardHero";
 import { DashboardAiSection } from "@/components/dashboard/DashboardAiSection";
@@ -43,6 +44,7 @@ export default function HomePage() {
   );
   const [weekCount, setWeekCount] = useState(0);
   const [last7Days, setLast7Days] = useState<number[]>([]);
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>(DEFAULT_UNIT_SYSTEM);
   const [todayPlan, setTodayPlan] = useState<DashboardTodayPlan | null>(null);
   const [hasPlanToday, setHasPlanToday] = useState(false);
   const [hasWorkoutToday, setHasWorkoutToday] = useState(false);
@@ -64,6 +66,7 @@ export default function HomePage() {
   const [retentionRisk, setRetentionRisk] = useState<DashboardRetentionRisk | null>(null);
   const [retentionRiskLoading, setRetentionRiskLoading] = useState(false);
   const [nudges, setNudges] = useState<DashboardNudge[]>([]);
+  const [activeTab, setActiveTab] = useState<"overview" | "performance">("overview");
 
   const loadDashboardSnapshot = useCallback(async () => {
     const supabase = createClient();
@@ -117,7 +120,7 @@ export default function HomePage() {
             .maybeSingle(),
           supabase
             .from("user_profile")
-            .select("subscription_status")
+            .select("subscription_status, devices")
             .eq("user_id", user.id)
             .maybeSingle(),
           supabase
@@ -165,9 +168,10 @@ export default function HomePage() {
       );
 
       const profileData = profileRes.data as
-        | { subscription_status?: string }
+        | { subscription_status?: string; devices?: unknown }
         | null;
       setIsPro(profileData?.subscription_status === "pro");
+      setUnitSystem(readUnitSystemFromProfile(profileData as Record<string, unknown> | null));
 
       setHasWorkoutToday(!!workoutTodayRes.data);
       try {
@@ -435,6 +439,17 @@ export default function HomePage() {
               <Button variant="secondary">Member Access</Button>
             </Link>
           </div>
+
+          <div className="mt-8 flex items-center gap-4">
+            <div className="flex -space-x-2">
+              <div className="h-8 w-8 rounded-full border-2 border-fn-bg bg-fn-surface-hover/80 shrink-0" />
+              <div className="h-8 w-8 rounded-full border-2 border-fn-bg bg-fn-muted/50 shrink-0" />
+              <div className="h-8 w-8 rounded-full border-2 border-fn-bg bg-fn-accent/20 flex items-center justify-center shrink-0">
+                <span className="text-[10px] font-black text-fn-accent">+10k</span>
+              </div>
+            </div>
+            <p className="text-xs font-semibold text-fn-muted leading-tight">Training protocols calibrated from<br /><span className="text-white">50,000+ scientific data points</span></p>
+          </div>
         </section>
 
         <section className="mt-8 grid gap-4 md:grid-cols-3">
@@ -493,37 +508,65 @@ export default function HomePage() {
           hasPlanToday={hasPlanToday}
           onGeneratePlan={() => void handleGeneratePlan()}
         />
-        <DashboardPlanSection
-          todayPlan={todayPlan}
-          weekCount={weekCount}
-          streak={streak}
-          weeklyInsight={weeklyInsight}
-          weeklyInsightLoading={weeklyInsightLoading}
-        />
-        <DashboardReadinessSection
-          recoverySuggestion={recoverySuggestion}
-          readinessInsight={readinessInsight}
-          readinessInsightLoading={readinessInsightLoading}
-        />
-        <DashboardProgressSection
-          last7Days={last7Days}
-          projection={projection}
-        />
-        <DashboardAnalyticsSection
-          weeklyPlan={weeklyPlan}
-          weeklyPlanLoading={weeklyPlanLoading}
-          analytics={performanceAnalytics}
-          analyticsLoading={performanceAnalyticsLoading}
-        />
-        <DashboardRetentionSection
-          retentionRisk={retentionRisk}
-          retentionLoading={retentionRiskLoading}
-          nudges={nudges}
-        />
-        <DashboardQuickActions
-          hasPlanToday={hasPlanToday}
-          hasWorkoutToday={hasWorkoutToday}
-        />
+
+        <div className="flex gap-6 border-b border-white/10 mb-6">
+          <button
+            type="button"
+            onClick={() => setActiveTab("overview")}
+            className={`pb-3 text-sm font-bold uppercase tracking-widest transition-all ${activeTab === "overview" ? "border-b-2 border-fn-accent text-white" : "border-b-2 border-transparent text-fn-muted hover:text-white"}`}
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("performance")}
+            className={`pb-3 text-sm font-bold uppercase tracking-widest transition-all ${activeTab === "performance" ? "border-b-2 border-fn-accent text-white" : "border-b-2 border-transparent text-fn-muted hover:text-white"}`}
+          >
+            Deep Dive
+          </button>
+        </div>
+
+        {activeTab === "overview" && (
+          <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
+            <DashboardPlanSection
+              todayPlan={todayPlan}
+              weekCount={weekCount}
+              streak={streak}
+              weeklyInsight={weeklyInsight}
+              weeklyInsightLoading={weeklyInsightLoading}
+            />
+            <DashboardReadinessSection
+              recoverySuggestion={recoverySuggestion}
+              readinessInsight={readinessInsight}
+              readinessInsightLoading={readinessInsightLoading}
+            />
+            <DashboardProgressSection
+              last7Days={last7Days}
+              projection={projection}
+              unitSystem={unitSystem}
+            />
+            <DashboardQuickActions
+              hasPlanToday={hasPlanToday}
+              hasWorkoutToday={hasWorkoutToday}
+            />
+          </div>
+        )}
+
+        {activeTab === "performance" && (
+          <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
+            <DashboardAnalyticsSection
+              weeklyPlan={weeklyPlan}
+              weeklyPlanLoading={weeklyPlanLoading}
+              analytics={performanceAnalytics}
+              analyticsLoading={performanceAnalyticsLoading}
+            />
+            <DashboardRetentionSection
+              retentionRisk={retentionRisk}
+              retentionLoading={retentionRiskLoading}
+              nudges={nudges}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

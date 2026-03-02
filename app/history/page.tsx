@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ import {
   EmptyState,
   Select,
   Label,
+  Input,
 } from "@/components/ui";
 
 type WorkoutRow = {
@@ -44,6 +45,9 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
   const [expandedNutritionDate, setExpandedNutritionDate] = useState<string | null>(null);
+  const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
+  const [editWorkoutData, setEditWorkoutData] = useState<{ type: string; duration: string; notes: string }>({ type: "strength", duration: "", notes: "" });
+  const [workoutSaveStatus, setWorkoutSaveStatus] = useState<"idle" | "saving" | "error">("idle");
 
   const fetchData = useCallback(() => {
     const supabase = createClient();
@@ -98,6 +102,33 @@ export default function HistoryPage() {
       ? workouts
       : workouts.filter((w) => w.workout_type === workoutTypeFilter);
 
+  async function handleSaveWorkoutEdit(e: FormEvent, log_id: string) {
+    e.preventDefault();
+    setWorkoutSaveStatus("saving");
+    const supabase = createClient();
+    if (!supabase) return;
+    const durationNum = editWorkoutData.duration.trim() ? parseInt(editWorkoutData.duration, 10) : null;
+    const { error } = await supabase.from("workout_logs").update({
+      workout_type: editWorkoutData.type,
+      duration_minutes: durationNum,
+      notes: editWorkoutData.notes.trim() || null,
+    }).eq("log_id", log_id);
+
+    if (error) {
+      setWorkoutSaveStatus("error");
+      return;
+    }
+
+    setWorkouts(prev => prev.map(w => w.log_id === log_id ? {
+      ...w,
+      workout_type: editWorkoutData.type,
+      duration_minutes: durationNum ?? undefined, // Keep as undefined if null
+      notes: editWorkoutData.notes.trim() || undefined, // Keep as undefined if null
+    } : w));
+    setWorkoutSaveStatus("idle");
+    setEditingWorkoutId(null);
+  }
+
   const nutritionByDate = nutrition.reduce<Record<string, NutritionRow[]>>((acc, row) => {
     if (!acc[row.date]) acc[row.date] = [];
     acc[row.date].push(row);
@@ -119,11 +150,10 @@ export default function HistoryPage() {
             setTab("workouts");
             router.replace("/history?tab=workouts", { scroll: false });
           }}
-          className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
-            tab === "workouts"
-              ? "border-fn-primary bg-fn-primary text-white"
-              : "border-fn-border bg-white text-black hover:bg-fn-surface-hover"
-          }`}
+          className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${tab === "workouts"
+            ? "border-fn-primary bg-fn-primary text-white"
+            : "border-fn-border bg-white text-black hover:bg-fn-surface-hover"
+            }`}
         >
           Workouts
         </button>
@@ -133,11 +163,10 @@ export default function HistoryPage() {
             setTab("nutrition");
             router.replace("/history?tab=nutrition", { scroll: false });
           }}
-          className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
-            tab === "nutrition"
-              ? "border-fn-primary bg-fn-primary text-white"
-              : "border-fn-border bg-white text-black hover:bg-fn-surface-hover"
-          }`}
+          className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${tab === "nutrition"
+            ? "border-fn-primary bg-fn-primary text-white"
+            : "border-fn-border bg-white text-black hover:bg-fn-surface-hover"
+            }`}
         >
           Nutrition
         </button>
@@ -183,10 +212,52 @@ export default function HistoryPage() {
                   </button>
                   {expandedWorkoutId === w.log_id && (
                     <div className="border-t border-fn-border bg-white px-3 py-3 text-sm text-neutral-600">
-                      {(w.exercises ?? []).map((e, i) => (
-                        <p key={i} className="text-black">{e.name ?? "?"} — {e.sets ?? 0} x {e.reps ?? "?"}</p>
-                      ))}
-                      {w.notes && <p className="mt-2 text-black">{w.notes}</p>}
+                      {editingWorkoutId === w.log_id ? (
+                        <form onSubmit={(e) => handleSaveWorkoutEdit(e, w.log_id)} className="space-y-3">
+                          <div>
+                            <Label>Type</Label>
+                            <Select value={editWorkoutData.type} onChange={(e) => setEditWorkoutData({ ...editWorkoutData, type: e.target.value })} className="mt-1">
+                              {WORKOUT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Duration (min)</Label>
+                            <Input type="number" value={editWorkoutData.duration} onChange={(e) => setEditWorkoutData({ ...editWorkoutData, duration: e.target.value })} className="mt-1" />
+                          </div>
+                          <div>
+                            <Label>Notes</Label>
+                            <Input type="text" value={editWorkoutData.notes} onChange={(e) => setEditWorkoutData({ ...editWorkoutData, notes: e.target.value })} className="mt-1" />
+                          </div>
+                          <div className="flex gap-2 pt-2">
+                            <Button type="submit" size="sm" loading={workoutSaveStatus === "saving"}>Save</Button>
+                            <Button type="button" size="sm" variant="ghost" onClick={() => setEditingWorkoutId(null)}>Cancel</Button>
+                          </div>
+                          {workoutSaveStatus === "error" && <p className="text-fn-danger text-xs mt-1">Failed to save.</p>}
+                        </form>
+                      ) : (
+                        <>
+                          {(w.exercises ?? []).map((e, i) => (
+                            <p key={i} className="text-black">{e.name ?? "?"} — {e.sets ?? 0} x {e.reps ?? "?"}</p>
+                          ))}
+                          {w.notes && <p className="mt-2 text-black">{w.notes}</p>}
+                          <div className="mt-3">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => {
+                                setEditingWorkoutId(w.log_id);
+                                setEditWorkoutData({
+                                  type: w.workout_type,
+                                  duration: w.duration_minutes ? String(w.duration_minutes) : "",
+                                  notes: w.notes || "",
+                                });
+                              }}
+                            >
+                              Edit details
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </li>
@@ -219,11 +290,16 @@ export default function HistoryPage() {
                     {expandedNutritionDate === date && (
                       <div className="border-t border-fn-border bg-white px-3 py-3 text-sm text-neutral-600">
                         {rows.flatMap((r) => (r.meals ?? []).map((m, i) => (
-                          <p key={`${r.log_id}-${i}`} className="text-black">
-                            {m.time} — {m.description}
+                          <p key={`${r.log_id}-${i}`} className="text-black mb-1">
+                            <strong>{m.time}</strong> — {m.description}
                             {m.calories != null ? ` (${m.calories} cal)` : ""}
                           </p>
                         )))}
+                        <div className="mt-3">
+                          <Link href={`/log/nutrition?date=${date}`}>
+                            <Button size="sm" variant="secondary">Edit this day</Button>
+                          </Link>
+                        </div>
                       </div>
                     )}
                   </li>

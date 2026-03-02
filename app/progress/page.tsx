@@ -224,7 +224,17 @@ export default function ProgressPage() {
                   )}
                 </div>
               ) : (
-                <p className="mt-4 text-sm text-fn-muted">No weight entries yet. Log your first check-in to start tracking.</p>
+                <div className="mt-6 flex flex-col items-center justify-center text-center pb-4">
+                  <p className="text-sm font-medium text-fn-muted mb-5 leading-relaxed">Log your first weight to unlock<br />your AI trend projection.</p>
+                  <div className="w-full max-w-[200px] flex flex-col gap-3">
+                    <Link href="/progress/add" className="w-full">
+                      <Button className="w-full h-12 shadow-[0_0_20px_rgba(255,255,255,0.1)]">Manual Entry</Button>
+                    </Link>
+                    <Link href="/progress/scan" className="w-full">
+                      <Button variant="secondary" className="w-full h-12 border-fn-accent/40 bg-fn-accent/10 text-fn-accent hover:bg-fn-accent/20">AI Body Scan</Button>
+                    </Link>
+                  </div>
+                </div>
               )}
             </Card>
           </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { type UnitSystem, formatDisplayNumber, toDisplayWeight, weightUnitLabel } from "@/lib/units";
 
 export interface DashboardProjection {
   current: number;
@@ -11,11 +12,13 @@ export interface DashboardProjection {
 export interface DashboardProgressSectionProps {
   last7Days: number[];
   projection: DashboardProjection | null;
+  unitSystem: UnitSystem;
 }
 
 export function DashboardProgressSection({
   last7Days,
   projection,
+  unitSystem,
 }: DashboardProgressSectionProps) {
   const maxValue = Math.max(...last7Days, 1);
 
@@ -55,21 +58,28 @@ export function DashboardProgressSection({
         {projection ? (
           <>
             <p className="mt-6 text-5xl font-black italic tracking-tighter text-white">
-              {projection.projected_12w}kg
+              {formatDisplayNumber(toDisplayWeight(projection.projected_12w, unitSystem), 1)}
+              <span className="text-xl ml-1">{weightUnitLabel(unitSystem)}</span>
             </p>
             <p className="mt-3 text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">
               {Math.round(projection.confidence * 100)}% confidence
             </p>
             <p className="mt-6 text-sm font-medium leading-relaxed text-fn-muted">
-              4-week projection: {projection.projected_4w}kg. Dashboard and
+              4-week projection: {formatDisplayNumber(toDisplayWeight(projection.projected_4w, unitSystem), 1)} {weightUnitLabel(unitSystem)}. Dashboard and
               progress views will refresh after AI biometric logs.
             </p>
           </>
         ) : (
-          <p className="mt-6 text-sm font-medium leading-relaxed text-fn-muted">
-            Add more workout and progress data to unlock the 4-week and 12-week
-            projection cards.
-          </p>
+          <div className="mt-6 flex flex-col items-center justify-center text-center">
+            <p className="text-sm font-medium leading-relaxed text-fn-muted mb-5">
+              Log your first weight to unlock your AI trend projection.
+            </p>
+            <div className="flex gap-3 w-full max-w-[240px]">
+              <Link href="/progress/add" className="w-full">
+                <Button className="w-full min-h-[48px] shadow-[0_0_20px_rgba(255,255,255,0.1)]">Manual Entry</Button>
+              </Link>
+            </div>
+          </div>
         )}
       </div>
     </section>
