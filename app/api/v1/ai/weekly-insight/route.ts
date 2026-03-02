@@ -25,9 +25,12 @@ function getWeekStart(d: Date): string {
   return toLocalDateString(monday);
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   const requestId = makeRequestId();
+  const body = await req.json().catch(() => ({}));
+  const localDate = body.localDate || toLocalDateString();
   const apiKey = process.env.OPENROUTER_API_KEY;
+
   if (!apiKey) {
     return jsonError(503, "SERVICE_UNAVAILABLE", "AI service is not configured.");
   }
@@ -53,8 +56,8 @@ export async function POST() {
       );
     }
 
-    const today = toLocalDateString();
-    const weekStart = getWeekStart(new Date());
+    const today = localDate;
+    const weekStart = getWeekStart(new Date(today + "T12:00:00"));
     const [workoutsRes, nutritionRes, progressRes, profileRes] = await Promise.all([
       supabase
         .from("workout_logs")
@@ -87,8 +90,8 @@ export async function POST() {
     const avgCalories =
       nutrition.length > 0
         ? Math.round(
-            nutrition.reduce((s, n) => s + (n.total_calories ?? 0), 0) / nutrition.length
-          )
+          nutrition.reduce((s, n) => s + (n.total_calories ?? 0), 0) / nutrition.length
+        )
         : null;
     const weightTrend =
       progress.length >= 2 && progress[0].weight != null && progress[1].weight != null

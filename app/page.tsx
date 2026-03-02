@@ -149,18 +149,18 @@ export default function HomePage() {
 
       const plan = planRes.data?.plan_json as
         | {
-            training_plan?: { focus?: string };
-            nutrition_plan?: { calorie_target?: number };
-          }
+          training_plan?: { focus?: string };
+          nutrition_plan?: { calorie_target?: number };
+        }
         | undefined;
       const nextHasPlan = !!plan?.training_plan?.focus;
       setHasPlanToday(nextHasPlan);
       setTodayPlan(
         nextHasPlan
           ? {
-              focus: plan?.training_plan?.focus ?? "Today’s protocol",
-              calories: plan?.nutrition_plan?.calorie_target ?? 0,
-            }
+            focus: plan?.training_plan?.focus ?? "Today’s protocol",
+            calories: plan?.nutrition_plan?.calorie_target ?? 0,
+          }
           : null
       );
 
@@ -205,7 +205,11 @@ export default function HomePage() {
   const loadWeeklyInsight = useCallback(async () => {
     setWeeklyInsightLoading(true);
     try {
-      const res = await fetch("/api/v1/ai/weekly-insight", { method: "POST" });
+      const res = await fetch("/api/v1/ai/weekly-insight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ localDate: toLocalDateString() }),
+      });
       const body = (await res.json()) as { insight?: string | null };
       if (typeof body.insight === "string" && body.insight) {
         setWeeklyInsight(body.insight);
@@ -344,7 +348,7 @@ export default function HomePage() {
     const daysSinceLastWorkout = Math.floor(
       (new Date(today).setHours(0, 0, 0, 0) -
         new Date(lastWorkoutDate).setHours(0, 0, 0, 0)) /
-        (24 * 60 * 60 * 1000)
+      (24 * 60 * 60 * 1000)
     );
 
     if (daysSinceLastWorkout === 0) {
