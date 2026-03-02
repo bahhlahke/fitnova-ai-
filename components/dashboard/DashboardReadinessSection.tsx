@@ -18,10 +18,10 @@ export function DashboardReadinessSection({
         <div className="flex items-center gap-3">
           <div className="relative flex h-5 w-10 items-center justify-start rounded bg-fn-bg-alt border border-fn-border p-[2px]">
             <div className={`h-full rounded-[2px] transition-all duration-1000 ${recoverySuggestion?.toLowerCase().includes("optimal") || !recoverySuggestion
-                ? "w-full bg-fn-accent shadow-[0_0_10px_rgba(10,217,196,0.5)]"
-                : recoverySuggestion?.toLowerCase().includes("moderate")
-                  ? "w-2/3 bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]"
-                  : "w-1/3 bg-fn-danger shadow-[0_0_10px_rgba(255,59,48,0.5)]"
+              ? "w-full bg-fn-accent shadow-[0_0_10px_rgba(10,217,196,0.5)]"
+              : recoverySuggestion?.toLowerCase().includes("moderate")
+                ? "w-2/3 bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]"
+                : "w-1/3 bg-fn-danger shadow-[0_0_10px_rgba(255,59,48,0.5)]"
               }`} />
             <div className="absolute -right-[3px] top-[4px] bottom-[4px] w-[2px] rounded-r bg-fn-border" />
           </div>
@@ -55,14 +55,9 @@ export function DashboardReadinessSection({
         <p className="text-[10px] font-black uppercase tracking-[0.35em] text-fn-accent">
           Actions
         </p>
-        <div className="mt-6 grid gap-3">
+        <div className="mt-6">
           <Link href="/check-in">
             <Button className="w-full">Open Daily Check-In</Button>
-          </Link>
-          <Link href="/progress/scan">
-            <Button variant="secondary" className="w-full">
-              Run Body Comp Scan
-            </Button>
           </Link>
         </div>
       </div>

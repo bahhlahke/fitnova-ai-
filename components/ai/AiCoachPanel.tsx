@@ -9,6 +9,7 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { emitDataRefresh } from "@/lib/ui/data-sync";
 import { toLocalDateString } from "@/lib/date/local-date";
 import type { AiActionResult, RefreshScope } from "@/types";
+import ReactMarkdown from "react-markdown";
 
 type Message = {
   role: "user" | "assistant";
@@ -211,21 +212,11 @@ export function AiCoachPanel({
                 : "rounded-tl-none border border-white/5 bg-fn-surface text-fn-ink"
                 }`}
             >
-              <div
-                className="whitespace-pre-wrap [&>strong]:font-black [&>em]:italic"
-                dangerouslySetInnerHTML={{
-                  __html: message.content
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                    .replace(/\*(.*?)\*/g, "<em>$1</em>")
-                    .replace(/_(.*?)_/g, "<em>$1</em>")
-                    .replace(/\n((?:-|\d+\.)\s+.*)/g, "<br/>$1")
-                    .replace(/\n\n/g, "<br/><br/>")
-                    .replace(/\n/g, "<br/>"),
-                }}
-              />
+              <div className={`prose prose-sm max-w-none ${message.role === "user" ? "" : "prose-invert"}`}>
+                <ReactMarkdown>
+                  {message.content}
+                </ReactMarkdown>
+              </div>
               {message.actions && message.actions.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {message.actions.map((action) => (

@@ -36,12 +36,9 @@ export function DashboardPlanSection({
             : "Generate today’s protocol from the dashboard AI section to create a focused training and nutrition plan."}
         </p>
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-6">
           <Link href="/log/workout">
-            <Button>{todayPlan ? "Open Workout" : "Go to Workout"}</Button>
-          </Link>
-          <Link href="/log/nutrition">
-            <Button variant="secondary">Open Nutrition</Button>
+            <Button className="w-full sm:w-auto shadow-[0_0_20px_rgba(255,255,255,0.1)]">{todayPlan ? "Open Workout" : "Go to Workout"}</Button>
           </Link>
         </div>
 

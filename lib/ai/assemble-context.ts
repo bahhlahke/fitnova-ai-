@@ -19,7 +19,7 @@ Guidelines:
 - Use the user's preferred units (cm/kg or in/lbs) when mentioning numbers.
 - Tailor workout and exercise suggestions using their recent history: (1) Time passed since last workout—if they haven't trained in several days, suggest a manageable comeback; if they trained yesterday, suggest rest, light movement, or a different muscle focus. (2) Past few workouts—avoid repeating the same exercises on back-to-back days; suggest variations or different movements when they've done similar work recently.`;
 
-const MAX_RECENT_LOGS = 5;
+const MAX_RECENT_LOGS = 14;
 const MAX_MESSAGES_IN_CONTEXT = 10;
 
 export interface AssembledContext {
@@ -92,9 +92,9 @@ export async function assembleContext(
     const daysSinceLast =
       lastDate != null
         ? Math.floor(
-            (new Date(today).setHours(0, 0, 0, 0) - new Date(lastDate).setHours(0, 0, 0, 0)) /
-              (24 * 60 * 60 * 1000)
-          )
+          (new Date(today).setHours(0, 0, 0, 0) - new Date(lastDate).setHours(0, 0, 0, 0)) /
+          (24 * 60 * 60 * 1000)
+        )
         : null;
 
     let workoutBlock =
@@ -116,9 +116,9 @@ export async function assembleContext(
   if (nutritionRes.data?.length) {
     parts.push(
       "Recent nutrition:\n" +
-        (nutritionRes.data as Record<string, unknown>[])
-          .map((n) => `${n.date} ${(n as { total_calories?: number }).total_calories ?? "?"} cal — ${JSON.stringify((n as { meals?: unknown }).meals).slice(0, 150)}`)
-          .join("\n")
+      (nutritionRes.data as Record<string, unknown>[])
+        .map((n) => `${n.date} ${(n as { total_calories?: number }).total_calories ?? "?"} cal — ${JSON.stringify((n as { meals?: unknown }).meals).slice(0, 150)}`)
+        .join("\n")
     );
   }
 
@@ -148,7 +148,7 @@ export async function assembleContext(
     const recent = history.slice(-MAX_MESSAGES_IN_CONTEXT);
     parts.push(
       "Recent messages (for continuity):\n" +
-        recent.map((m) => `[${m.role}]: ${(m.content as string).slice(0, 300)}`).join("\n")
+      recent.map((m) => `[${m.role}]: ${(m.content as string).slice(0, 300)}`).join("\n")
     );
   }
 

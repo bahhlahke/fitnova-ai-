@@ -18,7 +18,7 @@ import {
   DashboardProgressSection,
   type DashboardProjection,
 } from "@/components/dashboard/DashboardProgressSection";
-import { DashboardQuickActions } from "@/components/dashboard/DashboardQuickActions";
+
 import {
   DashboardAnalyticsSection,
   type DashboardPerformanceAnalytics,
@@ -544,10 +544,6 @@ export default function HomePage() {
               last7Days={last7Days}
               projection={projection}
               unitSystem={unitSystem}
-            />
-            <DashboardQuickActions
-              hasPlanToday={hasPlanToday}
-              hasWorkoutToday={hasWorkoutToday}
             />
           </div>
         )}
