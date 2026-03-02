@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export interface DashboardHeroProps {
   briefing: string | null;
@@ -12,7 +13,19 @@ export function DashboardHero({
   isPro,
 }: DashboardHeroProps) {
   return (
-    <header className="relative overflow-hidden rounded-[2rem] border border-white/5 bg-gradient-to-br from-fn-accent/10 to-transparent p-8 shadow-2xl backdrop-blur-3xl sm:p-10">
+    <header className="relative overflow-hidden rounded-[2rem] border border-white/5 bg-fn-surface p-8 shadow-2xl sm:p-10">
+      <div className="absolute inset-0 z-0 opacity-40 mix-blend-overlay">
+        <Image
+          src="/images/refined/hero.png"
+          alt="Hero background"
+          fill
+          className="object-cover object-right-top"
+          priority
+        />
+      </div>
+      <div className="absolute inset-0 z-0 bg-gradient-to-r from-fn-surface via-fn-surface/90 to-transparent" />
+      <div className="absolute inset-0 z-0 bg-gradient-to-t from-fn-surface via-transparent to-transparent" />
+
       <div className="absolute right-0 top-0 p-8 opacity-15">
         <svg className="h-24 w-24 text-fn-accent" fill="currentColor" viewBox="0 0 24 24">
           <path d="M13 10V3L4 14h7v7l9-11h-7z" />

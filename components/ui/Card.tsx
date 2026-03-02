@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ReactNode } from "react";
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  padding?: "default" | "lg";
+  padding?: "default" | "lg" | "none";
   children: ReactNode;
 }
 
@@ -11,7 +11,7 @@ export function Card({
   children,
   ...props
 }: CardProps) {
-  const paddingClass = padding === "lg" ? "p-8" : "p-6";
+  const paddingClass = padding === "lg" ? "p-8" : padding === "none" ? "p-0" : "p-6";
   return (
     <div
       className={`group relative overflow-hidden rounded-xl3 border border-white/10 bg-gradient-to-b from-white/[0.03] to-transparent backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-700 hover:border-fn-accent/30 hover:shadow-[0_0_40px_rgba(10,217,196,0.1)] ${paddingClass} ${className}`.trim()}

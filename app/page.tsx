@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toLocalDateString } from "@/lib/date/local-date";
@@ -419,75 +420,118 @@ export default function HomePage() {
   if (authState === "signed_out") {
     return (
       <div className="mx-auto w-full max-w-shell px-4 py-12 sm:px-6">
-        <section className="rounded-[2rem] border border-white/5 bg-gradient-to-br from-white/5 to-transparent p-8 shadow-2xl backdrop-blur-3xl sm:p-12">
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent">
-            FitNova Pro Experience
-          </p>
-          <h1 className="mt-4 font-display text-5xl font-black uppercase italic tracking-tighter text-white sm:text-7xl">
-            Build your legend
-          </h1>
-          <p className="mt-6 max-w-2xl text-xl font-medium leading-relaxed text-fn-muted">
-            AI-backed fitness coaching with adaptive daily plans, streamlined
-            logging, and a single dashboard command center.
-          </p>
-
-          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-            <Link href="/start">
-              <Button>Start Assessment</Button>
-            </Link>
-            <Link href="/auth">
-              <Button variant="secondary">Member Access</Button>
-            </Link>
+        <section className="relative overflow-hidden rounded-[2rem] border border-white/5 bg-fn-surface p-8 shadow-2xl sm:p-12">
+          <div className="absolute inset-0 z-0 opacity-40 mix-blend-overlay">
+            <Image
+              src="/images/refined/hero.png"
+              alt="Hero background"
+              fill
+              className="object-cover object-center"
+              priority
+            />
           </div>
+          <div className="absolute inset-0 z-0 bg-gradient-to-r from-fn-surface via-fn-surface/80 to-transparent" />
 
-          <div className="mt-8 flex items-center gap-4">
-            <div className="flex -space-x-2">
-              <div className="h-8 w-8 rounded-full border-2 border-fn-bg bg-fn-surface-hover/80 shrink-0" />
-              <div className="h-8 w-8 rounded-full border-2 border-fn-bg bg-fn-muted/50 shrink-0" />
-              <div className="h-8 w-8 rounded-full border-2 border-fn-bg bg-fn-accent/20 flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-black text-fn-accent">+10k</span>
-              </div>
+          <div className="relative z-10">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent">
+              FitNova Pro Experience
+            </p>
+            <h1 className="mt-4 font-display text-5xl font-black uppercase italic tracking-tighter text-white sm:text-7xl">
+              Build your legend
+            </h1>
+            <p className="mt-6 max-w-2xl text-xl font-medium leading-relaxed text-fn-muted">
+              AI-backed fitness coaching with adaptive daily plans, streamlined
+              logging, and a single dashboard command center.
+            </p>
+
+            <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+              <Link href="/start">
+                <Button>Start Assessment</Button>
+              </Link>
+              <Link href="/auth">
+                <Button variant="secondary">Member Access</Button>
+              </Link>
             </div>
-            <p className="text-xs font-semibold text-fn-muted leading-tight">Training protocols calibrated from<br /><span className="text-white">50,000+ scientific data points</span></p>
+
+            <div className="mt-8 flex items-center gap-4">
+              <div className="flex -space-x-2">
+                <div className="h-8 w-8 rounded-full border-2 border-fn-bg bg-fn-surface-hover/80 shrink-0" />
+                <div className="h-8 w-8 rounded-full border-2 border-fn-bg bg-fn-muted/50 shrink-0" />
+                <div className="h-8 w-8 rounded-full border-2 border-fn-bg bg-fn-accent/20 flex items-center justify-center shrink-0">
+                  <span className="text-[10px] font-black text-fn-accent">+10k</span>
+                </div>
+              </div>
+              <p className="text-xs font-semibold text-fn-muted leading-tight">Training protocols calibrated from<br /><span className="text-white">50,000+ scientific data points</span></p>
+            </div>
           </div>
         </section>
 
         <section className="mt-8 grid gap-4 md:grid-cols-3">
-          <Card padding="lg">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">
-              Dashboard AI
-            </p>
-            <h2 className="mt-2 text-xl font-semibold text-fn-ink">
-              One command surface
-            </h2>
-            <p className="mt-2 text-sm text-fn-muted">
-              The dashboard AI logs meals, workouts, and progress while syncing
-              the rest of your app.
-            </p>
+          <Card padding="none" className="overflow-hidden">
+            <div className="relative h-48 w-full bg-fn-surface-hover/30">
+              <Image
+                src="/images/refined/sms.png"
+                alt="AI Chat Interface"
+                fill
+                className="object-cover object-top opacity-80 mix-blend-screen"
+              />
+            </div>
+            <div className="p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">
+                Dashboard AI
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-fn-ink">
+                One command surface
+              </h2>
+              <p className="mt-2 text-sm text-fn-muted">
+                The dashboard AI logs meals, workouts, and progress while syncing
+                the rest of your app.
+              </p>
+            </div>
           </Card>
-          <Card padding="lg">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">
-              Nutrition
-            </p>
-            <h2 className="mt-2 text-xl font-semibold text-fn-ink">
-              Fast meal capture
-            </h2>
-            <p className="mt-2 text-sm text-fn-muted">
-              Log by description or photo, track hydration, and stay aligned to
-              your calorie and macro targets.
-            </p>
+          <Card padding="none" className="overflow-hidden">
+            <div className="relative h-48 w-full bg-fn-surface-hover/30">
+              <Image
+                src="/images/refined/scanner.png"
+                alt="Nutrition Scanner"
+                fill
+                className="object-cover object-top opacity-80 mix-blend-screen"
+              />
+            </div>
+            <div className="p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">
+                Nutrition
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-fn-ink">
+                Fast meal capture
+              </h2>
+              <p className="mt-2 text-sm text-fn-muted">
+                Log by description or photo, track hydration, and stay aligned to
+                your calorie and macro targets.
+              </p>
+            </div>
           </Card>
-          <Card padding="lg">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">
-              Workout
-            </p>
-            <h2 className="mt-2 text-xl font-semibold text-fn-ink">
-              Guided execution
-            </h2>
-            <p className="mt-2 text-sm text-fn-muted">
-              Run guided sessions, quick-log completed work, and use motion
-              analysis to tighten technique.
-            </p>
+          <Card padding="none" className="overflow-hidden">
+            <div className="relative h-48 w-full bg-fn-surface-hover/30">
+              <Image
+                src="/images/refined/motion.png"
+                alt="Motion Analysis"
+                fill
+                className="object-cover object-top opacity-80 mix-blend-screen"
+              />
+            </div>
+            <div className="p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">
+                Workout
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-fn-ink">
+                Guided execution
+              </h2>
+              <p className="mt-2 text-sm text-fn-muted">
+                Run guided sessions, quick-log completed work, and use motion
+                analysis to tighten technique.
+              </p>
+            </div>
           </Card>
         </section>
       </div>
