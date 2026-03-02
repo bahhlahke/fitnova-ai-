@@ -24,9 +24,9 @@ export async function POST(request: Request) {
     return jsonError(503, "SERVICE_UNAVAILABLE", "AI service is not configured.");
   }
 
-  let body: { context?: string } = {};
+  let body: { context?: string; localDate?: string } = {};
   try {
-    body = (await request.json()) as { context?: string };
+    body = (await request.json()) as { context?: string; localDate?: string };
   } catch {
     body = {};
   }
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const today = toLocalDateString();
+    const today = body.localDate || toLocalDateString();
     const context = typeof body.context === "string" ? body.context.trim() : "";
     const [nutritionRes, planRes, profileRes] = await Promise.all([
       supabase

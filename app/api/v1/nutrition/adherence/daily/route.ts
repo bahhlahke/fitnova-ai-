@@ -51,8 +51,9 @@ export async function POST(request: Request) {
     }
 
     const url = new URL(request.url);
+    const body = await request.json().catch(() => ({}));
     const dateLocal = (() => {
-      const raw = url.searchParams.get("date") ?? "";
+      const raw = url.searchParams.get("date") ?? body.localDate ?? "";
       return isValidDate(raw) ? raw : toLocalDateString();
     })();
 
@@ -77,19 +78,19 @@ export async function POST(request: Request) {
 
     const target = (targetRes.data ?? null) as
       | {
-          calorie_target?: number | null;
-          protein_target_g?: number | null;
-          carbs_target_g?: number | null;
-          fat_target_g?: number | null;
-          meal_timing?: Array<{ label?: string; window?: string }>;
-        }
+        calorie_target?: number | null;
+        protein_target_g?: number | null;
+        carbs_target_g?: number | null;
+        fat_target_g?: number | null;
+        meal_timing?: Array<{ label?: string; window?: string }>;
+      }
       | null;
 
     const log = (logRes.data ?? null) as
       | {
-          total_calories?: number | null;
-          meals?: Array<Record<string, unknown>>;
-        }
+        total_calories?: number | null;
+        meals?: Array<Record<string, unknown>>;
+      }
       | null;
 
     const meals = Array.isArray(log?.meals) ? log.meals : [];
@@ -125,7 +126,7 @@ export async function POST(request: Request) {
     const totalScore =
       weightedParts.length > 0
         ? weightedParts.reduce((sum, entry) => sum + entry.weight * entry.value, 0) /
-          weightedParts.reduce((sum, entry) => sum + entry.weight, 0)
+        weightedParts.reduce((sum, entry) => sum + entry.weight, 0)
         : null;
 
     const details = {

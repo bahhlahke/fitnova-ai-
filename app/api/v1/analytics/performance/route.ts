@@ -16,7 +16,7 @@ function toRecoveryFraction(raw: number | null | undefined): number | null {
   return clamp(raw, 0, 1);
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const requestId = makeRequestId();
 
   try {
@@ -29,9 +29,11 @@ export async function GET() {
       return jsonError(401, "AUTH_REQUIRED", "Sign in is required.");
     }
 
-    const today = toLocalDateString();
-    const fourteenDaysAgo = toLocalDateString(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000));
-    const thirtyDaysAgo = toLocalDateString(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+    const url = new URL(request.url);
+    const today = url.searchParams.get("today") || toLocalDateString();
+    const todayMs = new Date(`${today}T12:00:00`).getTime();
+    const fourteenDaysAgo = toLocalDateString(new Date(todayMs - 14 * 24 * 60 * 60 * 1000));
+    const thirtyDaysAgo = toLocalDateString(new Date(todayMs - 30 * 24 * 60 * 60 * 1000));
 
     const [workoutsRes, nutritionRes, plansRes, checkInsRes, snapshotsRes, signalsRes, adherenceRes] = await Promise.all([
       supabase

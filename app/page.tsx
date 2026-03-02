@@ -259,7 +259,7 @@ export default function HomePage() {
   const loadWeeklyPlan = useCallback(async () => {
     setWeeklyPlanLoading(true);
     try {
-      const res = await fetch("/api/v1/plan/weekly");
+      const res = await fetch(`/api/v1/plan/weekly?today=${toLocalDateString()}`);
       const body = (await res.json()) as { plan?: DashboardWeeklyPlanSummary };
       if (body.plan) setWeeklyPlan(body.plan);
     } catch {
@@ -272,7 +272,7 @@ export default function HomePage() {
   const loadPerformanceAnalytics = useCallback(async () => {
     setPerformanceAnalyticsLoading(true);
     try {
-      const res = await fetch("/api/v1/analytics/performance");
+      const res = await fetch(`/api/v1/analytics/performance?today=${toLocalDateString()}`);
       const body = (await res.json()) as DashboardPerformanceAnalytics;
       if (typeof body.period_days === "number") {
         setPerformanceAnalytics(body);
