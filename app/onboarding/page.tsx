@@ -219,21 +219,23 @@ export default function OnboardingPage() {
           </header>
 
           <div className="mb-6" role="progressbar" aria-valuenow={currentStep + 1} aria-valuemin={1} aria-valuemax={steps.length} aria-label="Onboarding progress">
-            <div className="flex justify-between gap-2">
+            <div className="flex items-center gap-2">
               {steps.map((step, i) => (
                 <button
                   key={step.id}
                   type="button"
                   onClick={() => setCurrentStep(i)}
-                  className={`h-2 flex-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-fn-primary/30 ${
-                    i <= currentStep ? "bg-fn-primary" : "bg-fn-bg-alt"
-                  }`}
+                  className={`h-2 flex-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-fn-primary/30 ${i <= currentStep ? "bg-fn-primary shadow-[0_0_10px_rgba(51,92,255,0.4)]" : "bg-fn-bg-alt"
+                    }`}
                   aria-current={i === currentStep ? "step" : undefined}
                 />
               ))}
+              <div className={`flex shrink-0 items-center justify-center h-8 w-8 rounded-full border-2 transition-colors ${currentStep === steps.length - 1 ? "border-fn-accent bg-fn-accent/20 text-fn-accent shadow-[0_0_15px_rgba(10,217,196,0.3)]" : "border-fn-border bg-fn-surface text-fn-muted"}`}>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+              </div>
             </div>
-            <p className="mt-2 text-sm text-fn-muted">
-              Step {currentStep + 1} of {steps.length}: {steps[currentStep].label}
+            <p className="mt-3 text-sm font-semibold text-fn-muted">
+              Step {currentStep + 1} of {steps.length}: <span className="text-white">{steps[currentStep].label}</span>
             </p>
           </div>
 
@@ -282,12 +284,26 @@ export default function OnboardingPage() {
             )}
 
             {steps[currentStep].id === "goals" && (
-              <div className="mt-4 space-y-2">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {goalOptions.map((g) => (
-                  <label key={g} className={`flex min-h-touch cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-200 ${goals.includes(g) ? "border-fn-accent bg-fn-accent/10" : "border-fn-border bg-fn-surface hover:border-fn-accent/30 hover:bg-fn-surface-hover"}`}>
-                    <input type="checkbox" checked={goals.includes(g)} onChange={() => toggleGoal(g)} className="h-5 w-5 rounded border-fn-border accent-[#0AD9C4]" />
-                    <span className={`font-bold ${goals.includes(g) ? "text-fn-accent" : "text-fn-ink"}`}>{g}</span>
-                  </label>
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => toggleGoal(g)}
+                    className={`flex min-h-[90px] cursor-pointer flex-col items-start justify-center rounded-2xl border-2 px-5 py-4 text-left transition-all duration-200 ${goals.includes(g)
+                        ? "border-fn-accent bg-fn-accent/10 shadow-[0_0_20px_rgba(10,217,196,0.15)]"
+                        : "border-fn-border bg-fn-surface hover:border-fn-accent/40 hover:bg-fn-surface-hover"
+                      }`}
+                  >
+                    <span className={`font-black uppercase tracking-tight ${goals.includes(g) ? "text-fn-accent" : "text-white"}`}>{g}</span>
+                    <span className={`mt-1.5 text-xs font-medium ${goals.includes(g) ? "text-fn-accent/80" : "text-fn-muted"}`}>
+                      {g === "Weight loss" && "Burn fat and lean out"}
+                      {g === "Muscle gain" && "Build size and strength"}
+                      {g === "Endurance" && "Cardiovascular engine"}
+                      {g === "General fitness" && "Feel better, live longer"}
+                      {g === "Mobility" && "Increase range of motion"}
+                    </span>
+                  </button>
                 ))}
               </div>
             )}

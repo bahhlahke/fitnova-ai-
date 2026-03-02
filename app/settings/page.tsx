@@ -152,8 +152,8 @@ export default function SettingsPage() {
             setTrainingSchedule({
               preferred_training_days: Array.isArray(schedule.preferred_training_days)
                 ? schedule.preferred_training_days
-                    .map((entry) => Number(entry))
-                    .filter((entry) => Number.isInteger(entry) && entry >= 0 && entry <= 6)
+                  .map((entry) => Number(entry))
+                  .filter((entry) => Number.isInteger(entry) && entry >= 0 && entry <= 6)
                 : [1, 2, 3, 4, 5],
               preferred_training_window:
                 typeof schedule.preferred_training_window === "string"
@@ -341,19 +341,19 @@ export default function SettingsPage() {
       const [existingProgressRes, existingCheckInsRes] = await Promise.all([
         imported.progressEntries.length > 0 && rangeStart && rangeEnd
           ? supabase
-              .from("progress_tracking")
-              .select("track_id, date")
-              .eq("user_id", user.id)
-              .gte("date", rangeStart)
-              .lte("date", rangeEnd)
+            .from("progress_tracking")
+            .select("track_id, date")
+            .eq("user_id", user.id)
+            .gte("date", rangeStart)
+            .lte("date", rangeEnd)
           : Promise.resolve({ data: [] as Array<{ track_id: string; date: string }> }),
         imported.checkInEntries.length > 0 && rangeStart && rangeEnd
           ? supabase
-              .from("check_ins")
-              .select("check_in_id, date_local")
-              .eq("user_id", user.id)
-              .gte("date_local", rangeStart)
-              .lte("date_local", rangeEnd)
+            .from("check_ins")
+            .select("check_in_id, date_local")
+            .eq("user_id", user.id)
+            .gte("date_local", rangeStart)
+            .lte("date_local", rangeEnd)
           : Promise.resolve({ data: [] as Array<{ check_in_id: string; date_local: string }> }),
       ]);
 
@@ -505,12 +505,12 @@ export default function SettingsPage() {
   const isPro = p.subscription_status === "pro";
   const appleHealthImport = (((p.devices as Record<string, unknown> | undefined)?.apple_health_import ??
     null) as {
-    imported_at?: string;
-    weight_entry_count?: number;
-    sleep_entry_count?: number;
-    avg_sleep_hours_7d?: number | null;
-    avg_daily_steps_7d?: number | null;
-  } | null);
+      imported_at?: string;
+      weight_entry_count?: number;
+      sleep_entry_count?: number;
+      avg_sleep_hours_7d?: number | null;
+      avg_daily_steps_7d?: number | null;
+    } | null);
 
   return (
     <PageLayout title="Settings" subtitle="Profile, AI preferences, and data sources">
@@ -519,6 +519,10 @@ export default function SettingsPage() {
       <form onSubmit={handleSubmit} className="mt-6 space-y-5">
         <Card padding="lg">
           <CardHeader title="Profile" subtitle="Core stats and goals" />
+
+          <div className="mt-6 border-b border-white/5 pb-2">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-fn-muted">Account</h3>
+          </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="name">Name</Label>
@@ -535,9 +539,15 @@ export default function SettingsPage() {
                 className="mt-1"
               />
               <p className="mt-1 text-xs text-fn-muted">
-                Used for SMS briefings and inbound text coaching.
+                Used for SMS briefings and inbound coaching texts.
               </p>
             </div>
+          </div>
+
+          <div className="mt-8 border-b border-white/5 pb-2">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-fn-muted">Body Metrics & Activity</h3>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="age">Age</Label>
               <Input id="age" type="number" min={13} max={120} value={p.age ?? ""} onChange={(e) => setProfile({ ...profile!, age: e.target.value ? Number(e.target.value) : undefined })} placeholder="25" className="mt-1" />
@@ -566,7 +576,6 @@ export default function SettingsPage() {
                 <option value="metric">cm / kg</option>
               </Select>
             </div>
-            <div />
             <div>
               <Label htmlFor="height">Height ({heightUnitLabel(unitSystem)})</Label>
               <Input
@@ -593,6 +602,9 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          <div className="mt-8 border-b border-white/5 pb-2">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-fn-muted">Objectives & Constraints</h3>
+          </div>
           <div className="mt-4">
             <Label>Goals</Label>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -604,7 +616,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-6">
             <Label>Injuries and limitations</Label>
             <Textarea
               value={(p.injuries_limitations && typeof p.injuries_limitations === "object" && "notes" in p.injuries_limitations ? (p.injuries_limitations as { notes?: string }).notes : "") ?? ""}

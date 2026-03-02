@@ -177,21 +177,27 @@ export default function HistoryPage() {
       ) : tab === "workouts" ? (
         <Card>
           <CardHeader title="Workout history" subtitle="Tap a row for details" />
-          <div className="mt-3">
-            <Label htmlFor="workout-type-filter" className="text-xs text-fn-muted">Filter by type</Label>
-            <Select
-              id="workout-type-filter"
-              value={workoutTypeFilter}
-              onChange={(e) => setWorkoutTypeFilter(e.target.value)}
-              className="mt-1 max-w-[180px]"
-            >
-              <option value="all">All types</option>
+          <div className="mt-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-muted mb-2">Filter by type</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setWorkoutTypeFilter("all")}
+                className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all ${workoutTypeFilter === "all" ? "bg-fn-accent text-fn-bg shadow-[0_0_15px_rgba(10,217,196,0.3)]" : "bg-fn-surface border border-fn-border text-fn-muted hover:border-fn-accent/50 hover:text-white"}`}
+              >
+                All
+              </button>
               {WORKOUT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                </option>
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setWorkoutTypeFilter(t)}
+                  className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all ${workoutTypeFilter === t ? "bg-fn-accent text-fn-bg shadow-[0_0_15px_rgba(10,217,196,0.3)]" : "bg-fn-surface border border-fn-border text-fn-muted hover:border-fn-accent/50 hover:text-white"}`}
+                >
+                  {t}
+                </button>
               ))}
-            </Select>
+            </div>
           </div>
           {filteredWorkouts.length === 0 ? (
             <EmptyState className="mt-4" message="No workouts match. Log a session from the Workout page." />
