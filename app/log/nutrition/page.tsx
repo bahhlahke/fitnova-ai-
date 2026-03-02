@@ -873,3 +873,11 @@ function NutritionLogContent() {
     </PageLayout>
   );
 }
+
+export default function NutritionLogPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <NutritionLogContent />
+    </Suspense>
+  );
+}
