@@ -244,7 +244,7 @@ export default function HomePage() {
     } finally {
       setReadinessInsightLoading(false);
     }
-  }, []);
+  }, [readiness]);
 
   const loadWeeklyInsight = useCallback(async () => {
     setWeeklyInsightLoading(true);

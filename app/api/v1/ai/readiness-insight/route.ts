@@ -19,7 +19,7 @@ function withTimeout(ms: number) {
 
 export async function POST(req: Request) {
   const requestId = makeRequestId();
-  const body = await req.json().catch(() => ({}));
+  const body = (await req.json().catch(() => ({}))) as any;
   const localDate = body.localDate || toLocalDateString();
   const apiKey = process.env.OPENROUTER_API_KEY;
 
