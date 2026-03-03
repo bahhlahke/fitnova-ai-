@@ -23,8 +23,13 @@ import {
 } from "@/components/dashboard/DashboardProgressSection";
 import { calculateReadiness, type MuscleReadiness } from "@/lib/workout/recovery";
 import type { User } from "@supabase/supabase-js";
-import type { DailyCheckIn } from "@/lib/funnel/preauth";
 import type { DailyPlan } from "@/lib/plan/types";
+
+export type DailyCheckIn = {
+  energy_score?: number | null;
+  sleep_hours?: number | null;
+  soreness_notes?: string | null;
+};
 import {
   DashboardAnalyticsSection,
   type DashboardPerformanceAnalytics,

@@ -19,7 +19,7 @@ function withTimeout(ms: number) {
 
 export async function POST(req: Request) {
   const requestId = makeRequestId();
-  const body = (await req.json().catch(() => ({}))) as any;
+  const body: any = await req.json().catch(() => ({}));
   const localDate = body.localDate || toLocalDateString();
   const apiKey = process.env.OPENROUTER_API_KEY;
 
@@ -115,10 +115,16 @@ Instructions for Output:
 - Do NOT use complex jargon like "ACWR", "Chronic Workload", or "Banister model" in the output. Translate the science into simple advice (e.g., "Your muscles are fully recovered and primed for a heavy session today" or "Your recent training load is high; consider an active recovery day").
 - Output ONLY the 1-2 sentence insight. No greetings, no bullets.`;
 
-    // Calculate a rough "Overall Readiness" average if the client passed it, otherwise we just use the raw data
-    const averageReadiness = body.readiness ?
-      Math.round(Object.values(body.readiness).reduce((a: any, b: any) => a + b, 0) / Math.max(1, Object.keys(body.readiness).length))
-      : "Unknown";
+    // Calculate a rough "Overall Readiness" average if the client passed it
+    const readinessMap = body.readiness as Record<string, number> | undefined;
+    let averageReadiness: string | number = "Unknown";
+    if (readinessMap) {
+      const keys = Object.keys(readinessMap);
+      if (keys.length > 0) {
+        const sum = keys.reduce((acc, key) => acc + (readinessMap[key] || 0), 0);
+        averageReadiness = Math.round(sum / keys.length);
+      }
+    }
 
     const dataBlock = [
       "Today: " + today,
