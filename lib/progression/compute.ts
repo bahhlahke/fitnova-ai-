@@ -41,10 +41,17 @@ function round(value: number, digits = 2): number {
   return Math.round(value * base) / base;
 }
 
-export function estimateE1rm(weightKg: number, reps: number): number {
+export function estimateE1rm(weightKg: number, reps: number, rir: number = 0): number {
   if (!Number.isFinite(weightKg) || weightKg <= 0) return 0;
-  const normalizedReps = Math.max(1, Math.min(20, Math.round(reps)));
-  return round(weightKg * (1 + normalizedReps / 30), 2);
+
+  // Adjusted Reps = Actual Reps + Reps in Reserve
+  // If no RIR is provided, we assume the set was taken to failure (RIR = 0)
+  const adjustedReps = Math.max(1, Math.min(30, Math.round(reps) + Math.max(0, rir)));
+
+  // Brzycki Formula is generally more accurate for reps < 10, Epley is better for high reps.
+  // We'll use a modified Epley as it's more robust across rep ranges.
+  // e1RM = Weight * (1 + AdjustedReps / 30)
+  return round(weightKg * (1 + adjustedReps / 30), 2);
 }
 
 export function normalizeExerciseName(name: string): string {
@@ -84,11 +91,13 @@ export function computeProgressionSnapshots(workouts: WorkoutLogForProgression[]
       for (const set of performedSets) {
         const reps = parseRepValue(set.reps ?? null);
         const weight = typeof set.weight_kg === "number" ? set.weight_kg : null;
+        const rir = typeof set.rir === "number" ? set.rir : 0; // Default to 0 if not logged
+
         if (!reps || !weight || !Number.isFinite(weight) || weight <= 0) continue;
 
         bucket.sample_size += 1;
         bucket.volumes.push(round(weight * reps, 2));
-        bucket.e1rms.push(estimateE1rm(weight, reps));
+        bucket.e1rms.push(estimateE1rm(weight, reps, rir));
       }
 
       if (bucket.sample_size > 0) {

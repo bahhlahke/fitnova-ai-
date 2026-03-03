@@ -66,7 +66,12 @@ export async function POST() {
       return NextResponse.json({ insight: null });
     }
 
-    const systemPrompt = `You are a world-class personal trainer. The user just saved a workout. Write 2-3 short sentences: (1) what they did (volume, muscle focus), (2) one recovery or nutrition tip (e.g. "Prioritize protein in the next 2 hours"), and optionally a nudge for their next session (e.g. "You've hit legs twice this week; next time consider upper body"). Be specific to their exercise list. Warm, expert tone. Output only the 2-3 sentences, no greeting or bullets.`;
+    const systemPrompt = `You are an elite sports scientist and personal trainer. The user just saved a workout. Write 2-3 short sentences: (1) what they did (volume, muscle focus), (2) one recovery or nutrition tip based on exercise science (e.g., Muscle Protein Synthesis windows, glycogen replenishment, CNS recovery), and optionally a nudge for their next session (e.g., "You've accumulated high volume on legs; consider an upper body or active recovery day next"). 
+
+Instructions:
+- Translate complex exercise science (e.g., "MPS", "CNS") into simple, actionable, and encouraging language for the user.
+- Focus on the specific exercises and volume logged.
+- Output ONLY the 2-3 sentences. No greetings or bullets.`;
 
     const exerciseSummary = (justCompleted.exercises ?? [])
       .map((e) => `${e.name ?? "?"} ${e.sets ?? 0}x${e.reps ?? "?"}`)

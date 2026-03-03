@@ -155,6 +155,8 @@ export default function GuidedWorkoutPage() {
     }
     setSaved(true);
     emitDataRefresh(["dashboard", "workout"]);
+    // Trigger award check
+    fetch("/api/v1/awards/check", { method: "POST" }).catch(() => { });
   }, [exercises, planTitle]);
 
   useEffect(() => {
@@ -220,17 +222,17 @@ export default function GuidedWorkoutPage() {
           current.map((entry, index) =>
             index === exerciseIndex
               ? {
-                  ...entry,
-                  ...body.replacement,
-                }
+                ...entry,
+                ...body.replacement,
+              }
               : entry
           )
         );
         setSwapFeedback(
           `Swapped to ${body.replacement.name}. ` +
-            (body.reliability?.confidence_score != null
-              ? `AI confidence ${Math.round(body.reliability.confidence_score * 100)}%.`
-              : "")
+          (body.reliability?.confidence_score != null
+            ? `AI confidence ${Math.round(body.reliability.confidence_score * 100)}%.`
+            : "")
         );
         setInjuryBannerDismissed(true);
       } catch {

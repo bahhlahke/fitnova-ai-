@@ -8,6 +8,8 @@ import {
 export type ProgressionTarget = {
   exercise_name: string;
   target_load_kg: number | null;
+  target_sets: number | null;
+  target_reps: number | null;
   target_rir: number | null;
   progression_note: string;
   e1rm: number | null;
@@ -22,28 +24,37 @@ function roundToIncrement(value: number, increment = 2.5): number {
 
 function pickTarget(snapshot: ProgressionSnapshot): ProgressionTarget {
   const e1rm = snapshot.e1rm ?? 0;
-  const baseLoad = e1rm > 0 ? e1rm * 0.72 : 0;
   const trend = snapshot.trend_score;
 
-  let multiplier = 1;
-  let note = "Maintain load and focus on clean reps.";
+  let intensity = 0.70; // Base Hypertrophy
+  let targetSets = 4;
+  let targetReps = 8;
   let targetRir = 2;
+  let note = "Maintain volume and focus on technique (INOL ~ 1.0).";
 
   if (trend >= 0.03) {
-    multiplier = 1.03;
-    note = "Progressing well. Add a small load increase.";
+    // Peaking / High Intensity according to Prilepin's Chart (80-90% zone)
+    intensity = 0.85;
+    targetSets = 4;
+    targetReps = 3;
     targetRir = 1;
+    note = "Progressing well. Shifting to high-intensity, low-rep peaking block (INOL ~ 0.8).";
   } else if (trend <= -0.03) {
-    multiplier = 0.96;
-    note = "Recent regression detected. Reduce load slightly and own technique.";
+    // Deload / Backoff according to Prilepin's Chart (60-70% zone)
+    intensity = 0.65;
+    targetSets = 3;
+    targetReps = 5;
     targetRir = 3;
+    note = "Regression detected. Reducing load and volume for a technique deload (INOL ~ 0.5).";
   }
 
-  const targetLoad = baseLoad > 0 ? roundToIncrement(baseLoad * multiplier, 2.5) : null;
+  const targetLoad = e1rm > 0 ? roundToIncrement(e1rm * intensity, 2.5) : null;
 
   return {
     exercise_name: snapshot.exercise_name,
     target_load_kg: targetLoad,
+    target_sets: targetSets,
+    target_reps: targetReps,
     target_rir: targetRir,
     progression_note: note,
     e1rm: snapshot.e1rm,

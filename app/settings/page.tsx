@@ -16,6 +16,7 @@ import {
   ErrorMessage,
 } from "@/components/ui";
 import { AuthSettings } from "@/components/auth/AuthSettings";
+import { BadgeCollection } from "@/components/profile/BadgeCollection";
 import type { UserProfile } from "@/types";
 import {
   DEFAULT_UNIT_SYSTEM,
@@ -517,6 +518,13 @@ export default function SettingsPage() {
       <AuthSettings />
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+        <Card padding="lg">
+          <CardHeader title="Trophy Room" subtitle="Earned achievements and badges" />
+          <div className="mt-4">
+            <BadgeCollection />
+          </div>
+        </Card>
+
         <Card padding="lg">
           <CardHeader title="Profile" subtitle="Core stats and goals" />
 

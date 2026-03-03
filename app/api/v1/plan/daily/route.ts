@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
 import { composeDailyPlan } from "@/lib/plan/compose-daily-plan";
+import { detectPlateaus } from "@/lib/progression/plateau";
 import type { PlannerInputs } from "@/lib/plan/types";
 
 const RATE_LIMIT_CAPACITY = 10;
@@ -43,10 +44,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const plan = await composeDailyPlan(
-      { supabase, userId: user.id },
-      body ?? {}
-    );
+    const [plan, plateau] = await Promise.all([
+      composeDailyPlan({ supabase, userId: user.id }, body ?? {}),
+      detectPlateaus(user.id)
+    ]);
+
+    if (plateau.is_plateau) {
+      (plan as any).plateau_insight = plateau;
+    }
 
     const { error: insertErr } = await supabase.from("daily_plans").insert({
       user_id: user.id,

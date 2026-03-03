@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { LevelDisplay } from "./LevelDisplay";
 
 export interface DashboardHeroProps {
   briefing: string | null;
@@ -14,6 +15,9 @@ export function DashboardHero({
 }: DashboardHeroProps) {
   return (
     <header className="relative overflow-hidden rounded-[2rem] border border-white/5 bg-fn-surface p-8 shadow-2xl sm:p-10">
+      <div className="absolute right-8 top-8 z-20">
+        <LevelDisplay />
+      </div>
       <div className="absolute inset-0 z-0 opacity-40 mix-blend-overlay">
         <Image
           src="/images/refined/hero.png"

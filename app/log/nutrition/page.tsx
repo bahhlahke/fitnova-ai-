@@ -9,6 +9,7 @@ import type { MealEntry } from "@/types";
 import { PageLayout, Card, CardHeader, Button, ErrorMessage, LoadingState, EmptyState } from "@/components/ui";
 import { toLocalDateString } from "@/lib/date/local-date";
 import { emitDataRefresh, useDataRefresh } from "@/lib/ui/data-sync";
+import { BarcodeScanner } from "@/components/tracking/BarcodeScanner";
 
 /* ── Types ──────────────────────────────────────────────────────── */
 type NutritionPlanTargets = {
@@ -71,8 +72,8 @@ function resizeImage(file: File, maxPx = 960): Promise<string> {
 /* ─────────────────────────────────────────────────────────────────
    SmartMealEntry — describe or snap a photo, AI fills macros
 ───────────────────────────────────────────────────────────────── */
-type EntryMode = "describe" | "photo";
-const ENTRY_MODES: EntryMode[] = ["describe", "photo"];
+type EntryMode = "describe" | "photo" | "barcode";
+const ENTRY_MODES: EntryMode[] = ["describe", "photo", "barcode"];
 
 function SmartMealEntry({
   onAdded,
@@ -140,6 +141,36 @@ function SmartMealEntry({
       setEditFat(String(estimate.fat));
     }
   }, [estimate, editIndex, existingMeals]);
+
+  const [showScanner, setShowScanner] = useState(false);
+
+  async function handleBarcodeScan(barcode: string) {
+    setShowScanner(false);
+    setAnalyzing(true);
+    setAiError(null);
+    try {
+      const res = await fetch(`/api/v1/nutrition/barcode?barcode=${barcode}`);
+      const data = await res.json();
+      if (!res.ok || !data.nutrition) {
+        setAiError(data.error || "Product not found. Try describing it instead.");
+      } else {
+        const n = data.nutrition;
+        setEstimate({
+          name: `${n.brand} ${n.name}`.trim(),
+          calories: n.calories,
+          protein: n.protein,
+          carbs: n.carbs,
+          fat: n.fat,
+          confidence: "high",
+          notes: `Scanned barcode: ${barcode}. Values per ${n.serving_size}.`,
+        });
+      }
+    } catch (err) {
+      setAiError("Network error scanning barcode.");
+    } finally {
+      setAnalyzing(false);
+    }
+  }
 
   function switchMode(m: EntryMode) {
     setMode(m);
@@ -274,7 +305,7 @@ function SmartMealEntry({
         setSaving(false);
         return;
       }
-      onAdded((data as { log_id?: string })?.log_id ?? null, updated);
+      onAdded((data as { log_id: string })?.log_id ?? null, updated);
     }
     setDescription(""); setSaving(false);
   }
@@ -297,17 +328,29 @@ function SmartMealEntry({
                 </svg>
                 Describe meal
               </>
-            ) : (
+            ) : m === "photo" ? (
               <>
                 <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                   <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
                 </svg>
                 Snap a photo
               </>
+            ) : (
+              <>
+                <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 2V5h1v1H5zM3 13a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zm2 2v-1h1v1H5zM13 3a1 1 0 00-1 1v3a1 1 0 001 1h3a1 1 0 001-1V4a1 1 0 00-1-1h-3zm2 2h-1V5h1v1z" clipRule="evenodd" />
+                  <path d="M11 13a1 1 0 011-1h1v1h-1v1h1v1h-1v1h-1v-2h-1v-1h1v-1zm2 2h1v1h-1v-1zm1-2h1v1h-1v-1zm0 3h1v1h-1v-1zm2-3h1v1h-1v-1zm0 2h1v1h-1v-1z" />
+                </svg>
+                Scan Barcode
+              </>
             )}
           </button>
         ))}
       </div>
+
+      {showScanner && (
+        <BarcodeScanner onScan={handleBarcodeScan} onClose={() => setShowScanner(false)} />
+      )}
 
       {/* ── Describe mode ───────────────────────────────────────── */}
       {mode === "describe" && (
@@ -401,6 +444,45 @@ function SmartMealEntry({
                 {analyzing ? "Analysing photo…" : "Analyse with AI"}
               </Button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Barcode mode ────────────────────────────────────────── */}
+      {mode === "barcode" && (
+        <div className="space-y-4 rounded-2xl border border-fn-border bg-fn-surface p-6 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-fn-primary-light">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-8 w-8 text-fn-primary">
+              <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
+              <path d="M7 12h10M8 8h0M12 8h0M16 8h0M8 16h0M12 16h0M16 16h0" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div>
+            <h4 className="font-bold text-fn-ink">Barcode Scanner</h4>
+            <p className="mt-1 text-sm text-fn-muted">Scan any packaged food to automatically import its nutritional data.</p>
+          </div>
+          <Button onClick={() => setShowScanner(true)} className="w-full">
+            Launch Scanner
+          </Button>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <div className="w-full border-t border-fn-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-fn-surface px-2 text-fn-muted">or enter manually</span>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Enter barcode manually"
+              className="flex-1 rounded-xl border border-fn-border bg-fn-bg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fn-primary/20"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleBarcodeScan((e.target as HTMLInputElement).value);
+                }
+              }}
+            />
           </div>
         </div>
       )}
@@ -539,7 +621,7 @@ function NutritionLogContent() {
   const [pageError, setPageError] = useState<string | null>(null);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [aiInsightLoading, setAiInsightLoading] = useState(false);
-  const [mealSuggestions, setMealSuggestions] = useState<Array<{ name: string; calories?: number; protein_g?: number; note?: string }>>([]);
+  const [mealSuggestions, setMealSuggestions] = useState<Array<{ name: string; calories?: number; protein_g?: number; carbs_g?: number; fat_g?: number; note?: string }>>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
@@ -614,7 +696,7 @@ function NutritionLogContent() {
       const { data } = await supabase.from("nutrition_logs")
         .insert({ user_id: user.id, date: targetDate, meals: [], hydration_liters: next })
         .select("log_id").single();
-      if (data) setLogId((data as { log_id: string }).log_id);
+      if (data) setLogId((data as { log_id: string })?.log_id ?? null);
     }
     setHydrationLiters(next);
     emitDataRefresh(["dashboard", "nutrition"]);
@@ -684,6 +766,8 @@ function NutritionLogContent() {
               setRefetch(n => n + 1);
               emitDataRefresh(["dashboard", "nutrition"]);
               setEditingIndex(null);
+              // Trigger award check
+              fetch("/api/v1/awards/check", { method: "POST" }).catch(() => { });
             }}
             existingMeals={meals}
             existingLogId={logId}
@@ -695,6 +779,11 @@ function NutritionLogContent() {
             <Link href="/history?tab=nutrition">
               <Button type="button" variant="secondary" size="sm">
                 View history
+              </Button>
+            </Link>
+            <Link href="/log/nutrition/meal-plan">
+              <Button type="button" variant="primary" size="sm">
+                Meal Planner
               </Button>
             </Link>
             <Link href="/?focus=ai">
@@ -774,11 +863,15 @@ function NutritionLogContent() {
                   {mealSuggestions.map((s, i) => (
                     <li key={i} className="rounded-xl bg-fn-bg-alt px-3 py-2 text-xs">
                       <span className="font-semibold text-fn-ink">{s.name}</span>
-                      {(s.calories != null || s.protein_g != null) && (
+                      {(s.calories != null || s.protein_g != null || s.carbs_g != null || s.fat_g != null) && (
                         <span className="ml-2 text-fn-muted">
                           {s.calories != null ? `${s.calories} kcal` : ""}
-                          {s.calories != null && s.protein_g != null ? " · " : ""}
-                          {s.protein_g != null ? `${s.protein_g}g protein` : ""}
+                          {s.calories != null && (s.protein_g != null || s.carbs_g != null || s.fat_g != null) ? " · " : ""}
+                          {[
+                            s.protein_g != null ? `${s.protein_g}g P` : null,
+                            s.carbs_g != null ? `${s.carbs_g}g C` : null,
+                            s.fat_g != null ? `${s.fat_g}g F` : null,
+                          ].filter(Boolean).join(" · ")}
                         </span>
                       )}
                       {s.note && <p className="mt-0.5 text-fn-muted">{s.note}</p>}

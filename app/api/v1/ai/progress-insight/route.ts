@@ -95,7 +95,16 @@ export async function POST(req: Request) {
             : "stable"
         : null;
 
-    const systemPrompt = `You are a world-class personal trainer and nutritionist. Given the user's progress and recent activity data below, write exactly 2-3 short sentences that interpret their progress in light of their goals. Be specific to their data (weight trend, training consistency, nutrition). Mention body recomp, cut/bulk context, or recovery when relevant. Use a warm, expert tone. Do not add greetings or bullet points—output only the 2-3 sentence narrative.`;
+    const systemPrompt = `You are an elite sports scientist and nutritionist. Given the user's progress and recent activity data below, write exactly 2-3 short sentences that interpret their progress in light of their goals.
+    
+Exercise Science Context:
+- Analyze their weight trend alongside training consistency and nutrition.
+- Use concepts like progressive overload, body recomposition, stimulus-to-fatigue ratio, and nutrient partitioning.
+
+Instructions:
+- Translate these complex concepts into simple, empowering, and actionable feedback.
+- Be specific to their actual data (e.g., "Maintaining weight while logging consistent strength volume suggests positive body recomposition").
+- Output ONLY the 2-3 sentence narrative. No greetings or bullet points.`;
 
     const dataBlock = [
       "User goals: " + (goals.length ? goals.join(", ") : "not specified"),

@@ -102,12 +102,29 @@ export async function POST(req: Request) {
       return count;
     })();
 
-    const systemPrompt = `You are a world-class personal trainer. Given the user's recent workouts and today's check-in (if any), write 1-2 short sentences: either "Good day for a solid session" style or "Consider light movement or rest" style. Be specific to their data (days since last workout, consecutive training days, sleep, soreness). Output only the 1-2 sentence insight, no greeting or bullets.`;
+    const systemPrompt = `You are an elite sports scientist and personal trainer. Your goal is to analyze the user's recent training data and provide a 1-2 sentence readiness insight.
+
+Exercise Science Context:
+- We track Readiness using the Banister Fitness-Fatigue model (Acute:Chronic Workload Ratio). 
+- A score of 80-100 means they are "Primed" (Fitness > Fatigue).
+- A score of 50-79 means they are "Recovering" or "Detraining".
+- A score <50 means they are "Overtraining" or in the "Danger Zone".
+
+Instructions for Output:
+- Provide a simple, actionable insight based on their readiness score, sleep, and soreness.
+- Do NOT use complex jargon like "ACWR", "Chronic Workload", or "Banister model" in the output. Translate the science into simple advice (e.g., "Your muscles are fully recovered and primed for a heavy session today" or "Your recent training load is high; consider an active recovery day").
+- Output ONLY the 1-2 sentence insight. No greetings, no bullets.`;
+
+    // Calculate a rough "Overall Readiness" average if the client passed it, otherwise we just use the raw data
+    const averageReadiness = body.readiness ?
+      Math.round(Object.values(body.readiness).reduce((a: any, b: any) => a + b, 0) / Math.max(1, Object.keys(body.readiness).length))
+      : "Unknown";
 
     const dataBlock = [
       "Today: " + today,
       "Last workout: " + (lastWorkoutDate ?? "no data") + (daysSinceLast != null ? " (" + daysSinceLast + " days ago)" : ""),
-      "Consecutive training days (recent): " + consecutiveDays,
+      "Consecutive training days: " + consecutiveDays,
+      "Overall ACWR Readiness Score (0-100): " + averageReadiness,
       todayCheckIn
         ? "Today's check-in: energy " + (todayCheckIn.energy_score ?? "?") + "/5, sleep " + (todayCheckIn.sleep_hours ?? "?") + "h" + (todayCheckIn.soreness_notes ? ", soreness: " + todayCheckIn.soreness_notes : "")
         : "No check-in today",

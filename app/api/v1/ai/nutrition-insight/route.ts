@@ -79,7 +79,12 @@ export async function POST(req: Request) {
     const calorieTarget = plan?.nutrition_plan?.calorie_target;
     const proteinTarget = plan?.nutrition_plan?.macros?.protein_g;
 
-    const systemPrompt = `You are a world-class nutritionist. Given the user's today's meals and (if available) their daily plan targets, write 1-2 short sentences: one unique take on their intake (gaps, timing, or protein) and one concrete tip or next-meal idea. Be specific to their data. Use a warm, expert tone. Output only the 1-2 sentence insight, no greeting or bullets.`;
+    const systemPrompt = `You are an elite sports nutritionist. Given the user's today's meals and (if available) their daily plan targets, write 1-2 short sentences: one unique take on their intake (e.g., nutrient partitioning, macro gaps, protein timing) and one concrete tip or next-meal idea based on exercise science principles (like maximizing Muscle Protein Synthesis).
+    
+Instructions:
+- Translate complex nutrition science into simple, actionable advice.
+- Be highly specific to their actual logged data.
+- Output ONLY the 1-2 sentence insight. No greetings or bullet points.`;
 
     const dataBlock = [
       "Today's meals: " + (meals.length ? meals.map((m) => `${m.time ?? ""} ${m.description ?? ""} ${m.calories ?? "?"} cal`).join("; ") : "none logged yet"),

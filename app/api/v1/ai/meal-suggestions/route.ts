@@ -74,23 +74,33 @@ export async function POST(request: Request) {
       supabase.from("user_profile").select("dietary_preferences").eq("user_id", user.id).maybeSingle(),
     ]);
 
-    const nutritionRow = nutritionRes.data as { meals?: Array<{ calories?: number; macros?: { protein?: number } }>; total_calories?: number } | null;
-    const plan = planRes.data?.plan_json as { nutrition_plan?: { calorie_target?: number; macros?: { protein_g?: number } } } | undefined;
+    const nutritionRow = nutritionRes.data as { meals?: Array<{ calories?: number; macros?: { protein?: number; carbs?: number; fat?: number } }>; total_calories?: number } | null;
+    const plan = planRes.data?.plan_json as { nutrition_plan?: { calorie_target?: number; macros?: { protein_g?: number; carbs_g?: number; fat_g?: number } } } | undefined;
     const dietaryPrefs = (profileRes.data as { dietary_preferences?: Record<string, unknown> } | null)?.dietary_preferences ?? {};
 
     const meals = nutritionRow?.meals ?? [];
     const totalCalories = nutritionRow?.total_calories ?? meals.reduce((s, m) => s + (m.calories ?? 0), 0);
-    const totalProtein = meals.reduce((s, m) => s + ((m as { macros?: { protein?: number } }).macros?.protein ?? 0), 0) || Math.round(meals.length * 28);
+    const totalProtein = meals.reduce((s, m) => s + (m.macros?.protein ?? 0), 0) || Math.round(meals.length * 28);
+    const totalCarbs = meals.reduce((s, m) => s + (m.macros?.carbs ?? 0), 0);
+    const totalFat = meals.reduce((s, m) => s + (m.macros?.fat ?? 0), 0);
+
     const calorieTarget = plan?.nutrition_plan?.calorie_target ?? 2000;
     const proteinTarget = plan?.nutrition_plan?.macros?.protein_g ?? 120;
+    const carbsTarget = plan?.nutrition_plan?.macros?.carbs_g ?? 200;
+    const fatTarget = plan?.nutrition_plan?.macros?.fat_g ?? 70;
+
     const remainingCal = Math.max(0, calorieTarget - totalCalories);
     const remainingProtein = Math.max(0, proteinTarget - totalProtein);
+    const remainingCarbs = Math.max(0, carbsTarget - totalCarbs);
+    const remainingFat = Math.max(0, fatTarget - totalFat);
 
-    const systemPrompt = `You are a world-class nutritionist. Given the user's remaining calories and protein for today, and their dietary preferences, output exactly 3 meal or snack suggestions. For each suggestion provide: a short name (e.g. "Greek yogurt + banana + almonds"), estimated calories, estimated protein in grams, and one short line (e.g. "Quick, no cook"). Respect dietary preferences (vegetarian, etc.). Output valid JSON only, no markdown, in this exact shape: { "suggestions": [ { "name": "...", "calories": number, "protein_g": number, "note": "..." }, ... ] }.`;
+    const systemPrompt = `You are a world-class nutritionist. Given the user's remaining calories, protein, carbs, and fat for today, and their dietary preferences, output exactly 3 meal or snack suggestions. For each suggestion provide: a short name (e.g. "Greek yogurt + banana + almonds"), estimated calories, estimated protein, carbs, and fat in grams, and one short line (e.g. "Macro-balanced and quick"). Respect dietary preferences. Output valid JSON only: { "suggestions": [ { "name": "...", "calories": number, "protein_g": number, "carbs_g": number, "fat_g": number, "note": "..." }, ... ] }.`;
 
     const dataBlock = [
       "Remaining calories today: " + remainingCal,
       "Remaining protein (g): " + remainingProtein,
+      "Remaining carbs (g): " + remainingCarbs,
+      "Remaining fat (g): " + remainingFat,
       "Dietary preferences: " + JSON.stringify(dietaryPrefs),
       context ? "Context (e.g. meal type): " + context : "",
     ]

@@ -291,6 +291,8 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
     setDuration("");
     setNotes("");
     onSuccess();
+    // Trigger award check
+    fetch("/api/v1/awards/check", { method: "POST" }).catch(() => { });
   }
 
   return (

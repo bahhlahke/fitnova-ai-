@@ -7,9 +7,11 @@ import { createClient } from "@/lib/supabase/client";
 import { toLocalDateString } from "@/lib/date/local-date";
 import { emitDataRefresh, useDataRefresh } from "@/lib/ui/data-sync";
 import { DEFAULT_UNIT_SYSTEM, type UnitSystem, readUnitSystemFromProfile } from "@/lib/units";
-import { Card, Button, LoadingState } from "@/components/ui";
+import { Card, CardHeader, Button, LoadingState } from "@/components/ui";
 import { DashboardHero } from "@/components/dashboard/DashboardHero";
+import { SocialFeed } from "@/components/social/SocialFeed";
 import { DashboardAiSection } from "@/components/dashboard/DashboardAiSection";
+import { FormCorrection } from "@/components/motion/FormCorrection";
 import {
   DashboardPlanSection,
   type DashboardTodayPlan,
@@ -19,7 +21,10 @@ import {
   DashboardProgressSection,
   type DashboardProjection,
 } from "@/components/dashboard/DashboardProgressSection";
-
+import { calculateReadiness, type MuscleReadiness } from "@/lib/workout/recovery";
+import type { User } from "@supabase/supabase-js";
+import type { DailyCheckIn } from "@/lib/funnel/preauth";
+import type { DailyPlan } from "@/lib/plan/types";
 import {
   DashboardAnalyticsSection,
   type DashboardPerformanceAnalytics,
@@ -54,6 +59,20 @@ export default function HomePage() {
   const [weeklyInsightLoading, setWeeklyInsightLoading] = useState(false);
   const [readinessInsight, setReadinessInsight] = useState<string | null>(null);
   const [readinessInsightLoading, setReadinessInsightLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showSurvey, setShowSurvey] = useState(false);
+  const [checkIn, setCheckIn] = useState<DailyCheckIn | null>(null);
+  const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [showCheckInForm, setShowCheckInForm] = useState(false);
+  const [checkInError, setCheckInError] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Quick-log state
+  const [quickMeals, setQuickMeals] = useState<any[]>([]);
+  const [quickWorkouts, setQuickWorkouts] = useState<any[]>([]);
+  const [progressData, setProgressData] = useState<any[]>([]);
   const [briefing, setBriefing] = useState<string | null>(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [projection, setProjection] = useState<DashboardProjection | null>(null);
@@ -67,7 +86,14 @@ export default function HomePage() {
   const [retentionRisk, setRetentionRisk] = useState<DashboardRetentionRisk | null>(null);
   const [retentionRiskLoading, setRetentionRiskLoading] = useState(false);
   const [nudges, setNudges] = useState<DashboardNudge[]>([]);
-  const [activeTab, setActiveTab] = useState<"overview" | "performance">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "plan" | "analytics" | "motion" | "social">("overview");
+
+  // Telemetry state
+  const [telemetryOptIn, setTelemetryOptIn] = useState<boolean>(false);
+  const [showTelemetryModal, setShowTelemetryModal] = useState<boolean>(false);
+
+  // Fatigue & Achievement state
+  const [readiness, setReadiness] = useState<Partial<MuscleReadiness>>({});
 
   const loadDashboardSnapshot = useCallback(async () => {
     const supabase = createClient();
@@ -90,25 +116,29 @@ export default function HomePage() {
 
       const today = toLocalDateString();
       const weekStart = getWeekStart(new Date());
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const sevenDaysAgoStr = sevenDaysAgo.toISOString().split("T")[0];
 
-      const [weekRes, last7Res, planRes, profileRes, workoutTodayRes] =
+      const [weekRes, last7Res, last28Res, planRes, profileRes, workoutTodayRes] =
         await Promise.all([
           supabase
             .from("workout_logs")
             .select("date", { count: "exact", head: true })
             .eq("user_id", user.id)
-            .gte("date", weekStart)
-            .lte("date", today),
+            .gte("date", weekStart),
           supabase
             .from("workout_logs")
-            .select("date")
+            .select("*")
             .eq("user_id", user.id)
-            .gte(
-              "date",
-              toLocalDateString(
-                new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-              )
-            )
+            .gte("date", sevenDaysAgoStr)
+            .lte("date", today)
+            .order("date", { ascending: true }),
+          supabase
+            .from("workout_logs")
+            .select("*")
+            .eq("user_id", user.id)
+            .gte("date", new Date(new Date().setDate(new Date().getDate() - 28)).toISOString().split("T")[0])
             .lte("date", today)
             .order("date", { ascending: true }),
           supabase
@@ -121,12 +151,12 @@ export default function HomePage() {
             .maybeSingle(),
           supabase
             .from("user_profile")
-            .select("subscription_status, devices")
+            .select("*")
             .eq("user_id", user.id)
             .maybeSingle(),
           supabase
             .from("workout_logs")
-            .select("date")
+            .select("log_id")
             .eq("user_id", user.id)
             .eq("date", today)
             .limit(1)
@@ -134,6 +164,10 @@ export default function HomePage() {
         ]);
 
       setWeekCount(weekRes.count ?? 0);
+
+      if (last28Res.data) {
+        setReadiness(calculateReadiness(last28Res.data));
+      }
 
       const byDate: Record<string, number> = {};
       const last7Rows = (last7Res.data ?? []) as Array<{ date: string }>;
@@ -195,10 +229,11 @@ export default function HomePage() {
   const loadReadinessInsight = useCallback(async () => {
     setReadinessInsightLoading(true);
     try {
+      const localDate = toLocalDateString();
       const res = await fetch("/api/v1/ai/readiness-insight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ localDate: toLocalDateString() }),
+        body: JSON.stringify({ localDate, readiness }),
       });
       const body = (await res.json()) as { insight?: string | null };
       if (typeof body.insight === "string" && body.insight) {
@@ -554,20 +589,15 @@ export default function HomePage() {
         />
 
         <div className="flex gap-6 border-b border-white/10 mb-6">
+          <button type="button" onClick={() => setActiveTab("overview")} className={`pb-4 text-xs font-black uppercase tracking-widest transition-all ${activeTab === "overview" ? "border-b-2 border-fn-accent text-white" : "text-fn-muted hover:text-white"}`}>Overview</button>
           <button
-            type="button"
-            onClick={() => setActiveTab("overview")}
-            className={`pb-3 text-sm font-bold uppercase tracking-widest transition-all ${activeTab === "overview" ? "border-b-2 border-fn-accent text-white" : "border-b-2 border-transparent text-fn-muted hover:text-white"}`}
+            onClick={() => setActiveTab("analytics")}
+            className={`pb-4 text-xs font-black uppercase tracking-widest transition-all ${activeTab === "analytics" ? "border-b-2 border-fn-accent text-white" : "text-fn-muted hover:text-white"}`}
           >
-            Overview
+            Analytics
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("performance")}
-            className={`pb-3 text-sm font-bold uppercase tracking-widest transition-all ${activeTab === "performance" ? "border-b-2 border-fn-accent text-white" : "border-b-2 border-transparent text-fn-muted hover:text-white"}`}
-          >
-            Deep Dive
-          </button>
+          <button type="button" onClick={() => setActiveTab("social")} className={`pb-4 text-xs font-black uppercase tracking-widest transition-all ${activeTab === "social" ? "border-b-2 border-fn-accent text-white" : "text-fn-muted hover:text-white"}`}>Social</button>
+          <button type="button" onClick={() => setActiveTab("motion")} className={`pb-4 text-xs font-black uppercase tracking-widest transition-all ${activeTab === "motion" ? "border-b-2 border-fn-accent text-white" : "text-fn-muted hover:text-white"}`}>Motion</button>
         </div>
 
         {activeTab === "overview" && (
@@ -583,7 +613,26 @@ export default function HomePage() {
               recoverySuggestion={recoverySuggestion}
               readinessInsight={readinessInsight}
               readinessInsightLoading={readinessInsightLoading}
+              readiness={readiness}
             />
+            <Link href="/community">
+              <Card className="border-fn-accent/20 bg-fn-accent/5 hover:bg-fn-accent/10 transition-colors">
+                <div className="flex items-center justify-between p-2">
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-fn-accent">Community & Challenges</h3>
+                    <p className="mt-1 text-xs text-fn-muted">Join groups, compete on leaderboards, and share progress.</p>
+                  </div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fn-accent/20 text-fn-accent">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                      <path d="M16 3.13a4 4 0 010 7.75" />
+                    </svg>
+                  </div>
+                </div>
+              </Card>
+            </Link>
             <DashboardProgressSection
               last7Days={last7Days}
               projection={projection}
@@ -592,8 +641,14 @@ export default function HomePage() {
           </div>
         )}
 
-        {activeTab === "performance" && (
+        {activeTab === "analytics" && (
           <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
+            <DashboardReadinessSection
+              recoverySuggestion={recoverySuggestion}
+              readinessInsight={readinessInsight}
+              readinessInsightLoading={readinessInsightLoading}
+              readiness={readiness}
+            />
             <DashboardAnalyticsSection
               weeklyPlan={weeklyPlan}
               weeklyPlanLoading={weeklyPlanLoading}
@@ -605,6 +660,36 @@ export default function HomePage() {
               retentionLoading={retentionRiskLoading}
               nudges={nudges}
             />
+          </div>
+        )}
+        {activeTab === "social" && (
+          <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+            <Card padding="lg">
+              <CardHeader title="Activity Feed" subtitle="Real-time updates from your network" />
+              <div className="mt-6">
+                <SocialFeed />
+              </div>
+            </Card>
+            <div className="space-y-6">
+              <Card padding="lg">
+                <CardHeader title="Your Friends" />
+                <div className="mt-4">
+                  <Link href="/community/friends">
+                    <Button variant="secondary" className="w-full">Manage Connections</Button>
+                  </Link>
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
+        {activeTab === "motion" && (
+          <div className="space-y-6">
+            <Card padding="lg">
+              <CardHeader title="AI Motion Analysis" subtitle="Real-time feedback on your form and technique." />
+              <div className="mt-8">
+                <FormCorrection />
+              </div>
+            </Card>
           </div>
         )}
       </div>

@@ -60,6 +60,17 @@ function pickFromPool(pool: string[], recentNormalized: Set<string>): string {
   return pool[0];
 }
 
+const STICKING_POINT_ACCESSORIES: Record<string, string> = {
+  "back squat": "Pause Squats",
+  "goblet squat": "Tempo Goblet Squats",
+  "bench press": "Close-Grip Bench Press",
+  "push-up": "Decline Push-ups",
+  "romanian deadlift": "Deficit RDL",
+  "deadlift": "Block Pulls",
+  "seated row": "Chest-Supported Row",
+  "dumbbell row": "Renegade Row"
+};
+
 export async function composeDailyPlan(
   dataSources: PlannerDataSources,
   inputs: PlannerInputs = {}
@@ -69,7 +80,7 @@ export async function composeDailyPlan(
 
   const today = toLocalDateString();
   const weekStartLocal = getWeekStartLocal(new Date());
-  const [profileRes, workoutsRes, nutritionRes, progressRes, checkInsRes, weeklyPlanRes] = await Promise.all([
+  const [profileRes, workoutsRes, nutritionRes, progressRes, checkInsRes, weeklyPlanRes, progressionRes] = await Promise.all([
     supabase.from("user_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase
       .from("workout_logs")
@@ -103,6 +114,10 @@ export async function composeDailyPlan(
       .eq("user_id", userId)
       .eq("week_start_local", weekStartLocal)
       .maybeSingle(),
+    supabase
+      .from("progression_snapshots")
+      .select("exercise_name, trend_score")
+      .eq("user_id", userId)
   ]);
 
   const profile = (profileRes.data ?? {}) as Record<string, unknown>;
@@ -126,14 +141,16 @@ export async function composeDailyPlan(
   const todayCheckIn = checkInsRes.data as { soreness_notes?: string | null; energy_score?: number | null; sleep_hours?: number | null } | null;
   const weeklyPlan = (weeklyPlanRes.data?.plan_json ?? null) as
     | {
-        days?: Array<{
-          date_local?: string;
-          focus?: string;
-          intensity?: "low" | "moderate" | "high";
-          target_duration_minutes?: number;
-        }>;
-      }
+      days?: Array<{
+        date_local?: string;
+        focus?: string;
+        intensity?: "low" | "moderate" | "high";
+        target_duration_minutes?: number;
+      }>;
+    }
     | null;
+  const progressionData = (progressionRes.data ?? []) as Array<{ exercise_name?: string; trend_score?: number }>;
+
   const sorenessFromCheckIn = todayCheckIn?.soreness_notes?.trim() || undefined;
   const effectiveSoreness = todayConstraints?.soreness ?? sorenessFromCheckIn;
   const preferredTrainingDays = parsePreferredTrainingDays(profile);
@@ -200,6 +217,24 @@ export async function composeDailyPlan(
   const hingePool = location === "gym" ? HINGE_POOL_GYM : HINGE_POOL_HOME;
   const pullPool = location === "gym" ? PULL_POOL_GYM : PULL_POOL_HOME;
 
+  function getPeriodizedAccessory(pool: string[], recentNormalized: Set<string>): { name: string; notes?: string } {
+    for (const lift of pool) {
+      const norm = normalizeExerciseName(lift);
+      const snapshot = progressionData.find(p => p.exercise_name && normalizeExerciseName(p.exercise_name) === norm);
+      if (snapshot && typeof snapshot.trend_score === "number" && snapshot.trend_score <= -0.02) {
+        if (STICKING_POINT_ACCESSORIES[norm]) {
+          return { name: STICKING_POINT_ACCESSORIES[norm], notes: `Periodized accessory for ${lift} sticking point.` };
+        }
+      }
+    }
+    return { name: pickFromPool(pool, recentNormalized) };
+  }
+
+  const squatSelection = getPeriodizedAccessory(squatPool, recentExerciseNames);
+  const pushSelection = getPeriodizedAccessory(pushPool, recentExerciseNames);
+  const hingeSelection = getPeriodizedAccessory(hingePool, recentExerciseNames);
+  const pullSelection = getPeriodizedAccessory(pullPool, recentExerciseNames);
+
   const exercises: DailyPlanTrainingExercise[] =
     focus.includes("Mobility")
       ? [
@@ -209,10 +244,10 @@ export async function composeDailyPlan(
         { name: "Dead Bug", sets: 3, reps: "8/side", intensity: "Controlled" },
       ]
       : [
-        { name: pickFromPool(squatPool, recentExerciseNames), sets: 4, reps: "6-8", intensity: "RPE 7" },
-        { name: pickFromPool(pushPool, recentExerciseNames), sets: 4, reps: "6-10", intensity: "RPE 7" },
-        { name: pickFromPool(hingePool, recentExerciseNames), sets: 3, reps: "8-10", intensity: "RPE 7" },
-        { name: pickFromPool(pullPool, recentExerciseNames), sets: 3, reps: "10-12", intensity: "RPE 7" },
+        { name: squatSelection.name, sets: 4, reps: "6-8", intensity: "RPE 7", notes: squatSelection.notes },
+        { name: pushSelection.name, sets: 4, reps: "6-10", intensity: "RPE 7", notes: pushSelection.notes },
+        { name: hingeSelection.name, sets: 3, reps: "8-10", intensity: "RPE 7", notes: hingeSelection.notes },
+        { name: pullSelection.name, sets: 3, reps: "10-12", intensity: "RPE 7", notes: pullSelection.notes },
         {
           name: "Zone 2 Finisher",
           sets: 1,
