@@ -1126,9 +1126,10 @@ CREATE POLICY "Users can join any group" ON public.group_members
 
 DROP POLICY IF EXISTS "Users can see their memberships" ON public.group_members;
 CREATE POLICY "Users can see their memberships" ON public.group_members
-  FOR SELECT USING (auth.uid() = user_id OR EXISTS (
-    SELECT 1 FROM public.group_members WHERE group_id = public.group_members.group_id AND user_id = auth.uid()
-  ));
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- Optional: Allow seeing other members if you are in the group (requires a function to avoid recursion)
+-- For now, keeping it simple to avoid build/execution errors.
 
 -- Seed Groups
 INSERT INTO public.groups (name, description, icon_slug) VALUES 
@@ -1260,11 +1261,7 @@ ADD COLUMN IF NOT EXISTS accountability_partner_id UUID REFERENCES auth.users(id
 DROP POLICY IF EXISTS "Users can see their accountability partner's profile" ON public.user_profile;
 CREATE POLICY "Users can see their accountability partner's profile" ON public.user_profile
   FOR SELECT USING (
-    auth.uid() = user_id OR 
-    user_id IN (
-      SELECT accountability_partner_id FROM public.user_profile WHERE user_id = auth.uid()
-    ) OR
-    accountability_partner_id = auth.uid()
+    auth.uid() = accountability_partner_id
   );
 
 

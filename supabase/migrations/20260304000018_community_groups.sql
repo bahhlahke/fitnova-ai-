@@ -31,9 +31,7 @@ CREATE POLICY "Users can join any group" ON public.group_members
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can see their memberships" ON public.group_members
-  FOR SELECT USING (auth.uid() = user_id OR EXISTS (
-    SELECT 1 FROM public.group_members WHERE group_id = public.group_members.group_id AND user_id = auth.uid()
-  ));
+  FOR SELECT USING (auth.uid() = user_id);
 
 -- Seed Groups
 INSERT INTO public.groups (name, description, icon_slug) VALUES 

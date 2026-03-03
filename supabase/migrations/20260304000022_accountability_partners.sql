@@ -6,9 +6,5 @@ ADD COLUMN IF NOT EXISTS accountability_partner_id UUID REFERENCES auth.users(id
 -- Users should be able to see their partner's basic status if designated
 CREATE POLICY "Users can see their accountability partner's profile" ON public.user_profile
   FOR SELECT USING (
-    auth.uid() = user_id OR 
-    user_id IN (
-      SELECT accountability_partner_id FROM public.user_profile WHERE user_id = auth.uid()
-    ) OR
-    accountability_partner_id = auth.uid()
+    auth.uid() = accountability_partner_id
   );
