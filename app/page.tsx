@@ -91,7 +91,6 @@ export default function HomePage() {
   const [retentionRisk, setRetentionRisk] = useState<DashboardRetentionRisk | null>(null);
   const [retentionRiskLoading, setRetentionRiskLoading] = useState(false);
   const [nudges, setNudges] = useState<DashboardNudge[]>([]);
-  const [activeTab, setActiveTab] = useState<"overview" | "plan" | "analytics" | "motion" | "social">("overview");
 
   // Telemetry state
   const [telemetryOptIn, setTelemetryOptIn] = useState<boolean>(false);
@@ -506,86 +505,155 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="mt-8 grid gap-4 md:grid-cols-3">
-          <Card padding="none" className="overflow-hidden">
-            <div className="relative h-48 w-full bg-fn-surface-hover/30">
-              <Image
-                src="/images/refined/sms.png"
-                alt="AI Chat Interface"
-                fill
-                className="object-cover object-top opacity-80 mix-blend-screen"
-              />
+        {/* Stats strip */}
+        <div className="mt-6 grid grid-cols-3 gap-3">
+          {[
+            { value: "50K+", label: "Data points" },
+            { value: "10K+", label: "Members" },
+            { value: "98%", label: "Plan accuracy" },
+          ].map(({ value, label }) => (
+            <div key={label} className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.06] bg-fn-surface/60 py-4 px-2">
+              <p className="text-2xl font-black italic tracking-tighter text-white">{value}</p>
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-fn-muted">{label}</p>
             </div>
-            <div className="p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">
-                Dashboard AI
-              </p>
-              <h2 className="mt-2 text-xl font-semibold text-fn-ink">
-                One command surface
-              </h2>
-              <p className="mt-2 text-sm text-fn-muted">
-                The dashboard AI logs meals, workouts, and progress while syncing
-                the rest of your app.
-              </p>
-            </div>
-          </Card>
-          <Card padding="none" className="overflow-hidden">
-            <div className="relative h-48 w-full bg-fn-surface-hover/30">
-              <Image
-                src="/images/refined/scanner.png"
-                alt="Nutrition Scanner"
-                fill
-                className="object-cover object-top opacity-80 mix-blend-screen"
-              />
-            </div>
-            <div className="p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">
-                Nutrition
-              </p>
-              <h2 className="mt-2 text-xl font-semibold text-fn-ink">
-                Fast meal capture
-              </h2>
-              <p className="mt-2 text-sm text-fn-muted">
-                Log by description or photo, track hydration, and stay aligned to
-                your calorie and macro targets.
-              </p>
-            </div>
-          </Card>
-          <Card padding="none" className="overflow-hidden">
-            <div className="relative h-48 w-full bg-fn-surface-hover/30">
-              <Image
-                src="/images/refined/motion.png"
-                alt="Motion Analysis"
-                fill
-                className="object-cover object-top opacity-80 mix-blend-screen"
-              />
-            </div>
-            <div className="p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fn-muted">
-                Workout
-              </p>
-              <h2 className="mt-2 text-xl font-semibold text-fn-ink">
-                Guided execution
-              </h2>
-              <p className="mt-2 text-sm text-fn-muted">
-                Run guided sessions, quick-log completed work, and use motion
-                analysis to tighten technique.
-              </p>
-            </div>
-          </Card>
+          ))}
+        </div>
+
+        <section className="mt-6 grid gap-4 md:grid-cols-3">
+          {[
+            {
+              src: "/images/refined/sms.png",
+              alt: "AI Chat Interface",
+              label: "Dashboard AI",
+              title: "One command surface",
+              desc: "The dashboard AI logs meals, workouts, and progress while syncing the rest of your app.",
+            },
+            {
+              src: "/images/refined/scanner.png",
+              alt: "Nutrition Scanner",
+              label: "Nutrition",
+              title: "Fast meal capture",
+              desc: "Log by description or photo, track hydration, and stay aligned to your calorie and macro targets.",
+            },
+            {
+              src: "/images/refined/motion.png",
+              alt: "Motion Analysis",
+              label: "Workout",
+              title: "Guided execution",
+              desc: "Run guided sessions, quick-log completed work, and use motion analysis to tighten technique.",
+            },
+          ].map(({ src, alt, label, title, desc }) => (
+            <Card key={label} padding="none" className="overflow-hidden group">
+              <div className="relative h-52 w-full bg-fn-bg">
+                <Image
+                  src={src}
+                  alt={alt}
+                  fill
+                  className="object-cover object-top opacity-70 transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-fn-surface via-transparent to-transparent" />
+              </div>
+              <div className="p-6">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-fn-accent">
+                  {label}
+                </p>
+                <h2 className="mt-2 text-lg font-black uppercase italic tracking-tight text-white">
+                  {title}
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-fn-muted">
+                  {desc}
+                </p>
+              </div>
+            </Card>
+          ))}
         </section>
       </div>
     );
   }
 
+  // Quick-action items
+  const quickActions = [
+    {
+      href: "/log/nutrition", label: "Log Meal", color: "from-emerald-500/20 to-emerald-600/5 border-emerald-500/20", iconColor: "text-emerald-400", icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      )
+    },
+    {
+      href: "/log/workout", label: "Log Workout", color: "from-blue-500/20 to-blue-600/5 border-blue-500/20", iconColor: "text-blue-400", icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 5v14m12-14v14M4 9h4m8 0h4M7 15h10" />
+        </svg>
+      )
+    },
+    {
+      href: "/check-in", label: "Check In", color: "from-violet-500/20 to-violet-600/5 border-violet-500/20", iconColor: "text-violet-400", icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    },
+    {
+      href: "/coach", label: "Ask Coach", color: "from-fn-accent/20 to-fn-accent/5 border-fn-accent/20", iconColor: "text-fn-accent", icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      )
+    },
+  ];
+
   return (
-    <div className="mx-auto w-full max-w-shell px-4 py-10 sm:px-8">
-      <div className="space-y-8">
+    <div className="mx-auto w-full max-w-shell px-4 py-8 sm:px-8">
+      <div className="space-y-6">
+
+        {/* Hero */}
         <DashboardHero
           briefing={briefing}
           briefingLoading={briefingLoading}
           isPro={isPro}
         />
+
+        {/* Quick Actions */}
+        <section aria-label="Quick actions">
+          <p className="mb-3 text-[10px] font-black uppercase tracking-[0.35em] text-fn-muted px-1">Quick Actions</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {quickActions.map(({ href, label, color, iconColor, icon }) => (
+              <Link key={href} href={href}
+                className={`group relative flex flex-col items-start gap-3 overflow-hidden rounded-2xl border bg-gradient-to-br p-4 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg ${color}`}
+              >
+                <span className={`${iconColor} transition-transform duration-200 group-hover:scale-110`}>{icon}</span>
+                <span className="text-xs font-black uppercase tracking-wider text-white">{label}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* Today's Plan + Adherence */}
+        <DashboardPlanSection
+          todayPlan={todayPlan}
+          weekCount={weekCount}
+          streak={streak}
+          weeklyInsight={weeklyInsight}
+          weeklyInsightLoading={weeklyInsightLoading}
+        />
+
+        {/* Readiness + Heatmap */}
+        <DashboardReadinessSection
+          recoverySuggestion={recoverySuggestion}
+          readinessInsight={readinessInsight}
+          readinessInsightLoading={readinessInsightLoading}
+          readiness={readiness}
+        />
+
+        {/* Progress */}
+        <DashboardProgressSection
+          last7Days={last7Days}
+          projection={projection}
+          unitSystem={unitSystem}
+        />
+
+        {/* AI Coach */}
         <DashboardAiSection
           autoFocus={focusAi}
           planLoading={planLoading}
@@ -593,110 +661,26 @@ export default function HomePage() {
           onGeneratePlan={() => void handleGeneratePlan()}
         />
 
-        <div className="flex gap-6 border-b border-white/10 mb-6">
-          <button type="button" onClick={() => setActiveTab("overview")} className={`pb-4 text-xs font-black uppercase tracking-widest transition-all ${activeTab === "overview" ? "border-b-2 border-fn-accent text-white" : "text-fn-muted hover:text-white"}`}>Overview</button>
-          <button
-            onClick={() => setActiveTab("analytics")}
-            className={`pb-4 text-xs font-black uppercase tracking-widest transition-all ${activeTab === "analytics" ? "border-b-2 border-fn-accent text-white" : "text-fn-muted hover:text-white"}`}
-          >
-            Analytics
-          </button>
-          <button type="button" onClick={() => setActiveTab("social")} className={`pb-4 text-xs font-black uppercase tracking-widest transition-all ${activeTab === "social" ? "border-b-2 border-fn-accent text-white" : "text-fn-muted hover:text-white"}`}>Social</button>
-          <button type="button" onClick={() => setActiveTab("motion")} className={`pb-4 text-xs font-black uppercase tracking-widest transition-all ${activeTab === "motion" ? "border-b-2 border-fn-accent text-white" : "text-fn-muted hover:text-white"}`}>Motion</button>
-        </div>
-
-        {activeTab === "overview" && (
-          <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
-            <DashboardPlanSection
-              todayPlan={todayPlan}
-              weekCount={weekCount}
-              streak={streak}
-              weeklyInsight={weeklyInsight}
-              weeklyInsightLoading={weeklyInsightLoading}
-            />
-            <DashboardReadinessSection
-              recoverySuggestion={recoverySuggestion}
-              readinessInsight={readinessInsight}
-              readinessInsightLoading={readinessInsightLoading}
-              readiness={readiness}
-            />
-            <Link href="/community">
-              <Card className="border-fn-accent/20 bg-fn-accent/5 hover:bg-fn-accent/10 transition-colors">
-                <div className="flex items-center justify-between p-2">
-                  <div>
-                    <h3 className="text-sm font-black uppercase tracking-widest text-fn-accent">Community & Challenges</h3>
-                    <p className="mt-1 text-xs text-fn-muted">Join groups, compete on leaderboards, and share progress.</p>
-                  </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fn-accent/20 text-fn-accent">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
-                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M23 21v-2a4 4 0 00-3-3.87" />
-                      <path d="M16 3.13a4 4 0 010 7.75" />
-                    </svg>
-                  </div>
-                </div>
-              </Card>
-            </Link>
-            <DashboardProgressSection
-              last7Days={last7Days}
-              projection={projection}
-              unitSystem={unitSystem}
-            />
-          </div>
-        )}
-
-        {activeTab === "analytics" && (
-          <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
-            <DashboardReadinessSection
-              recoverySuggestion={recoverySuggestion}
-              readinessInsight={readinessInsight}
-              readinessInsightLoading={readinessInsightLoading}
-              readiness={readiness}
-            />
-            <DashboardAnalyticsSection
-              weeklyPlan={weeklyPlan}
-              weeklyPlanLoading={weeklyPlanLoading}
-              analytics={performanceAnalytics}
-              analyticsLoading={performanceAnalyticsLoading}
-            />
-            <DashboardRetentionSection
-              retentionRisk={retentionRisk}
-              retentionLoading={retentionRiskLoading}
-              nudges={nudges}
-            />
-          </div>
-        )}
-        {activeTab === "social" && (
-          <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-            <Card padding="lg">
-              <CardHeader title="Activity Feed" subtitle="Real-time updates from your network" />
-              <div className="mt-6">
-                <SocialFeed />
+        {/* Community CTA */}
+        <Link href="/community">
+          <Card className="border-fn-accent/20 bg-fn-accent/5 hover:bg-fn-accent/10 transition-all duration-200 hover:scale-[1.01]">
+            <div className="flex items-center justify-between p-2">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-widest text-fn-accent">Community &amp; Challenges</h3>
+                <p className="mt-1 text-xs text-fn-muted">Join groups, compete on leaderboards, and share progress.</p>
               </div>
-            </Card>
-            <div className="space-y-6">
-              <Card padding="lg">
-                <CardHeader title="Your Friends" />
-                <div className="mt-4">
-                  <Link href="/community/friends">
-                    <Button variant="secondary" className="w-full">Manage Connections</Button>
-                  </Link>
-                </div>
-              </Card>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fn-accent/20 text-fn-accent shrink-0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                  <path d="M16 3.13a4 4 0 010 7.75" />
+                </svg>
+              </div>
             </div>
-          </div>
-        )}
-        {activeTab === "motion" && (
-          <div className="space-y-6">
-            <Card padding="lg">
-              <CardHeader title="AI Motion Analysis" subtitle="Real-time feedback on your form and technique." />
-              <div className="mt-8">
-                <FormCorrection />
-              </div>
-            </Card>
-          </div>
-        )}
+          </Card>
+        </Link>
+
       </div>
     </div>
   );
