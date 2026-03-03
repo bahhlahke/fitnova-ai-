@@ -12,6 +12,12 @@ export async function POST(req: Request) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!stripeSecretKey || !webhookSecret || !supabaseUrl || !serviceRoleKey) {
+    console.error("stripe_webhook_config_error", {
+      hasSecret: !!stripeSecretKey,
+      hasWebhook: !!webhookSecret,
+      hasUrl: !!supabaseUrl,
+      hasRole: !!serviceRoleKey,
+    });
     return jsonError(503, "SERVICE_UNAVAILABLE", "Billing webhook is not configured.");
   }
 
@@ -36,34 +42,81 @@ export async function POST(req: Request) {
     return jsonError(400, "VALIDATION_ERROR", "Webhook signature verification failed.");
   }
 
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const userId = session.client_reference_id;
+  console.log(`stripe_webhook_received: ${event.type}`, { eventId: event.id });
 
-      if (!userId) {
-        console.warn("stripe_webhook_missing_user_id", { eventId: event.id });
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const userId = session.client_reference_id || session.metadata?.userId;
+
+        if (!userId) {
+          console.warn("stripe_webhook_missing_user_id", { eventId: event.id, session: session.id });
+          break;
+        }
+
+        const { error } = await supabaseAdmin
+          .from("user_profile")
+          .upsert({
+            user_id: userId,
+            subscription_status: "pro",
+            stripe_customer_id: session.customer as string,
+          }, { onConflict: "user_id" });
+
+        if (error) {
+          throw new Error(`supabase_upgrade_error: ${error.message}`);
+        }
+
+        console.log("stripe_webhook_pro_upgrade_success", { userId, customerId: session.customer });
         break;
       }
 
-      const { error } = await supabaseAdmin
-        .from("user_profile")
-        .upsert({
-          user_id: userId,
-          subscription_status: "pro",
-          stripe_customer_id: session.customer as string,
-        }, { onConflict: "user_id" });
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = invoice.customer as string;
 
-      if (error) {
-        console.error("stripe_webhook_user_upgrade_failed", {
-          userId,
-          error: error.message,
-        });
-        return jsonError(500, "INTERNAL_ERROR", "Failed to process webhook.");
+        if (!customerId) {
+          console.warn("stripe_webhook_missing_customer_id", { eventId: event.id });
+          break;
+        }
+
+        // Fallback for sub renewal or missed session completed
+        const { error } = await supabaseAdmin
+          .from("user_profile")
+          .update({ subscription_status: "pro" })
+          .eq("stripe_customer_id", customerId);
+
+        if (error) {
+          throw new Error(`supabase_renewal_update_error: ${error.message}`);
+        }
+
+        console.log("stripe_webhook_renewal_pro_active", { customerId });
+        break;
       }
 
-      break;
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = subscription.customer as string;
+
+        const { error } = await supabaseAdmin
+          .from("user_profile")
+          .update({ subscription_status: "free" })
+          .eq("stripe_customer_id", customerId);
+
+        if (error) {
+          throw new Error(`supabase_downgrade_error: ${error.message}`);
+        }
+
+        console.log("stripe_webhook_subscription_downgraded", { customerId });
+        break;
+      }
     }
+  } catch (err: any) {
+    console.error("stripe_webhook_processing_error", {
+      eventId: event.id,
+      error: err.message,
+    });
+    return jsonError(500, "INTERNAL_ERROR", "Failed to process webhook event.");
   }
 
   return NextResponse.json({ received: true });

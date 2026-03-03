@@ -31,6 +31,9 @@ export async function POST(req: Request) {
       mode: "subscription",
       customer_email: user.email,
       client_reference_id: user.id,
+      metadata: {
+        userId: user.id,
+      },
       line_items: [
         {
           price_data: {
