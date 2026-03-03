@@ -1,20 +1,20 @@
 "use client";
 
 import { useMemo } from "react";
-import type { MuscleFatigue } from "@/lib/workout/recovery";
+import type { MuscleReadiness } from "@/lib/workout/recovery";
 import type { MuscleGroup } from "@/lib/workout/muscle-groups";
 
 interface BodyHeatmapProps {
-    fatigue: Partial<MuscleFatigue>;
+    readiness: Partial<MuscleReadiness>;
     className?: string;
 }
 
-export function BodyHeatmap({ fatigue, className = "" }: BodyHeatmapProps) {
+export function BodyHeatmap({ readiness, className = "" }: BodyHeatmapProps) {
     const getColor = (muscle: MuscleGroup) => {
-        const score = fatigue[muscle] || 0;
-        // 0 = Green (80, 200, 120), 100 = Red (255, 69, 58)
-        // For simplicity, just use HSL: 120 (Green) to 0 (Red)
-        const hue = Math.max(0, 120 - (score * 1.2));
+        const score = readiness[muscle] ?? 50; // Default to neutral 50
+        // 100 = Green (Recovered), 0 = Red (Fatigued)
+        // HSL: 0 (Red) to 120 (Green)
+        const hue = Math.max(0, Math.min(120, score * 1.2));
         return `hsl(${hue}, 70%, 50%)`;
     };
 
