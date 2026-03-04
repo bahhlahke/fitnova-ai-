@@ -80,38 +80,39 @@ export default function CommunityPage() {
             </div>
 
             <div className="mb-12">
-                <CardHeader title="Global Challenges" subtitle="Compete with the entire FitNova community" />
-                <div className="mt-6">
+                <CardHeader title="Global Protocols" subtitle="Compete with the high-performance FitNova community" />
+                <div className="mt-8">
                     <CommunityChallenges />
                 </div>
             </div>
 
-            <CardHeader title="Groups & Circles" subtitle="Find your niche and train together" />
+            <CardHeader title="Elite Squads" subtitle="Find your cohort and achieve peak performance" />
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-6">
                 {loading ? (
                     <LoadingState className="col-span-full" />
                 ) : groups.length > 0 ? (
                     groups.map(group => (
-                        <Card key={group.group_id} padding="lg">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-fn-accent/10 text-2xl mb-4">
+                        <Card key={group.group_id} padding="lg" className="border-white/[0.08] bg-black/40 backdrop-blur-md shadow-fn-soft hover:bg-black/60 transition-all duration-300 hover:scale-[1.02]">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-fn-accent/10 border border-fn-accent/20 text-2xl mb-6 shadow-[0_0_20px_rgba(10,217,196,0.1)]">
                                 {getIcon(group.icon_slug)}
                             </div>
-                            <CardHeader title={group.name} subtitle={group.description} />
-                            <div className="mt-6">
+                            <h3 className="text-xl font-black italic uppercase tracking-tighter text-white leading-none mb-2">{group.name}</h3>
+                            <p className="text-sm font-medium text-fn-ink/40 uppercase tracking-widest leading-relaxed mb-6">{group.description}</p>
+                            <div className="mt-auto">
                                 {group.is_member ? (
                                     <div className="space-y-6">
-                                        <Button variant="secondary" className="w-full" disabled>Member</Button>
-                                        <div className="border-t border-white/5 pt-4">
+                                        <Button variant="secondary" className="w-full bg-fn-accent/10 text-fn-accent border-fn-accent/20 cursor-default" disabled>Engaged</Button>
+                                        <div className="border-t border-white/[0.08] pt-4">
                                             <GroupLeaderboard groupId={group.group_id} />
                                         </div>
                                     </div>
                                 ) : (
                                     <Button
-                                        className="w-full"
+                                        className="w-full h-touch-lg text-[10px] font-black uppercase tracking-[0.2em]"
                                         onClick={() => handleJoin(group.group_id)}
                                         loading={joining === group.group_id}
                                     >
-                                        Join Group
+                                        Initiate Access
                                     </Button>
                                 )}
                             </div>

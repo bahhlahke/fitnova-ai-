@@ -89,7 +89,7 @@ export default function MotionLabPage() {
       backLabel="Workout"
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
-        <Card className="flex flex-col border-white/5 bg-white/[0.02] p-8">
+        <Card className="flex flex-col border-white/[0.08] bg-black/40 backdrop-blur-md p-8 shadow-fn-card">
           {!videoUrl ? (
             <div className="flex flex-1 flex-col items-center justify-center rounded-xl2 border-2 border-dashed border-white/10 py-20 text-center transition-colors hover:border-fn-accent/50">
               <svg className="mb-4 h-12 w-12 text-fn-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -155,8 +155,8 @@ export default function MotionLabPage() {
         </Card>
 
         <aside className="space-y-6">
-          <Card className="border-fn-accent/30 bg-fn-accent/5">
-            <CardHeader title="System Verdict" subtitle="Biomechanical status" />
+          <Card className="border-fn-accent/30 bg-fn-accent/5 backdrop-blur-md">
+            <CardHeader title="Neural Verdict" subtitle="Biomechanical integrity status" />
             {result ? (
               <div className="mt-6 space-y-8">
                 <div className="flex flex-col items-center justify-center border-b border-white/5 py-6">
@@ -178,7 +178,7 @@ export default function MotionLabPage() {
                         className="text-fn-accent transition-all duration-1000 ease-out"
                       />
                     </svg>
-                    <span className="absolute text-4xl font-black italic tracking-tighter text-white">
+                    <span className="absolute text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
                       {result.score}
                     </span>
                   </div>
@@ -188,7 +188,7 @@ export default function MotionLabPage() {
                   <span className="mb-2 block text-[10px] font-black uppercase tracking-widest text-fn-accent">
                     Critical Assessment
                   </span>
-                  <p className="rounded-xl border border-white/5 bg-black/40 p-4 text-sm font-medium leading-relaxed text-white">
+                  <p className="rounded-xl border border-white/[0.08] bg-black/60 p-5 text-sm font-medium italic leading-relaxed text-white/80">
                     {result.critique}
                   </p>
                   <p className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-fn-muted">
@@ -200,7 +200,7 @@ export default function MotionLabPage() {
                   <span className="mb-2 block text-[10px] font-black uppercase tracking-widest text-fn-accent">
                     Correction Protocol
                   </span>
-                  <p className="rounded-xl bg-fn-accent p-4 text-sm font-bold leading-relaxed text-black shadow-[0_0_30px_rgba(10,217,196,0.2)]">
+                  <p className="rounded-xl bg-fn-accent p-5 text-sm font-black italic uppercase tracking-tight leading-relaxed text-black shadow-[0_0_40px_rgba(10,217,196,0.3)]">
                     {result.correction}
                   </p>
                   {result.reliability?.limitations?.length ? (
