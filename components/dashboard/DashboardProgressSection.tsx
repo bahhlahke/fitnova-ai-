@@ -24,49 +24,48 @@ export function DashboardProgressSection({
 
   return (
     <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-      <div className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-7">
-        <p className="text-[10px] font-black uppercase tracking-[0.35em] text-fn-accent">
-          Progress Snapshot
+      <div className="rounded-xl3 border border-white/[0.08] bg-fn-surface/40 backdrop-blur-md p-8 shadow-fn-card">
+        <p className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent">
+          Biometric Trend
         </p>
-        <h2 className="mt-3 font-display text-3xl font-black uppercase italic tracking-tighter text-white">
-          7-Day Training Load
+        <h2 className="mt-4 font-display text-4xl font-black uppercase italic tracking-tighter text-white leading-none">
+          Weekly Load Analysis
         </h2>
         <div className="mt-8 flex h-40 items-end gap-3">
           {last7Days.map((value, index) => (
-            <div key={`${value}-${index}`} className="flex flex-1 flex-col items-center gap-2">
+            <div key={`${value}-${index}`} className="flex flex-1 flex-col items-center gap-3">
               <div
-                className="w-full rounded-t-xl bg-white/10 transition-colors hover:bg-fn-accent/40"
+                className="w-full rounded-t-lg bg-white/5 transition-all duration-300 hover:bg-fn-accent/30 hover:shadow-[0_0_15px_rgba(10,217,196,0.2)]"
                 style={{ height: `${Math.max(14, (value / maxValue) * 100)}%` }}
               />
-              <span className="text-[9px] font-black uppercase tracking-[0.25em] text-fn-muted">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-ink/40">
                 D{7 - index}
               </span>
             </div>
           ))}
         </div>
-        <div className="mt-6">
+        <div className="mt-8">
           <Link href="/progress">
-            <Button variant="secondary">Open Progress</Button>
+            <Button variant="secondary" size="sm" className="w-full sm:w-auto">Detailed Analytics</Button>
           </Link>
         </div>
       </div>
 
-      <div className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-7">
-        <p className="text-[10px] font-black uppercase tracking-[0.35em] text-fn-accent">
-          Projection
+      <div className="rounded-xl3 border border-white/[0.08] bg-fn-surface/40 backdrop-blur-md p-8 shadow-fn-card">
+        <p className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent">
+          AI Projection
         </p>
         {projection ? (
           <>
-            <p className="mt-6 text-5xl font-black italic tracking-tighter text-white">
+            <p className="mt-8 text-6xl font-black italic tracking-tighter text-white leading-none">
               {formatDisplayNumber(toDisplayWeight(projection.projected_12w, unitSystem), 1)}
-              <span className="text-xl ml-1">{weightUnitLabel(unitSystem)}</span>
+              <span className="text-xl ml-2 font-black uppercase tracking-widest text-fn-ink/40">{weightUnitLabel(unitSystem)}</span>
             </p>
-            <p className="mt-3 text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">
-              {Math.round(projection.confidence * 100)}% confidence
+            <p className="mt-4 text-[11px] font-black uppercase tracking-[0.3em] text-fn-accent">
+              {Math.round(projection.confidence * 100)}% Precision Confidence
             </p>
-            <p className="mt-6 text-sm font-medium leading-relaxed text-fn-muted">
-              4-week projection: {formatDisplayNumber(toDisplayWeight(projection.projected_4w, unitSystem), 1)} {weightUnitLabel(unitSystem)}. Dashboard and
-              progress views will refresh after AI biometric logs.
+            <p className="mt-8 text-base font-medium leading-relaxed text-fn-muted">
+              4-week projection: {formatDisplayNumber(toDisplayWeight(projection.projected_4w, unitSystem), 1)} {weightUnitLabel(unitSystem)}. Data will refresh after subsequent biometric calibration.
             </p>
           </>
         ) : (

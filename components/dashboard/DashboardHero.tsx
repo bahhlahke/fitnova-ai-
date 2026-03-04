@@ -35,9 +35,9 @@ export function DashboardHero({
       <div className="absolute inset-0 z-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/refined/athletic_female_gym_1.png"
+          src="/images/refined/athletic_female_close_up.png"
           alt="Hero background"
-          className="h-full w-full object-cover object-center opacity-40 mix-blend-soft-light"
+          className="h-full w-full object-cover object-center opacity-30 mix-blend-luminosity brightness-110"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-fn-bg via-fn-bg/80 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-fn-bg via-transparent to-fn-bg/20" />

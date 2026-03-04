@@ -14,7 +14,7 @@ export function Card({
   const paddingClass = padding === "lg" ? "p-8" : padding === "none" ? "p-0" : "p-6";
   return (
     <div
-      className={`group relative overflow-hidden rounded-xl3 border border-white/10 bg-gradient-to-b from-white/[0.03] to-transparent backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-700 hover:border-fn-accent/30 hover:shadow-[0_0_40px_rgba(10,217,196,0.1)] ${paddingClass} ${className}`.trim()}
+      className={`group relative overflow-hidden rounded-xl3 border border-white/[0.08] bg-fn-surface/40 backdrop-blur-md shadow-fn-card transition-all duration-500 hover:border-white/20 hover:bg-fn-surface/60 ${paddingClass} ${className}`.trim()}
       {...props}
     >
       {/* Subtle Inner Glow */}
@@ -39,8 +39,8 @@ export function CardHeader({
 }) {
   return (
     <div className={`mb-6 ${className}`.trim()}>
-      <h2 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">{title}</h2>
-      {subtitle && <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-fn-accent/70">{subtitle}</p>}
+      <h2 className="font-display text-2xl font-black text-white italic uppercase tracking-tighter leading-none">{title}</h2>
+      {subtitle && <p className="mt-2 text-[11px] font-black uppercase tracking-[0.3em] text-fn-muted">{subtitle}</p>}
     </div>
   );
 }

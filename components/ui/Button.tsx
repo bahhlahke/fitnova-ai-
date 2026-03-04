@@ -5,18 +5,18 @@ type ButtonSize = "default" | "sm";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-fn-primary text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:bg-white hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-0.5 focus:ring-fn-primary/40 disabled:opacity-50",
+    "bg-fn-primary text-black shadow-fn-btn hover:bg-white hover:scale-[1.02] focus:ring-fn-primary/40 disabled:opacity-50",
   secondary:
-    "border border-fn-border bg-transparent text-fn-ink hover:bg-fn-surface-hover focus:ring-fn-primary/30 backdrop-blur-sm",
+    "border border-white/10 bg-white/5 text-white backdrop-blur-sm hover:bg-white/10 hover:border-white/20 focus:ring-fn-primary/30",
   ghost:
-    "text-fn-ink-soft hover:bg-fn-surface focus:ring-fn-primary/20",
+    "text-fn-muted hover:bg-white/5 hover:text-white focus:ring-fn-primary/20",
   danger:
-    "bg-fn-danger text-white hover:brightness-95 focus:ring-fn-danger/30 disabled:opacity-50",
+    "bg-fn-danger/20 text-fn-danger border border-fn-danger/30 hover:bg-fn-danger/30 focus:ring-fn-danger/30 disabled:opacity-50",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  default: "min-h-touch-lg min-w-touch px-8 py-4 text-sm tracking-wide uppercase font-bold",
-  sm: "min-h-[40px] px-4 py-2 text-xs rounded-xl font-semibold",
+  default: "h-touch-lg px-8 py-4 text-[11px] tracking-[0.25em] font-black",
+  sm: "h-10 px-4 py-2 text-[10px] tracking-widest font-black uppercase rounded-xl",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -38,7 +38,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    "inline-flex items-center justify-center rounded-xl font-black uppercase tracking-widest transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) active:scale-95 active:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-fn-bg";
+    "inline-flex items-center justify-center rounded-xl transition-all duration-300 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-fn-bg";
   const combined = [
     base,
     variantClasses[variant],

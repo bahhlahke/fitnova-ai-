@@ -526,10 +526,9 @@ export default function SettingsPage() {
         </Card>
 
         <Card padding="lg">
-          <CardHeader title="Profile" subtitle="Core stats and goals" />
-
-          <div className="mt-6 border-b border-white/5 pb-2">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-fn-muted">Account</h3>
+          <CardHeader title="Neural Identification" subtitle="Core account parameters" />
+          <div className="mt-8 border-b border-white/[0.08] pb-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Account Vectors</h3>
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div>
@@ -552,8 +551,8 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="mt-8 border-b border-white/5 pb-2">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-fn-muted">Body Metrics & Activity</h3>
+          <div className="mt-10 border-b border-white/[0.08] pb-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Biometric Constants</h3>
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div>
@@ -610,8 +609,8 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="mt-8 border-b border-white/5 pb-2">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-fn-muted">Objectives & Constraints</h3>
+          <div className="mt-10 border-b border-white/[0.08] pb-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Strategic Objectives</h3>
           </div>
           <div className="mt-4">
             <Label>Goals</Label>
@@ -734,14 +733,14 @@ export default function SettingsPage() {
 
         <Card padding="lg" className="scroll-mt-24" id="billing">
           <CardHeader title="Billing" subtitle="Manage FitNova Pro access" />
-          <div className="mt-3 rounded-2xl border border-fn-border bg-fn-bg-alt p-4">
-            <p className="text-sm font-semibold text-fn-ink">
-              {isPro ? "FitNova Pro is active." : "You are currently on the free plan."}
+          <div className="mt-6 rounded-2xl border border-fn-accent/20 bg-fn-accent/5 p-6 backdrop-blur-md">
+            <p className="text-sm font-black text-white italic uppercase tracking-tight">
+              {isPro ? "FitNova Pro Sequence Active" : "Standard Tier Implementation"}
             </p>
-            <p className="mt-1 text-sm text-fn-muted">
+            <p className="mt-2 text-xs font-medium text-white/40 leading-relaxed uppercase tracking-widest">
               {isPro
-                ? "Your dashboard AI and advanced coaching features are unlocked."
-                : "Upgrade here to unlock the full coaching experience. Billing has been moved out of the dashboard to keep the main command surface focused."}
+                ? "Neural dashboard and advanced coaching protocols are currently engaged."
+                : "Initiate Pro upgrade to unlock predictive modeling and high-fidelity intelligence."}
             </p>
           </div>
           {!isPro && (

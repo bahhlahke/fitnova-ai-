@@ -58,32 +58,26 @@ export function BottomNav() {
   if (hide) return null;
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.05] bg-black/60 backdrop-blur-2xl md:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-      role="navigation"
-      aria-label="Main"
-    >
-      <div className="flex justify-around px-2 pt-2 pb-3">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
+    <nav className="fixed bottom-0 left-0 right-0 z-[100] border-t border-white/[0.08] bg-fn-bg/80 px-4 pb-safe pt-2 backdrop-blur-xl md:hidden">
+      <div className="flex items-center justify-around">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
           return (
             <Link
-              key={href}
-              href={href}
-              className={`relative flex flex-col items-center gap-1 min-w-[52px] transition-all duration-200 ${isActive
-                ? "text-fn-accent"
-                : "text-fn-muted hover:text-white"
+              key={item.href}
+              href={item.href}
+              className={`flex flex-col items-center gap-1.5 px-3 py-2 transition-all duration-300 ${isActive ? "text-fn-accent" : "text-fn-ink/40"
                 }`}
-              aria-current={isActive ? "page" : undefined}
             >
-              <div className={`relative flex items-center justify-center h-8 w-8 rounded-xl transition-all duration-200 ${isActive ? "bg-fn-accent/15" : ""}`}>
+              <div className={`relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 ${isActive ? "bg-fn-accent/15 border border-fn-accent/20" : ""}`}>
+                <span className={`h-6 w-6 transition-transform duration-300 ${isActive ? "scale-110 text-fn-accent" : ""}`}>{item.icon({ className: "h-full w-full" })}</span>
                 {isActive && (
-                  <span className="absolute inset-0 rounded-xl bg-fn-accent/10 animate-pulse" style={{ animationDuration: "3s" }} />
+                  <div className="absolute -bottom-1 h-1 w-1 rounded-full bg-fn-accent" />
                 )}
-                <Icon className="h-5 w-5 relative z-10" />
               </div>
-              <span className={`text-[9px] font-black uppercase tracking-widest ${isActive ? "text-fn-accent" : "text-fn-muted"}`}>{label}</span>
+              <span className={`text-[9px] font-black uppercase tracking-widest ${isActive ? "text-fn-accent" : "text-fn-ink/30"}`}>
+                {item.label}
+              </span>
             </Link>
           );
         })}

@@ -92,24 +92,27 @@ export default function WorkoutLogPage() {
     <PageLayout title="Workout" subtitle="Capture sessions and keep progression visible">
       <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
         <Link href="/log/workout/guided" className="block">
-          <Card padding="lg" className="h-full border-fn-accent/30 bg-fn-accent/5 transition hover:-translate-y-0.5 hover:border-fn-accent/50 hover:shadow-[0_0_30px_rgba(10,217,196,0.1)]">
-            <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Guided mode</p>
-            <h2 className="mt-2 text-xl font-black text-fn-ink uppercase italic tracking-tight">Start today&apos;s coached session</h2>
-            <p className="mt-2 text-sm text-fn-muted leading-relaxed">Step-by-step flow with plan-aware exercise sequence and rest pacing.</p>
-            <p className="mt-4 text-xs font-black uppercase tracking-widest text-fn-accent">Open guided workout →</p>
+          <Card padding="lg" className="h-full border-fn-accent/30 bg-fn-accent/5 transition-all duration-300 hover:scale-[1.01] hover:border-fn-accent/50 hover:shadow-fn-card backdrop-blur-md">
+            <p className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent">Neural Guidance</p>
+            <h2 className="mt-4 font-display text-4xl font-black text-white uppercase italic tracking-tighter leading-none">Initiate Coached Session</h2>
+            <p className="mt-3 text-base font-medium text-fn-ink/40 leading-relaxed uppercase tracking-widest">Plan-aware sequence flow with predictive rest intervals.</p>
+            <p className="mt-8 text-[11px] font-black uppercase tracking-[0.3em] text-fn-accent flex items-center gap-2">
+              Launch Guided Mode
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+            </p>
           </Card>
         </Link>
 
         <Card>
-          <CardHeader title="AI suggestion" subtitle="Use this when your day is constrained" />
-          <p className="mt-3 text-sm text-fn-muted">If time is limited, do your first three compound movements and one finisher interval.</p>
-          <div className="mt-4 flex flex-wrap gap-3">
+          <CardHeader title="Intelligence Insight" subtitle="Contextual coaching signals" />
+          <p className="mt-4 text-base font-medium text-fn-ink/40 leading-relaxed uppercase tracking-widest">Optimized performance metrics suggest maintaining core volume with high-intensity finishers.</p>
+          <div className="mt-8 flex flex-wrap gap-4">
             <Link href="/motion">
               <Button variant="secondary" size="sm">Motion Lab</Button>
             </Link>
             <Link href="/?focus=ai">
-              <Button variant="ghost" size="sm" className="border border-fn-border">
-                Ask AI on Dashboard
+              <Button variant="ghost" size="sm" className="border border-white/10 hover:border-white/20">
+                Query Concierge
               </Button>
             </Link>
           </div>
@@ -117,7 +120,7 @@ export default function WorkoutLogPage() {
       </div>
 
       <Card className="mt-4" padding="lg">
-        <CardHeader title="Quick log" subtitle="Save a completed workout" />
+        <CardHeader title="System Session Log" subtitle="Capture completions for adaptive recalibration" />
         <WorkoutQuickForm
           onSuccess={() => {
             setRefetch((n) => n + 1);
@@ -134,14 +137,14 @@ export default function WorkoutLogPage() {
           }}
         />
         {postWorkoutInsightLoading && (
-          <p className="mt-4 text-sm text-fn-muted">Generating insight...</p>
+          <div className="mt-8 h-12 rounded-xl bg-white/[0.03] animate-pulse" />
         )}
         {postWorkoutInsight && !postWorkoutInsightLoading && (
-          <div className="mt-4 rounded-2xl border border-fn-accent/20 bg-white/5 px-5 py-4 text-sm text-fn-ink animate-in fade-in duration-300">
-            <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Coach Insight</p>
-            <p className="leading-relaxed text-fn-ink">{postWorkoutInsight}</p>
-            <button type="button" onClick={() => setPostWorkoutInsight(null)} className="mt-3 text-[10px] font-black uppercase tracking-widest text-fn-muted hover:text-white transition-colors">
-              Dismiss
+          <div className="mt-8 rounded-xl3 border border-fn-accent/20 bg-fn-accent/5 p-6 backdrop-blur-md shadow-fn-soft animate-in fade-in zoom-in-95 duration-500">
+            <p className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent">Neural Recalibration</p>
+            <p className="mt-4 text-base font-medium italic leading-relaxed text-fn-ink/60">{postWorkoutInsight}</p>
+            <button type="button" onClick={() => setPostWorkoutInsight(null)} className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent hover:text-white transition-all">
+              Acknowledge Insight
             </button>
           </div>
         )}
@@ -153,41 +156,47 @@ export default function WorkoutLogPage() {
           {loading ? (
             <LoadingState className="mt-3" />
           ) : workouts.length > 0 ? (
-            <ul className="mt-3 space-y-2">
+            <ul className="mt-8 space-y-3">
               {workouts.map((w) => (
-                <li key={w.log_id} className="rounded-xl border border-fn-border bg-fn-surface-hover px-3 py-3 text-sm text-fn-ink">
+                <li key={w.log_id} className="rounded-xl border border-white/[0.08] bg-black/40 px-5 py-4 transition-all hover:bg-black/60 shadow-fn-soft">
                   {editingWorkoutId === w.log_id ? (
-                    <form onSubmit={(e) => handleSaveWorkoutEdit(e, w.log_id)} className="space-y-3">
-                      <div>
-                        <Label>Type</Label>
-                        <Select value={editWorkoutData.type} onChange={(e) => setEditWorkoutData({ ...editWorkoutData, type: e.target.value })} className="mt-1">
-                          {WORKOUT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                        </Select>
+                    <form onSubmit={(e) => handleSaveWorkoutEdit(e, w.log_id)} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-[10px] uppercase font-black tracking-widest text-fn-ink/40 mb-1">Session Vector</Label>
+                          <Select value={editWorkoutData.type} onChange={(e) => setEditWorkoutData({ ...editWorkoutData, type: e.target.value })} className="bg-black/40 border-white/10 uppercase font-black text-[11px] italic">
+                            {WORKOUT_TYPES.map(t => <option key={t.value} value={t.value} className="bg-fn-bg">{t.label}</option>)}
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-[10px] uppercase font-black tracking-widest text-fn-ink/40 mb-1">Duration (min)</Label>
+                          <Input type="number" value={editWorkoutData.duration} onChange={(e) => setEditWorkoutData({ ...editWorkoutData, duration: e.target.value })} className="bg-black/40 border-white/10 font-black italic" />
+                        </div>
                       </div>
                       <div>
-                        <Label>Duration (min)</Label>
-                        <Input type="number" value={editWorkoutData.duration} onChange={(e) => setEditWorkoutData({ ...editWorkoutData, duration: e.target.value })} className="mt-1" />
+                        <Label className="text-[10px] uppercase font-black tracking-widest text-fn-ink/40 mb-1">Observations</Label>
+                        <Input type="text" value={editWorkoutData.notes} onChange={(e) => setEditWorkoutData({ ...editWorkoutData, notes: e.target.value })} className="bg-black/40 border-white/10 font-medium italic" />
                       </div>
-                      <div>
-                        <Label>Notes</Label>
-                        <Input type="text" value={editWorkoutData.notes} onChange={(e) => setEditWorkoutData({ ...editWorkoutData, notes: e.target.value })} className="mt-1" />
-                      </div>
-                      <div className="flex gap-2 pt-2">
-                        <Button type="submit" size="sm" loading={workoutSaveStatus === "saving"}>Save</Button>
+                      <div className="flex gap-3 pt-2">
+                        <Button type="submit" size="sm" loading={workoutSaveStatus === "saving"}>Update Log</Button>
                         <Button type="button" size="sm" variant="ghost" onClick={() => setEditingWorkoutId(null)}>Cancel</Button>
                       </div>
-                      {workoutSaveStatus === "error" && <p className="text-fn-danger text-xs mt-1">Failed to save.</p>}
+                      {workoutSaveStatus === "error" && <p className="text-fn-danger text-[10px] font-black uppercase tracking-widest mt-1">Recalibration failed.</p>}
                     </form>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold">{w.date} · {w.workout_type}</p>
-                        <p className="mt-1 text-fn-muted">
-                          {w.duration_minutes != null ? `${w.duration_minutes} min` : "Duration not set"}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-3">
+                          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-fn-accent">{w.date}</span>
+                          <span className="h-1 w-1 rounded-full bg-white/20" />
+                          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/40 italic">{w.workout_type}</span>
+                        </div>
+                        <p className="mt-1 text-base font-black text-white italic truncate uppercase">
+                          {w.duration_minutes != null ? `${w.duration_minutes} Minutes` : "Incomplete metrics"}
                           {w.notes ? ` · ${w.notes}` : ""}
                         </p>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-2">
                         <button
                           onClick={() => {
                             setEditingWorkoutId(w.log_id);
@@ -197,11 +206,11 @@ export default function WorkoutLogPage() {
                               notes: w.notes || "",
                             });
                           }}
-                          className="p-1 text-fn-muted hover:text-fn-ink transition-colors"
+                          className="p-2 text-fn-ink/40 hover:bg-white/5 hover:text-white rounded-lg transition-all"
                           title="Edit workout"
                         >
                           <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-2.207 2.207L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                           </svg>
                         </button>
                         <button
@@ -214,7 +223,7 @@ export default function WorkoutLogPage() {
                               emitDataRefresh(["dashboard", "workout"]);
                             }
                           }}
-                          className="p-1 text-fn-muted hover:text-fn-danger transition-colors"
+                          className="p-2 text-fn-ink/40 hover:bg-fn-danger/10 hover:text-fn-danger rounded-lg transition-all"
                           title="Delete workout"
                         >
                           <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -242,7 +251,7 @@ export default function WorkoutLogPage() {
           </Link>
         </div>
       </section>
-    </PageLayout>
+    </PageLayout >
   );
 }
 

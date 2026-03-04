@@ -25,14 +25,14 @@ export function DashboardAiSection({
   }, [autoFocus]);
 
   return (
-    <section ref={sectionRef} id="dashboard-ai" className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section ref={sectionRef} id="dashboard-ai" className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.35em] text-fn-accent">
-            AI Control
+          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent">
+            Concierge Core
           </p>
-          <h2 className="mt-2 font-display text-3xl font-black uppercase italic tracking-tighter text-white">
-            Embedded Coach
+          <h2 className="mt-4 font-display text-4xl font-black uppercase italic tracking-tighter text-white leading-none">
+            Embedded Intelligence
           </h2>
         </div>
         <Button onClick={onGeneratePlan} loading={planLoading}>

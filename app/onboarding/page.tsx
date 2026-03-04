@@ -204,169 +204,181 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-shell px-4 py-8 sm:px-6">
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <Card padding="lg">
-          <header className="mb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">Onboarding</p>
-            <h1 className="mt-2 font-display text-4xl text-fn-ink">Build your AI coaching profile</h1>
-            <p className="mt-2 text-fn-muted">This takes about two minutes and helps tailor workouts, nutrition, and safety adjustments.</p>
-            {resumedFromAssessment && (
-              <div className="mt-3 inline-flex rounded-full bg-fn-bg-alt px-3 py-1 text-xs font-semibold text-fn-ink">
-                Resumed from assessment
-              </div>
-            )}
-          </header>
+    <div className="relative min-h-screen w-full overflow-hidden bg-fn-bg">
+      {/* Dynamic Background Image */}
+      <div className="absolute inset-0 z-0">
+        <img
+          src="/images/refined/athletic_female_stretching.png"
+          alt="Onboarding Background"
+          className="h-full w-full object-cover opacity-20 grayscale transition-all duration-1000"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-fn-bg via-fn-bg/80 to-transparent" />
+      </div>
 
-          <div className="mb-6" role="progressbar" aria-valuenow={currentStep + 1} aria-valuemin={1} aria-valuemax={steps.length} aria-label="Onboarding progress">
-            <div className="flex items-center gap-2">
-              {steps.map((step, i) => (
-                <button
-                  key={step.id}
-                  type="button"
-                  onClick={() => setCurrentStep(i)}
-                  className={`h-2 flex-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-fn-primary/30 ${i <= currentStep ? "bg-fn-primary shadow-[0_0_10px_rgba(51,92,255,0.4)]" : "bg-fn-bg-alt"
-                    }`}
-                  aria-current={i === currentStep ? "step" : undefined}
-                />
-              ))}
-              <div className={`flex shrink-0 items-center justify-center h-8 w-8 rounded-full border-2 transition-colors ${currentStep === steps.length - 1 ? "border-fn-accent bg-fn-accent/20 text-fn-accent shadow-[0_0_15px_rgba(10,217,196,0.3)]" : "border-fn-border bg-fn-surface text-fn-muted"}`}>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-              </div>
-            </div>
-            <p className="mt-3 text-sm font-semibold text-fn-muted">
-              Step {currentStep + 1} of {steps.length}: <span className="text-white">{steps[currentStep].label}</span>
-            </p>
-          </div>
+      <div className="relative z-10 mx-auto w-full max-w-shell px-4 py-8 sm:px-6">
+        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+          <Card padding="lg" className="bg-fn-surface/60 backdrop-blur-xl border-white/10">
+            <header className="mb-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">Onboarding</p>
+              <h1 className="mt-2 font-display text-4xl text-fn-ink">Build your AI coaching profile</h1>
+              <p className="mt-2 text-fn-muted">This takes about two minutes and helps tailor workouts, nutrition, and safety adjustments.</p>
+              {resumedFromAssessment && (
+                <div className="mt-3 inline-flex rounded-full bg-fn-bg-alt px-3 py-1 text-xs font-semibold text-fn-ink">
+                  Resumed from assessment
+                </div>
+              )}
+            </header>
 
-          <div className="rounded-2xl border border-fn-border bg-fn-surface-hover p-5">
-            <h2 className="text-xl font-semibold text-fn-ink">{steps[currentStep].label}</h2>
-
-            {steps[currentStep].id === "stats" && (
-              <div className="mt-4 space-y-0">
-                <label className={labelClass}>Name</label>
-                <input type="text" value={stats.name} onChange={(e) => setStats((s) => ({ ...s, name: e.target.value }))} className={inputClass} placeholder="Your name" />
-                <label className={labelClass}>Phone number (optional)</label>
-                <input type="tel" value={stats.phone} onChange={(e) => setStats((s) => ({ ...s, phone: e.target.value }))} className={inputClass} placeholder="+15551234567" />
-                <label className={labelClass}>Age</label>
-                <input type="number" value={stats.age} onChange={(e) => setStats((s) => ({ ...s, age: e.target.value }))} className={inputClass} placeholder="25" min={13} max={120} />
-                <label className={labelClass}>Sex</label>
-                <select value={stats.sex} onChange={(e) => setStats((s) => ({ ...s, sex: e.target.value }))} className={inputClass}>
-                  <option value="">Select</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-                <label className={labelClass}>Units</label>
-                <select value={unitSystem} onChange={(e) => setUnitSystem(e.target.value === "metric" ? "metric" : "imperial")} className={inputClass}>
-                  <option value="imperial">in / lbs</option>
-                  <option value="metric">cm / kg</option>
-                </select>
-                <label className={labelClass}>Height ({heightUnitLabel(unitSystem)})</label>
-                <input
-                  type="number"
-                  step={unitSystem === "imperial" ? "0.1" : "1"}
-                  value={stats.height}
-                  onChange={(e) => setStats((s) => ({ ...s, height: e.target.value }))}
-                  className={inputClass}
-                  placeholder={unitSystem === "imperial" ? "67" : "170"}
-                />
-                <label className={labelClass}>Weight ({weightUnitLabel(unitSystem)})</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={stats.weight}
-                  onChange={(e) => setStats((s) => ({ ...s, weight: e.target.value }))}
-                  className={inputClass}
-                  placeholder={unitSystem === "imperial" ? "154" : "70"}
-                />
-              </div>
-            )}
-
-            {steps[currentStep].id === "goals" && (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {goalOptions.map((g) => (
+            <div className="mb-6" role="progressbar" aria-valuenow={currentStep + 1} aria-valuemin={1} aria-valuemax={steps.length} aria-label="Onboarding progress">
+              <div className="flex items-center gap-2">
+                {steps.map((step, i) => (
                   <button
-                    key={g}
+                    key={step.id}
                     type="button"
-                    onClick={() => toggleGoal(g)}
-                    className={`flex min-h-[90px] cursor-pointer flex-col items-start justify-center rounded-2xl border-2 px-5 py-4 text-left transition-all duration-200 ${goals.includes(g)
+                    onClick={() => setCurrentStep(i)}
+                    className={`h-2 flex-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-fn-primary/30 ${i <= currentStep ? "bg-fn-primary shadow-[0_0_10px_rgba(51,92,255,0.4)]" : "bg-fn-bg-alt"
+                      }`}
+                    aria-current={i === currentStep ? "step" : undefined}
+                  />
+                ))}
+                <div className={`flex shrink-0 items-center justify-center h-8 w-8 rounded-full border-2 transition-colors ${currentStep === steps.length - 1 ? "border-fn-accent bg-fn-accent/20 text-fn-accent shadow-[0_0_15px_rgba(10,217,196,0.3)]" : "border-fn-border bg-fn-surface text-fn-muted"}`}>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                </div>
+              </div>
+              <p className="mt-3 text-sm font-semibold text-fn-muted">
+                Step {currentStep + 1} of {steps.length}: <span className="text-white">{steps[currentStep].label}</span>
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-fn-border bg-fn-surface-hover p-5">
+              <h2 className="text-xl font-semibold text-fn-ink">{steps[currentStep].label}</h2>
+
+              {steps[currentStep].id === "stats" && (
+                <div className="mt-4 space-y-0">
+                  <label className={labelClass}>Name</label>
+                  <input type="text" value={stats.name} onChange={(e) => setStats((s) => ({ ...s, name: e.target.value }))} className={inputClass} placeholder="Your name" />
+                  <label className={labelClass}>Phone number (optional)</label>
+                  <input type="tel" value={stats.phone} onChange={(e) => setStats((s) => ({ ...s, phone: e.target.value }))} className={inputClass} placeholder="+15551234567" />
+                  <label className={labelClass}>Age</label>
+                  <input type="number" value={stats.age} onChange={(e) => setStats((s) => ({ ...s, age: e.target.value }))} className={inputClass} placeholder="25" min={13} max={120} />
+                  <label className={labelClass}>Sex</label>
+                  <select value={stats.sex} onChange={(e) => setStats((s) => ({ ...s, sex: e.target.value }))} className={inputClass}>
+                    <option value="">Select</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <label className={labelClass}>Units</label>
+                  <select value={unitSystem} onChange={(e) => setUnitSystem(e.target.value === "metric" ? "metric" : "imperial")} className={inputClass}>
+                    <option value="imperial">in / lbs</option>
+                    <option value="metric">cm / kg</option>
+                  </select>
+                  <label className={labelClass}>Height ({heightUnitLabel(unitSystem)})</label>
+                  <input
+                    type="number"
+                    step={unitSystem === "imperial" ? "0.1" : "1"}
+                    value={stats.height}
+                    onChange={(e) => setStats((s) => ({ ...s, height: e.target.value }))}
+                    className={inputClass}
+                    placeholder={unitSystem === "imperial" ? "67" : "170"}
+                  />
+                  <label className={labelClass}>Weight ({weightUnitLabel(unitSystem)})</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={stats.weight}
+                    onChange={(e) => setStats((s) => ({ ...s, weight: e.target.value }))}
+                    className={inputClass}
+                    placeholder={unitSystem === "imperial" ? "154" : "70"}
+                  />
+                </div>
+              )}
+
+              {steps[currentStep].id === "goals" && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {goalOptions.map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => toggleGoal(g)}
+                      className={`flex min-h-[90px] cursor-pointer flex-col items-start justify-center rounded-2xl border-2 px-5 py-4 text-left transition-all duration-200 ${goals.includes(g)
                         ? "border-fn-accent bg-fn-accent/10 shadow-[0_0_20px_rgba(10,217,196,0.15)]"
                         : "border-fn-border bg-fn-surface hover:border-fn-accent/40 hover:bg-fn-surface-hover"
-                      }`}
-                  >
-                    <span className={`font-black uppercase tracking-tight ${goals.includes(g) ? "text-fn-accent" : "text-white"}`}>{g}</span>
-                    <span className={`mt-1.5 text-xs font-medium ${goals.includes(g) ? "text-fn-accent/80" : "text-fn-muted"}`}>
-                      {g === "Weight loss" && "Burn fat and lean out"}
-                      {g === "Muscle gain" && "Build size and strength"}
-                      {g === "Endurance" && "Cardiovascular engine"}
-                      {g === "General fitness" && "Feel better, live longer"}
-                      {g === "Mobility" && "Increase range of motion"}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {steps[currentStep].id === "injuries" && (
-              <div className="mt-4">
-                <label className={labelClass}>Injuries or limitations (optional)</label>
-                <textarea value={injuries} onChange={(e) => setInjuries(e.target.value)} className={`${inputClass} min-h-[120px]`} placeholder="e.g. lower back pain, knee history" rows={4} />
-              </div>
-            )}
-
-            {steps[currentStep].id === "diet" && (
-              <div className="mt-4 space-y-0">
-                <label className={labelClass}>Dietary preference</label>
-                <select value={diet} onChange={(e) => setDiet(e.target.value)} className={inputClass}>
-                  {dietOptions.map((o) => (
-                    <option key={o} value={o.toLowerCase()}>{o}</option>
+                        }`}
+                    >
+                      <span className={`font-black uppercase tracking-tight ${goals.includes(g) ? "text-fn-accent" : "text-white"}`}>{g}</span>
+                      <span className={`mt-1.5 text-xs font-medium ${goals.includes(g) ? "text-fn-accent/80" : "text-fn-muted"}`}>
+                        {g === "Weight loss" && "Burn fat and lean out"}
+                        {g === "Muscle gain" && "Build size and strength"}
+                        {g === "Endurance" && "Cardiovascular engine"}
+                        {g === "General fitness" && "Feel better, live longer"}
+                        {g === "Mobility" && "Increase range of motion"}
+                      </span>
+                    </button>
                   ))}
-                </select>
-                <label className={labelClass}>Allergies or restrictions</label>
-                <input type="text" value={allergies} onChange={(e) => setAllergies(e.target.value)} className={inputClass} placeholder="e.g. nuts, gluten" />
-              </div>
-            )}
-
-            {steps[currentStep].id === "devices" && (
-              <div className="mt-4">
-                <label className={labelClass}>Training setup and wearables (optional)</label>
-                <input type="text" value={devices} onChange={(e) => setDevices(e.target.value)} className={inputClass} placeholder="e.g. Home dumbbells, Apple Watch" />
-              </div>
-            )}
-
-            <div className="mt-6 flex gap-3">
-              {currentStep > 0 && (
-                <Button type="button" variant="ghost" onClick={() => setCurrentStep((s) => s - 1)}>
-                  Back
-                </Button>
-              )}
-              <Button type="button" className="flex-1" onClick={handleNext} loading={saving}>
-                {currentStep < steps.length - 1 ? "Next" : "Finish"}
-              </Button>
-            </div>
-            {saveError && <ErrorMessage className="mt-3" message={saveError} />}
-          </div>
-        </Card>
-
-        <Card padding="lg" className="lg:sticky lg:top-8 lg:h-fit border-fn-accent/10 bg-fn-accent/[0.03]">
-          <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-3">What you unlock</p>
-          <ul className="space-y-4">
-            {[
-              { icon: "M13 10V3L4 14h7v7l9-11h-7z", text: "Adaptive daily plan based on your goals and schedule" },
-              { icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", text: "Nutrition targets tuned to your progress trend" },
-              { icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", text: "Safety-aware alternatives for injuries and low-energy days" },
-            ].map(({ icon, text }) => (
-              <li key={text} className="flex items-start gap-3">
-                <div className="mt-0.5 shrink-0 h-6 w-6 rounded-lg bg-fn-accent/10 flex items-center justify-center">
-                  <svg className="h-3.5 w-3.5 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} /></svg>
                 </div>
-                <span className="text-sm text-fn-muted leading-relaxed">{text}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-6 text-[10px] text-fn-muted/50 uppercase tracking-widest">Educational AI coaching · Not medical care</p>
-        </Card>
+              )}
+
+              {steps[currentStep].id === "injuries" && (
+                <div className="mt-4">
+                  <label className={labelClass}>Injuries or limitations (optional)</label>
+                  <textarea value={injuries} onChange={(e) => setInjuries(e.target.value)} className={`${inputClass} min-h-[120px]`} placeholder="e.g. lower back pain, knee history" rows={4} />
+                </div>
+              )}
+
+              {steps[currentStep].id === "diet" && (
+                <div className="mt-4 space-y-0">
+                  <label className={labelClass}>Dietary preference</label>
+                  <select value={diet} onChange={(e) => setDiet(e.target.value)} className={inputClass}>
+                    {dietOptions.map((o) => (
+                      <option key={o} value={o.toLowerCase()}>{o}</option>
+                    ))}
+                  </select>
+                  <label className={labelClass}>Allergies or restrictions</label>
+                  <input type="text" value={allergies} onChange={(e) => setAllergies(e.target.value)} className={inputClass} placeholder="e.g. nuts, gluten" />
+                </div>
+              )}
+
+              {steps[currentStep].id === "devices" && (
+                <div className="mt-4">
+                  <label className={labelClass}>Training setup and wearables (optional)</label>
+                  <input type="text" value={devices} onChange={(e) => setDevices(e.target.value)} className={inputClass} placeholder="e.g. Home dumbbells, Apple Watch" />
+                </div>
+              )}
+
+              <div className="mt-6 flex gap-3">
+                {currentStep > 0 && (
+                  <Button type="button" variant="ghost" onClick={() => setCurrentStep((s) => s - 1)}>
+                    Back
+                  </Button>
+                )}
+                <Button type="button" className="flex-1" onClick={handleNext} loading={saving}>
+                  {currentStep < steps.length - 1 ? "Next" : "Finish"}
+                </Button>
+              </div>
+              {saveError && <ErrorMessage className="mt-3" message={saveError} />}
+            </div>
+          </Card>
+
+          <Card padding="lg" className="lg:sticky lg:top-8 lg:h-fit border-fn-accent/10 bg-fn-accent/[0.03]">
+            <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-3">What you unlock</p>
+            <ul className="space-y-4">
+              {[
+                { icon: "M13 10V3L4 14h7v7l9-11h-7z", text: "Adaptive daily plan based on your goals and schedule" },
+                { icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", text: "Nutrition targets tuned to your progress trend" },
+                { icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", text: "Safety-aware alternatives for injuries and low-energy days" },
+              ].map(({ icon, text }) => (
+                <li key={text} className="flex items-start gap-3">
+                  <div className="mt-0.5 shrink-0 h-6 w-6 rounded-lg bg-fn-accent/10 flex items-center justify-center">
+                    <svg className="h-3.5 w-3.5 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} /></svg>
+                  </div>
+                  <span className="text-sm text-fn-muted leading-relaxed">{text}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-6 text-[10px] text-fn-muted/50 uppercase tracking-widest">Educational AI coaching · Not medical care</p>
+          </Card>
+        </div>
       </div>
     </div>
   );

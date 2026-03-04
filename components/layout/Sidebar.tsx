@@ -87,22 +87,26 @@ export function Sidebar() {
 
             {/* Nav */}
             <nav className="flex-1 space-y-0.5 overflow-y-auto">
-                {navItems.map(({ href, label, icon: Icon }) => {
-                    const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
+                {navItems.map((item) => {
+                    const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
                     return (
                         <Link
-                            key={href}
-                            href={href}
-                            className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all duration-200 ${isActive
-                                ? "bg-white/[0.08] text-white"
-                                : "text-fn-muted hover:bg-white/[0.04] hover:text-white"
+                            key={item.href}
+                            href={item.href}
+                            className={`group relative flex items-center gap-4 rounded-xl px-4 py-3.5 transition-all duration-300 ${isActive
+                                    ? "bg-fn-accent/10 border border-fn-accent/20 text-fn-accent shadow-fn-soft"
+                                    : "text-fn-ink-soft hover:bg-white/5 hover:text-white border border-transparent"
                                 }`}
                         >
+                            <span className={`h-5 w-5 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-fn-accent" : "text-fn-ink/40 group-hover:text-white"}`}>
+                                {item.icon({ className: "h-full w-full" })}
+                            </span>
+                            <span className={`text-[11px] font-black uppercase tracking-[0.2em] ${isActive ? "text-fn-accent" : "text-white/60 group-hover:text-white"}`}>
+                                {item.label}
+                            </span>
                             {isActive && (
-                                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-fn-accent shadow-[0_0_12px_rgba(10,217,196,0.8)]" />
+                                <div className="absolute -left-1.5 h-6 w-1 rounded-full bg-fn-accent" />
                             )}
-                            <Icon className={`h-4 w-4 shrink-0 transition-colors ${isActive ? "text-fn-accent" : "text-fn-muted group-hover:text-white"}`} />
-                            <span className="tracking-wide uppercase text-[11px]">{label}</span>
                         </Link>
                     );
                 })}

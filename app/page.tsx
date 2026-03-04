@@ -467,7 +467,7 @@ export default function HomePage() {
               loop
               muted
               playsInline
-              className="h-full w-full object-cover object-center opacity-50 grayscale contrast-125"
+              className="h-full w-full object-cover object-center opacity-40 grayscale contrast-125 transition-opacity duration-1000"
             />
           </div>
           <div className="absolute inset-0 z-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
@@ -533,7 +533,7 @@ export default function HomePage() {
               accent: "border-fn-accent/30",
             },
             {
-              src: "/images/refined/athletic_female_gym_1.png",
+              src: "/images/refined/scanner.png",
               alt: "Nutrition Scanner",
               label: "Metabolic Autopilot",
               title: "Fast meal capture",
@@ -541,7 +541,7 @@ export default function HomePage() {
               accent: "border-fn-accent/30",
             },
             {
-              src: "/images/refined/athletic_female_gym_2.png",
+              src: "/images/refined/motion.png",
               alt: "Motion Analysis",
               label: "Motion Lab",
               title: "Real-time form AI",
@@ -549,7 +549,7 @@ export default function HomePage() {
               accent: "border-fn-accent/30",
             },
             {
-              src: "/images/refined/athletic_female_gym_1.png",
+              src: "/images/refined/athletic_female_lifting.png",
               alt: "Pro Coaching",
               label: "Adaptive Logic",
               title: "Expert guidance",
@@ -588,9 +588,9 @@ export default function HomePage() {
             <div className="relative h-72 w-full md:h-auto md:w-1/2 shrink-0 overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/images/refined/athletic_female_gym_1.png"
+                src="/images/refined/athletic_female_physique.png"
                 alt="Athlete training"
-                className="w-full h-full object-cover object-center grayscale opacity-70"
+                className="w-full h-full object-cover object-center grayscale opacity-60 transition-all duration-700 group-hover:grayscale-0 group-hover:opacity-80"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black md:block hidden" />
               <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent md:hidden" />

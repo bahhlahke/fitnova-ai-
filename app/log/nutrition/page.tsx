@@ -315,10 +315,10 @@ function SmartMealEntry({
   return (
     <div className="mt-4 space-y-4">
       {/* Mode tabs */}
-      <div className="inline-flex rounded-xl border border-fn-border bg-fn-bg p-1">
+      <div className="inline-flex rounded-xl border border-white/[0.08] bg-black/40 p-1 backdrop-blur-md">
         {ENTRY_MODES.map((m) => (
           <button key={m} type="button" onClick={() => switchMode(m)}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 ${mode === m ? "bg-fn-ink-rich text-white shadow-fn-soft" : "text-fn-muted hover:text-fn-ink"
+            className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${mode === m ? "bg-fn-accent/20 text-fn-accent shadow-fn-soft border border-fn-accent/20" : "text-fn-ink/40 hover:text-white"
               }`}
           >
             {m === "describe" ? (
@@ -326,14 +326,14 @@ function SmartMealEntry({
                 <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                   <path fillRule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3.293 1.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L7.586 10 5.293 7.707a1 1 0 010-1.414zM11 12a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
                 </svg>
-                Describe meal
+                Describe
               </>
             ) : m === "photo" ? (
               <>
                 <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                   <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
                 </svg>
-                Snap a photo
+                Photo
               </>
             ) : (
               <>
@@ -341,7 +341,7 @@ function SmartMealEntry({
                   <path fillRule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 2V5h1v1H5zM3 13a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zm2 2v-1h1v1H5zM13 3a1 1 0 00-1 1v3a1 1 0 001 1h3a1 1 0 001-1V4a1 1 0 00-1-1h-3zm2 2h-1V5h1v1z" clipRule="evenodd" />
                   <path d="M11 13a1 1 0 011-1h1v1h-1v1h1v1h-1v1h-1v-2h-1v-1h1v-1zm2 2h1v1h-1v-1zm1-2h1v1h-1v-1zm0 3h1v1h-1v-1zm2-3h1v1h-1v-1zm0 2h1v1h-1v-1z" />
                 </svg>
-                Scan Barcode
+                Barcode
               </>
             )}
           </button>
@@ -359,12 +359,12 @@ function SmartMealEntry({
             <textarea
               value={description}
               onChange={(e) => { setDescription(e.target.value); setEstimate(null); setAiError(null); }}
-              placeholder={'e.g. "Two fried eggs on wholegrain toast with butter and half an avocado"'}
+              placeholder={'Describe meal (e.g. "Two fried eggs on wholegrain toast")'}
               rows={3}
               maxLength={1000}
-              className="w-full resize-none rounded-2xl border border-fn-border bg-fn-surface px-4 py-3 text-sm text-fn-ink placeholder:text-fn-muted-light focus:border-fn-primary/50 focus:outline-none focus:ring-2 focus:ring-fn-primary/20 transition-all"
+              className="w-full resize-none rounded-2xl border border-white/[0.08] bg-black/40 px-5 py-4 text-base text-white placeholder:text-fn-ink/30 focus:border-fn-accent/50 focus:outline-none focus:ring-4 focus:ring-fn-accent/5 transition-all"
             />
-            <span className="absolute bottom-2.5 right-3 text-[10px] text-fn-muted">
+            <span className="absolute bottom-3 right-4 text-[10px] font-black uppercase tracking-widest text-fn-ink/20">
               {description.length}/1000
             </span>
           </div>
@@ -397,33 +397,33 @@ function SmartMealEntry({
             role="button" tabIndex={0}
             onClick={() => fileInputRef.current?.click()}
             onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
-            className={`relative flex min-h-[180px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 transition-all duration-200 ${imagePreview
-              ? "border-fn-primary/30"
-              : "border-dashed border-fn-border hover:border-fn-primary/50 hover:bg-fn-primary-light/30"
+            className={`relative flex min-h-[220px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 transition-all duration-300 ${imagePreview
+              ? "border-fn-accent/30"
+              : "border-dashed border-white/[0.08] bg-black/40 hover:border-fn-accent/40 hover:bg-black/60 shadow-fn-soft"
               }`}
           >
             {imagePreview ? (
               <>
                 <Image src={imagePreview} alt="Meal preview" fill className="object-cover" />
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-fn-ink-rich/40 opacity-0 hover:opacity-100 transition-opacity duration-200">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" className="h-8 w-8 mb-2">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="h-10 w-10 mb-3">
                     <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
                     <circle cx="12" cy="13" r="4" />
                   </svg>
-                  <span className="text-sm font-semibold text-white">Change photo</span>
+                  <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Replace Media</span>
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center gap-3 px-6 py-8 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-fn-primary-light">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-7 w-7 text-fn-primary">
+              <div className="flex flex-col items-center gap-4 px-8 py-10 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-fn-accent/10 border border-fn-accent/20">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-8 w-8 text-fn-accent">
                     <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
                     <circle cx="12" cy="13" r="4" />
                   </svg>
                 </div>
                 <div>
-                  <p className="font-semibold text-fn-ink">Take a photo or upload</p>
-                  <p className="mt-1 text-xs text-fn-muted">Works best with good lighting from above</p>
+                  <p className="text-sm font-black uppercase tracking-widest text-white">Visual Capture</p>
+                  <p className="mt-2 text-[11px] font-medium text-fn-ink/40 uppercase tracking-widest">Supports primary lens intake</p>
                 </div>
               </div>
             )}
@@ -499,45 +499,45 @@ function SmartMealEntry({
 
       {/* ── Estimate card ────────────────────────────────────────── */}
       {estimate && (
-        <div className="scale-reveal overflow-hidden rounded-2xl border border-fn-primary/20 bg-gradient-to-br from-fn-primary-light to-white shadow-fn-soft">
+        <div className="scale-reveal overflow-hidden rounded-xl3 border border-fn-accent/20 bg-fn-surface/60 shadow-fn-card backdrop-blur-xl">
           {/* Header */}
-          <div className="flex items-start justify-between gap-3 border-b border-fn-primary/10 px-4 py-3">
+          <div className="flex items-start justify-between gap-4 border-b border-white/[0.08] px-6 py-5">
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-fn-primary">AI estimate</span>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${CONFIDENCE_BADGE[estimate.confidence].cls}`}>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-fn-accent">Neural Scan Result</span>
+                <span className={`rounded-lg px-2 py-0.5 text-[9px] font-black uppercase tracking-widest border ${CONFIDENCE_BADGE[estimate.confidence].cls} border-current opacity-80`}>
                   {CONFIDENCE_BADGE[estimate.confidence].label}
                 </span>
               </div>
               <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
-                className="mt-1 w-full bg-transparent text-sm font-semibold text-black focus:outline-none focus:underline" />
+                className="mt-2 w-full bg-transparent text-lg font-black italic text-white focus:outline-none focus:ring-none uppercase tracking-tight" />
             </div>
             <button type="button" onClick={() => { setEstimate(null); setAiError(null); }}
-              className="shrink-0 rounded-lg p-1 text-fn-muted hover:bg-fn-primary/10 hover:text-fn-ink transition-colors"
+              className="shrink-0 rounded-xl p-2 text-fn-ink/40 hover:bg-white/5 hover:text-white transition-all"
               aria-label="Dismiss estimate"
             >
-              <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+              <svg viewBox="0 0 16 16" fill="currentColor" className="h-5 w-5">
                 <path d="M5.28 4.22a.75.75 0 00-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 101.06 1.06L8 9.06l2.72 2.72a.75.75 0 101.06-1.06L9.06 8l2.72-2.72a.75.75 0 00-1.06-1.06L8 6.94 5.28 4.22z" />
               </svg>
             </button>
           </div>
 
           {/* Macro grid — all editable */}
-          <div className="grid grid-cols-4 gap-px bg-fn-primary/10 border-b border-fn-primary/10">
+          <div className="grid grid-cols-4 gap-px bg-white/[0.08] border-b border-white/[0.08]">
             {[
               { label: "Calories", field: editCal, setter: setEditCal, unit: "kcal", hi: true },
               { label: "Protein", field: editPro, setter: setEditPro, unit: "g" },
               { label: "Carbs", field: editCarb, setter: setEditCarb, unit: "g" },
               { label: "Fat", field: editFat, setter: setEditFat, unit: "g" },
             ].map(({ label, field, setter, unit, hi }) => (
-              <div key={label} className={`flex flex-col items-center px-2 py-3 ${hi ? "bg-fn-primary-light" : "bg-white"}`}>
-                <div className="flex items-baseline gap-0.5">
+              <div key={label} className={`flex flex-col items-center px-2 py-5 ${hi ? "bg-fn-accent/10" : "bg-black/60"}`}>
+                <div className="flex items-baseline gap-1">
                   <input type="number" value={field} onChange={(e) => setter(e.target.value)} min="0" max="9999"
-                    className="w-16 bg-transparent text-center text-lg font-bold text-black focus:outline-none focus:underline"
+                    className={`w-16 bg-transparent text-center text-2xl font-black italic focus:outline-none ${hi ? "text-fn-accent" : "text-white"}`}
                   />
-                  <span className="text-[10px] text-neutral-500">{unit}</span>
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${hi ? "text-fn-accent/60" : "text-fn-ink/40"}`}>{unit}</span>
                 </div>
-                <span className="mt-0.5 text-[10px] font-semibold text-neutral-600">{label}</span>
+                <span className={`mt-1 text-[10px] font-black uppercase tracking-widest ${hi ? "text-fn-accent" : "text-fn-ink/30"}`}>{label}</span>
               </div>
             ))}
           </div>
@@ -806,33 +806,33 @@ function NutritionLogContent() {
 
             {/* Calorie ring + macro bars */}
             <div className="mt-4 flex items-center gap-5">
-              <div className="relative h-20 w-20 shrink-0">
+              <div className="relative h-28 w-28 shrink-0">
                 <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90">
-                  <circle cx="40" cy="40" r="32" fill="none" stroke="#eef1fb" strokeWidth="8" />
-                  <circle cx="40" cy="40" r="32" fill="none" stroke="#335cff" strokeWidth="8"
-                    strokeLinecap="round" strokeDasharray="201"
-                    strokeDashoffset={201 - (201 * calPct) / 100}
-                    className="transition-all duration-1000"
+                  <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="6" />
+                  <circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" strokeWidth="6"
+                    strokeLinecap="round" strokeDasharray="213.6"
+                    strokeDashoffset={213.6 - (213.6 * calPct) / 100}
+                    className="text-fn-accent transition-all duration-1000 shadow-[0_0_15px_rgba(10,217,196,0.5)]"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <p className="text-sm font-bold text-fn-ink-rich leading-none">{totalCalories}</p>
-                  <p className="text-[9px] text-fn-muted">{calorieTarget ? `/ ${calorieTarget}` : "kcal"}</p>
+                  <p className="text-2xl font-black text-white italic leading-none">{totalCalories}</p>
+                  <p className="mt-1 text-[9px] font-black uppercase tracking-widest text-fn-ink/30 italic">{calorieTarget ? `/ ${calorieTarget}` : "kcal"}</p>
                 </div>
               </div>
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 space-y-4">
                 {[
-                  { label: "Protein", val: totalProtein, target: proteinTarget, pct: proPct, color: "bg-fn-primary" },
-                  { label: "Carbs", val: totalCarbs, target: planTargets?.carbs_g, pct: carbPct, color: "bg-amber-400" },
-                  { label: "Fat", val: totalFat, target: planTargets?.fat_g, pct: fatPct, color: "bg-fn-accent" },
-                ].map(({ label, val, target, pct, color }) => (
+                  { label: "Protein", val: totalProtein, target: proteinTarget, pct: proPct, color: "bg-white", shadow: "shadow-[0_0_10px_rgba(255,255,255,0.3)]" },
+                  { label: "Carbs", val: totalCarbs, target: planTargets?.carbs_g, pct: carbPct, color: "bg-fn-ink/40", shadow: "" },
+                  { label: "Fat", val: totalFat, target: planTargets?.fat_g, pct: fatPct, color: "bg-fn-accent", shadow: "shadow-[0_0_10px_rgba(10,217,196,0.3)]" },
+                ].map(({ label, val, target, pct, color, shadow }) => (
                   <div key={label}>
-                    <div className="flex justify-between text-xs mb-0.5">
-                      <span className="font-semibold text-fn-ink">{label}</span>
-                      <span className="text-fn-muted">{val}g{target ? ` / ${target}g` : ""}</span>
+                    <div className="flex justify-between text-[11px] font-black uppercase tracking-widest mb-1.5">
+                      <span className="text-white/60">{label}</span>
+                      <span className="text-fn-accent italic">{val}g <span className="text-fn-ink/20 font-medium">/ {target ? `${target}g` : "—"}</span></span>
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-fn-bg-alt">
-                      <div className={`h-full rounded-full ${color} transition-all duration-700`} style={{ width: `${pct}%` }} />
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.04]">
+                      <div className={`h-full rounded-full ${color} ${shadow} transition-all duration-700`} style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 ))}
@@ -884,34 +884,34 @@ function NutritionLogContent() {
 
           {/* Hydration */}
           <Card>
-            <CardHeader title="Hydration" subtitle={`Goal: ${hydrationGoal} L today`} />
-            <div className="mt-3 flex items-center gap-4">
-              <div className="relative h-14 w-14 shrink-0">
+            <CardHeader title="Hydration System" subtitle={`Daily Target: ${hydrationGoal} L`} />
+            <div className="mt-6 flex items-center gap-6">
+              <div className="relative h-20 w-20 shrink-0">
                 <svg viewBox="0 0 56 56" className="h-full w-full -rotate-90">
-                  <circle cx="28" cy="28" r="22" fill="none" stroke="#eef1fb" strokeWidth="6" />
-                  <circle cx="28" cy="28" r="22" fill="none" stroke="#15b69c" strokeWidth="6"
-                    strokeLinecap="round" strokeDasharray="138"
-                    strokeDashoffset={138 - (138 * Math.min(1, (hydrationLiters ?? 0) / hydrationGoal))}
-                    className="transition-all duration-700"
+                  <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="4" />
+                  <circle cx="28" cy="28" r="24" fill="none" stroke="currentColor" strokeWidth="4"
+                    strokeLinecap="round" strokeDasharray="150.7"
+                    strokeDashoffset={150.7 - (150.7 * Math.min(1, (hydrationLiters ?? 0) / hydrationGoal))}
+                    className="text-fn-accent transition-all duration-700 shadow-[0_0_10px_rgba(10,217,196,0.3)]"
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <p className="text-xs font-bold text-fn-accent">{(hydrationLiters ?? 0).toFixed(1)}L</p>
+                  <p className="text-lg font-black text-white italic">{(hydrationLiters ?? 0).toFixed(1)}<span className="text-[10px] ml-0.5 not-italic uppercase text-fn-ink/40">L</span></p>
                 </div>
               </div>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-fn-ink">{(hydrationLiters ?? 0).toFixed(2)} / {hydrationGoal} L</p>
-                <div className="mt-1.5 flex gap-2">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/40 mb-3">Intake Volume</p>
+                <div className="flex flex-wrap gap-2">
                   {[0.25, 0.5].map(amt => (
                     <button key={amt} type="button" onClick={() => addHydration(amt)}
-                      className="rounded-lg border border-fn-border px-3 py-1.5 text-xs font-semibold text-fn-muted hover:border-fn-accent/40 hover:bg-fn-accent-light hover:text-fn-accent transition-all duration-200"
+                      className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-white/60 hover:border-fn-accent/40 hover:bg-fn-accent/10 hover:text-fn-accent transition-all duration-300"
                     >
-                      +{amt} L
+                      +{amt}L
                     </button>
                   ))}
                   {(hydrationLiters ?? 0) > 0 && (
                     <button type="button" onClick={resetHydration}
-                      className="rounded-lg border border-fn-danger/20 px-3 py-1.5 text-xs font-semibold text-fn-danger hover:bg-fn-danger-light transition-all duration-200"
+                      className="rounded-xl border border-fn-danger/20 bg-fn-danger/5 px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-fn-danger hover:bg-fn-danger/10 transition-all duration-300"
                     >
                       Reset
                     </button>
@@ -929,23 +929,23 @@ function NutritionLogContent() {
       ) : meals.length > 0 ? (
         <Card className="mt-4">
           <CardHeader title="Meal timeline" subtitle="Today" />
-          <ul className="mt-3 space-y-2">
+          <ul className="mt-8 space-y-3">
             {meals.map((meal, i) => (
-              <li key={i} className="flex items-center gap-3 rounded-xl border border-fn-border bg-fn-surface-hover p-3">
-                <span className="shrink-0 rounded-lg bg-fn-bg-alt px-2 py-1 text-xs font-semibold text-fn-muted">{meal.time}</span>
-                <span className="flex-1 text-sm text-fn-ink">{meal.description}</span>
-                <div className="shrink-0 text-right flex items-center gap-4">
+              <li key={i} className="flex items-center gap-4 rounded-xl border border-white/[0.08] bg-black/40 px-5 py-4 shadow-fn-soft transition-all hover:bg-black/60">
+                <span className="shrink-0 rounded-lg bg-fn-accent/10 border border-fn-accent/20 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-fn-accent italic">{meal.time}</span>
+                <span className="flex-1 text-sm font-black text-white italic uppercase tracking-tight">{meal.description}</span>
+                <div className="shrink-0 text-right flex items-center gap-6">
                   <div>
-                    {meal.calories != null && <p className="text-xs font-semibold text-fn-ink">{meal.calories} kcal</p>}
-                    {meal.macros?.protein != null && <p className="text-[10px] text-fn-muted">{meal.macros.protein}g P</p>}
+                    {meal.calories != null && <p className="text-base font-black text-white italic leading-none">{meal.calories} <span className="text-[10px] uppercase font-black tracking-widest text-fn-ink/40 not-italic">kcal</span></p>}
+                    {meal.macros?.protein != null && <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent">{meal.macros.protein}g protein</p>}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditingIndex(i); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="p-1 text-fn-muted hover:text-fn-primary">
+                    <button onClick={() => { setEditingIndex(i); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="p-2 text-fn-ink/40 hover:bg-white/5 hover:text-white rounded-lg transition-all">
                       <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                         <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                       </svg>
                     </button>
-                    <button onClick={() => deleteMeal(i)} className="p-1 text-fn-muted hover:text-fn-danger">
+                    <button onClick={() => deleteMeal(i)} className="p-2 text-fn-ink/40 hover:bg-fn-danger/10 hover:text-fn-danger rounded-lg transition-all">
                       <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                         <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
