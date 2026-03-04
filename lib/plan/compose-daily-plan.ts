@@ -1,4 +1,5 @@
 import { toLocalDateString } from "@/lib/date/local-date";
+import { getExpertCues } from "@/lib/workout/exercise-metadata";
 import type { DailyPlan, DailyPlanTrainingExercise, PlannerDataSources, PlannerInputs } from "@/lib/plan/types";
 
 function clamp(n: number, min: number, max: number) {
@@ -40,10 +41,10 @@ const PULL_POOL_GYM = ["Seated Row", "Dumbbell Row", "Lat Pulldown", "Barbell Ro
 const PULL_POOL_HOME = ["Single-arm Row", "Dumbbell Row", "Inverted Row"];
 
 const EXERCISE_VIDEO_MAP: Record<string, string> = {
-  "goblet squat": "/images/goblet-squat.mp4",
-  "dumbbell goblet squat": "/images/goblet-squat.mp4",
-  "push-up": "/images/push-ups.mp4",
-  "incline push-up": "/images/push-ups.mp4",
+  "goblet squat": "/images/refined/goblet_squat_pro.png",
+  "dumbbell goblet squat": "/images/refined/goblet_squat_pro.png",
+  "push-up": "/images/refined/pushup_pro.png",
+  "incline push-up": "/images/refined/pushup_pro.png",
   "back squat": "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
   "bench press": "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4",
   "dumbbell row": "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
@@ -310,11 +311,17 @@ export async function composeDailyPlan(
   // Apply Bio-Sync to exercises
   const adjustedExercises = exercises.map(ex => {
     const normalized = normalizeExerciseName(ex.name);
+    const cues = getExpertCues(normalized);
+
     return {
       ...ex,
       sets: Math.max(1, Math.round(ex.sets * volumeMultiplier)),
       notes: (ex.notes || "") + intensityAdjustment,
-      video_url: EXERCISE_VIDEO_MAP[normalized] || null
+      video_url: EXERCISE_VIDEO_MAP[normalized] || null,
+      tempo: cues.tempo,
+      breathing: cues.breathing,
+      intent: cues.intent,
+      rationale: cues.rationale
     };
   });
 

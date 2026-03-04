@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
 
+import { getExpertCues } from "@/lib/workout/exercise-metadata";
+
 export const dynamic = "force-dynamic";
 
 type SwapRequest = {
@@ -20,6 +22,10 @@ type Replacement = {
   reps: string;
   intensity: string;
   notes: string;
+  tempo: string;
+  breathing: string;
+  intent: string;
+  rationale: string;
 };
 
 const RATE_LIMIT_CAPACITY = 20;
@@ -31,13 +37,20 @@ function chooseReplacement({ currentExercise, reason, location, sets, reps, inte
   const gym = location === "gym";
   const targetSets = Math.max(1, Math.min(8, Number.isFinite(sets) ? Math.round(sets as number) : 3));
 
-  const withDefaults = (name: string, note: string): Replacement => ({
-    name,
-    sets: targetSets,
-    reps: reps?.trim() || "8-12",
-    intensity: intensity?.trim() || "RPE 6-7",
-    notes: note,
-  });
+  const withDefaults = (name: string, note: string): Replacement => {
+    const cues = getExpertCues(name);
+    return {
+      name,
+      sets: targetSets,
+      reps: reps?.trim() || "8-12",
+      intensity: intensity?.trim() || "RPE 6-7",
+      notes: note,
+      tempo: cues.tempo,
+      breathing: cues.breathing,
+      intent: cues.intent,
+      rationale: cues.rationale,
+    };
+  };
 
   if (why.includes("pain") || why.includes("injury") || why.includes("sore")) {
     if (/squat|lunge|leg press/.test(lower)) {

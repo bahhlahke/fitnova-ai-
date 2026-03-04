@@ -20,6 +20,10 @@ type GuidedExercise = {
   reps: string;
   intensity: string;
   notes?: string;
+  tempo?: string;
+  breathing?: string;
+  intent?: string;
+  rationale?: string;
   image_url?: string | null;
   video_url?: string | null;
 };
@@ -45,6 +49,11 @@ export default function GuidedWorkoutPage() {
   const [injuryBannerDismissed, setInjuryBannerDismissed] = useState(false);
   const [swapLoading, setSwapLoading] = useState(false);
   const [swapFeedback, setSwapFeedback] = useState<string | null>(null);
+  const [isCoachOpen, setIsCoachOpen] = useState(false);
+  const [coachQuestion, setCoachQuestion] = useState("");
+  const [coachReply, setCoachReply] = useState<string | null>(null);
+  const [coachLoading, setCoachLoading] = useState(false);
+  const [showExpertCues, setShowExpertCues] = useState(false);
   const workoutStartedAt = useRef<number | null>(null);
 
   useEffect(() => {
@@ -76,6 +85,10 @@ export default function GuidedWorkoutPage() {
             reps: e.reps,
             intensity: e.intensity,
             notes: e.notes,
+            tempo: e.tempo,
+            breathing: e.breathing,
+            intent: e.intent,
+            rationale: e.rationale,
             image_url: e.image_url ?? null,
             video_url: e.video_url ?? null,
           }));
@@ -244,6 +257,34 @@ export default function GuidedWorkoutPage() {
     [exercise, exerciseIndex]
   );
 
+  const askCoach = useCallback(async () => {
+    if (!coachQuestion.trim() || !exercise) return;
+    setCoachLoading(true);
+    setCoachReply(null);
+    try {
+      const res = await fetch("/api/v1/ai/workout-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: coachQuestion,
+          exercise: exercise.name,
+          context: {
+            set: setIndex + 1,
+            totalSets: exercise.sets,
+            intensity: exercise.intensity
+          }
+        }),
+      });
+      const data = await res.json();
+      setCoachReply(data.reply);
+      setCoachQuestion("");
+    } catch {
+      setCoachReply("I'm having trouble connecting right now. Focus on your form and keep going!");
+    } finally {
+      setCoachLoading(false);
+    }
+  }, [coachQuestion, exercise, setIndex]);
+
   const startRest = useCallback(() => {
     if (isLastSet && isLastExercise) {
       setPhase("completed");
@@ -389,27 +430,67 @@ export default function GuidedWorkoutPage() {
                 <h2 className="font-display text-4xl font-black italic tracking-tighter text-white sm:text-5xl uppercase">
                   {exercise.name}
                 </h2>
+                {exercise.rationale && (
+                  <p className="mt-2 text-xs font-medium text-white/60 line-clamp-1">
+                    {exercise.rationale}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 shadow-xl backdrop-blur-md">
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-4 shadow-xl backdrop-blur-md">
+                <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1 block">Target</span>
+                <p className="text-2xl font-black text-white">{exercise.reps} reps</p>
+              </div>
+              <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-4 shadow-xl backdrop-blur-md">
+                <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1 block">Intensity</span>
+                <p className="text-xl font-black text-fn-accent">{exercise.intensity}</p>
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 shadow-xl backdrop-blur-md overflow-hidden">
               <div className="flex items-center justify-between mb-4">
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1">Target</span>
-                  <p className="text-3xl font-black text-white">{exercise.reps} reps</p>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1">Intensity</span>
-                  <p className="text-xl font-black text-fn-accent">{exercise.intensity}</p>
-                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Expert Coaching</p>
+                <button
+                  onClick={() => setShowExpertCues(!showExpertCues)}
+                  className="text-[10px] font-black uppercase tracking-widest text-fn-muted hover:text-white transition-colors"
+                >
+                  {showExpertCues ? "Less" : "Details"}
+                </button>
               </div>
 
-              {exercise.notes && (
-                <div className="mt-4 rounded-xl bg-black/40 p-4 border border-white/5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Coach&apos;s Notes</p>
-                  <p className="text-sm font-medium leading-relaxed text-white/80">{exercise.notes}</p>
-                </div>
-              )}
+              <div className="space-y-4">
+                {exercise.intent && (
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted/70 block mb-1">Intent</span>
+                    <p className="text-sm font-bold text-white leading-tight">{exercise.intent}</p>
+                  </div>
+                )}
+
+                {showExpertCues && (
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/5 animate-in fade-in slide-in-from-top-2">
+                    {exercise.tempo && (
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted/70 block mb-1">Tempo</span>
+                        <p className="text-xs font-bold text-white">{exercise.tempo}</p>
+                      </div>
+                    )}
+                    {exercise.breathing && (
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted/70 block mb-1">Breathing</span>
+                        <p className="text-xs font-bold text-white">{exercise.breathing}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {exercise.notes && (
+                  <div className="mt-4 rounded-xl bg-black/40 p-4 border border-white/5">
+                    <p className="text-sm font-medium leading-relaxed text-white/80">{exercise.notes}</p>
+                  </div>
+                )}
+              </div>
               <div className="mt-4 flex flex-wrap gap-3">
                 <button
                   type="button"
@@ -479,6 +560,101 @@ export default function GuidedWorkoutPage() {
           </div>
         )}
       </div>
+
+      {/* AI Coach Panel - Slide up */}
+      <div
+        className={`fixed inset-x-0 bottom-0 z-50 transform transition-transform duration-500 ease-out ${isCoachOpen ? "translate-y-0" : "translate-y-full"
+          }`}
+      >
+        <div className="mx-auto max-w-shell h-[70vh] rounded-t-[3rem] border-t border-white/10 bg-black/90 p-8 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Live Expert Coaching</p>
+              <h3 className="font-display text-3xl font-black italic uppercase text-white">Ask Nova</h3>
+            </div>
+            <button
+              onClick={() => setIsCoachOpen(false)}
+              className="rounded-full bg-white/5 p-3 text-fn-muted hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          <div className="flex flex-col h-[calc(100%-8rem)]">
+            <div className="flex-1 overflow-y-auto space-y-6 mb-6 pr-2">
+              {coachReply ? (
+                <div className="rounded-3xl rounded-tl-none border border-fn-accent/20 bg-fn-accent/5 p-6 animate-in fade-in slide-in-from-left-4">
+                  <p className="text-sm font-medium leading-relaxed text-white">{coachReply}</p>
+                  <button
+                    onClick={() => setCoachReply(null)}
+                    className="mt-4 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:underline"
+                  >
+                    Ask something else
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Suggested for {exercise.name}</p>
+                  {[
+                    "How should my form look?",
+                    "What if this feels too light?",
+                    "I'm feeling discomfort in my joints",
+                    "Explain the science of this move"
+                  ].map(q => (
+                    <button
+                      key={q}
+                      onClick={() => {
+                        setCoachQuestion(q);
+                        void askCoach();
+                      }}
+                      className="w-full text-left rounded-2xl border border-white/5 bg-white/5 p-4 text-xs font-bold text-white hover:bg-white/10 transition-colors"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {coachLoading && (
+                <div className="flex gap-2 p-6">
+                  <div className="h-2 w-2 rounded-full bg-fn-accent animate-bounce" />
+                  <div className="h-2 w-2 rounded-full bg-fn-accent animate-bounce [animation-delay:0.2s]" />
+                  <div className="h-2 w-2 rounded-full bg-fn-accent animate-bounce [animation-delay:0.4s]" />
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={coachQuestion}
+                onChange={(e) => setCoachQuestion(e.target.value)}
+                placeholder="Ask your AI trainer..."
+                className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-sm text-white placeholder-white/30 focus:border-fn-accent/50 focus:outline-none transition-colors"
+                onKeyDown={(e) => e.key === 'Enter' && void askCoach()}
+              />
+              <button
+                onClick={() => void askCoach()}
+                disabled={coachLoading || !coachQuestion.trim()}
+                className="rounded-2xl bg-fn-accent px-6 py-4 text-xs font-black uppercase tracking-widest text-black disabled:opacity-50"
+              >
+                Ask
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Ask Coach Button */}
+      {phase === "work" && !isCoachOpen && (
+        <button
+          onClick={() => setIsCoachOpen(true)}
+          className="fixed bottom-32 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-fn-accent text-black shadow-[0_0_30px_rgba(10,217,196,0.4)] transition-transform hover:scale-110 active:scale-95 animate-in fade-in zoom-in"
+        >
+          <svg className="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 2.98 1 4.28L2 22l5.72-1c1.3.64 2.74 1 4.28 1 5.52 0 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

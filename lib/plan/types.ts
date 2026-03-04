@@ -6,6 +6,10 @@ export type DailyPlanTrainingExercise = {
   reps: string;
   intensity: string;
   notes?: string;
+  tempo?: string;
+  breathing?: string;
+  intent?: string;
+  rationale?: string;
   target_load_kg?: number | null;
   target_rir?: number | null;
   progression_note?: string | null;
