@@ -745,7 +745,7 @@ function NutritionLogContent() {
   }
 
   return (
-    <PageLayout title="Nutrition" subtitle={isPastDay ? `Viewing ${targetDate}` : "Meal timeline · macro tracking"}>
+    <PageLayout title="Metabolic Intake" subtitle={isPastDay ? `Viewing ${targetDate}` : "Meal timeline · macro tracking"}>
       <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr]">
 
         {/* ── Smart entry ─────────────────────────────────────── */}
