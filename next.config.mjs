@@ -3,11 +3,6 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: "/coach",
-        destination: "/?focus=ai",
-        permanent: true,
-      },
-      {
         source: "/omni",
         destination: "/?focus=ai",
         permanent: true,

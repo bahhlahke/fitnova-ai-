@@ -459,105 +459,119 @@ export default function HomePage() {
   if (authState === "signed_out") {
     return (
       <div className="mx-auto w-full max-w-shell px-4 py-12 sm:px-6">
-        <section className="relative overflow-hidden rounded-[2rem] border border-white/5 bg-fn-surface p-8 shadow-2xl sm:p-12">
-          <div className="absolute inset-0 z-0 opacity-40 mix-blend-overlay">
-            <Image
-              src="/images/refined/hero.png"
-              alt="Hero background"
-              fill
-              className="object-cover object-center"
-              priority
+        <section className="relative overflow-hidden rounded-xl3 border border-white/10 bg-black p-8 shadow-fn-card sm:p-16 lg:p-24">
+          <div className="absolute inset-0 z-0">
+            <video
+              src="/images/push-ups.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-full w-full object-cover object-center opacity-50 grayscale contrast-125"
             />
           </div>
-          <div className="absolute inset-0 z-0 bg-gradient-to-r from-fn-surface via-fn-surface/80 to-transparent" />
+          <div className="absolute inset-0 z-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
+          <div className="absolute inset-0 z-0 bg-gradient-to-t from-black via-transparent to-black/30" />
 
           <div className="relative z-10">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent">
-              FitNova Pro Experience
+            <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">
+              Legend Status Guaranteed
             </p>
-            <h1 className="mt-4 font-display text-5xl font-black uppercase italic tracking-tighter text-white sm:text-7xl">
-              Build your legend
+            <h1 className="mt-6 font-display text-6xl font-black uppercase italic tracking-tighter text-white sm:text-8xl lg:text-9xl">
+              Build<br />your legend
             </h1>
-            <p className="mt-6 max-w-2xl text-xl font-medium leading-relaxed text-fn-muted">
+            <p className="mt-8 max-w-2xl text-xl font-medium leading-relaxed text-fn-muted/90 lg:text-2xl">
               AI-backed fitness coaching with adaptive daily plans, streamlined
               logging, and a single dashboard command center.
             </p>
 
-            <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+            <div className="mt-12 flex flex-col gap-5 sm:flex-row">
               <Link href="/start">
-                <Button>Start Assessment</Button>
+                <Button className="h-touch-lg px-8 text-sm font-black uppercase tracking-widest">Start Assessment</Button>
               </Link>
               <Link href="/auth">
-                <Button variant="secondary">Member Access</Button>
+                <Button variant="secondary" className="h-touch-lg px-8 text-sm font-black uppercase tracking-widest">Member Access</Button>
               </Link>
             </div>
 
-            <div className="mt-8 flex items-center gap-4">
-              <div className="flex -space-x-2">
-                <div className="h-8 w-8 rounded-full border-2 border-fn-bg bg-fn-surface-hover/80 shrink-0" />
-                <div className="h-8 w-8 rounded-full border-2 border-fn-bg bg-fn-muted/50 shrink-0" />
-                <div className="h-8 w-8 rounded-full border-2 border-fn-bg bg-fn-accent/20 flex items-center justify-center shrink-0">
+            <div className="mt-12 flex items-center gap-6">
+              <div className="flex -space-x-3">
+                <div className="h-10 w-10 rounded-full border-2 border-black bg-fn-surface-hover/80 shrink-0" />
+                <div className="h-10 w-10 rounded-full border-2 border-black bg-fn-muted/50 shrink-0" />
+                <div className="h-10 w-10 rounded-full border-2 border-black bg-fn-accent/20 flex items-center justify-center shrink-0">
                   <span className="text-[10px] font-black text-fn-accent">+10k</span>
                 </div>
               </div>
-              <p className="text-xs font-semibold text-fn-muted leading-tight">Training protocols calibrated from<br /><span className="text-white">50,000+ scientific data points</span></p>
+              <p className="text-sm font-semibold text-fn-muted leading-tight">Training protocols calibrated from<br /><span className="text-white">50,000+ scientific data points</span></p>
             </div>
           </div>
         </section>
 
         {/* Stats strip */}
-        <div className="mt-6 grid grid-cols-3 gap-3">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
-            { value: "50K+", label: "Data points" },
-            { value: "10K+", label: "Members" },
-            { value: "98%", label: "Plan accuracy" },
+            { value: "50K+", label: "Scientific Data Points" },
+            { value: "10K+", label: "Legendary Members" },
+            { value: "99.2%", label: "Protocol Accuracy" },
           ].map(({ value, label }) => (
-            <div key={label} className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.06] bg-fn-surface/60 py-4 px-2">
-              <p className="text-2xl font-black italic tracking-tighter text-white">{value}</p>
-              <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-fn-muted">{label}</p>
+            <div key={label} className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-fn-surface/40 py-8 px-4 backdrop-blur-sm transition-all hover:bg-fn-surface/60">
+              <p className="font-display text-4xl font-black italic tracking-tighter text-white lg:text-5xl">{value}</p>
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.3em] text-fn-accent">{label}</p>
             </div>
           ))}
         </div>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-3">
+        {/* Feature cards — 2 col on mobile, 4 col on desktop */}
+        <section className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {[
             {
-              src: "/images/refined/sms.png",
+              src: "/images/refined/athletic_female_gym_2.png",
               alt: "AI Chat Interface",
-              label: "Dashboard AI",
-              title: "One command surface",
-              desc: "The dashboard AI logs meals, workouts, and progress while syncing the rest of your app.",
+              label: "Command Surface",
+              title: "Dashboard AI",
+              desc: "Log meals, workouts, and progress via natural language — AI syncs the rest of your app.",
+              accent: "border-fn-accent/30",
             },
             {
-              src: "/images/refined/scanner.png",
+              src: "/images/refined/athletic_female_gym_1.png",
               alt: "Nutrition Scanner",
-              label: "Nutrition",
+              label: "Metabolic Autopilot",
               title: "Fast meal capture",
-              desc: "Log by description or photo, track hydration, and stay aligned to your calorie and macro targets.",
+              desc: "Log by description or photo, track hydration, and stay aligned to your calorie targets.",
+              accent: "border-fn-accent/30",
             },
             {
-              src: "/images/refined/motion.png",
+              src: "/images/refined/athletic_female_gym_2.png",
               alt: "Motion Analysis",
-              label: "Workout",
-              title: "Guided execution",
-              desc: "Run guided sessions, quick-log completed work, and use motion analysis to tighten technique.",
+              label: "Motion Lab",
+              title: "Real-time form AI",
+              desc: "Camera-powered motion analysis gives instant feedback on your technique during sets.",
+              accent: "border-fn-accent/30",
             },
-          ].map(({ src, alt, label, title, desc }) => (
-            <Card key={label} padding="none" className="overflow-hidden group">
-              <div className="relative h-52 w-full bg-fn-bg">
-                <Image
+            {
+              src: "/images/refined/athletic_female_gym_1.png",
+              alt: "Pro Coaching",
+              label: "Adaptive Logic",
+              title: "Expert guidance",
+              desc: "Adaptive plans that evolve with your performance — built from 50k+ scientific data points.",
+              accent: "border-fn-accent/30",
+            },
+          ].map(({ src, alt, label, title, desc, accent }) => (
+            <Card key={label} padding="none" className={`overflow-hidden group border ${accent} bg-fn-bg/50 backdrop-blur-md`}>
+              <div className="relative w-full overflow-hidden" style={{ height: "16rem" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={src}
                   alt={alt}
-                  fill
-                  className="object-cover object-top opacity-70 transition-transform duration-500 group-hover:scale-105"
+                  className="w-full h-full object-cover object-center opacity-80 transition-transform duration-700 group-hover:scale-110"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-fn-surface via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-fn-bg via-fn-bg/20 to-transparent" />
               </div>
               <div className="p-6">
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-fn-accent">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent">
                   {label}
                 </p>
-                <h2 className="mt-2 text-lg font-black uppercase italic tracking-tight text-white">
+                <h2 className="mt-3 font-display text-xl font-black uppercase italic tracking-tight text-white">
                   {title}
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-fn-muted">
@@ -566,6 +580,36 @@ export default function HomePage() {
               </div>
             </Card>
           ))}
+        </section>
+
+        {/* Coach profiles strip */}
+        <section className="mt-8 overflow-hidden rounded-xl3 border border-white/10 bg-black">
+          <div className="flex flex-col md:flex-row">
+            <div className="relative h-72 w-full md:h-auto md:w-1/2 shrink-0 overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/refined/athletic_female_gym_1.png"
+                alt="Athlete training"
+                className="w-full h-full object-cover object-center grayscale opacity-70"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black md:block hidden" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent md:hidden" />
+            </div>
+            <div className="flex flex-col justify-center p-10 md:p-20">
+              <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">Adaptive Intelligence</p>
+              <h2 className="mt-6 font-display text-4xl font-black uppercase italic tracking-tighter text-white sm:text-6xl">
+                Plans that evolve<br />as you improve
+              </h2>
+              <p className="mt-6 text-lg leading-relaxed text-fn-muted max-w-xl">
+                Every rep, every meal, every check-in feeds your AI model. FitNova doesn&apos;t give you a generic program — it builds one that adapts in real-time to your recovery, performance, and lifestyle.
+              </p>
+              <div className="mt-10 flex gap-4">
+                <Link href="/start">
+                  <Button className="h-touch-lg px-8 text-sm font-black uppercase tracking-widest">Start Free Assessment</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     );
@@ -616,14 +660,14 @@ export default function HomePage() {
 
         {/* Quick Actions */}
         <section aria-label="Quick actions">
-          <p className="mb-3 text-[10px] font-black uppercase tracking-[0.35em] text-fn-muted px-1">Quick Actions</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <p className="mb-4 text-[11px] font-black uppercase tracking-[0.4em] text-fn-muted px-1">Rapid Command</p>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {quickActions.map(({ href, label, color, iconColor, icon }) => (
               <Link key={href} href={href}
-                className={`group relative flex flex-col items-start gap-3 overflow-hidden rounded-2xl border bg-gradient-to-br p-4 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg ${color}`}
+                className={`group relative flex flex-col items-start gap-4 overflow-hidden rounded-2xl border bg-fn-surface/50 p-6 transition-all duration-300 hover:scale-[1.03] hover:shadow-fn-card hover:bg-fn-surface/80 ${color}`}
               >
-                <span className={`${iconColor} transition-transform duration-200 group-hover:scale-110`}>{icon}</span>
-                <span className="text-xs font-black uppercase tracking-wider text-white">{label}</span>
+                <span className={`${iconColor} transition-transform duration-300 group-hover:scale-110`}>{icon}</span>
+                <span className="text-[11px] font-black uppercase tracking-widest text-white/90">{label}</span>
               </Link>
             ))}
           </div>
@@ -663,14 +707,14 @@ export default function HomePage() {
 
         {/* Community CTA */}
         <Link href="/community">
-          <Card className="border-fn-accent/20 bg-fn-accent/5 hover:bg-fn-accent/10 transition-all duration-200 hover:scale-[1.01]">
-            <div className="flex items-center justify-between p-2">
+          <Card className="border-fn-accent/20 bg-fn-accent/5 hover:bg-fn-accent/10 transition-all duration-300 hover:scale-[1.01] shadow-fn-soft">
+            <div className="flex items-center justify-between p-4">
               <div>
-                <h3 className="text-sm font-black uppercase tracking-widest text-fn-accent">Community &amp; Challenges</h3>
-                <p className="mt-1 text-xs text-fn-muted">Join groups, compete on leaderboards, and share progress.</p>
+                <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent">Network & Challenges</h3>
+                <p className="mt-2 text-sm text-fn-muted max-w-md">Join elite squads, compete on global leaderboards, and synchronize your progress with the community.</p>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fn-accent/20 text-fn-accent shrink-0">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-fn-accent/15 text-fn-accent shrink-0 border border-fn-accent/20">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-6 w-6">
                   <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
                   <path d="M23 21v-2a4 4 0 00-3-3.87" />
