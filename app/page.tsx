@@ -648,7 +648,7 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-shell px-4 py-8 sm:px-8">
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-8">
       <div className="space-y-8">
         {/* Hero */}
         <DashboardHero
@@ -678,8 +678,12 @@ export default function HomePage() {
         </section>
 
         {/* Main Command Hub */}
-        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid gap-8 lg:grid-cols-[1.4fr_0.6fr]">
           <div className="space-y-8">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-muted">Protocol Execution</h3>
+              <span className="h-px flex-1 bg-white/5 mx-4 hidden sm:block"></span>
+            </div>
             {/* Execution Hub */}
             <DashboardPlanSection
               todayPlan={todayPlan}
@@ -713,6 +717,9 @@ export default function HomePage() {
           </div>
 
           <div className="space-y-8">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-muted">Physiological Signals</h3>
+            </div>
             {/* Signals Hub */}
             <DashboardReadinessSection
               recoverySuggestion={recoverySuggestion}

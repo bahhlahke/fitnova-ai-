@@ -22,13 +22,12 @@ export function BodyHeatmap({ readiness, className = "" }: BodyHeatmapProps) {
     // In a real app, these would be precise muscle outlines.
     // For this demo, we'll use labeled circles/boxes for clarity.
     return (
-        <div className={`relative aspect-[3/4] w-full max-w-[280px] mx-auto ${className}`}>
-            <svg viewBox="0 0 200 300" className="h-full w-full drop-shadow-fn-soft">
-                {/* Head */}
-                <circle cx="100" cy="30" r="20" fill="#f5f5f5" stroke="#ddd" />
+        <div className={`relative aspect-[3/4] w-full max-w-[220px] mx-auto ${className}`}>
+            <svg viewBox="0 0 200 300" className="h-full w-full drop-shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+                {/* Body Blueprint Base - Darker for pro look */}
+                <circle cx="100" cy="30" r="20" fill="#0A0A0B" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                <rect x="70" y="60" width="60" height="90" rx="10" fill="#0A0A0B" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
 
-                {/* Torso */}
-                <rect x="70" y="60" width="60" height="90" rx="10" fill="#f5f5f5" stroke="#ddd" />
 
                 {/* Chest */}
                 <rect x="75" y="70" width="25" height="30" rx="4" fill={getColor("Chest")} stroke="#fff" strokeWidth="1" />
@@ -46,8 +45,8 @@ export function BodyHeatmap({ readiness, className = "" }: BodyHeatmapProps) {
                 <rect x="140" y="85" width="15" height="50" rx="7" fill={getColor("Biceps")} stroke="#fff" strokeWidth="1" />
 
                 {/* Legs */}
-                <rect x="75" y="160" width="20" height="80" rx="10" fill={getColor("Quads")} stroke="#fff" strokeWidth="1" />
-                <rect x="105" y="160" width="20" height="80" rx="10" fill={getColor("Quads")} stroke="#fff" strokeWidth="1" />
+                <rect x="75" y="160" width="20" height="80" rx="10" fill={getColor("Quads")} stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
+                <rect x="105" y="160" width="20" height="80" rx="10" fill={getColor("Quads")} stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
 
                 {/* Calves */}
                 <rect x="80" y="250" width="15" height="40" rx="7" fill={getColor("Calves")} stroke="#fff" strokeWidth="1" />
@@ -67,14 +66,14 @@ export function BodyHeatmap({ readiness, className = "" }: BodyHeatmapProps) {
                 <circle cx="170" cy="205" r="6" fill={getColor("Hamstrings")} />
             </svg>
             {/* Legend */}
-            <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-4 py-2 bg-white/40 backdrop-blur-sm rounded-xl">
-                <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 rounded-full bg-[hsl(120,70%,50%)]" />
-                    <span className="text-[10px] text-fn-muted">Recovered</span>
+            <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-4 py-2.5 bg-black/40 border border-white/5 backdrop-blur-md rounded-2xl shadow-2xl">
+                <div className="flex items-center gap-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-[hsl(120,70%,50%)] shadow-[0_0_8px_hsl(120,70%,50%)]" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-fn-muted">Recovered</span>
                 </div>
-                <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 rounded-full bg-[hsl(0,70%,50%)]" />
-                    <span className="text-[10px] text-fn-muted">Fatigued</span>
+                <div className="flex items-center gap-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-[hsl(0,70%,50%)] shadow-[0_0_8px_hsl(0,70%,50%)]" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-fn-muted">Fatigued</span>
                 </div>
             </div>
         </div>
