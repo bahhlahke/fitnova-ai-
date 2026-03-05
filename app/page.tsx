@@ -690,7 +690,7 @@ export default function HomePage() {
             {/* Recent Nudge / Insight */}
             {nudges.slice(0, 1).map(n => (
               <div key={n.nudge_id} className="rounded-xl bg-fn-surface/30 border border-white/5 p-4 italic text-sm text-fn-muted">
-                "{n.message}"
+                &quot;{n.message}&quot;
               </div>
             ))}
 
@@ -698,7 +698,7 @@ export default function HomePage() {
             <div className="rounded-xl bg-fn-surface/30 border border-white/5 p-4">
               <p className="text-[10px] font-black uppercase text-white/40 mb-2">Morning Brief</p>
               <p className="text-xs leading-relaxed text-fn-muted line-clamp-4 font-medium italic">
-                {briefingLoading ? "Polling Nova..." : briefing ? `"${briefing}"` : "Executing standard startup sequence."}
+                {briefingLoading ? "Polling Nova..." : briefing ? `&quot;${briefing}&quot;` : "Executing standard startup sequence."}
               </p>
             </div>
           </div>
