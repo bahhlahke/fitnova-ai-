@@ -697,9 +697,9 @@ export default function HomePage() {
             {/* Briefing Box */}
             <div className="rounded-xl bg-fn-surface/30 border border-white/5 p-4">
               <p className="text-[10px] font-black uppercase text-white/40 mb-2">Morning Brief</p>
-              <p className="text-xs leading-relaxed text-fn-muted line-clamp-4 font-medium italic">
+              <div className="text-xs leading-relaxed text-fn-muted line-clamp-4 font-medium italic">
                 {briefingLoading ? "Polling Nova..." : briefing ? <>&ldquo;{briefing}&rdquo;</> : "Executing standard startup sequence."}
-              </p>
+              </div>
             </div>
           </div>
         </aside>
