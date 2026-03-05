@@ -22,8 +22,8 @@ export function BodyHeatmap({ readiness, className = "" }: BodyHeatmapProps) {
     // In a real app, these would be precise muscle outlines.
     // For this demo, we'll use labeled circles/boxes for clarity.
     return (
-        <div className={`relative aspect-[3/4] w-full max-w-[220px] mx-auto ${className}`}>
-            <svg viewBox="0 0 200 300" className="h-full w-full drop-shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+        <div className={`relative aspect-[3/4] h-full w-full max-w-[220px] mx-auto ${className}`}>
+            <svg viewBox="0 0 200 300" className="h-full w-full object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.05)]">
                 {/* Body Blueprint Base - Darker for pro look */}
                 <circle cx="100" cy="30" r="20" fill="#0A0A0B" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
                 <rect x="70" y="60" width="60" height="90" rx="10" fill="#0A0A0B" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />

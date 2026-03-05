@@ -58,10 +58,10 @@ export function DashboardReadinessSection({
         <p className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent mb-8">
           Muscle Stress Analysis
         </p>
-        <div className="mt-8 relative h-[360px] max-h-[360px] overflow-hidden flex items-center justify-center" style={{ maxHeight: '360px' }}>
+        <div className="mt-8 relative h-[360px] w-full overflow-hidden" style={{ height: '360px', maxHeight: '360px' }}>
           <BodyHeatmap
             readiness={readiness as MuscleReadiness}
-            className="h-full w-auto"
+            className="w-full h-full"
           />
         </div>
       </div>
