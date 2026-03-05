@@ -6,10 +6,20 @@
 
 export type WorkoutType = "strength" | "cardio" | "mobility" | "other";
 
-export type RefreshScope = "dashboard" | "nutrition" | "workout" | "progress";
+export type RefreshScope = "dashboard" | "nutrition" | "workout" | "progress" | "social" | "profile" | "plan";
 
 export interface AiActionResult {
-  type: "meal_logged" | "workout_logged" | "biometrics_logged";
+  type:
+  | "meal_logged"
+  | "workout_logged"
+  | "biometrics_logged"
+  | "meal_removed"
+  | "hydration_logged"
+  | "check_in_logged"
+  | "profile_updated"
+  | "social_posted"
+  | "coach_requested"
+  | "plan_generated";
   targetRoute: string;
   summary: string;
 }
@@ -51,6 +61,7 @@ export interface WorkoutLog {
   workout_type: WorkoutType;
   exercises: ExerciseEntry[];
   duration_minutes?: number;
+  calories_burned?: number;
   perceived_exertion?: number;
   notes?: string;
   created_at: string;

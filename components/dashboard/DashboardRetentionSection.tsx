@@ -34,17 +34,17 @@ export function DashboardRetentionSection({
         : "bg-fn-accent-light text-fn-accent";
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-      <div className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-7">
+    <section className="space-y-6">
+      <div className="rounded-xl3 border border-white/[0.08] bg-fn-surface/40 backdrop-blur-md p-8 shadow-fn-card">
         <p className="text-[10px] font-black uppercase tracking-[0.35em] text-fn-accent">
           Retention Monitor
         </p>
         <h2 className="mt-3 font-display text-3xl font-black uppercase italic tracking-tighter text-white">
-          Daily Risk Signal
+          Risk Signal
         </h2>
 
         {retentionLoading ? (
-          <div className="mt-6 h-16 rounded-2xl bg-white/5" />
+          <div className="mt-6 h-16 rounded-2xl bg-white/5 animate-pulse" />
         ) : retentionRisk ? (
           <>
             <div className="mt-6 flex items-center gap-3">
@@ -52,50 +52,34 @@ export function DashboardRetentionSection({
                 {retentionRisk.risk_level} risk
               </span>
               <span className="text-xs font-semibold text-fn-muted">
-                {Math.round(retentionRisk.risk_score * 100)}% score
+                {Math.round(retentionRisk.risk_score * 100)}%
               </span>
             </div>
             <p className="mt-4 text-sm font-medium leading-relaxed text-fn-muted">
               {retentionRisk.recommended_action}
             </p>
-            {retentionRisk.reasons.length > 0 && (
-              <ul className="mt-4 space-y-2">
-                {retentionRisk.reasons.slice(0, 3).map((reason) => (
-                  <li key={reason} className="rounded-xl border border-white/5 bg-black/20 px-3 py-2 text-xs text-fn-muted">
-                    {reason}
-                  </li>
-                ))}
-              </ul>
-            )}
           </>
-        ) : (
-          <p className="mt-4 text-sm text-fn-muted">No retention signal available yet.</p>
-        )}
+        ) : null}
       </div>
 
-      <div className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-7">
+      <div className="rounded-xl3 border border-white/[0.08] bg-fn-surface/40 backdrop-blur-md p-8 shadow-fn-card">
         <p className="text-[10px] font-black uppercase tracking-[0.35em] text-fn-accent">
           Coach Nudges
         </p>
         {nudges.length > 0 ? (
           <ul className="mt-5 space-y-3">
-            {nudges.slice(0, 3).map((nudge) => (
-              <li key={nudge.nudge_id} className="rounded-2xl border border-white/5 bg-white/5 p-4 text-sm text-fn-muted">
-                {nudge.message}
+            {nudges.slice(0, 2).map((nudge) => (
+              <li key={nudge.nudge_id} className="rounded-xl border border-white/5 bg-black/20 p-4 text-xs text-fn-muted italic">
+                &quot;{nudge.message}&quot;
               </li>
             ))}
           </ul>
         ) : (
-          <p className="mt-5 text-sm text-fn-muted">No active nudges today.</p>
+          <p className="mt-5 text-xs text-fn-muted uppercase tracking-widest font-black opacity-30">No active nudges</p>
         )}
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/check-in">
-            <Button variant="secondary">Run Check-In</Button>
-          </Link>
+        <div className="mt-8 flex flex-col gap-3">
           <Link href="/coach/escalate">
-            <Button variant="ghost" className="border border-white/10">
-              Escalate to Coach
-            </Button>
+            <Button variant="secondary" className="w-full">Escalate to Coach</Button>
           </Link>
         </div>
       </div>

@@ -106,7 +106,17 @@ export async function POST(request: Request) {
     }
 
     let systemPrompt =
-      "You are a personal AI fitness coach and nutritionist for FitNova. Be concise and warm. Give clear, actionable answers and end with one concrete next step. When relevant, offer one alternative. You are educational support only; direct users to seek medical care for pain or health concerns.";
+      "You are a personal AI fitness coach and nutritionist for FitNova. Be concise and warm.\n\n" +
+      "You have direct control over the application. You can:\n" +
+      "- Log food (`log_meal`) and water (`log_hydration`).\n" +
+      "- Log workouts (`log_workout`) with `calories_burned` for expenditure.\n" +
+      "- Record daily check-ins (`log_daily_check_in`) regarding energy and sleep.\n" +
+      "- Correct logs by removing meals (`remove_meal`).\n" +
+      "- Update the user's calibration, goals, and limitations (`update_user_profile`).\n" +
+      "- Share achievements to the activity feed (`create_social_post`).\n" +
+      "- Create new personalized plans (`generate_daily_plan`) based on time/equipment.\n" +
+      "- Escalate complex medical or technical issues to a human coach (`request_coach_assistance`).\n\n" +
+      "Always prefer taking action when the user reports data. End with a concrete next step.";
 
     if (user?.id) {
       try {
@@ -142,15 +152,123 @@ export async function POST(request: Request) {
         type: "function",
         function: {
           name: "log_workout",
-          description: "Logs a completed workout session.",
+          description: "Logs a completed workout session with optional calories burned.",
           parameters: {
             type: "object",
             properties: {
               workout_type: { type: "string", enum: ["strength", "cardio", "mobility", "other"], description: "Type of workout" },
               duration_minutes: { type: "number", description: "Duration in minutes" },
+              calories_burned: { type: "number", description: "Estimated calories burned during exercise (separate from consumption)." },
               notes: { type: "string", description: "Summary of the workout" }
             },
             required: ["workout_type", "duration_minutes"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "remove_meal",
+          description: "Removes a specific meal from today's nutrition log based on description.",
+          parameters: {
+            type: "object",
+            properties: {
+              meal_description: { type: "string", description: "Partial or full description of the meal to remove, e.g. 'banana'." }
+            },
+            required: ["meal_description"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "log_hydration",
+          description: "Logs water or fluid intake in liters for today.",
+          parameters: {
+            type: "object",
+            properties: {
+              liters: { type: "number", description: "Amount of fluid in liters." }
+            },
+            required: ["liters"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "log_daily_check_in",
+          description: "Records daily status: energy, sleep, soreness, and adherence.",
+          parameters: {
+            type: "object",
+            properties: {
+              energy_score: { type: "number", minimum: 1, maximum: 5, description: "Energy level 1-5." },
+              sleep_hours: { type: "number", description: "Hours of sleep." },
+              soreness_notes: { type: "string", description: "Any muscle soreness or physical discomfort." },
+              adherence_score: { type: "number", minimum: 1, maximum: 5, description: "How well you stuck to your plan 1-5." }
+            },
+            required: ["energy_score", "sleep_hours"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "update_user_profile",
+          description: "Updates user's personal profile and calibration data.",
+          parameters: {
+            type: "object",
+            properties: {
+              height_cm: { type: "number" },
+              weight_kg: { type: "number" },
+              activity_level: { type: "string", enum: ["sedentary", "light", "moderate", "active", "very_active"] },
+              goals: { type: "array", items: { type: "string" } },
+              injuries_limitations: { type: "object" },
+              dietary_preferences: { type: "object" }
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "create_social_post",
+          description: "Shares an update to the community activity feed.",
+          parameters: {
+            type: "object",
+            properties: {
+              content: { type: "string", description: "What you want to share." },
+              type: { type: "string", enum: ["workout", "meal", "achievement", "pr"], default: "achievement" }
+            },
+            required: ["content", "type"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "request_coach_assistance",
+          description: "Escalates the current topic to a human coach.",
+          parameters: {
+            type: "object",
+            properties: {
+              topic: { type: "string", description: "A short label for the request." },
+              details: { type: "string", description: "Detailed explanation of why you need help." }
+            },
+            required: ["topic", "details"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "generate_daily_plan",
+          description: "Triggers a new daily plan generation with optional constraints.",
+          parameters: {
+            type: "object",
+            properties: {
+              location: { type: "string", enum: ["gym", "home"] },
+              minutesAvailable: { type: "number", minimum: 15, maximum: 180 }
+            }
           }
         }
       },
@@ -270,11 +388,13 @@ export async function POST(request: Request) {
                   date: logDate,
                   workout_type: workoutType,
                   duration_minutes: Math.round(durationMinutes),
+                  calories_burned: Number.isFinite(args.calories_burned) ? Math.round(Number(args.calories_burned)) : null,
                   exercises: [],
                   notes: args.notes || "Logged via Nova AI"
                 });
                 if (insertError) throw new Error(insertError.message);
-                resultStr = `Successfully logged workout: ${Math.round(durationMinutes)} min ${workoutType}`;
+                const calStr = args.calories_burned ? ` (${Math.round(args.calories_burned)} kcal burned)` : "";
+                resultStr = `Successfully logged workout: ${Math.round(durationMinutes)} min ${workoutType}${calStr}`;
                 actions.push({
                   type: "workout_logged",
                   targetRoute: "/log/workout",
@@ -282,6 +402,149 @@ export async function POST(request: Request) {
                 });
                 refreshScopes.add("dashboard");
                 refreshScopes.add("workout");
+              } else if (tc.function.name === "remove_meal") {
+                const mealDesc = (args.meal_description || "").toLowerCase();
+                if (!mealDesc) throw new Error("meal_description is required.");
+
+                const { data: log, error: logError } = await supabase
+                  .from("nutrition_logs")
+                  .select("log_id, meals")
+                  .eq("user_id", userId)
+                  .eq("date", logDate)
+                  .maybeSingle();
+
+                if (logError) throw new Error(logError.message);
+                if (!log || !Array.isArray(log.meals) || log.meals.length === 0) {
+                  resultStr = "No meals found in today's log to remove.";
+                } else {
+                  const initialCount = log.meals.length;
+                  const updatedMeals = log.meals.filter((m: any) =>
+                    !String(m.description || "").toLowerCase().includes(mealDesc)
+                  );
+
+                  if (updatedMeals.length === initialCount) {
+                    resultStr = `Could not find a meal matching "${args.meal_description}" in today's log.`;
+                  } else {
+                    const totalCals = updatedMeals.reduce((s: number, m: any) => s + (m.calories || 0), 0);
+                    const { error: updateError } = await supabase
+                      .from("nutrition_logs")
+                      .update({ meals: updatedMeals, total_calories: totalCals })
+                      .eq("log_id", log.log_id);
+
+                    if (updateError) throw new Error(updateError.message);
+                    resultStr = `Successfully removed meal(s) matching "${args.meal_description}".`;
+                    actions.push({
+                      type: "meal_removed",
+                      targetRoute: "/log/nutrition",
+                      summary: "Meal removed",
+                    } as any);
+                    refreshScopes.add("dashboard");
+                    refreshScopes.add("nutrition");
+                  }
+                }
+              } else if (tc.function.name === "log_hydration") {
+                const liters = Number(args.liters);
+                if (!Number.isFinite(liters)) throw new Error("Invalid liters.");
+
+                const { data: existingLog, error: logError } = await supabase
+                  .from("nutrition_logs")
+                  .select("log_id, hydration_liters")
+                  .eq("user_id", userId)
+                  .eq("date", logDate)
+                  .maybeSingle();
+
+                if (logError) throw new Error(logError.message);
+
+                if (existingLog) {
+                  const currentHydration = Number(existingLog.hydration_liters || 0);
+                  const { error: updateError } = await supabase
+                    .from("nutrition_logs")
+                    .update({ hydration_liters: currentHydration + liters })
+                    .eq("log_id", existingLog.log_id);
+                  if (updateError) throw new Error(updateError.message);
+                } else {
+                  const { error: insertError } = await supabase.from("nutrition_logs").insert({
+                    user_id: userId,
+                    date: logDate,
+                    meals: [],
+                    total_calories: 0,
+                    hydration_liters: liters,
+                  });
+                  if (insertError) throw new Error(insertError.message);
+                }
+                resultStr = `Successfully logged ${liters}L of water.`;
+                actions.push({ type: "hydration_logged", targetRoute: "/log/nutrition", summary: "Hydration logged" } as any);
+                refreshScopes.add("dashboard");
+                refreshScopes.add("nutrition");
+              } else if (tc.function.name === "log_daily_check_in") {
+                const { error: checkErr } = await supabase.from("check_ins").insert({
+                  user_id: userId,
+                  date_local: logDate,
+                  energy_score: args.energy_score,
+                  sleep_hours: args.sleep_hours,
+                  soreness_notes: args.soreness_notes,
+                  adherence_score: args.adherence_score
+                });
+                if (checkErr) throw new Error(checkErr.message);
+                resultStr = "Check-in recorded successfully.";
+                actions.push({ type: "check_in_logged", targetRoute: "/dashboard", summary: "Daily check-in saved" } as any);
+                refreshScopes.add("dashboard");
+              } else if (tc.function.name === "update_user_profile") {
+                const payload: any = {};
+                if (args.height_cm) payload.height = args.height_cm;
+                if (args.weight_kg) payload.weight = args.weight_kg;
+                if (args.activity_level) payload.activity_level = args.activity_level;
+                if (args.goals) payload.goals = args.goals;
+                if (args.injuries_limitations) payload.injuries_limitations = args.injuries_limitations;
+                if (args.dietary_preferences) payload.dietary_preferences = args.dietary_preferences;
+
+                const { error: profErr } = await supabase.from("user_profile").update(payload).eq("user_id", userId);
+                if (profErr) throw new Error(profErr.message);
+                resultStr = "User profile updated and recalibrated.";
+                actions.push({ type: "profile_updated", targetRoute: "/settings/profile", summary: "Profile updated" } as any);
+                refreshScopes.add("dashboard");
+                refreshScopes.add("profile" as any);
+              } else if (tc.function.name === "create_social_post") {
+                const { error: postErr } = await supabase.from("social_posts").insert({
+                  user_id: userId,
+                  content: args.content,
+                  type: args.type || "achievement"
+                });
+                if (postErr) throw new Error(postErr.message);
+                resultStr = "Social post shared to the community.";
+                actions.push({ type: "social_posted", targetRoute: "/community", summary: "Social post shared" } as any);
+                refreshScopes.add("social" as any);
+              } else if (tc.function.name === "request_coach_assistance") {
+                const { error: escErr } = await supabase.from("coach_escalations").insert({
+                  user_id: userId,
+                  topic: args.topic,
+                  details: args.details,
+                  urgency: "normal",
+                  preferred_channel: "in_app",
+                  status: "open"
+                });
+                if (escErr) throw new Error(escErr.message);
+                resultStr = "A request for a human coach has been submitted.";
+                actions.push({ type: "coach_requested", targetRoute: "/coach", summary: "Coach requested" } as any);
+              } else if (tc.function.name === "generate_daily_plan") {
+                const { composeDailyPlan } = await import("@/lib/plan/compose-daily-plan");
+                const plan = await composeDailyPlan({ supabase, userId }, {
+                  todayConstraints: {
+                    location: args.location,
+                    minutesAvailable: args.minutesAvailable
+                  }
+                });
+
+                const { error: planErr } = await supabase.from("daily_plans").insert({
+                  user_id: userId,
+                  date_local: plan.date_local,
+                  plan_json: plan,
+                });
+                if (planErr) throw new Error(planErr.message);
+                resultStr = "Generated a new personalized plan for you.";
+                actions.push({ type: "plan_generated", targetRoute: "/dashboard", summary: "New plan created" } as any);
+                refreshScopes.add("dashboard");
+                refreshScopes.add("plan" as any);
               } else if (tc.function.name === "log_biometrics") {
                 const weightLbs = Number(args.weight_lbs);
                 const bodyFatPercent = Number(args.body_fat_percent);

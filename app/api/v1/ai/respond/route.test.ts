@@ -238,6 +238,183 @@ describe("POST /api/v1/ai/respond", () => {
     expect(progressUpdate).not.toHaveBeenCalled();
   });
 
+  it("processes log_workout with calories_burned", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const workoutInsert = vi.fn().mockResolvedValue({ error: null });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "workout_logs") return { insert: workoutInsert };
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+        update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+      };
+    });
+
+    vi.stubGlobal("fetch", vi.fn()
+      .mockImplementationOnce(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          choices: [{ message: { content: "", tool_calls: [{ id: "c1", type: "function", function: { name: "log_workout", arguments: JSON.stringify({ workout_type: "cardio", duration_minutes: 30, calories_burned: 400 }) } }] } }],
+        }),
+      }))
+      .mockImplementationOnce(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ choices: [{ message: { content: "Logged your 400 cal workout." } }] }),
+      }))
+    );
+
+    const req = new Request("http://localhost/api/v1/ai/respond", {
+      method: "POST",
+      body: JSON.stringify({ message: "I burned 400 calories on the Peloton." }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(workoutInsert).toHaveBeenCalledWith(expect.objectContaining({
+      workout_type: "cardio",
+      duration_minutes: 30,
+      calories_burned: 400
+    }));
+  });
+
+  it("processes remove_meal successfully", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const initialMeals = [{ description: "banana", calories: 100 }, { description: "apple", calories: 50 }];
+    const nutritionUpdate = vi.fn().mockResolvedValue({ error: null });
+    const nutritionUpdateEq = vi.fn().mockReturnValue({ error: null });
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "nutrition_logs") return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: { log_id: "l1", meals: initialMeals } }),
+        update: vi.fn().mockReturnValue({ eq: nutritionUpdateEq })
+      };
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      };
+    });
+
+    vi.stubGlobal("fetch", vi.fn()
+      .mockImplementationOnce(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          choices: [{ message: { content: "", tool_calls: [{ id: "c2", type: "function", function: { name: "remove_meal", arguments: JSON.stringify({ meal_description: "banana" }) } }] } }],
+        }),
+      }))
+      .mockImplementationOnce(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ choices: [{ message: { content: "Removed the banana." } }] }),
+      }))
+    );
+
+    const req = new Request("http://localhost/api/v1/ai/respond", {
+      method: "POST",
+      body: JSON.stringify({ message: "Remove the banana." }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(nutritionUpdateEq).toHaveBeenCalled();
+  });
+
+  it("processes log_hydration successfully", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const hydrationUpdateEq = vi.fn().mockResolvedValue({ error: null });
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "nutrition_logs") return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: { log_id: "l1", hydration_liters: 1 } }),
+        update: vi.fn().mockReturnValue({ eq: hydrationUpdateEq })
+      };
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      };
+    });
+
+    vi.stubGlobal("fetch", vi.fn()
+      .mockImplementationOnce(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          choices: [{ message: { content: "", tool_calls: [{ id: "c3", type: "function", function: { name: "log_hydration", arguments: JSON.stringify({ liters: 0.5 }) } }] } }],
+        }),
+      }))
+      .mockImplementationOnce(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ choices: [{ message: { content: "Logged 0.5L." } }] }),
+      }))
+    );
+
+    const req = new Request("http://localhost/api/v1/ai/respond", {
+      method: "POST",
+      body: JSON.stringify({ message: "I drank half a liter of water." }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(hydrationUpdateEq).toHaveBeenCalled();
+  });
+
+  it("processes log_daily_check_in successfully", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const checkInInsert = vi.fn().mockResolvedValue({ error: null });
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "check_ins") return { insert: checkInInsert };
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      };
+    });
+
+    vi.stubGlobal("fetch", vi.fn()
+      .mockImplementationOnce(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          choices: [{ message: { content: "", tool_calls: [{ id: "c4", type: "function", function: { name: "log_daily_check_in", arguments: JSON.stringify({ energy_score: 4, sleep_hours: 8 }) } }] } }],
+        }),
+      }))
+      .mockImplementationOnce(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ choices: [{ message: { content: "Logged your check-in." } }] }),
+      }))
+    );
+
+    const req = new Request("http://localhost/api/v1/ai/respond", {
+      method: "POST",
+      body: JSON.stringify({ message: "I'm feeling good, slept 8 hours." }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(checkInInsert).toHaveBeenCalledWith(expect.objectContaining({
+      energy_score: 4,
+      sleep_hours: 8
+    }));
+  });
+
   afterEach(() => {
     process.env.OPENROUTER_API_KEY = originalEnv;
     process.env.ALLOW_DEV_ANON_AI = originalAllowAnon;

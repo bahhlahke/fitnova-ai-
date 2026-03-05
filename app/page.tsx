@@ -649,8 +649,7 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto w-full max-w-shell px-4 py-8 sm:px-8">
-      <div className="space-y-6">
-
+      <div className="space-y-8">
         {/* Hero */}
         <DashboardHero
           briefing={briefing}
@@ -658,73 +657,119 @@ export default function HomePage() {
           isPro={isPro}
         />
 
-        {/* Quick Actions */}
-        <section aria-label="Quick actions">
-          <p className="mb-4 text-[11px] font-black uppercase tracking-[0.4em] text-fn-muted px-1">Rapid Command</p>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {quickActions.map(({ href, label, color, iconColor, icon }) => (
-              <Link key={href} href={href}
-                className={`group relative flex flex-col items-start gap-4 overflow-hidden rounded-2xl border bg-fn-surface/50 p-6 transition-all duration-300 hover:scale-[1.03] hover:shadow-fn-card hover:bg-fn-surface/80 ${color}`}
-              >
-                <span className={`${iconColor} transition-transform duration-300 group-hover:scale-110`}>{icon}</span>
-                <span className="text-[11px] font-black uppercase tracking-widest text-white/90">{label}</span>
-              </Link>
-            ))}
-          </div>
+        {/* Vitals Strip */}
+        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[
+            { label: "Active Streak", value: `${streak} Days`, color: "text-fn-accent", icon: "🔥", glow: "shadow-[0_0_20px_rgba(10,217,196,0.15)]" },
+            { label: "Training Volume", value: `${weekCount} Sessions`, color: "text-white", icon: "📊", glow: "" },
+            { label: "System Readiness", value: readiness.overall_score != null ? `${Math.round(readiness.overall_score * 100)}%` : "N/A", color: "text-amber-400", icon: "⚡", glow: "shadow-[0_0_20px_rgba(251,191,36,0.1)]" },
+            { label: "Bio-Sync Status", value: isPro ? "Calibrated" : "Active", color: "text-blue-400", icon: "🧬", glow: "" },
+          ].map((item) => (
+            <div key={item.label} className={`rounded-2xl border border-white/[0.05] bg-fn-surface/30 p-5 backdrop-blur-md transition-all duration-500 hover:scale-[1.02] hover:bg-fn-surface/40 hover:border-white/10 ${item.glow}`}>
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-muted">{item.label}</p>
+                <span className="text-sm">{item.icon}</span>
+              </div>
+              <p className={`mt-2 font-display text-4xl font-black italic uppercase tracking-tighter sm:text-3xl ${item.color}`}>
+                {item.value}
+              </p>
+            </div>
+          ))}
         </section>
 
-        {/* Today's Plan + Adherence */}
-        <DashboardPlanSection
-          todayPlan={todayPlan}
-          weekCount={weekCount}
-          streak={streak}
-          weeklyInsight={weeklyInsight}
-          weeklyInsightLoading={weeklyInsightLoading}
-        />
+        {/* Main Command Hub */}
+        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-8">
+            {/* Execution Hub */}
+            <DashboardPlanSection
+              todayPlan={todayPlan}
+              weekCount={weekCount}
+              streak={streak}
+              weeklyInsight={weeklyInsight}
+              weeklyInsightLoading={weeklyInsightLoading}
+            />
 
-        {/* Readiness + Heatmap */}
-        <DashboardReadinessSection
-          recoverySuggestion={recoverySuggestion}
-          readinessInsight={readinessInsight}
-          readinessInsightLoading={readinessInsightLoading}
-          readiness={readiness}
-        />
+            {/* AI Command Surface */}
+            <DashboardAiSection
+              autoFocus={focusAi}
+              planLoading={planLoading}
+              hasPlanToday={hasPlanToday}
+              onGeneratePlan={() => void handleGeneratePlan()}
+            />
 
-        {/* Progress */}
-        <DashboardProgressSection
-          last7Days={last7Days}
-          projection={projection}
-          unitSystem={unitSystem}
-        />
-
-        {/* AI Coach */}
-        <DashboardAiSection
-          autoFocus={focusAi}
-          planLoading={planLoading}
-          hasPlanToday={hasPlanToday}
-          onGeneratePlan={() => void handleGeneratePlan()}
-        />
-
-        {/* Community CTA */}
-        <Link href="/community">
-          <Card className="border-fn-accent/20 bg-fn-accent/5 hover:bg-fn-accent/10 transition-all duration-300 hover:scale-[1.01] shadow-fn-soft">
-            <div className="flex items-center justify-between p-4">
-              <div>
-                <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent">Network & Challenges</h3>
-                <p className="mt-2 text-sm text-fn-muted max-w-md">Join elite squads, compete on global leaderboards, and synchronize your progress with the community.</p>
+            {/* Quick Actions */}
+            <section aria-label="Rapid Command">
+              <div className="grid grid-cols-2 gap-4">
+                {quickActions.map(({ href, label, color, iconColor, icon }) => (
+                  <Link key={href} href={href}
+                    className={`group relative flex flex-col items-start gap-4 overflow-hidden rounded-2xl border bg-fn-surface/30 p-6 transition-all duration-300 hover:scale-[1.02] hover:bg-fn-surface/50 ${color}`}
+                  >
+                    <span className={`${iconColor} transition-transform duration-300 group-hover:scale-110`}>{icon}</span>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-white/90">{label}</span>
+                  </Link>
+                ))}
               </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-fn-accent/15 text-fn-accent shrink-0 border border-fn-accent/20">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-6 w-6">
-                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 00-3-3.87" />
-                  <path d="M16 3.13a4 4 0 010 7.75" />
-                </svg>
-              </div>
-            </div>
-          </Card>
-        </Link>
+            </section>
+          </div>
 
+          <div className="space-y-8">
+            {/* Signals Hub */}
+            <DashboardReadinessSection
+              recoverySuggestion={recoverySuggestion}
+              readinessInsight={readinessInsight}
+              readinessInsightLoading={readinessInsightLoading}
+              readiness={readiness}
+            />
+
+            {/* Retention & Nudges */}
+            <DashboardRetentionSection
+              retentionRisk={retentionRisk}
+              retentionLoading={retentionRiskLoading}
+              nudges={nudges}
+            />
+
+            {/* Community Engagement */}
+            <Link href="/community">
+              <div className="group relative overflow-hidden rounded-xl3 border border-fn-accent/30 bg-fn-accent/5 p-8 shadow-fn-soft transition-all duration-500 hover:scale-[1.02] hover:bg-fn-accent/10">
+                <div className="relative z-10 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">Elite Network</h3>
+                    <p className="mt-4 text-base font-medium italic leading-relaxed text-fn-muted">
+                      Join the high-performance community and synchronize your session data with the collective.
+                    </p>
+                  </div>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-fn-accent/20 text-fn-accent border border-fn-accent/30 transition-transform duration-500 group-hover:rotate-12">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-7 w-7">
+                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                    </svg>
+                  </div>
+                </div>
+                {/* Background decorative element */}
+                <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-fn-accent/10 blur-3xl transition-opacity group-hover:opacity-100" />
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* Deep Analysis Footer */}
+        <div className="space-y-8 border-t border-white/5 pt-8">
+          <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-muted">Deep Analysis</p>
+
+          <DashboardAnalyticsSection
+            weeklyPlan={weeklyPlan}
+            weeklyPlanLoading={weeklyPlanLoading}
+            analytics={performanceAnalytics}
+            analyticsLoading={performanceAnalyticsLoading}
+          />
+
+          <DashboardProgressSection
+            last7Days={last7Days}
+            projection={projection}
+            unitSystem={unitSystem}
+          />
+        </div>
       </div>
     </div>
   );

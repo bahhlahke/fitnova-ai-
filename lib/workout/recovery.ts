@@ -1,6 +1,6 @@
 import { getMuscleGroup, MUSCLE_GROUPS, type MuscleGroup } from "./muscle-groups";
 
-export type MuscleReadiness = Record<MuscleGroup, number>;
+export type MuscleReadiness = Record<MuscleGroup, number> & { overall_score?: number };
 
 // Decays: 28 days for fitness, 7 days for fatigue
 const CHRONIC_DECAY = 28;
@@ -57,6 +57,7 @@ export function calculateReadiness(logs: any[]): MuscleReadiness {
     // Negative means under-recovered (Fatigue > Fitness)
     const readiness: MuscleReadiness = {} as any;
 
+    let totalScore = 0;
     // To normalize to a 0-100 scale (100 = fully recovered & highly fit, 0 = highly fatigued)
     // We compute the Acute:Chronic Workload Ratio (ACWR). 
     // Sweet spot is 0.8 - 1.3. Danger zone is > 1.5.
@@ -94,7 +95,10 @@ export function calculateReadiness(logs: any[]): MuscleReadiness {
 
             readiness[m] = Math.max(0, Math.min(100, Math.round(score)));
         }
+        totalScore += readiness[m];
     });
+
+    readiness.overall_score = Math.round(totalScore / MUSCLE_GROUPS.length) / 100;
 
     return readiness;
 }

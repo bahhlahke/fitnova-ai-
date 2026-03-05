@@ -387,7 +387,7 @@ export default function GuidedWorkoutPage() {
           <footer className="mt-12 rounded-3xl bg-fn-accent/5 border border-fn-accent/10 p-6">
             <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Coach Note</p>
             <p className="text-sm font-medium leading-relaxed text-white/60">
-              Focus on the "Intent" cues for each move. This session is designed to optimize movement quality under fatigue.
+              Focus on the &quot;Intent&quot; cues for each move. This session is designed to optimize movement quality under fatigue.
             </p>
           </footer>
         </div>
