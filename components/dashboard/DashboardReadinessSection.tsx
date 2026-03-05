@@ -17,8 +17,8 @@ export function DashboardReadinessSection({
   readiness = {},
 }: DashboardReadinessSectionProps) {
   return (
-    <section className="space-y-6">
-      <div className="rounded-xl3 border border-white/[0.08] bg-fn-surface/40 backdrop-blur-md p-8 shadow-fn-card">
+    <section className="space-y-4">
+      <div className="rounded-xl3 border border-white/[0.08] bg-fn-surface/40 backdrop-blur-md p-6 shadow-fn-card">
         <div className="flex items-center gap-3">
           <div className="relative flex h-6 w-12 items-center justify-start rounded-md bg-fn-bg-alt border border-white/[0.08] p-[3px]">
             <div className={`h-full rounded-sm transition-all duration-1000 ${recoverySuggestion?.toLowerCase().includes("optimal") || !recoverySuggestion
@@ -32,33 +32,31 @@ export function DashboardReadinessSection({
             System Readiness
           </p>
         </div>
-        <h2 className="mt-4 font-display text-4xl font-black uppercase italic tracking-tighter text-white leading-tight">
+        <h2 className="mt-3 font-display text-3xl font-black uppercase italic tracking-tighter text-white leading-tight sm:text-4xl">
           {recoverySuggestion ?? "Optimal Recovery"}
         </h2>
 
-        {readinessInsightLoading ? (
-          <div className="mt-6 h-16 rounded-xl bg-white/[0.03] animate-pulse" />
-        ) : readinessInsight ? (
-          <div className="mt-6 rounded-xl border border-white/[0.05] bg-black/20 p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent mb-2">Insight</p>
+        {readinessInsight ? (
+          <div className="mt-5 rounded-xl border border-white/[0.05] bg-black/20 p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent mb-1">Insight</p>
             <p className="text-sm font-medium italic text-fn-muted leading-relaxed">
               {readinessInsight}
             </p>
           </div>
         ) : null}
 
-        <div className="mt-8">
+        <div className="mt-6">
           <Link href="/check-in">
-            <Button variant="secondary" className="w-full">Initialize Check-In</Button>
+            <Button variant="secondary" className="w-full h-11">Initialize Check-In</Button>
           </Link>
         </div>
       </div>
 
-      <div className="rounded-xl3 border border-white/[0.08] bg-fn-surface/40 backdrop-blur-md p-8 shadow-fn-card">
-        <p className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent mb-8">
+      <div className="rounded-xl3 border border-white/[0.08] bg-fn-surface/40 backdrop-blur-md p-6 shadow-fn-card">
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-6">
           Muscle Stress Analysis
         </p>
-        <div className="mt-8 relative h-[360px] w-full overflow-hidden" style={{ height: '360px', maxHeight: '360px' }}>
+        <div className="relative h-[320px] w-full overflow-hidden" style={{ height: '320px', maxHeight: '320px' }}>
           <BodyHeatmap
             readiness={readiness as MuscleReadiness}
             className="w-full h-full"

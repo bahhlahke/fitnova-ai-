@@ -27,7 +27,7 @@ export function DashboardHero({
   const greeting = useMemo(() => getGreeting(), []);
 
   return (
-    <header className="relative overflow-hidden rounded-xl3 border border-white/[0.08] bg-fn-surface p-8 shadow-fn-card sm:p-12">
+    <header className="relative overflow-hidden rounded-xl3 border border-white/[0.08] bg-fn-surface p-6 shadow-fn-card sm:p-10">
       <div className="absolute right-8 top-8 z-20">
         <LevelDisplay />
       </div>

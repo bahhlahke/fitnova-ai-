@@ -649,7 +649,7 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-8">
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Hero */}
         <DashboardHero
           briefing={briefing}
@@ -678,8 +678,8 @@ export default function HomePage() {
         </section>
 
         {/* Main Command Hub */}
-        <div className="grid gap-8 lg:grid-cols-12">
-          <div className="space-y-8 lg:col-span-7">
+        <div className="grid gap-6 lg:grid-cols-12">
+          <div className="space-y-6 lg:col-span-7">
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-muted">Protocol Execution</h3>
               <span className="h-px flex-1 bg-white/5 mx-4 hidden sm:block"></span>
@@ -716,7 +716,7 @@ export default function HomePage() {
             </section>
           </div>
 
-          <div className="space-y-8 lg:col-span-5">
+          <div className="space-y-6 lg:col-span-5">
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-muted">Physiological Signals</h3>
             </div>
@@ -761,7 +761,7 @@ export default function HomePage() {
         </div>
 
         {/* Deep Analysis Footer */}
-        <div className="space-y-8 border-t border-white/5 pt-8">
+        <div className="space-y-6 border-t border-white/5 pt-8">
           <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-muted">Deep Analysis</p>
 
           <DashboardAnalyticsSection
