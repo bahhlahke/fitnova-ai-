@@ -10,8 +10,7 @@ import { DEFAULT_UNIT_SYSTEM, type UnitSystem, readUnitSystemFromProfile } from 
 import { Card, CardHeader, Button, LoadingState } from "@/components/ui";
 import { DashboardHero } from "@/components/dashboard/DashboardHero";
 import { SocialFeed } from "@/components/social/SocialFeed";
-import { DashboardAiSection } from "@/components/dashboard/DashboardAiSection";
-import { FormCorrection } from "@/components/motion/FormCorrection";
+import { AiCoachPanel } from "@/components/ai/AiCoachPanel";
 import {
   DashboardPlanSection,
   type DashboardTodayPlan,
