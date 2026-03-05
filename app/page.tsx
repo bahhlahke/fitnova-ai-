@@ -673,7 +673,7 @@ export default function HomePage() {
       {/* Main Command Workspace */}
       <div className="flex flex-1 gap-6 overflow-hidden">
         {/* Left Signal Stream - Activity Log Feed (Fixed Sidebar) */}
-        <aside className="hidden w-72 flex-col gap-4 overflow-y-auto lg:flex pr-2 custom-scrollbar">
+        <aside className="hidden w-72 flex-col gap-4 overflow-y-auto md:flex pr-2 custom-scrollbar">
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-muted/50 border-b border-white/5 pb-2">Active Signal Feed</p>
           <div className="space-y-3">
             {/* Today's Protocol Focus */}
@@ -690,7 +690,7 @@ export default function HomePage() {
             {/* Recent Nudge / Insight */}
             {nudges.slice(0, 1).map(n => (
               <div key={n.nudge_id} className="rounded-xl bg-fn-surface/30 border border-white/5 p-4 italic text-sm text-fn-muted">
-                &quot;{n.message}&quot;
+                &ldquo;{n.message}&rdquo;
               </div>
             ))}
 
@@ -698,7 +698,7 @@ export default function HomePage() {
             <div className="rounded-xl bg-fn-surface/30 border border-white/5 p-4">
               <p className="text-[10px] font-black uppercase text-white/40 mb-2">Morning Brief</p>
               <p className="text-xs leading-relaxed text-fn-muted line-clamp-4 font-medium italic">
-                {briefingLoading ? "Polling Nova..." : briefing ? `&quot;${briefing}&quot;` : "Executing standard startup sequence."}
+                {briefingLoading ? "Polling Nova..." : briefing ? <>&ldquo;{briefing}&rdquo;</> : "Executing standard startup sequence."}
               </p>
             </div>
           </div>

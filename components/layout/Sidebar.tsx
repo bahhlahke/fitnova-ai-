@@ -81,7 +81,7 @@ export function Sidebar() {
     if (hide) return null;
 
     return (
-        <aside className="fixed left-0 top-0 hidden h-screen w-64 flex-col border-r border-white/[0.04] bg-fn-bg px-4 py-6 lg:flex z-50">
+        <aside className="fixed left-0 top-0 hidden h-screen w-64 flex-col border-r border-white/[0.04] bg-fn-bg px-4 py-6 md:flex z-50">
             {/* Logo */}
             <div className="mb-8 flex items-center gap-3 px-3">
                 <div className="h-8 w-8 rounded-lg bg-fn-accent flex items-center justify-center text-black shrink-0">
