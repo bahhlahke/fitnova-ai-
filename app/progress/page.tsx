@@ -20,6 +20,9 @@ import {
   weightUnitLabel,
 } from "@/lib/units";
 import { useDataRefresh } from "@/lib/ui/data-sync";
+import { DashboardAnalyticsSection } from "@/components/dashboard/DashboardAnalyticsSection";
+import { DashboardProgressSection } from "@/components/dashboard/DashboardProgressSection";
+import { toLocalDateString } from "@/lib/date/local-date";
 
 type Entry = {
   track_id: string;
@@ -46,6 +49,10 @@ export default function ProgressPage() {
     nutrition_compliance: number | null;
   } | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [weeklyPlan, setWeeklyPlan] = useState<any>(null);
+  const [weeklyPlanLoading, setWeeklyPlanLoading] = useState(false);
+  const [projection, setProjection] = useState<any>(null);
+  const [last7Days, setLast7Days] = useState<number[]>([]);
 
   const loadProgress = useCallback(() => {
     const supabase = createClient();
@@ -82,6 +89,29 @@ export default function ProgressPage() {
           setUnitSystem(nextUnits);
         });
     }).then(undefined, () => setLoading(false));
+
+    // Load last 7 days activity
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      supabase
+        .from("workout_logs")
+        .select("date")
+        .eq("user_id", user.id)
+        .gte("date", sevenDaysAgo.toISOString().split("T")[0])
+        .then(({ data }) => {
+          const byDate: Record<string, number> = {};
+          data?.forEach(r => byDate[r.date] = (byDate[r.date] ?? 0) + 1);
+          const next7 = [];
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            next7.push(byDate[toLocalDateString(d)] ?? 0);
+          }
+          setLast7Days(next7);
+        });
+    });
   }, []);
 
   useEffect(() => {
@@ -143,12 +173,22 @@ export default function ProgressPage() {
     fetch("/api/v1/analytics/performance")
       .then((r) => r.json())
       .then((body) => {
-        if (typeof body.workout_days === "number") {
+        if (typeof body.period_days === "number") {
           setAnalytics(body);
         }
       })
       .catch(() => { })
       .finally(() => setAnalyticsLoading(false));
+
+    setWeeklyPlanLoading(true);
+    fetch(`/api/v1/plan/weekly?today=${toLocalDateString()}`)
+      .then(r => r.json())
+      .then(body => { if (body.plan) setWeeklyPlan(body.plan); })
+      .finally(() => setWeeklyPlanLoading(false));
+
+    fetch("/api/v1/ai/projection")
+      .then(r => r.json())
+      .then(body => { if (body.current != null) setProjection(body); });
   }, [loading]);
 
   const aiNarrative = aiInsight ?? fallbackNarrative;
@@ -350,33 +390,20 @@ export default function ProgressPage() {
             </Card>
           </div>
 
-          <Card className="mt-4">
-            <CardHeader title="Advanced Analytics" subtitle="Training load, balance, and recovery risk" />
-            {analyticsLoading ? (
-              <div className="mt-8 space-y-4">
-                <div className="h-4 w-full rounded-full bg-white/5 animate-pulse" />
-                <div className="h-4 w-4/5 rounded-full bg-white/5 animate-pulse" />
-              </div>
-            ) : analytics ? (
-              <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {[
-                  { label: "Cycle Count", value: analytics.workout_days },
-                  { label: "Active Minutes", value: analytics.workout_minutes },
-                  { label: "Training Volume", value: analytics.estimated_total_sets },
-                  { label: "System Balance", value: analytics.push_pull_balance },
-                  { label: "Recovery Debt", value: `${Math.round(analytics.recovery_debt * 100)}%` },
-                  { label: "Nutrition Adherence", value: analytics.nutrition_compliance != null ? `${Math.round(analytics.nutrition_compliance * 100)}%` : "n/a" },
-                ].map((item) => (
-                  <div key={item.label} className="rounded-xl border border-white/[0.08] bg-black/40 px-5 py-4 shadow-fn-soft flex flex-col justify-between">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-fn-ink/40 mb-2">{item.label}</p>
-                    <p className="text-xl font-black text-white italic leading-none">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-8 text-sm text-fn-muted italic">Advanced analytics will become available as activity synchronization progresses.</p>
-            )}
-          </Card>
+          <div className="mt-8 space-y-8">
+            <DashboardAnalyticsSection
+              weeklyPlan={weeklyPlan}
+              weeklyPlanLoading={weeklyPlanLoading}
+              analytics={analytics as any}
+              analyticsLoading={analyticsLoading}
+            />
+
+            <DashboardProgressSection
+              last7Days={last7Days}
+              projection={projection}
+              unitSystem={unitSystem}
+            />
+          </div>
         </>
       )}
     </PageLayout>

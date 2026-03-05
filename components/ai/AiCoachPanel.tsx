@@ -159,7 +159,7 @@ export function AiCoachPanel({
       className={`rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 shadow-2xl backdrop-blur-3xl ${className}`.trim()}
       aria-label="Nova AI"
     >
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-5 sr-only">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.35em] text-fn-accent">
             Command Center
@@ -188,7 +188,7 @@ export function AiCoachPanel({
         ))}
       </div>
 
-      <div className="mt-6 max-h-[28rem] space-y-5 overflow-y-auto pr-1">
+      <div className="mt-4 max-h-none flex-1 space-y-5 overflow-y-auto pr-1">
         {messages.length === 0 && (
           <div className="rounded-3xl border border-white/5 bg-black/20 p-6 text-center">
             <p className="text-lg font-black uppercase italic tracking-tighter text-white">
