@@ -92,12 +92,17 @@ export default function WorkoutLogPage() {
     <PageLayout title="Workout" subtitle="Capture sessions and keep progression visible">
       <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
         <Link href="/log/workout/guided" className="block">
-          <Card padding="lg" className="h-full border-fn-accent/30 bg-fn-accent/5 transition-all duration-300 hover:scale-[1.01] hover:border-fn-accent/50 hover:shadow-fn-card backdrop-blur-md">
-            <p className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent">Neural Guidance</p>
+          <Card padding="lg" className="h-full border-fn-accent relative overflow-hidden transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(10,217,196,0.2)] backdrop-blur-md bg-fn-accent/[0.03]">
+            <div className="absolute top-0 right-0 p-6 opacity-20">
+              <svg className="w-24 h-24 text-fn-accent" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14.5l-3.47-2.02L7 16l.66-3.81L5 9.5l3.81-.55L10.5 5.5l1.69 3.45L16 9.5l-2.66 2.69.66 3.81z" />
+              </svg>
+            </div>
+            <p className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent">Coaching Protocol</p>
             <h2 className="mt-4 font-display text-4xl font-black text-white uppercase italic tracking-tighter leading-none">Initiate Coached Session</h2>
-            <p className="mt-3 text-base font-medium text-fn-ink/40 leading-relaxed uppercase tracking-widest">Plan-aware sequence flow with predictive rest intervals.</p>
+            <p className="mt-4 text-base font-medium text-fn-ink/40 leading-relaxed uppercase tracking-widest">Plan-aware sequence flow with neural guidance.</p>
             <p className="mt-8 text-[11px] font-black uppercase tracking-[0.3em] text-fn-accent flex items-center gap-2">
-              Launch Guided Mode
+              Begin Guided Experience
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
             </p>
           </Card>

@@ -37,7 +37,7 @@ const FALLBACK_EXERCISES: GuidedExercise[] = [
 export default function GuidedWorkoutPage() {
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [setIndex, setSetIndex] = useState(0);
-  const [phase, setPhase] = useState<"work" | "rest" | "completed">("work");
+  const [phase, setPhase] = useState<"loading" | "overview" | "work" | "rest" | "completed">("loading");
   const [restSeconds, setRestSeconds] = useState(0);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -111,9 +111,12 @@ export default function GuidedWorkoutPage() {
               });
             }
           }
+          setPhase("overview");
+        } else {
+          setPhase("work"); // Fallback if no specific plan
         }
       })
-      .catch(() => undefined);
+      .catch(() => setPhase("work"));
   }, []);
 
   const exercise = exercises[exerciseIndex];
@@ -308,25 +311,146 @@ export default function GuidedWorkoutPage() {
     return () => clearInterval(t);
   }, [phase, restSeconds, nextSet]);
 
+  const startWorkout = useCallback(() => {
+    workoutStartedAt.current = Date.now();
+    setPhase("work");
+  }, []);
+
+  if (phase === "loading") {
+    return (
+      <div className="mx-auto flex min-h-[100dvh] max-w-shell flex-col items-center justify-center bg-fn-bg px-6 text-center">
+        <div className="h-12 w-12 rounded-full border-2 border-fn-accent/20 border-t-fn-accent animate-spin mb-4" />
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent">Neural Initialization</p>
+        <p className="mt-2 text-sm font-medium text-fn-ink/40">Calibrating session sequence...</p>
+      </div>
+    );
+  }
+
+  if (phase === "overview") {
+    return (
+      <div className="mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg">
+        <div className="flex-1 overflow-y-auto px-6 py-10 pb-32">
+          <header className="mb-10">
+            <Link href="/log/workout" className="text-sm font-bold text-fn-muted hover:text-white transition-colors flex items-center gap-2 mb-6">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+              Exit
+            </Link>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-2">Session Overview</p>
+            <h1 className="font-display text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
+              {planTitle}
+            </h1>
+            <div className="mt-6 flex flex-wrap gap-4">
+              <div className="flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 border border-white/5">
+                <span className="h-1.5 w-1.5 rounded-full bg-fn-accent" />
+                <span className="text-[11px] font-black uppercase tracking-widest text-fn-ink/60">{exercises.length} Movements</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 border border-white/5">
+                <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
+                <span className="text-[11px] font-black uppercase tracking-widest text-fn-ink/60">~{exercises.length * 8}m duration</span>
+              </div>
+            </div>
+          </header>
+
+          <section className="space-y-4">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-muted mb-4 block">Sequence Flow</h3>
+            {exercises.map((ex, i) => (
+              <div key={i} className="group relative overflow-hidden rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 transition-all hover:bg-white/[0.05]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-[10px] font-black text-fn-muted">
+                      {i + 1}
+                    </span>
+                    <div>
+                      <h4 className="text-xl font-black text-white uppercase italic">{ex.name}</h4>
+                      <p className="mt-0.5 text-xs font-bold text-fn-muted">{ex.sets} Sets · {ex.reps} Reps</p>
+                    </div>
+                  </div>
+                  <div className="h-12 w-12 overflow-hidden rounded-xl bg-black/40">
+                    <Image
+                      src={getExerciseImageUrl(ex.name, ex.video_url || ex.image_url)}
+                      alt={ex.name}
+                      width={48}
+                      height={48}
+                      className="h-full w-full object-cover opacity-50 transition-opacity group-hover:opacity-100"
+                    />
+                  </div>
+                </div>
+                {ex.intent && (
+                  <p className="mt-4 text-[11px] font-medium leading-relaxed text-fn-ink/40 line-clamp-1 border-t border-white/5 pt-4">
+                    {ex.intent}
+                  </p>
+                )}
+              </div>
+            ))}
+          </section>
+
+          <footer className="mt-12 rounded-3xl bg-fn-accent/5 border border-fn-accent/10 p-6">
+            <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Coach Note</p>
+            <p className="text-sm font-medium leading-relaxed text-white/60">
+              Focus on the "Intent" cues for each move. This session is designed to optimize movement quality under fatigue.
+            </p>
+          </footer>
+        </div>
+
+        <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-fn-bg via-fn-bg to-transparent px-6 pb-10 pt-12">
+          <button
+            type="button"
+            onClick={startWorkout}
+            className="group relative w-full overflow-hidden rounded-full bg-fn-accent py-5 text-lg font-black uppercase tracking-wider text-black shadow-[0_-10px_50px_rgba(10,217,196,0.2)] transition-all active:scale-[0.98] hover:bg-white"
+          >
+            <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out" />
+            Initiate Experience
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (phase === "completed") {
     return (
-      <div className="mx-auto flex min-h-[80vh] max-w-shell flex-col items-center justify-center px-4 py-10 text-center sm:px-6">
-        <h2 className="font-display text-4xl text-fn-ink">Workout complete</h2>
-        <p className="mt-2 text-fn-muted">
-          {saved ? "Great work! Session saved to your log." : saveError ?? "Session complete."}
-        </p>
-        {postWorkoutInsightLoading && (
-          <p className="mt-4 text-sm text-fn-muted">What this means...</p>
-        )}
-        {postWorkoutInsight && !postWorkoutInsightLoading && (
-          <div className="mt-4 max-w-md rounded-xl border border-fn-border bg-fn-bg-alt px-4 py-3 text-left text-sm text-fn-ink">
-            <p className="font-semibold text-fn-ink">What this means</p>
-            <p className="mt-1">{postWorkoutInsight}</p>
+      <div className="mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg pt-20 px-6 text-center">
+        <div className="flex flex-col items-center justify-center flex-1">
+          <div className="relative mb-12">
+            <div className="absolute inset-0 bg-fn-accent opacity-20 blur-[100px]" />
+            <div className="relative flex h-32 w-32 items-center justify-center rounded-full bg-fn-accent text-black shadow-[0_0_60px_rgba(10,217,196,0.5)] animate-in zoom-in duration-500">
+              <svg className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
           </div>
-        )}
-        <Link href="/log/workout" className="mt-8">
-          <Button>Back to workout</Button>
-        </Link>
+
+          <h1 className="font-display text-5xl font-black italic tracking-tighter text-white uppercase leading-none mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            Session Transcended
+          </h1>
+          <p className="text-sm font-bold uppercase tracking-[0.3em] text-fn-accent mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+            {saved ? "Neural Data Synchronized" : saveError ?? "Intensity Captured"}
+          </p>
+
+          {(postWorkoutInsight || postWorkoutInsightLoading) && (
+            <div className="w-full max-w-md rounded-[2.5rem] border border-white/5 bg-white/[0.02] p-8 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4">Neural Recalibration</p>
+              {postWorkoutInsightLoading ? (
+                <div className="space-y-3">
+                  <div className="h-2 w-full rounded-full bg-white/5 animate-pulse" />
+                  <div className="h-2 w-[80%] rounded-full bg-white/5 animate-pulse" />
+                  <div className="h-2 w-[90%] rounded-full bg-white/5 animate-pulse" />
+                </div>
+              ) : (
+                <p className="text-base font-medium italic leading-relaxed text-fn-ink/60">
+                  {postWorkoutInsight}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="pb-12 pt-12">
+          <Link href="/log/workout" className="block w-full">
+            <button className="w-full rounded-full bg-white py-5 text-sm font-black uppercase tracking-widest text-black transition-all hover:bg-fn-accent hover:text-black hover:scale-[1.02] active:scale-[0.98]">
+              Return to Nexus
+            </button>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -376,17 +500,20 @@ export default function GuidedWorkoutPage() {
       )}
 
       <div className="flex flex-1 flex-col px-4 pb-6 pt-4">
-        <header className="mb-5 flex items-center justify-between">
+        <header className="mb-8 flex items-center justify-between">
           <Link
             href="/log/workout"
-            className="flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-fn-muted hover:bg-white/10 hover:text-white transition-colors"
+            className="flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-fn-muted hover:bg-white/10 hover:text-white transition-colors"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             End
           </Link>
-          <span className="rounded-full bg-fn-accent/10 px-3 py-1 text-xs font-bold tracking-widest text-fn-accent uppercase">
-            {progressLabel}
-          </span>
+          <div className="flex flex-col items-end">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent leading-none mb-2 text-right">Neural Guidance</p>
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/30 leading-none">
+              {progressLabel}
+            </span>
+          </div>
         </header>
 
         {phase === "work" && (

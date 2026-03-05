@@ -37,8 +37,10 @@ export function DashboardPlanSection({
         </p>
 
         <div className="mt-8">
-          <Link href="/log/workout">
-            <Button size="default" className="w-full sm:w-auto">{todayPlan ? "Execute Session" : "View Schedule"}</Button>
+          <Link href={todayPlan ? "/log/workout/guided" : "/log/workout"}>
+            <Button size="default" className="w-full sm:w-auto">
+              {todayPlan ? "Execute Session" : "View Schedule"}
+            </Button>
           </Link>
         </div>
 
