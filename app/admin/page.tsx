@@ -23,6 +23,10 @@ export default function AdminDashboard() {
     useEffect(() => {
         async function checkAdminAndLoad() {
             const supabase = createClient();
+            if (!supabase) {
+                setLoading(false);
+                return;
+            }
             const { data: { user } } = await supabase.auth.getUser();
 
             if (!user) {
@@ -117,8 +121,8 @@ export default function AdminDashboard() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${u.subscription_status === 'pro'
-                                                ? 'bg-fn-accent/10 border-fn-accent/30 text-fn-accent'
-                                                : 'bg-white/5 border-white/10 text-white/40'
+                                            ? 'bg-fn-accent/10 border-fn-accent/30 text-fn-accent'
+                                            : 'bg-white/5 border-white/10 text-white/40'
                                             }`}>
                                             {u.subscription_status}
                                         </span>

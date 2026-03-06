@@ -629,7 +629,10 @@ function NutritionLogContent() {
     const supabase = createClient();
     if (!supabase) { setLoading(false); return; }
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { setLoading(false); return; }
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       setPageError(null);
       Promise.all([
         supabase.from("nutrition_logs")

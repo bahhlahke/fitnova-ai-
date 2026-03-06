@@ -5,8 +5,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { MetaPixel } from "@/components/tracking/MetaPixel";
 import { Suspense } from "react";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { AiCoachPanel } from "@/components/ai/AiCoachPanel";
+import { MainLayout } from "@/components/layout/MainLayout";
 
 const DEFAULT_SITE_URL = "https://askkodaai.com";
 
@@ -121,14 +120,9 @@ export default function RootLayout({
           >
             Skip to main content
           </a>
-          <Sidebar />
-          <div className="flex min-w-0 flex-1 flex-col md:pl-64">
-            <main id="main" className="flex-1 pb-20 md:pb-10" tabIndex={-1}>
-              {children}
-            </main>
-            <BottomNav />
-            <AiCoachPanel mode="launcher" />
-          </div>
+          <MainLayout>
+            {children}
+          </MainLayout>
         </AuthProvider>
         <Suspense fallback={null}>
           <MetaPixel />

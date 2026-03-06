@@ -458,7 +458,7 @@ export default function HomePage() {
   if (authState === "signed_out") {
     return (
       <div className="mx-auto w-full max-w-shell px-4 py-12 sm:px-6">
-        <section className="relative overflow-hidden rounded-xl3 border border-white/10 bg-black p-8 shadow-fn-card sm:p-16 lg:p-24">
+        <section className="relative overflow-hidden rounded-xl3 border border-white/10 bg-black p-6 shadow-fn-card sm:p-16 lg:p-24">
           <div className="absolute inset-0 z-0">
             <video
               src="/images/push-ups.mp4"
@@ -469,27 +469,27 @@ export default function HomePage() {
               className="h-full w-full object-cover object-center opacity-40 grayscale contrast-125 transition-opacity duration-1000"
             />
           </div>
-          <div className="absolute inset-0 z-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
+          <div className="absolute inset-0 z-0 bg-gradient-to-r from-black via-black/90 to-transparent" />
           <div className="absolute inset-0 z-0 bg-gradient-to-t from-black via-transparent to-black/30" />
 
           <div className="relative z-10">
             <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">
               Legend Status Guaranteed
             </p>
-            <h1 className="mt-6 font-display text-6xl font-black uppercase italic tracking-tighter text-white sm:text-8xl lg:text-9xl">
-              Build<br />your legend
+            <h1 className="mt-6 font-display text-6xl font-black uppercase italic tracking-tighter text-white sm:text-8xl lg:text-9xl leading-[0.85]">
+              Build Your<br />Legend
             </h1>
-            <p className="mt-8 max-w-2xl text-xl font-medium leading-relaxed text-fn-muted/90 lg:text-2xl">
+            <p className="mt-8 max-w-2xl text-lg font-medium leading-relaxed text-fn-muted/90 lg:text-2xl">
               AI-backed fitness coaching with adaptive daily plans, streamlined
               logging, and a single dashboard command center.
             </p>
 
-            <div className="mt-12 flex flex-col gap-5 sm:flex-row">
+            <div className="mt-12 flex flex-col gap-4 sm:flex-row">
               <Link href="/start">
-                <Button className="h-touch-lg px-8 text-sm font-black uppercase tracking-widest">Start Assessment</Button>
+                <Button className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white text-black hover:bg-white/90">Start Assessment</Button>
               </Link>
-              <Link href="/pricing">
-                <Button variant="secondary" className="h-touch-lg px-8 text-sm font-black uppercase tracking-widest">View Protocols</Button>
+              <Link href="/auth">
+                <Button variant="secondary" className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 hover:bg-white/10 text-white">Member Access</Button>
               </Link>
             </div>
 
@@ -650,7 +650,7 @@ export default function HomePage() {
               <p className="text-fn-muted leading-relaxed">Koda AI requires a connection for model inference, but your daily protocol is cached locally for reliable access in the weights room.</p>
             </div>
             <div className="group border-b border-white/5 pb-6">
-              <h3 className="text-lg font-bold text-white uppercase italic tracking-tight mb-3">What makes the "Pro" tier different?</h3>
+              <h3 className="text-lg font-bold text-white uppercase italic tracking-tight mb-3">What makes the &quot;Pro&quot; tier different?</h3>
               <p className="text-fn-muted leading-relaxed">Pro unlocks high-fidelity forecasting, real-time computer vision for form analysis, and prioritized AI inference for even faster responses.</p>
             </div>
           </div>

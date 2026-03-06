@@ -43,7 +43,7 @@ export async function POST(req: Request) {
             .maybeSingle();
 
         if (!profile) {
-            twiml.message("Sorry, I don't recognize this number. Please update your FitNova profile with this phone number to enable SMS coaching.");
+            twiml.message("Sorry, I don't recognize this number. Please update your Koda AI profile with this phone number to enable SMS coaching.");
             return new NextResponse(twiml.toString(), { headers: { "Content-Type": "text/xml" } });
         }
         const userId = profile.user_id;

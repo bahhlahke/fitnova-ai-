@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Card, ErrorMessage } from "@/components/ui";
 import { clearPreAuthDraft, readPreAuthDraft } from "@/lib/funnel/preauth";
@@ -207,10 +208,12 @@ export default function OnboardingPage() {
     <div className="relative min-h-screen w-full overflow-hidden bg-fn-bg">
       {/* Dynamic Background Image */}
       <div className="absolute inset-0 z-0">
-        <img
+        <Image
           src="/images/refined/athletic_female_stretching.png"
           alt="Onboarding Background"
-          className="h-full w-full object-cover opacity-20 grayscale transition-all duration-1000"
+          fill
+          priority
+          className="object-cover opacity-20 grayscale transition-all duration-1000"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-fn-bg via-fn-bg/80 to-transparent" />
       </div>
