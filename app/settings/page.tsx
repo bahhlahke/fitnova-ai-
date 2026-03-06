@@ -732,10 +732,10 @@ export default function SettingsPage() {
         </Card>
 
         <Card padding="lg" className="scroll-mt-24" id="billing">
-          <CardHeader title="Billing" subtitle="Manage FitNova Pro access" />
+          <CardHeader title="Billing" subtitle="Manage Koda AI Pro access" />
           <div className="mt-6 rounded-2xl border border-fn-accent/20 bg-fn-accent/5 p-6 backdrop-blur-md">
             <p className="text-sm font-black text-white italic uppercase tracking-tight">
-              {isPro ? "FitNova Pro Sequence Active" : "Standard Tier Implementation"}
+              {isPro ? "Koda AI Pro Sequence Active" : "Standard Tier Implementation"}
             </p>
             <p className="mt-2 text-xs font-medium text-white/40 leading-relaxed uppercase tracking-widest">
               {isPro

@@ -90,7 +90,7 @@ export function AiCoachPanel({
 
       const data = (await res.json()) as AiResponse;
       if (!res.ok || !data.reply) {
-        throw new Error(data.error ?? "Failed to connect to Nova AI");
+        throw new Error(data.error ?? "Failed to connect to Koda AI");
       }
 
       setMessages((current) => [
@@ -122,7 +122,7 @@ export function AiCoachPanel({
         {showTooltip && (
           <div className="mb-3 animate-in fade-in slide-in-from-bottom-2 duration-500 relative mr-2">
             <div className="rounded-xl border border-fn-accent/30 bg-fn-bg px-4 py-2.5 shadow-[0_0_20px_rgba(10,217,196,0.2)] flex items-center gap-3">
-              <span className="text-xs font-black uppercase tracking-widest text-fn-accent whitespace-nowrap">Coach Nova is ready</span>
+              <span className="text-xs font-black uppercase tracking-widest text-fn-accent whitespace-nowrap">Coach Koda is ready</span>
               <button
                 onClick={(e) => { e.stopPropagation(); setShowTooltip(false); }}
                 className="text-fn-muted hover:text-white transition-colors"
@@ -165,7 +165,7 @@ export function AiCoachPanel({
             Command Center
           </p>
           <h2 className="mt-2 font-display text-3xl font-black uppercase italic tracking-tighter text-white sm:text-4xl">
-            Nova AI
+            Koda AI
           </h2>
         </div>
         <p className="max-w-md text-sm font-medium leading-relaxed text-fn-muted">
@@ -195,7 +195,7 @@ export function AiCoachPanel({
               Ready for input
             </p>
             <p className="mt-3 text-sm font-medium leading-relaxed text-fn-muted">
-              Tell Nova what you ate, how you trained, or what you need to
+              Tell Koda what you ate, how you trained, or what you need to
               change today.
             </p>
           </div>

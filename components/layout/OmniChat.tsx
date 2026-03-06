@@ -67,7 +67,7 @@ export function OmniChat() {
             });
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error ?? "Failed to connect to Nova AI");
+            if (!res.ok) throw new Error(data.error ?? "Failed to connect to Koda AI");
             setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Something went wrong");
@@ -80,11 +80,10 @@ export function OmniChat() {
         <div className="fixed bottom-24 right-4 z-50 flex flex-col items-end gap-3 md:bottom-10 md:right-8">
             {/* Popup Card — CSS-toggled, no backdrop-filter bleed issues */}
             <div
-                className={`w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-fn-border bg-fn-bg shadow-2xl transition-all duration-200 origin-bottom-right ${
-                    isOpen
+                className={`w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-fn-border bg-fn-bg shadow-2xl transition-all duration-200 origin-bottom-right ${isOpen
                         ? "opacity-100 scale-100 pointer-events-auto"
                         : "opacity-0 scale-95 pointer-events-none"
-                }`}
+                    }`}
                 aria-hidden={!isOpen}
             >
                 {/* Header */}
@@ -96,7 +95,7 @@ export function OmniChat() {
                             </svg>
                         </div>
                         <div>
-                            <p className="text-xs font-black uppercase tracking-widest text-fn-accent leading-none">Nova AI</p>
+                            <p className="text-xs font-black uppercase tracking-widest text-fn-accent leading-none">Koda AI</p>
                             <p className="mt-0.5 text-[10px] text-fn-muted">Your personal coach</p>
                         </div>
                     </div>
@@ -104,7 +103,7 @@ export function OmniChat() {
                         type="button"
                         onClick={() => setIsOpen(false)}
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-fn-muted transition-colors hover:bg-white/5 hover:text-white"
-                        aria-label="Close Nova AI"
+                        aria-label="Close Koda AI"
                     >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -134,11 +133,10 @@ export function OmniChat() {
                         messages.map((msg, i) => (
                             <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                                 <div
-                                    className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm font-medium leading-relaxed ${
-                                        msg.role === "user"
+                                    className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm font-medium leading-relaxed ${msg.role === "user"
                                             ? "bg-fn-accent text-black"
                                             : "border border-fn-border bg-fn-surface text-fn-ink"
-                                    }`}
+                                        }`}
                                 >
                                     {msg.content}
                                 </div>
@@ -185,12 +183,11 @@ export function OmniChat() {
             <button
                 type="button"
                 onClick={() => setIsOpen((o) => !o)}
-                className={`flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
-                    isOpen
+                className={`flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 ${isOpen
                         ? "border border-fn-border bg-fn-surface text-fn-muted hover:text-white"
                         : "bg-fn-accent text-fn-bg shadow-[0_0_30px_rgba(10,217,196,0.4)]"
-                }`}
-                aria-label={isOpen ? "Close Nova AI" : "Open Nova AI"}
+                    }`}
+                aria-label={isOpen ? "Close Koda AI" : "Open Koda AI"}
                 aria-expanded={isOpen}
             >
                 {isOpen ? (

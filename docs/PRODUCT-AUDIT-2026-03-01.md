@@ -1,4 +1,4 @@
-# FitNova Product Audit (March 1, 2026)
+# Koda AI Product Audit (March 1, 2026)
 
 ## Scope
 

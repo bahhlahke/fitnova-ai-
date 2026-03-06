@@ -89,7 +89,7 @@ export function Sidebar() {
                         <path d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                 </div>
-                <span className="font-display text-lg font-black uppercase italic tracking-tighter text-white">FitNova</span>
+                <span className="font-display text-lg font-black uppercase italic tracking-tighter text-white">Koda AI</span>
             </div>
 
             {/* Nav */}

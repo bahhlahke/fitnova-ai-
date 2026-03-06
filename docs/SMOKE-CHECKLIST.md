@@ -1,4 +1,4 @@
-# FitNova AI Smoke Checklist
+# Koda AI AI Smoke Checklist
 
 Run this checklist before releasing changes or after schema/API updates.
 

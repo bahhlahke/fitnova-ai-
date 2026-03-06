@@ -1,4 +1,4 @@
-# FitNova AI — Design system
+# Koda AI AI — Design system
 
 ## Imagery
 

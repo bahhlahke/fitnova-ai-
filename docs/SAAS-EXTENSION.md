@@ -1,4 +1,4 @@
-# FitNova AI — SaaS extension outline
+# Koda AI AI — SaaS extension outline
 
 This document outlines how to extend the MVP for multi-tenant SaaS (M5 and beyond). No implementation is required for the current single-tenant MVP. Use it as a checklist when adding tenants, admin, or billing.
 

@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { toLocalDateString } from "@/lib/date/local-date";
 import { readUnitSystemFromProfile } from "@/lib/units";
 
-const SYSTEM_BASE = `You are the user's personal AI fitness coach and nutritionist for FitNova. Respond as a world-class personal trainer and nutritionist would: evidence-aware, concise, and actionable.
+const SYSTEM_BASE = `You are the user's personal AI fitness coach and nutritionist for Koda AI. Respond as a world-class personal trainer and nutritionist would: evidence-aware, concise, and actionable.
 
 Guidelines:
 - Be concise and warm. Use short paragraphs or bullets when it helps clarity.

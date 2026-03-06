@@ -1,5 +1,5 @@
 /**
- * Shared types for FitNova AI.
+ * Shared types for Koda AI.
  * Kept in sync with Supabase schema (see supabase/migrations/).
  * Used by app routes, lib/ai/assemble-context, and API.
  */

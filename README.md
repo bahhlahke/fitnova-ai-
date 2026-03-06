@@ -1,4 +1,4 @@
-# FitNova AI
+# Koda AI
 
 AI-first fitness and nutrition coaching with a premium assessment funnel, adaptive daily planning, and guided execution.
 

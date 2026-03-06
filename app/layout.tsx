@@ -8,7 +8,7 @@ import { Suspense } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { AiCoachPanel } from "@/components/ai/AiCoachPanel";
 
-const DEFAULT_SITE_URL = "https://fitnova-ai.com";
+const DEFAULT_SITE_URL = "https://askkodaai.com";
 
 function normalizeUrl(value: string): string {
   if (value.startsWith("http://") || value.startsWith("https://")) {
@@ -56,19 +56,31 @@ const siteUrl = metadataBase.toString().replace(/\/$/, "");
 
 export const metadata: Metadata = {
   metadataBase,
-  title: "FitNova AI",
-  description: "AI-backed fitness coaching and tracking",
+  title: {
+    default: "Koda AI | Build Your Legend",
+    template: "%s | Koda AI",
+  },
+  description: "Elite AI fitness coaching. Adaptive training protocols, metabolic intelligence, and 24/7 accountability for high-performance athletes.",
+  keywords: ["AI fitness coach", "adaptive workout plans", "metabolic tracking", "personalized nutrition", "Koda AI"],
+  authors: [{ name: "Koda AI Team" }],
+  creator: "Koda AI",
+  publisher: "Koda AI",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   openGraph: {
-    title: "FitNova AI | The Ultimate Pro Experience",
+    title: "Koda AI | Build Your Legend",
     description: "The most advanced AI coaching engine ever built. Personalized training, metabolic autopilot, and 24/7 accountability.",
     url: siteUrl,
-    siteName: "FitNova AI",
+    siteName: "Koda AI",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "FitNova AI Pro Experience",
+        alt: "Koda AI Pro Experience",
       },
     ],
     locale: "en_US",
@@ -76,9 +88,21 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "FitNova AI | Build your legend",
+    title: "Koda AI | Build Your Legend",
     description: "The most advanced AI coaching engine ever built. Personalized training, metabolic autopilot, and 24/7 accountability.",
     images: ["/og-image.jpg"],
+    creator: "@askkodaai",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 

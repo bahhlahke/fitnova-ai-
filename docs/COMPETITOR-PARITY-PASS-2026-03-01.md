@@ -35,7 +35,7 @@ Evaluation inputs:
   - [WHOOP 2025 launch summary](https://www.whoop.com/hr/en/thelocker/everything-whoop-launched-in-2025/)
   - [OpenAI + WHOOP case study](https://openai.com/index/whoop/)
 
-## FitNova Implementation Verified
+## Koda AI Implementation Verified
 
 Implemented and shipped in code:
 - Weekly planning and persistence:
@@ -69,7 +69,7 @@ Implemented and shipped in code:
 
 Scoring rubric: 0-100 weighted by user outcome impact.
 
-| Dimension | Weight | FitNova Score | Notes |
+| Dimension | Weight | Koda AI Score | Notes |
 |---|---:|---:|---|
 | Human coaching/accountability depth | 20 | 8 | Escalation intake exists, but no staffed response workflow/SLA or coach-side tooling. |
 | Adaptive planning depth | 15 | 9 | Weekly+daily adaptation exists, but mostly rule/template based and limited to shallow signals. |
@@ -91,7 +91,7 @@ Current parity:
 
 Material gaps:
 - Future leads with continuous 1:1 coach relationship, proactive accountability, and wearable-driven personalization.
-- FitNova currently provides escalation intake, not ongoing human coaching operations.
+- Koda AI currently provides escalation intake, not ongoing human coaching operations.
 
 Verdict:
 - **Not at quality parity** for core Future differentiator (human accountability + integrated coaching cadence).
@@ -103,7 +103,7 @@ Current parity:
 
 Material gaps:
 - Fitbod emphasizes feedback learning loops (recommend more/less/exclude, RiR, estimated strength/1RM, recovery heatmap influence).
-- FitNova lacks comparable progression memory and intensity autoregulation depth.
+- Koda AI lacks comparable progression memory and intensity autoregulation depth.
 
 Verdict:
 - **Partial parity** on adaptation surface, **below parity** on progression intelligence.
@@ -115,7 +115,7 @@ Current parity:
 
 Material gaps:
 - Caliber combines progression suggestions, PR-centric analytics, richer coaching cadence, and stronger coaching communication operations.
-- FitNova analytics are currently lighter and mostly 14-day summary metrics.
+- Koda AI analytics are currently lighter and mostly 14-day summary metrics.
 
 Verdict:
 - **Below parity** on coaching operations and analytics maturity.
@@ -127,7 +127,7 @@ Current parity:
 
 Material gaps:
 - Freeletics supports broader in-session adaptation choices (time, space, equipment, noise, body-area exclusions, difficulty shifts) and deep journey-level adaptation patterns.
-- FitNova adaptation set is narrower.
+- Koda AI adaptation set is narrower.
 
 Verdict:
 - **Near parity** on concept, **below parity** on adaptation breadth/depth.
@@ -139,7 +139,7 @@ Current parity:
 
 Material gaps:
 - Noom Premium combines 1:1 coach + 24/7 AI assistant with a structured behavior-change curriculum and coaching cadence.
-- FitNova does not yet have comparable behavior curriculum orchestration or active coach-layer service delivery.
+- Koda AI does not yet have comparable behavior curriculum orchestration or active coach-layer service delivery.
 
 Verdict:
 - **Below parity** on behavior-change and coaching program quality.
@@ -151,7 +151,7 @@ Current parity:
 
 Material gaps:
 - WHOOP guidance uses dense wearable data context plus persistent user memory across app contexts.
-- FitNova currently has limited integration breadth and no equivalent contextual memory system tied to broad physiology streams.
+- Koda AI currently has limited integration breadth and no equivalent contextual memory system tied to broad physiology streams.
 
 Verdict:
 - **Below parity** on context richness and physiology-connected guidance.

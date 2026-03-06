@@ -1,4 +1,4 @@
-# FitNova AI — API
+# Koda AI AI — API
 
 ## POST `/api/v1/ai/respond`
 

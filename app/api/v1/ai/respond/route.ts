@@ -106,7 +106,7 @@ export async function POST(request: Request) {
     }
 
     let systemPrompt =
-      "You are a personal AI fitness coach and nutritionist for FitNova. Be concise and warm.\n\n" +
+      "You are a personal AI fitness coach and nutritionist for Koda AI. Be concise and warm.\n\n" +
       "You have direct control over the application. You can:\n" +
       "- Log food (`log_meal`) and water (`log_hydration`).\n" +
       "- Log workouts (`log_workout`) with `calories_burned` for expenditure.\n" +
@@ -390,7 +390,7 @@ export async function POST(request: Request) {
                   duration_minutes: Math.round(durationMinutes),
                   calories_burned: Number.isFinite(args.calories_burned) ? Math.round(Number(args.calories_burned)) : null,
                   exercises: [],
-                  notes: args.notes || "Logged via Nova AI"
+                  notes: args.notes || "Logged via Koda AI"
                 });
                 if (insertError) throw new Error(insertError.message);
                 const calStr = args.calories_burned ? ` (${Math.round(args.calories_burned)} kcal burned)` : "";
@@ -572,7 +572,7 @@ export async function POST(request: Request) {
                     weight?: number;
                     body_fat_percent?: number;
                   } = {
-                    notes: "Logged via Nova AI",
+                    notes: "Logged via Koda AI",
                   };
                   if (hasWeight) updatePayload.weight = toKgFromLbs(weightLbs);
                   if (hasBodyFat) updatePayload.body_fat_percent = bodyFatPercent;
@@ -591,7 +591,7 @@ export async function POST(request: Request) {
                       weight: hasWeight ? toKgFromLbs(weightLbs) : null,
                       body_fat_percent: hasBodyFat ? bodyFatPercent : null,
                       measurements: {},
-                      notes: "Logged via Nova AI",
+                      notes: "Logged via Koda AI",
                     });
                   if (insertError) throw new Error(insertError.message);
                 }

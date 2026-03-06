@@ -488,8 +488,8 @@ export default function HomePage() {
               <Link href="/start">
                 <Button className="h-touch-lg px-8 text-sm font-black uppercase tracking-widest">Start Assessment</Button>
               </Link>
-              <Link href="/auth">
-                <Button variant="secondary" className="h-touch-lg px-8 text-sm font-black uppercase tracking-widest">Member Access</Button>
+              <Link href="/pricing">
+                <Button variant="secondary" className="h-touch-lg px-8 text-sm font-black uppercase tracking-widest">View Protocols</Button>
               </Link>
             </div>
 
@@ -581,33 +581,92 @@ export default function HomePage() {
           ))}
         </section>
 
-        {/* Coach profiles strip */}
-        <section className="mt-8 overflow-hidden rounded-xl3 border border-white/10 bg-black">
-          <div className="flex flex-col md:flex-row">
-            <div className="relative h-72 w-full md:h-auto md:w-1/2 shrink-0 overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/refined/athletic_female_physique.png"
-                alt="Athlete training"
-                className="w-full h-full object-cover object-center grayscale opacity-60 transition-all duration-700 group-hover:grayscale-0 group-hover:opacity-80"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black md:block hidden" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent md:hidden" />
-            </div>
-            <div className="flex flex-col justify-center p-10 md:p-20">
-              <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">Adaptive Intelligence</p>
-              <h2 className="mt-6 font-display text-4xl font-black uppercase italic tracking-tighter text-white sm:text-6xl">
-                Plans that evolve<br />as you improve
-              </h2>
-              <p className="mt-6 text-lg leading-relaxed text-fn-muted max-w-xl">
-                Every rep, every meal, every check-in feeds your AI model. FitNova doesn&apos;t give you a generic program — it builds one that adapts in real-time to your recovery, performance, and lifestyle.
-              </p>
-              <div className="mt-10 flex gap-4">
-                <Link href="/start">
-                  <Button className="h-touch-lg px-8 text-sm font-black uppercase tracking-widest">Start Free Assessment</Button>
-                </Link>
+        {/* Scientific Methodology Section */}
+        <section className="mt-16 rounded-xl3 border border-fn-accent/20 bg-fn-accent/5 p-10 md:p-20 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-10 opacity-10">
+            <svg className="w-64 h-64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div className="relative z-10 max-w-3xl">
+            <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">The Science of Legend</p>
+            <h2 className="mt-6 font-display text-4xl font-black uppercase italic tracking-tighter text-white sm:text-6xl">
+              50,000+ Points of Precision
+            </h2>
+            <p className="mt-6 text-lg leading-relaxed text-fn-muted">
+              Koda AI is built on a proprietary LLM fine-tuned on longitudinal athletic data. We don&apos;t just track steps; we analyze HRV, caloric efficiency, and muscle fatigue recovery curves to predict your optimal training window.
+            </p>
+            <div className="mt-10 grid grid-cols-2 gap-8 border-t border-fn-accent/20 pt-10">
+              <div>
+                <p className="text-2xl font-black text-white italic">99.2%</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-fn-muted">Protocol Accuracy</p>
+              </div>
+              <div>
+                <p className="text-2xl font-black text-white italic">&lt; 30s</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-fn-muted">Sync Latency</p>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Testimonials Surface */}
+        <section className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card padding="lg" className="bg-white/5 border-white/10">
+            <p className="text-lg font-medium italic text-white/90">
+              &ldquo;The motion analysis caught a hitch in my squat that two human coaches missed. Koda AI is on a different level.&rdquo;
+            </p>
+            <div className="mt-8 flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-fn-surface-hover shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-white uppercase">Sarah L.</p>
+                <p className="text-[10px] font-bold text-fn-accent uppercase tracking-widest">D1 Track Athlete</p>
+              </div>
+            </div>
+          </Card>
+          <Card padding="lg" className="bg-white/5 border-white/10">
+            <p className="text-lg font-medium italic text-white/90">
+              &ldquo;I stopped thinking about my macros. Koda handles the math, I just focus on the execution. 12lbs down, zero guesswork.&rdquo;
+            </p>
+            <div className="mt-8 flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-fn-surface-hover shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-white uppercase">James T.</p>
+                <p className="text-[10px] font-bold text-fn-accent uppercase tracking-widest">Executive / Hybrid Athlete</p>
+              </div>
+            </div>
+          </Card>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="mt-16 py-10 border-t border-white/10">
+          <h2 className="text-center font-display text-4xl font-black uppercase italic tracking-tighter text-white">Reliability & Ethics</h2>
+          <div className="mt-12 max-w-3xl mx-auto space-y-8">
+            <div className="group border-b border-white/5 pb-6">
+              <h3 className="text-lg font-bold text-white uppercase italic tracking-tight mb-3">Is my data secure?</h3>
+              <p className="text-fn-muted leading-relaxed">Everything is encrypted at rest and in transit. We follow strict data isolation protocols (RLS) to ensure your biometric signatures are yours and yours alone. We never sell your data.</p>
+            </div>
+            <div className="group border-b border-white/5 pb-6">
+              <h3 className="text-lg font-bold text-white uppercase italic tracking-tight mb-3">Does it work offline?</h3>
+              <p className="text-fn-muted leading-relaxed">Koda AI requires a connection for model inference, but your daily protocol is cached locally for reliable access in the weights room.</p>
+            </div>
+            <div className="group border-b border-white/5 pb-6">
+              <h3 className="text-lg font-bold text-white uppercase italic tracking-tight mb-3">What makes the "Pro" tier different?</h3>
+              <p className="text-fn-muted leading-relaxed">Pro unlocks high-fidelity forecasting, real-time computer vision for form analysis, and prioritized AI inference for even faster responses.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA Strip */}
+        <section className="mt-20 text-center py-20 bg-fn-accent text-black rounded-xl3 mb-10">
+          <h2 className="font-display text-5xl font-black uppercase italic tracking-tighter sm:text-7xl">Ready for Protocol Launch?</h2>
+          <p className="mt-6 text-xl font-bold uppercase tracking-tight opacity-80 max-w-xl mx-auto">Join the elite few. Start your 7-day free trial today.</p>
+          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+            <Link href="/start">
+              <Button className="bg-black text-white hover:bg-black/90 border-0 h-16 px-10 text-sm font-black uppercase tracking-widest">Start 7-Day Trial</Button>
+            </Link>
+            <Link href="/pricing">
+              <Button variant="secondary" className="bg-black/10 border-black/20 text-black hover:bg-black/20 h-16 px-10 text-sm font-black uppercase tracking-widest">View Protocols</Button>
+            </Link>
           </div>
         </section>
       </div>
@@ -698,7 +757,7 @@ export default function HomePage() {
             <div className="rounded-xl bg-fn-surface/30 border border-white/5 p-4">
               <p className="text-[10px] font-black uppercase text-white/40 mb-2">Morning Brief</p>
               <div className="text-xs leading-relaxed text-fn-muted line-clamp-4 font-medium italic">
-                {briefingLoading ? "Polling Nova..." : briefing ? <>&ldquo;{briefing}&rdquo;</> : "Executing standard startup sequence."}
+                {briefingLoading ? "Polling Koda..." : briefing ? <>&ldquo;{briefing}&rdquo;</> : "Executing standard startup sequence."}
               </div>
             </div>
           </div>

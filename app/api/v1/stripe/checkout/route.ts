@@ -34,15 +34,18 @@ export async function POST(req: Request) {
       metadata: {
         userId: user.id,
       },
+      subscription_data: {
+        trial_period_days: 7,
+      },
       line_items: [
         {
           price_data: {
             currency: "usd",
             product_data: {
-              name: "FitNova Pro Experience",
-              description: "Full access to elite-tier adaptive training and metabolic intelligence.",
+              name: "Koda AI Pro",
+              description: "Elite AI coaching & performance intelligence (7-day free trial, then $9.99/mo).",
             },
-            unit_amount: 2900,
+            unit_amount: 999,
             recurring: { interval: "month" },
           },
           quantity: 1,

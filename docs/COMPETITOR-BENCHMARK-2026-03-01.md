@@ -1,4 +1,4 @@
-# FitNova Competitor Benchmark (March 1, 2026)
+# Koda AI Competitor Benchmark (March 1, 2026)
 
 ## Competitors analyzed
 
@@ -11,12 +11,12 @@
 
 ## Executive summary
 
-FitNova already competes well on:
+Koda AI already competes well on:
 - AI command-center UX for logging + coaching inside one surface.
 - Multi-modal AI features (chat actions, nutrition estimate, motion, body comp).
 - Fast MVP breadth (planning, logging, progress, settings, billing, SMS, export).
 
-FitNova is behind on:
+Koda AI is behind on:
 - Human accountability layer (coach oversight or hybrid model).
 - Long-horizon progression/periodization and adaptive planning depth.
 - Retention mechanics (structured habit loops, strong reminder system, behavior rescue).
@@ -24,7 +24,7 @@ FitNova is behind on:
 
 ## Feature parity matrix
 
-| Capability | FitNova (current) | Future | Fitbod | Freeletics | Caliber | Noom | Centr |
+| Capability | Koda AI (current) | Future | Fitbod | Freeletics | Caliber | Noom | Centr |
 |---|---|---|---|---|---|---|---|
 | 1:1 human coaching | No | Yes | No | No | Yes (coach tiers) | Yes (coaching tiers) | Program-led, less 1:1 |
 | AI chat coach | Yes | Limited/user-coach centric | Limited | Yes (AI coach positioning) | Partial | Yes (Noom Coach AI) | Limited |
@@ -41,35 +41,35 @@ FitNova is behind on:
 
 ### vs Future
 
-Future’s key moat is high-touch accountability and coach relationship. FitNova’s moat can be speed + AI breadth. To win this comparison, FitNova needs:
+Future’s key moat is high-touch accountability and coach relationship. Koda AI’s moat can be speed + AI breadth. To win this comparison, Koda AI needs:
 - Hybrid accountability mode (AI coach + optional human escalation/check-ins).
 - Strong adherence loops and proactive interventions.
 
 ### vs Fitbod / Freeletics
 
-These products are strong in workout adaptation and execution continuity. FitNova needs:
+These products are strong in workout adaptation and execution continuity. Koda AI needs:
 - Exercise progression memory and overload recommendations.
 - Multi-week periodized training blocks (not just daily plan generation).
 
 ### vs Caliber
 
-Caliber differentiates on coaching tiers and analytics depth. FitNova needs:
+Caliber differentiates on coaching tiers and analytics depth. Koda AI needs:
 - Better trend analytics and coaching explainability.
 - Premium tier differentiation that is outcome-focused, not feature-list focused.
 
 ### vs Noom
 
-Noom leads behavior-change systems and ongoing habit psychology. FitNova needs:
+Noom leads behavior-change systems and ongoing habit psychology. Koda AI needs:
 - Behavioral interventions attached to detected risk patterns.
 - More robust nutrition adherence pathways and checkback loops.
 
 ### vs Centr
 
-Centr wins on polished content ecosystem and brand-led programming. FitNova should avoid content-library race and instead focus on:
+Centr wins on polished content ecosystem and brand-led programming. Koda AI should avoid content-library race and instead focus on:
 - Adaptive intelligence and personalized outcomes.
 - Faster “coach-like decisioning” tied to personal data.
 
-## Features FitNova should add (ranked)
+## Features Koda AI should add (ranked)
 
 ### P0 (must-have to stay competitive)
 
@@ -91,7 +91,7 @@ Centr wins on polished content ecosystem and brand-led programming. FitNova shou
 
 ## Positioning recommendation
 
-Position FitNova as:
+Position Koda AI as:
 - “The AI-first performance and physique operating system.”
 
 Not as:

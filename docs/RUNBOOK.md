@@ -1,4 +1,4 @@
-# FitNova AI — Runbook
+# Koda AI AI — Runbook
 
 ## Prerequisites
 

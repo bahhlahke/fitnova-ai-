@@ -95,7 +95,7 @@ export default function AuthPage() {
       <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
         <Card padding="lg" className="hero-reveal">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">Continue your personalized plan</p>
-          <h1 className="mt-3 font-display text-4xl text-fn-ink sm:text-5xl">Create your FitNova coaching account</h1>
+          <h1 className="mt-3 font-display text-4xl text-fn-ink sm:text-5xl">Create your Koda AI coaching account</h1>
           <p className="mt-3 max-w-xl text-base text-fn-muted">
             You are one step away from adaptive workouts, nutrition targets, and in-app accountability.
           </p>

@@ -80,7 +80,7 @@ export default function CommunityPage() {
             </div>
 
             <div className="mb-12">
-                <CardHeader title="Global Protocols" subtitle="Compete with the high-performance FitNova community" />
+                <CardHeader title="Global Protocols" subtitle="Compete with the high-performance Koda AI community" />
                 <div className="mt-8">
                     <CommunityChallenges />
                 </div>
