@@ -34,6 +34,7 @@ import {
 import { normalizePhoneNumber } from "@/lib/phone";
 import { parseAppleHealthExport } from "@/lib/apple-health/import";
 import { emitDataRefresh } from "@/lib/ui/data-sync";
+import { EQUIPMENT_PRESETS, EQUIPMENT_LABELS, type EquipmentTag, type GymAccessLevel } from "@/lib/plan/equipment";
 
 const GOAL_OPTIONS = [
   "Weight loss",
@@ -118,6 +119,15 @@ export default function SettingsPage() {
     preferred_training_days: [1, 2, 3, 4, 5],
     preferred_training_window: "morning",
   });
+  const [equipmentProfile, setEquipmentProfile] = useState<{
+    gym_access: GymAccessLevel;
+    available_equipment: EquipmentTag[];
+    notes: string;
+  }>({
+    gym_access: "full_gym",
+    available_equipment: EQUIPMENT_PRESETS.full_gym.equipment,
+    notes: "",
+  });
 
   const { user, loading: authLoading } = useAuth();
 
@@ -150,6 +160,19 @@ export default function SettingsPage() {
             preferred_training_days?: number[];
             preferred_training_window?: string;
           };
+          const eq = (dev.equipment ?? {}) as {
+            gym_access?: GymAccessLevel;
+            available_equipment?: EquipmentTag[];
+            notes?: string;
+          };
+          const gymAccess: GymAccessLevel = eq.gym_access ?? "full_gym";
+          setEquipmentProfile({
+            gym_access: gymAccess,
+            available_equipment: Array.isArray(eq.available_equipment)
+              ? eq.available_equipment
+              : EQUIPMENT_PRESETS[gymAccess].equipment,
+            notes: eq.notes ?? "",
+          });
           setReminders({
             daily_plan: rem.daily_plan ?? true,
             workout_log: rem.workout_log ?? true,
@@ -238,6 +261,7 @@ export default function SettingsPage() {
           units_system: unitSystem,
           reminders,
           training_schedule: trainingSchedule,
+          equipment: equipmentProfile,
         },
       },
       { onConflict: "user_id" }
@@ -732,6 +756,69 @@ export default function SettingsPage() {
                 </option>
               ))}
             </Select>
+          </div>
+        </Card>
+
+        <Card padding="lg">
+          <CardHeader title="Equipment &amp; Gym Access" subtitle="Used to personalize exercises in your training plan" />
+          <div className="mt-4">
+            <Label>Gym access level</Label>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {(Object.entries(EQUIPMENT_PRESETS) as [GymAccessLevel, typeof EQUIPMENT_PRESETS[GymAccessLevel]][]).map(([key, preset]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setEquipmentProfile((prev) => ({
+                    ...prev,
+                    gym_access: key,
+                    available_equipment: preset.equipment,
+                  }))}
+                  className={`text-left rounded-xl border px-4 py-3 transition-all duration-200 ${equipmentProfile.gym_access === key
+                      ? "border-fn-accent/40 bg-fn-accent/10 text-fn-accent"
+                      : "border-white/[0.07] bg-fn-surface/30 text-fn-muted hover:bg-fn-surface/60"
+                    }`}
+                >
+                  <p className="text-xs font-black uppercase tracking-widest">{preset.label}</p>
+                  <p className="text-[9px] text-fn-muted/60 mt-0.5">{preset.description}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="mt-5">
+            <Label>Individual equipment (toggle to add/remove)</Label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(Object.entries(EQUIPMENT_LABELS) as [EquipmentTag, string][]).map(([tag, label]) => {
+                const active = equipmentProfile.available_equipment.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setEquipmentProfile((prev) => ({
+                      ...prev,
+                      available_equipment: active
+                        ? prev.available_equipment.filter((e) => e !== tag)
+                        : [...prev.available_equipment, tag],
+                    }))}
+                    className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border transition-all ${active
+                        ? "bg-fn-accent/10 border-fn-accent/30 text-fn-accent"
+                        : "bg-white/[0.03] border-white/[0.07] text-white/30 hover:text-white/60"
+                      }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="mt-4">
+            <Label htmlFor="equipmentNotes">Equipment notes (optional)</Label>
+            <Textarea
+              id="equipmentNotes"
+              value={equipmentProfile.notes}
+              onChange={(e) => setEquipmentProfile((prev) => ({ ...prev, notes: e.target.value }))}
+              placeholder="e.g. No barbell at home — only dumbbells up to 50 lbs. Gym on Mon/Wed/Fri."
+              className="mt-1"
+            />
           </div>
         </Card>
 

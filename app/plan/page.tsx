@@ -365,7 +365,46 @@ export default function PlanPage() {
                                     <p className="text-sm text-fn-muted leading-relaxed italic">{selectedDay.rationale}</p>
                                 </div>
 
-                                {/* CTAs */}
+                                {/* Exercise List */}
+                                {(selectedDay as WeeklyPlanDay & { exercises?: Array<{ name: string; equipment: string; sets: number; reps: string; coaching_cue: string }> }).exercises?.length ? (
+                                    <div className="rounded-2xl border border-white/[0.07] bg-fn-surface/40 overflow-hidden">
+                                        <div className="px-5 pt-4 pb-3 border-b border-white/[0.05] flex items-center justify-between">
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-fn-muted">Planned Session</p>
+                                                {(selectedDay as WeeklyPlanDay & { equipment_context?: string }).equipment_context && (
+                                                    <p className="text-[9px] text-fn-muted/40 mt-0.5">
+                                                        {(selectedDay as WeeklyPlanDay & { equipment_context?: string }).equipment_context}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${config.border} ${config.text}`}>
+                                                {(selectedDay as WeeklyPlanDay & { exercises?: unknown[] }).exercises?.length} exercises
+                                            </span>
+                                        </div>
+                                        <ul className="divide-y divide-white/[0.04]">
+                                            {(selectedDay as WeeklyPlanDay & { exercises?: Array<{ name: string; equipment: string; sets: number; reps: string; coaching_cue: string }> }).exercises?.map((ex, i) => (
+                                                <li key={i} className="px-5 py-3.5 group hover:bg-white/[0.02] transition-colors">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-bold text-white leading-tight">{ex.name}</p>
+                                                            <span className="inline-block mt-0.5 text-[8px] font-black uppercase tracking-widest bg-white/[0.05] border border-white/[0.07] text-fn-muted/60 px-1.5 py-0.5 rounded-md">
+                                                                {ex.equipment}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-right shrink-0">
+                                                            <p className={`text-sm font-black ${config.text}`}>{ex.sets}×</p>
+                                                            <p className="text-[9px] font-bold text-fn-muted/60">{ex.reps}</p>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[10px] text-fn-muted/50 mt-1.5 italic leading-snug pl-2 border-l border-white/[0.05]">
+                                                        {ex.coaching_cue}
+                                                    </p>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ) : null}
+
                                 <div className="space-y-2">
                                     {today && (
                                         <Link href="/check-in" className="block">

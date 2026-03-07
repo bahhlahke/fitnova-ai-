@@ -42,6 +42,14 @@ export type DailyPlan = {
   safety_notes: string[];
 };
 
+export type WeeklyPlanExercise = {
+  name: string;
+  equipment: string;
+  sets: number;
+  reps: string;
+  coaching_cue: string;
+};
+
 export type WeeklyPlanDay = {
   date_local: string;
   day_label: string;
@@ -49,6 +57,8 @@ export type WeeklyPlanDay = {
   intensity: "low" | "moderate" | "high";
   target_duration_minutes: number;
   rationale: string;
+  equipment_context: string; // e.g. "Barbell, Dumbbells, Cable Machine"
+  exercises: WeeklyPlanExercise[];
 };
 
 export type WeeklyPlan = {
