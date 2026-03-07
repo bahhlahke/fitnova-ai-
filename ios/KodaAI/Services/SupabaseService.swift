@@ -52,6 +52,12 @@ final class SupabaseService: ObservableObject {
         )
     }
 
+    /// Email + password sign-in for users who registered with a password.
+    func signInWithPassword(email: String, password: String) async throws {
+        _ = try await client.auth.signIn(email: email, password: password)
+        await refreshSession()
+    }
+
     /// Sign in with Apple (required for App Store if you offer other third-party sign-in).
     func signInWithApple(idToken: String, nonce: String) async throws {
         _ = try await client.auth.signInWithIdToken(

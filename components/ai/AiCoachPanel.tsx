@@ -79,12 +79,19 @@ export function AiCoachPanel({
     setError(null);
 
     try {
+      // Capture current messages before the state update resolves
+      const currentMessages = messages.slice(-8).map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
       const res = await fetch("/api/v1/ai/respond", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
           localDate: toLocalDateString(),
+          conversationHistory: currentMessages,
         }),
       });
 

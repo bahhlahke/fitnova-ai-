@@ -16,13 +16,15 @@ struct KodaAPIService {
         self.getAccessToken = getAccessToken
     }
 
-    /// POST /api/v1/ai/respond — AI coach chat.
-    func aiRespond(message: String, localDate: String? = nil) async throws -> AIReplyResponse {
-        let body: [String: Any] = {
-            var b: [String: Any] = ["message": message]
-            if let d = localDate, !d.isEmpty { b["localDate"] = d }
-            return b
-        }()
+    /// POST /api/v1/ai/respond — AI coach chat with optional conversation history.
+    func aiRespond(
+        message: String,
+        conversationHistory: [[String: String]] = [],
+        localDate: String? = nil
+    ) async throws -> AIReplyResponse {
+        var body: [String: Any] = ["message": message]
+        if let d = localDate, !d.isEmpty { body["localDate"] = d }
+        if !conversationHistory.isEmpty { body["conversationHistory"] = conversationHistory }
         return try await post("api/v1/ai/respond", body: body)
     }
 
@@ -39,9 +41,69 @@ struct KodaAPIService {
         return try await get(path)
     }
 
+    /// POST /api/v1/plan/adapt-day — AI adapts today's day with constraints.
+    func planAdaptDay(date: String, reason: String, location: String? = nil, minutesAvailable: Int? = nil) async throws -> AdaptDayResponse {
+        var body: [String: Any] = ["date": date, "reason": reason]
+        if let l = location { body["location"] = l }
+        if let m = minutesAvailable { body["minutesAvailable"] = m }
+        return try await post("api/v1/plan/adapt-day", body: body)
+    }
+
+    /// POST /api/v1/plan/swap-exercise — AI swaps one exercise for another.
+    func planSwapExercise(
+        currentExercise: String,
+        reason: String,
+        location: String? = nil,
+        sets: Int? = nil,
+        reps: String? = nil,
+        intensity: String? = nil
+    ) async throws -> SwapExerciseResponse {
+        var body: [String: Any] = ["currentExercise": currentExercise, "reason": reason]
+        if let l = location { body["location"] = l }
+        if let s = sets { body["sets"] = s }
+        if let r = reps { body["reps"] = r }
+        if let i = intensity { body["intensity"] = i }
+        return try await post("api/v1/plan/swap-exercise", body: body)
+    }
+
     /// GET /api/v1/analytics/performance — 14-day analytics.
     func analyticsPerformance() async throws -> PerformanceResponse {
         try await get("api/v1/analytics/performance")
+    }
+
+    /// POST /api/v1/analytics/process-prs — detect personal records.
+    func analyticsProcessPRs() async throws -> EmptyResponse {
+        try await post("api/v1/analytics/process-prs", body: [:])
+    }
+
+    /// GET /api/v1/ai/briefing — daily performance briefing.
+    func aiBriefing(localDate: String) async throws -> BriefingResponse {
+        try await get("api/v1/ai/briefing?localDate=\(localDate)")
+    }
+
+    /// POST /api/v1/ai/projection — weight projection.
+    func aiProjection(today: String) async throws -> DashboardProjectionResponse {
+        try await post("api/v1/ai/projection", body: ["today": today])
+    }
+
+    /// POST /api/v1/ai/retention-risk — churn risk analysis.
+    func aiRetentionRisk(localDate: String) async throws -> RetentionRiskResponse {
+        try await post("api/v1/ai/retention-risk", body: ["localDate": localDate])
+    }
+
+    /// GET /api/v1/ai/post-workout-insight — post-workout summary.
+    func aiPostWorkoutInsight(dateLocal: String) async throws -> PostWorkoutInsightResponse {
+        try await get("api/v1/ai/post-workout-insight?dateLocal=\(dateLocal)")
+    }
+
+    /// POST /api/v1/coach/nudge-ack — acknowledge a coach nudge.
+    func coachNudgeAck(nudgeId: String) async throws -> EmptyResponse {
+        try await post("api/v1/coach/nudge-ack", body: ["nudge_id": nudgeId])
+    }
+
+    /// POST /api/v1/awards/check — check for newly earned badges.
+    func awardsCheck() async throws -> AwardsCheckResponse {
+        try await post("api/v1/awards/check", body: [:])
     }
 
     // MARK: - Private
@@ -105,6 +167,8 @@ struct APIErrorBody: Decodable {
     let error: String?
     let code: String?
 }
+
+struct EmptyResponse: Decodable {}
 
 struct AIReplyResponse: Decodable {
     let reply: String
