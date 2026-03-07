@@ -67,7 +67,7 @@ struct AuthView: View {
                 try await auth.signInWithMagicLink(email: email)
                 message = "Check your email and tap the link to sign in."
             } catch {
-                message = error.localizedDescription
+                message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             }
             isLoading = false
         }

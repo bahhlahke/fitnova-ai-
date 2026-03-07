@@ -47,7 +47,14 @@ struct KodaAPIService {
     // MARK: - Private
 
     private func get<T: Decodable>(_ path: String) async throws -> T {
-        let url = path.hasPrefix("http") ? URL(string: path)! : URL(string: path, relativeTo: baseURL)!.absoluteURL
+        let url: URL
+        if path.hasPrefix("http"), let u = URL(string: path) {
+            url = u
+        } else if let u = URL(string: path, relativeTo: baseURL)?.absoluteURL {
+            url = u
+        } else {
+            throw KodaAPIError.invalidURL
+        }
         var request = URLRequest(url: url)
         request.timeoutInterval = 30
         request.httpMethod = "GET"
@@ -61,7 +68,14 @@ struct KodaAPIService {
     }
 
     private func post<T: Decodable>(_ path: String, body: [String: Any]) async throws -> T {
-        let url = path.hasPrefix("http") ? URL(string: path)! : URL(string: path, relativeTo: baseURL)!.absoluteURL
+        let url: URL
+        if path.hasPrefix("http"), let u = URL(string: path) {
+            url = u
+        } else if let u = URL(string: path, relativeTo: baseURL)?.absoluteURL {
+            url = u
+        } else {
+            throw KodaAPIError.invalidURL
+        }
         var request = URLRequest(url: url)
         request.timeoutInterval = 30
         request.httpMethod = "POST"
@@ -156,7 +170,22 @@ enum KodaAPIError: Error {
     case http(status: Int, message: String)
     case noAuth
     case invalidResponse
+    case invalidURL
     case unknown
+}
+
+extension KodaAPIError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .http(let status, let message):
+            if status == 401 { return "Please sign in again." }
+            if status == 429 { return "Too many requests. Please try again in a minute." }
+            return message.isEmpty ? "Something went wrong (\(status))." : message
+        case .noAuth: return "Please sign in to continue."
+        case .invalidResponse, .invalidURL: return "Network error. Please try again."
+        case .unknown: return "Something went wrong. Please try again."
+        }
+    }
 }
 
 /// Type-erased Codable for flexible API/Supabase payloads.

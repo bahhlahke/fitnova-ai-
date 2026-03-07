@@ -13,6 +13,9 @@ import {
 } from "@/lib/workout/exercise-images";
 import { Button } from "@/components/ui";
 import { emitDataRefresh } from "@/lib/ui/data-sync";
+import { useSpotify } from "@/lib/music/SpotifyProvider";
+import { SpotifyMiniPlayer } from "@/components/music/SpotifyMiniPlayer";
+import { getWorkoutsPlaylists, spotifyFetch } from "@/lib/spotify";
 
 type GuidedExercise = {
   name: string;
@@ -57,13 +60,24 @@ export default function GuidedWorkoutPage() {
   const [isSwapOptionsVisible, setIsSwapOptionsVisible] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [isMusicPanelOpen, setIsMusicPanelOpen] = useState(false);
+  const { setVolume, volume: spotifyVolume } = useSpotify();
   const workoutStartedAt = useRef<number | null>(null);
 
   const playCoachAudio = useCallback(async (contextStr: string, metrics?: any) => {
     if (!audioEnabled) return;
 
+    // Audio Ducking: Lower Spotify volume
+    const originalVolume = spotifyVolume;
+    await setVolume(0.15);
+
     // Stop anything currently playing
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+
+    const restoreVolume = async () => {
+      setIsPlayingAudio(false);
+      await setVolume(originalVolume);
+    };
 
     try {
       setIsPlayingAudio(true);
@@ -84,7 +98,7 @@ export default function GuidedWorkoutPage() {
         source.buffer = decoded;
         source.connect(audioCtx.destination);
         source.onended = () => {
-          setIsPlayingAudio(false);
+          restoreVolume();
           audioCtx.close();
         };
         source.start(0);
@@ -93,12 +107,12 @@ export default function GuidedWorkoutPage() {
 
       // ── Fallback: browser SpeechSynthesis with improved voice ─────────────
       if (!("speechSynthesis" in window)) {
-        setIsPlayingAudio(false);
+        restoreVolume();
         return;
       }
 
       const data = await res.json();
-      if (!data.script) { setIsPlayingAudio(false); return; }
+      if (!data.script) { restoreVolume(); return; }
 
       const speak = (voices: SpeechSynthesisVoice[]) => {
         const utterance = new SpeechSynthesisUtterance(data.script);
@@ -120,8 +134,8 @@ export default function GuidedWorkoutPage() {
         utterance.rate = 1.08;
         utterance.pitch = 1.15;
         utterance.volume = 1.0;
-        utterance.onend = () => setIsPlayingAudio(false);
-        utterance.onerror = () => setIsPlayingAudio(false);
+        utterance.onend = () => restoreVolume();
+        utterance.onerror = () => restoreVolume();
         window.speechSynthesis.speak(utterance);
       };
 
@@ -136,9 +150,9 @@ export default function GuidedWorkoutPage() {
       }
     } catch (e) {
       console.error("Audio playback error:", e);
-      setIsPlayingAudio(false);
+      restoreVolume();
     }
-  }, [audioEnabled]);
+  }, [audioEnabled, setVolume, spotifyVolume]);
 
   // Load voices proactively
   useEffect(() => {
@@ -430,10 +444,25 @@ export default function GuidedWorkoutPage() {
     return () => clearInterval(t);
   }, [phase, restSeconds, nextSet]);
 
-  const startWorkout = useCallback(() => {
+  const startWorkout = useCallback(async () => {
     workoutStartedAt.current = Date.now();
     setPhase("work");
     void playCoachAudio("start_workout");
+
+    // Auto-Play Workout Mix
+    try {
+      const playlists = await getWorkoutsPlaylists();
+      const workoutPlaylist = playlists[0]; // Take the first matching workout playlist
+
+      if (workoutPlaylist) {
+        await spotifyFetch("/me/player/play", {
+          method: "PUT",
+          body: JSON.stringify({ context_uri: workoutPlaylist.uri })
+        });
+      }
+    } catch (err) {
+      console.error("Auto-play failed:", err);
+    }
   }, [playCoachAudio]);
 
   if (phase === "loading") {
@@ -632,6 +661,12 @@ export default function GuidedWorkoutPage() {
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent leading-none mb-2 text-right">Neural Guidance</p>
             <div className="flex items-center gap-3">
               <button
+                onClick={() => setIsMusicPanelOpen(!isMusicPanelOpen)}
+                className={`flex items-center justify-center p-1.5 rounded-full transition-colors border ${isMusicPanelOpen ? 'bg-fn-accent/20 border-fn-accent/30 text-fn-accent' : 'bg-white/5 border-white/5 text-fn-muted'}`}
+              >
+                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 1.12-3 2.5S3.343 19 5 19s3-1.12 3-2.5V8.55l8-1.6v6.164A4.369 4.369 0 0015 13c-1.657 0-3 1.12-3 2.5s1.343 2.5 3 2.5 3-1.12 3-2.5V3z" /></svg>
+              </button>
+              <button
                 onClick={() => setAudioEnabled(!audioEnabled)}
                 className={`flex items-center justify-center p-1.5 rounded-full transition-colors border ${audioEnabled ? 'bg-fn-accent/20 border-fn-accent/30 text-fn-accent' : 'bg-white/5 border-white/5 text-fn-muted'}`}
               >
@@ -647,6 +682,12 @@ export default function GuidedWorkoutPage() {
             </div>
           </div>
         </header>
+
+        {isMusicPanelOpen && (
+          <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-300">
+            <SpotifyMiniPlayer />
+          </div>
+        )}
 
         {phase === "work" && (
           <>

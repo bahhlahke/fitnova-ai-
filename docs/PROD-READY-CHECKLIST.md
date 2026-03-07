@@ -1,6 +1,6 @@
 # Production Readiness Checklist
 
-To ensure all features are fully functional on the live site (`https://fitnova-ai.vercel.app`), please complete the following manual steps in your Vercel and Supabase dashboards.
+To ensure all features are fully functional on the live site and iOS app, complete the following.
 
 ## 1. Environment Secrets (Vercel)
 The following secrets are required for API functionality. Currently, the site is returning `503` (Billing) or `500` (Jobs) because these are missing or misconfigured in the Production environment.
@@ -33,3 +33,13 @@ Once the secrets are added and migrations applied:
    ```bash
    node scripts/ai-workflow-validator.mjs --base-url https://fitnova-ai.vercel.app
    ```
+
+## 4. iOS app (production)
+
+- **Config:** Set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `API_BASE_URL` in Info.plist or xcconfig (never commit real keys). Use HTTPS for production API and Supabase URLs.
+- **Magic link:** Add `AUTH_REDIRECT_URL` (e.g. `kodaai://auth/callback`) and the same URL in Supabase Redirect URLs and, if needed, Associated Domains.
+- **Sign in with Apple:** Required if offering other third-party sign-in; implement button and `SupabaseService.signInWithApple(idToken:nonce:)`.
+- **Privacy:** Add Privacy Policy URL; set `NSHealthShareUsageDescription`, `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription` in Info.plist to match actual use.
+- **HealthKit:** Enable HealthKit capability; request only the keys (weight, sleep, steps) the app uses.
+- **Errors:** API errors surface user-friendly messages (no stack traces or internal codes). Network and auth errors are handled with retries where appropriate.
+- **No dev-only behavior:** No `fatalError` except for missing required config at launch; no force unwraps on URL construction; server `console.log` is guarded with `NODE_ENV === "development"`.

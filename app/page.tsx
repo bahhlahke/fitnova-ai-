@@ -39,6 +39,7 @@ import {
   type DashboardNudge,
   type DashboardRetentionRisk,
 } from "@/components/dashboard/DashboardRetentionSection";
+import { SpotifyMiniPlayer } from "@/components/music/SpotifyMiniPlayer";
 
 function getWeekStart(date: Date): string {
   const day = date.getDay();
@@ -752,13 +753,16 @@ export default function HomePage() {
               </div>
             ))}
 
-            {/* Briefing Box */}
+            {/* Morning Brief / Briefing Box */}
             <div className="rounded-xl bg-fn-surface/30 border border-white/5 p-4">
               <p className="text-[10px] font-black uppercase text-white/40 mb-2">Morning Brief</p>
               <div className="text-xs leading-relaxed text-fn-muted line-clamp-4 font-medium italic">
                 {briefingLoading ? "Polling Koda..." : briefing ? <>&ldquo;{briefing}&rdquo;</> : "Executing standard startup sequence."}
               </div>
             </div>
+
+            {/* Spotify Integration */}
+            <SpotifyMiniPlayer />
 
             {/* Sensor Sync / Biometrics Status */}
             <div className="rounded-xl bg-black/40 border border-white/5 p-4 group hover:bg-black/60 transition-all">

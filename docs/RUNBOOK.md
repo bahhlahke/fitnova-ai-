@@ -63,6 +63,13 @@
 
 - Configure retention for `workout_logs`, `nutrition_logs`, and `ai_conversations` (e.g. soft delete or scheduled purge). Document policy in this runbook when implemented.
 
+## iOS app (production)
+
+- **Config:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `API_BASE_URL` in Info.plist or xcconfig (see `ios/README.md`). For release builds use HTTPS for both API and Supabase.
+- **API auth:** Next.js API accepts `Authorization: Bearer <access_token>`; iOS sends Supabase `access_token` via `KodaAPIService`. No extra backend config.
+- **Magic link:** Set `AUTH_REDIRECT_URL` (e.g. `kodaai://auth/callback`) and add to Supabase Redirect URLs; handle URL in app with `SupabaseService.setSessionFrom(url:)`.
+- **App Store:** Sign in with Apple required if offering other social sign-in; Privacy Policy and usage descriptions for Health/camera/photos.
+
 ## Troubleshooting
 
 - **Auth not working:** Ensure Supabase URL and anon key are set and that the Supabase project has Auth enabled. For Google sign-in, enable Google provider in Supabase Auth settings. Redirect after login is validated (relative path only) in `app/auth/callback/route.ts`.

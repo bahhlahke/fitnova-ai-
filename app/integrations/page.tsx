@@ -10,8 +10,8 @@ type Provider = {
     name: string;
     icon: string;
     description: string;
-    // How data actually arrives — "oauth" means via Open Wearables dashboard, "manual" means user-exported files, "apple" is a special case
-    syncMethod: "oauth" | "apple";
+    // How data actually arrives — "oauth" means via Open Wearables dashboard, "manual" means user-exported files, "apple" is a special case, "spotify" is direct via Supabase
+    syncMethod: "oauth" | "apple" | "spotify";
     learnMoreUrl?: string;
 };
 
@@ -52,6 +52,13 @@ const PROVIDERS: Provider[] = [
         syncMethod: "apple",
         learnMoreUrl: "https://support.apple.com/en-us/111762",
     },
+    {
+        id: "spotify",
+        name: "Spotify",
+        icon: "🎵",
+        description: "Music control & workout playlists",
+        syncMethod: "spotify",
+    },
 ];
 
 export default function IntegrationsPage() {
@@ -78,7 +85,22 @@ export default function IntegrationsPage() {
 
             if (data && data.length > 0) {
                 const providers = new Set(data.map(d => d.provider as string));
+
+                // Check if user has Spotify identity
+                const identities = user.identities || [];
+                const hasSpotify = identities.some(identity => identity.provider === 'spotify');
+                if (hasSpotify) {
+                    providers.add('spotify');
+                }
+
                 setActiveProviders(providers);
+            } else {
+                // Even if no connected_signals, check for Spotify
+                const identities = user.identities || [];
+                const hasSpotify = identities.some(identity => identity.provider === 'spotify');
+                if (hasSpotify) {
+                    setActiveProviders(new Set(['spotify']));
+                }
             }
             setLoading(false);
         }
@@ -88,6 +110,23 @@ export default function IntegrationsPage() {
     function copyToClipboard(text: string) {
         navigator.clipboard.writeText(text).catch(() => { });
         alert("Koda ID copied to clipboard!");
+    }
+
+    async function connectSpotify() {
+        const supabase = createClient();
+        if (!supabase) return;
+
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'spotify',
+            options: {
+                scopes: 'user-read-playback-state user-modify-playback-state user-read-currently-playing streaming app-remote-control playlist-read-private playlist-read-collaborative',
+                redirectTo: `${window.location.origin}/integrations`,
+            }
+        });
+
+        if (error) {
+            setError(error.message);
+        }
     }
 
     return (
@@ -204,8 +243,17 @@ export default function IntegrationsPage() {
                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fn-accent opacity-75"></span>
                                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-fn-accent"></span>
                                             </span>
-                                            Live
+                                            Connected
                                         </div>
+                                    ) : provider.syncMethod === "spotify" ? (
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={connectSpotify}
+                                            className="w-full sm:w-auto text-xs"
+                                        >
+                                            Connect Spotify
+                                        </Button>
                                     ) : isApple ? (
                                         <a href="https://support.apple.com/en-us/111762" target="_blank" rel="noopener noreferrer">
                                             <Button variant="secondary" size="sm" className="w-full sm:w-auto text-xs">
