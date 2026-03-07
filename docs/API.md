@@ -154,6 +154,44 @@ Hybrid coach escalation flow.
 - `GET`: fetch recent escalation requests for current user.
 - `POST`: submit escalation request.
 
+## POST `/api/v1/plan/adapt-day`
+
+Rewrites the current day's exercise list based on natural language constraints (e.g., "no barbell", "at home with dumbbells").
+
+### Request
+
+- **Body:**
+```json
+{
+  "userMessage": "I'm at home today, only have dumbbells",
+  "focus": "Upper push",
+  "intensity": "high",
+  "target_duration_minutes": 45,
+  "goals": ["muscle gain"],
+  "current_exercises": [...],
+  "date_local": "2026-03-07"
+}
+```
+
+### Response
+
+```json
+{
+  "exercises": [...],
+  "adaptation_note": "Adapted to your constraint. Added: Dumbbells."
+}
+```
+
+## GET `/api/v1/spotify/token`
+
+Fetches the Spotify access token from the current Supabase session (available if the user signed in via Spotify OAuth).
+
+### Response
+
+```json
+{ "token": "BQA..." }
+```
+
 ## POST `/api/v1/jobs/reminders`
 
 Runs reminder/nudge dispatch job (cron endpoint).

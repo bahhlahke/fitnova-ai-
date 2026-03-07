@@ -25,6 +25,9 @@ Concise feature and API map for building an iOS app with full parity to the web 
 | `/integrations` | List providers; show connected via `connected_signals`. | Supabase: `connected_signals`; Whoop connect/callback/sync. |
 | `/community`, `/community/friends` | Groups, challenges, friends, accountability partner. | API: social/friends, social/accountability, community/challenges. |
 | `/pricing` | Pricing; Stripe checkout for Pro. | API: stripe/checkout. |
+| `/history` | Workout & nutrition history; filter workouts, expand details, edit workout. | Supabase: `workout_logs`, `nutrition_logs`. |
+| `/vitals` | Readiness, biometrics, recovery suggestion, AI readiness insight. | API: ai/readiness-insight; Supabase: `workout_logs`, `check_ins`, `connected_signals`. |
+| `/motion` | Motion Lab: video → frames → AI form analysis (score, critique, correction). | API: ai/vision (POST body: `images` array). |
 
 ---
 
@@ -59,6 +62,13 @@ Auth → Onboarding → Dashboard (plan, briefing, quick actions) → Plan (week
 
 ## 5. iOS implementation status
 
-**Implemented:** Auth (magic link, deep link), Dashboard (briefing, plan, performance, nudges), Plan (weekly, day detail, weekly insight), Coach (chat, escalate list/create/messages), Log workout (list, quick log), Log nutrition (meals, targets, analyze meal), Progress (list, add entry), Check-in, Settings (profile, export, sign out). Robust networking (timeout, URL handling), full API client, Supabase data layer, loading/error/empty components.
+**Implemented:** Auth (magic link, deep link), Dashboard (briefing, plan, performance, nudges), Plan (weekly, day detail, weekly insight), Coach (chat, escalate list/create/messages), Log workout (list, quick log), Log nutrition (meals, targets, analyze meal + append to log), Progress (list, add entry), Check-in, Settings (profile, export, sign out). Robust networking (timeout, URL handling), full API client, Supabase data layer, loading/error/empty components.
 
 **All implemented:** Guided workout, body comp scan (photo picker), fridge scanner, meal plan/recipe gen, Integrations (Apple Health via HealthKit, Whoop link), community/friends, pricing/Stripe, onboarding gate, telemetry.
+
+**Parity with web:**  
+- **History** — Log → “Workouts & nutrition”: tabs Workouts / Nutrition, list by date, expand details, edit workout (type, duration, notes).  
+- **Vitals** — Settings → “Vitals”: today’s readiness via `ai/readiness-insight` (server uses workouts, check-ins, connected_signals).  
+- **Motion Lab** — Log → “Form check (Motion Lab)”: pick 1–3 photos → `ai/vision` (images array); score, critique, correction.
+
+**Web-only (no iOS equivalent):** `/start` (pre-auth assessment), `/omni` (redirects to ?focus=ai), `/vitals/cycle` (cycle tracking), `/admin`, `/coach/ops`, `/coach/queue` (internal/ops).

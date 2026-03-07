@@ -45,6 +45,7 @@ struct SettingsView: View {
                     }
                 }
                 Section("Data") {
+                    NavigationLink("Vitals") { VitalsView() }
                     NavigationLink("Integrations") { IntegrationsView() }
                     Button("Export my data") {
                         Task { await export() }

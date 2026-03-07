@@ -6,10 +6,13 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 
 - **Adaptive Home** — Signed-out users see a premium conversion funnel; signed-in users see a coaching cockpit.
 - **Assessment Funnel** — `/start` quiz-first flow saves a draft before auth and resumes onboarding.
-- **AI Coach** — Chat with an AI coach; context includes profile, recent workouts, nutrition, and conversation history.
-- **Daily Plan Engine** — Generate a personalized day plan (training + calories/macros + safety notes), save it, and use it in guided workouts.
+- **AI Coach** — Chat with an AI coach; context includes profile, recent workouts, nutrition, and conversation history. Supports multi-intent requests and site navigation.
+- **Daily Plan Engine** — Generate a personalized day plan (training + calories/macros + safety notes).
+- **AI Workout Adaptation** — On-the-fly workout modifications (`/api/v1/plan/adapt-day` and `adapt-session`) based on user constraints (equipment, injuries, etc.).
+- **Spotify Integration** — In-app music control with audio ducking for AI coach prompts.
 - **Log** — Workout (guided step-by-step or quick log) and nutrition (meals + calories per day); data persisted in Supabase.
-- **Progress** — Weight, body fat %, measurements (waist/chest/hip), trend chart, and add-entry form.
+- **Progress & Vitals** — Weight, body fat %, measurements, and real-time health metrics.
+- **Muscle Stress Analysis** — Sophisticated UI for tracking and visualizing muscle stress and recovery.
 - **Settings** — Profile edit (name, age, sex, height, weight, goals, activity level, injuries, dietary preferences).
 - **Onboarding** — Multi-step wizard; saves to `user_profile` and `onboarding` when signed in.
 - **Auth** — Magic link (Supabase); redirect after sign-in is validated to prevent open redirects.
@@ -85,17 +88,20 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 
 | Path | Description |
 |------|-------------|
-| `app/` | App Router routes: `/` (adaptive home), `/start`, `/auth`, `/onboarding`, `/log`, `/log/workout`, `/log/nutrition`, `/log/workout/guided`, `/coach`, `/coach/escalate`, `/progress`, `/progress/add`, `/settings`. |
+| `app/` | App Router routes: `/` (adaptive home), `/start`, `/auth`, `/onboarding`, `/log`, `/log/workout`, `/log/nutrition`, `/log/workout/guided`, `/coach`, `/coach/escalate`, `/progress`, `/progress/add`, `/settings`, `/vitals`, `/pricing`, `/integrations`, `/community`. |
 | `app/api/v1/ai/respond/` | POST API for AI coach; see [docs/API.md](docs/API.md). |
 | `app/api/v1/plan/daily/` | POST API for personalized daily plan generation and persistence. |
-| `app/api/v1/plan/weekly/` | GET/POST API for weekly microcycle generation and storage. |
+| `app/api/v1/plan/adapt-day/` | POST API for AI-driven workout adaptation based on constraints. |
+| `app/api/v1/plan/swap-exercise/` | POST API for intelligent exercise substitutions. |
 | `app/api/v1/analytics/performance/` | GET analytics API for performance/risk metrics. |
 | `app/api/v1/coach/escalate/` | GET/POST hybrid coach escalation API. |
+| `app/api/v1/spotify/token/` | GET API for fetching Spotify session tokens. |
 | `app/api/v1/jobs/reminders/` | POST cron-style reminder dispatch endpoint. |
 | `components/ui/` | Design primitives: Button, Card, Input, Label, Select, Textarea, EmptyState, LoadingState, ErrorMessage, PageLayout. |
+| `components/music/` | Spotify player components. |
 | `components/layout/` | BottomNav. |
 | `components/auth/` | AuthProvider, AuthGuard, AuthSettings. |
-| `lib/` | Supabase client (server + browser), AI assemble-context, auth helpers. |
+| `lib/` | Supabase client (server + browser), AI assemble-context, auth helpers, music/Spotify utilities. |
 | `types/` | Shared TypeScript types aligned with Supabase schema. |
 | `supabase/migrations/` | Initial schema and RLS. |
 

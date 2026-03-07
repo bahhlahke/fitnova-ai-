@@ -62,8 +62,9 @@ extension KodaAPIService {
         return try await post("api/v1/ai/body-comp", body: body)
     }
 
-    func aiVision(videoBase64: String?) async throws -> VisionAnalysisResponse {
-        let body = videoBase64.map { ["videoBase64": $0] } ?? [:]
+    /// Motion Lab / form check: pass array of image data URLs or base64 strings (1–3 frames).
+    func aiVision(images: [String]) async throws -> VisionAnalysisResponse {
+        let body: [String: Any] = ["images": images]
         return try await post("api/v1/ai/vision", body: body)
     }
 
