@@ -8,7 +8,7 @@ Chat endpoint for the AI coach. Uses OpenRouter; when the user is signed in, con
 
 - **Method:** `POST`
 - **Headers:** `Content-Type: application/json`
-- **Auth:** Session cookie (Supabase) required in production behavior.
+- **Auth:** Session cookie (Supabase) for web, or `Authorization: Bearer <access_token>` for native clients (e.g. iOS). Required in production.
 - **Body:**
 
 | Field | Type | Required | Description |

@@ -114,6 +114,10 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 | [docs/IMPLEMENTATION-ROLLUP-2026-03-01.md](docs/IMPLEMENTATION-ROLLUP-2026-03-01.md) | Delivered P0/P1/P2 implementation summary. |
 | [docs/AI-WORKFLOW-VALIDATION.md](docs/AI-WORKFLOW-VALIDATION.md) | AI workflow validator usage and workflow coverage. |
 
+## iOS app
+
+A production-ready **native iOS app** (SwiftUI) lives in `ios/`. It uses the same Supabase backend and Next.js API; the API accepts **cookie** (web) or **Authorization: Bearer &lt;access_token&gt;** (mobile). See [ios/README.md](ios/README.md) for Xcode setup, configuration, and App Store notes.
+
 ## Milestones
 
 - **M1** — Branding + basis (design system, layout, bottom nav, README). ✅
