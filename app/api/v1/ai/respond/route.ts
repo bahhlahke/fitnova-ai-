@@ -21,9 +21,16 @@ const SAFETY_POLICY = `Safety policy (balanced):
 - Respect injuries/limitations from profile data and provide safer alternatives.
 - Prefer sustainable, evidence-informed advice over extreme protocols.`;
 
+type ConversationTurn = {
+  role: "user" | "assistant";
+  content: string;
+};
+
 type RequestBody = {
   message?: string;
   localDate?: string;
+  /** Optional prior conversation turns for multi-turn continuity (iOS persistent chat). */
+  conversationHistory?: ConversationTurn[];
 };
 
 function isValidLocalDate(value: string): boolean {
@@ -67,6 +74,13 @@ export async function POST(request: Request) {
 
   const message = typeof body.message === "string" ? body.message.trim() : "";
   const logDate = resolveLogDate(body.localDate);
+  // Sanitise and cap conversation history to last 10 turns
+  const conversationHistory: ConversationTurn[] = Array.isArray(body.conversationHistory)
+    ? body.conversationHistory
+        .filter((t) => (t.role === "user" || t.role === "assistant") && typeof t.content === "string")
+        .map((t) => ({ role: t.role, content: t.content.slice(0, MAX_MESSAGE_CHARS) }))
+        .slice(-10)
+    : [];
   if (!message) {
     return jsonError(400, "VALIDATION_ERROR", "message is required.");
   }
@@ -307,8 +321,17 @@ export async function POST(request: Request) {
     const actions: AiActionResult[] = [];
     const refreshScopes = new Set<RefreshScope>();
 
+    // Include prior conversation turns so the model has multi-turn context.
+    // History is placed between system prompt and the current user message
+    // (excludes the current turn, which is already appended below).
+    const historyTurns: any[] = conversationHistory
+      .filter((t) => t.content !== message) // avoid duplicating the current message
+      .slice(-8) // cap to 8 prior turns for token budget
+      .map((t) => ({ role: t.role, content: t.content }));
+
     let messagesForModel: any[] = [
       { role: "system", content: systemPrompt },
+      ...historyTurns,
       { role: "user", content: message },
     ];
 
