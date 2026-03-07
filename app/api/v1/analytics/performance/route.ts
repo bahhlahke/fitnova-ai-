@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     const fourteenDaysAgo = toLocalDateString(new Date(todayMs - 14 * 24 * 60 * 60 * 1000));
     const thirtyDaysAgo = toLocalDateString(new Date(todayMs - 30 * 24 * 60 * 60 * 1000));
 
-    const [workoutsRes, nutritionRes, plansRes, checkInsRes, snapshotsRes, signalsRes, adherenceRes] = await Promise.all([
+    const [workoutsRes, nutritionRes, plansRes, checkInsRes, snapshotsRes, signalsRes, adherenceRes, prsRes] = await Promise.all([
       supabase
         .from("workout_logs")
         .select("date, workout_type, duration_minutes, exercises")
@@ -81,6 +81,12 @@ export async function GET(request: Request) {
         .eq("user_id", user.id)
         .gte("date_local", fourteenDaysAgo)
         .lte("date_local", today),
+      supabase
+        .from("exercise_prs")
+        .select("exercise_name, max_weight, highest_1rm, last_achieved_at")
+        .eq("user_id", user.id)
+        .order("last_achieved_at", { ascending: false })
+        .limit(10),
     ]);
 
     const workouts = (workoutsRes.data ?? []) as Array<{
@@ -114,6 +120,7 @@ export async function GET(request: Request) {
       hrv?: number | null;
     }>;
     const adherenceRows = (adherenceRes.data ?? []) as Array<{ date_local: string; total_score?: number | null }>;
+    const recentPrs = (prsRes?.data ?? []) as Array<{ exercise_name: string; max_weight: number; highest_1rm: number; last_achieved_at: string }>;
 
     const recentWorkouts = workouts.filter((entry) => entry.date >= fourteenDaysAgo);
 
@@ -183,6 +190,7 @@ export async function GET(request: Request) {
       progression_e1rm_metrics: progression.metrics,
       progression_trend_points: progression.trend_points,
       progression_adherence: progression.adherence_avg,
+      recent_prs: recentPrs,
       latest_recovery_signal: latestRecovery,
       recovery_readiness: recoveryReadiness,
     });

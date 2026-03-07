@@ -15,6 +15,7 @@ export default function VitalsPage() {
     const [readinessInsight, setReadinessInsight] = useState<string | null>(null);
     const [readinessInsightLoading, setReadinessInsightLoading] = useState(false);
     const [recoverySuggestion, setRecoverySuggestion] = useState<string | null>(null);
+    const [biometrics, setBiometrics] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -49,15 +50,30 @@ export default function VitalsPage() {
         try {
             console.log("[vitals] fetching data for user:", user.id);
             const today = toLocalDateString();
-            const { data: recentWorkouts, error: fetchError } = await supabase
-                .from("workout_logs")
-                .select("*")
-                .eq("user_id", user.id)
-                .order("date", { ascending: false })
-                .limit(28);
 
+            const [workoutsRes, signalsRes] = await Promise.all([
+                supabase
+                    .from("workout_logs")
+                    .select("*")
+                    .eq("user_id", user.id)
+                    .order("date", { ascending: false })
+                    .limit(28),
+                supabase
+                    .from("connected_signals")
+                    .select("*")
+                    .eq("user_id", user.id)
+                    .order("signal_date", { ascending: false })
+                    .limit(10)
+            ]);
+
+            const fetchError = workoutsRes.error || signalsRes.error;
             if (fetchError) throw fetchError;
 
+            if (signalsRes.data) {
+                setBiometrics(signalsRes.data);
+            }
+
+            const recentWorkouts = workoutsRes.data;
             if (recentWorkouts) {
                 console.log("[vitals] data fetched:", recentWorkouts.length, "workouts");
                 const calculated = calculateReadiness(recentWorkouts);
@@ -140,12 +156,80 @@ export default function VitalsPage() {
                 </div>
             ) : (
                 <div className="max-w-4xl">
-                    <DashboardReadinessSection
-                        readiness={readiness}
-                        readinessInsight={readinessInsight}
-                        readinessInsightLoading={readinessInsightLoading}
-                        recoverySuggestion={recoverySuggestion}
-                    />
+                    <div className="mb-6 flex justify-end">
+                        <Link href="/integrations">
+                            <Button variant="secondary" size="sm" className="gap-2">
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                Connect Wearables
+                            </Button>
+                        </Link>
+                    </div>
+
+                    {biometrics.length > 0 && (
+                        <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-4">
+                            {biometrics[0].hrv && (
+                                <Card padding="default" className="bg-black/40">
+                                    <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-1">HRV</p>
+                                    <p className="text-2xl font-black text-white">{Math.round(biometrics[0].hrv)} <span className="text-xs text-fn-muted">ms</span></p>
+                                </Card>
+                            )}
+                            {biometrics[0].sleep_deep_hours && (
+                                <Card padding="default" className="bg-black/40">
+                                    <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-1">Deep Sleep</p>
+                                    <p className="text-2xl font-black text-white">{biometrics[0].sleep_deep_hours.toFixed(1)} <span className="text-xs text-fn-muted">hrs</span></p>
+                                </Card>
+                            )}
+                            {biometrics[0].blood_glucose_avg && (
+                                <Card padding="default" className="bg-black/40">
+                                    <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-1">Avg Glucose</p>
+                                    <p className="text-2xl font-black text-white">{Math.round(biometrics[0].blood_glucose_avg)} <span className="text-xs text-fn-muted">mg/dL</span></p>
+                                </Card>
+                            )}
+                            {biometrics[0].strain_score && (
+                                <Card padding="default" className="bg-black/40">
+                                    <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-1">Strain</p>
+                                    <p className="text-2xl font-black text-white">{biometrics[0].strain_score.toFixed(1)}</p>
+                                </Card>
+                            )}
+                            {biometrics[0].spo2_avg && (
+                                <Card padding="default" className="bg-black/40">
+                                    <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-1">SpO2 (Blood O2)</p>
+                                    <p className="text-2xl font-black text-white">{Math.round(biometrics[0].spo2_avg)}<span className="text-xs text-fn-muted">%</span></p>
+                                </Card>
+                            )}
+                            {biometrics[0].respiratory_rate_avg && (
+                                <Card padding="default" className="bg-black/40">
+                                    <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-1">Resp. Rate</p>
+                                    <p className="text-2xl font-black text-white">{biometrics[0].respiratory_rate_avg.toFixed(1)} <span className="text-xs text-fn-muted">rpm</span></p>
+                                </Card>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="grid gap-6 md:grid-cols-[1fr_2fr]">
+                        <div className="space-y-4">
+                            <Card padding="default" className="border-fn-accent/20 bg-fn-accent/5 hover:bg-fn-accent/10 transition-colors">
+                                <Link href="/vitals/cycle" className="block w-full">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent mb-1">Hormonal Phase</p>
+                                            <p className="text-sm font-semibold text-fn-ink">Log Cycle Data</p>
+                                        </div>
+                                        <svg className="h-5 w-5 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
+                                    <p className="text-xs text-fn-muted mt-2">Adapt your training volume to your physiology.</p>
+                                </Link>
+                            </Card>
+                        </div>
+                        <DashboardReadinessSection
+                            readiness={readiness}
+                            readinessInsight={readinessInsight}
+                            readinessInsightLoading={readinessInsightLoading}
+                            recoverySuggestion={recoverySuggestion}
+                        />
+                    </div>
                 </div>
             )}
         </PageLayout>

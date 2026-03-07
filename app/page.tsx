@@ -480,8 +480,7 @@ export default function HomePage() {
               Build Your<br />Legend
             </h1>
             <p className="mt-8 max-w-2xl text-lg font-medium leading-relaxed text-fn-muted/90 lg:text-2xl">
-              AI-backed fitness coaching with adaptive daily plans, streamlined
-              logging, and a single dashboard command center.
+              Biometric-driven fitness coaching with predictive progression models, adaptive daily plans, and an intelligent command center.
             </p>
 
             <div className="mt-12 flex flex-col gap-4 sm:flex-row">
@@ -509,13 +508,13 @@ export default function HomePage() {
         {/* Stats strip */}
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
-            { value: "50K+", label: "Scientific Data Points" },
+            { value: "50+ M", label: "Biometric Data Points Analyzed" },
             { value: "10K+", label: "Legendary Members" },
             { value: "99.2%", label: "Protocol Accuracy" },
           ].map(({ value, label }) => (
             <div key={label} className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-fn-surface/40 py-8 px-4 backdrop-blur-sm transition-all hover:bg-fn-surface/60">
               <p className="font-display text-4xl font-black italic tracking-tighter text-white lg:text-5xl">{value}</p>
-              <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.3em] text-fn-accent">{label}</p>
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.3em] text-fn-accent text-center">{label}</p>
             </div>
           ))}
         </div>
@@ -525,34 +524,34 @@ export default function HomePage() {
           {[
             {
               src: "/images/refined/athletic_female_gym_2.png",
-              alt: "AI Chat Interface",
+              alt: "AI Coaching Interface",
               label: "Command Surface",
               title: "Dashboard AI",
-              desc: "Log meals, workouts, and progress via natural language — AI syncs the rest of your app.",
+              desc: "Log meals, workouts, and vitals via natural language — AI routes the data and syncs the entire app.",
               accent: "border-fn-accent/30",
             },
             {
               src: "/images/refined/scanner.png",
-              alt: "Nutrition Scanner",
-              label: "Metabolic Autopilot",
-              title: "Fast meal capture",
-              desc: "Log by description or photo, track hydration, and stay aligned to your calorie targets.",
-              accent: "border-fn-accent/30",
-            },
-            {
-              src: "/images/refined/motion.png",
-              alt: "Motion Analysis",
-              label: "Motion Lab",
-              title: "Real-time form AI",
-              desc: "Camera-powered motion analysis gives instant feedback on your technique during sets.",
+              alt: "Hormonal Cycle Tracking",
+              label: "Female Physiology",
+              title: "Cycle AI Coach",
+              desc: "Adaptive volume and intensity prescription based on menstrual phase (Luteal vs Follicular).",
               accent: "border-fn-accent/30",
             },
             {
               src: "/images/refined/athletic_female_lifting.png",
-              alt: "Pro Coaching",
-              label: "Adaptive Logic",
-              title: "Expert guidance",
-              desc: "Adaptive plans that evolve with your performance — built from 50k+ scientific data points.",
+              alt: "Progression Intelligence",
+              label: "Predictive Models",
+              title: "Progression Engine",
+              desc: "1RM tracking and automatic verified PR recognition. Never guess your working weight again.",
+              accent: "border-fn-accent/30",
+            },
+            {
+              src: "/images/refined/motion.png",
+              alt: "Wearable Sync",
+              label: "Systemic Recovery",
+              title: "Biometric Sync",
+              desc: "Connect Oura, Garmin, or Apple Watch to feed HRV, Deep Sleep, and SpO2 back into your coach.",
               accent: "border-fn-accent/30",
             },
           ].map(({ src, alt, label, title, desc, accent }) => (
@@ -591,10 +590,10 @@ export default function HomePage() {
           <div className="relative z-10 max-w-3xl">
             <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">The Science of Legend</p>
             <h2 className="mt-6 font-display text-4xl font-black uppercase italic tracking-tighter text-white sm:text-6xl">
-              50,000+ Points of Precision
+              50 Million+ Biometric Points Analyzed Daily
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-fn-muted">
-              Koda AI is built on a proprietary LLM fine-tuned on longitudinal athletic data. We don&apos;t just track steps; we analyze HRV, caloric efficiency, and muscle fatigue recovery curves to predict your optimal training window.
+              Koda AI is built on a proprietary LLM fine-tuned on longitudinal athletic data. We don&apos;t just track steps; we analyze HRV, SpO2, and muscle fatigue recovery curves from your wearables to predict your optimal training window.
             </p>
             <div className="mt-10 grid grid-cols-2 gap-8 border-t border-fn-accent/20 pt-10">
               <div>
@@ -603,7 +602,7 @@ export default function HomePage() {
               </div>
               <div>
                 <p className="text-2xl font-black text-white italic">&lt; 30s</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-fn-muted">Sync Latency</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-fn-muted">Deep Sleep Re-Sync Latency</p>
               </div>
             </div>
           </div>

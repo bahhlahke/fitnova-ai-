@@ -139,6 +139,7 @@ export default function WorkoutLogPage() {
               })
               .catch(() => { })
               .finally(() => setPostWorkoutInsightLoading(false));
+            fetch("/api/v1/analytics/process-prs", { method: "POST" }).catch(() => { });
           }}
         />
         {postWorkoutInsightLoading && (

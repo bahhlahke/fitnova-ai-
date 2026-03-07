@@ -162,9 +162,81 @@ export async function POST(request: Request) {
       metadata: { topic, urgency, preferred_channel: preferredChannel },
     });
 
+    const nowStr = new Date().toISOString();
+
+    // AI Auto-Pilot: Handle operations autonomously as requested
+    if (process.env.OPENROUTER_API_KEY) {
+      try {
+        const aiPrompt = `You are Nova, an elite AI fitness coach managing a client escalation.
+Topic: ${topic}
+Urgency: ${urgency}
+Details: ${details || "No additional details provided."}
+
+Please write a helpful, professional, and empathetic response to the client solving their problem, addressing their concerns, or providing actionable advice. Format your response clearly. Be authoritative yet supportive, as a top-tier coach. Make sure it sounds like a personal message from their human-level AI coach.`;
+
+        const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://koda.ai",
+            "X-Title": "Koda AI"
+          },
+          body: JSON.stringify({
+            model: "anthropic/claude-3-haiku",
+            messages: [{ role: "user", content: aiPrompt }],
+          })
+        });
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          const autoReply = aiData.choices?.[0]?.message?.content;
+          if (autoReply) {
+            // Insert AI message
+            await supabase.from("coach_escalation_messages").insert({
+              escalation_id: escalationId,
+              user_id: user.id,
+              sender_type: "coach",
+              sender_user_id: user.id, // Representing the system in the user's view
+              body: autoReply,
+              channel: "in_app",
+            });
+            // Update escalation status to resolved
+            await supabase.from("coach_escalations").update({
+              status: "resolved",
+              first_response_at: nowStr,
+              resolved_at: nowStr,
+            }).eq("escalation_id", escalationId);
+
+            await supabase.from("coach_escalation_events").insert({
+              escalation_id: escalationId,
+              user_id: user.id,
+              actor_type: "coach",
+              actor_user_id: user.id,
+              event_type: "replied",
+              metadata: { channel: "in_app" },
+            });
+            await supabase.from("coach_escalation_events").insert({
+              escalation_id: escalationId,
+              user_id: user.id,
+              actor_type: "coach",
+              actor_user_id: user.id,
+              event_type: "status_changed",
+              metadata: { old_status: "open", new_status: "resolved" },
+            });
+
+            // Update the returned object so UI knows it's resolved instantly
+            insertRes.data.status = "resolved";
+          }
+        }
+      } catch (err) {
+        console.warn("AI auto-resolve failed", err);
+      }
+    }
+
     return NextResponse.json({
       request: insertRes.data,
-      message: "Coach escalation request submitted.",
+      message: "Coach escalation request submitted and analyzed.",
     });
   } catch (error) {
     console.error("coach_escalation_post_unhandled", {

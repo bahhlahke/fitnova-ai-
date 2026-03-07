@@ -54,8 +54,57 @@ export default function GuidedWorkoutPage() {
   const [coachReply, setCoachReply] = useState<string | null>(null);
   const [coachLoading, setCoachLoading] = useState(false);
   const [showExpertCues, setShowExpertCues] = useState(false);
+  const [isSwapOptionsVisible, setIsSwapOptionsVisible] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const workoutStartedAt = useRef<number | null>(null);
 
+  const playCoachAudio = useCallback(async (contextStr: string, metrics?: any) => {
+    if (!audioEnabled || !("speechSynthesis" in window)) return;
+
+    // Stop anything currently playing
+    window.speechSynthesis.cancel();
+
+    try {
+      setIsPlayingAudio(true);
+      const res = await fetch("/api/v1/coach/audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ context: contextStr, metrics })
+      });
+      const data = await res.json();
+
+      if (data.script) {
+        // Fallback simulation of OpenAI TTS stream using browser Synthesis
+        const utterance = new SpeechSynthesisUtterance(data.script);
+        const voices = window.speechSynthesis.getVoices();
+        // Look for a pleasant/upbeat voice
+        const preferredVoice = voices.find(v => v.lang === "en-US" && (v.name.includes("Samantha") || v.name.includes("Karen") || v.name.includes("Victoria")));
+        if (preferredVoice) utterance.voice = preferredVoice;
+
+        // Slightly faster and higher pitch for energetic/sexy/motivational tone
+        utterance.rate = 1.05;
+        utterance.pitch = 1.2;
+
+        utterance.onend = () => setIsPlayingAudio(false);
+        utterance.onerror = () => setIsPlayingAudio(false);
+
+        window.speechSynthesis.speak(utterance);
+      } else {
+        setIsPlayingAudio(false);
+      }
+    } catch (e) {
+      console.error("Audio playback error:", e);
+      setIsPlayingAudio(false);
+    }
+  }, [audioEnabled]);
+
+  // Load voices proactively
+  useEffect(() => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.getVoices();
+    }
+  }, []);
   useEffect(() => {
     const supabase = createClient();
     if (!supabase) return;
@@ -174,8 +223,9 @@ export default function GuidedWorkoutPage() {
     }
     setSaved(true);
     emitDataRefresh(["dashboard", "workout"]);
-    // Trigger award check
+    // Trigger award check and PR calculation
     fetch("/api/v1/awards/check", { method: "POST" }).catch(() => { });
+    fetch("/api/v1/analytics/process-prs", { method: "POST" }).catch(() => { });
   }, [exercises, planTitle]);
 
   useEffect(() => {
@@ -200,9 +250,11 @@ export default function GuidedWorkoutPage() {
     if (isLastSet && isLastExercise) {
       setPhase("completed");
       void persistWorkout();
+      void playCoachAudio("finish_workout");
       return;
     }
     setPhase("work");
+    void playCoachAudio("start_set");
     if (isLastSet) {
       setExerciseIndex((i) => i + 1);
       setSetIndex(0);
@@ -260,7 +312,7 @@ export default function GuidedWorkoutPage() {
         setSwapLoading(false);
       }
     },
-    [exercise, exerciseIndex]
+    [exercise, exerciseIndex, playCoachAudio]
   );
 
   const askCoach = useCallback(async () => {
@@ -295,11 +347,13 @@ export default function GuidedWorkoutPage() {
     if (isLastSet && isLastExercise) {
       setPhase("completed");
       void persistWorkout();
+      void playCoachAudio("finish_workout");
       return;
     }
     setPhase("rest");
     setRestSeconds(90);
-  }, [isLastSet, isLastExercise, persistWorkout]);
+    void playCoachAudio("finish_set", { hrv: 85 });
+  }, [isLastSet, isLastExercise, persistWorkout, playCoachAudio]);
 
   useEffect(() => {
     if (phase !== "rest") return;
@@ -317,7 +371,8 @@ export default function GuidedWorkoutPage() {
   const startWorkout = useCallback(() => {
     workoutStartedAt.current = Date.now();
     setPhase("work");
-  }, []);
+    void playCoachAudio("start_workout");
+  }, [playCoachAudio]);
 
   if (phase === "loading") {
     return (
@@ -513,9 +568,21 @@ export default function GuidedWorkoutPage() {
           </Link>
           <div className="flex flex-col items-end">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent leading-none mb-2 text-right">Neural Guidance</p>
-            <span className="text-[10px] font-black uppercase tracking-widest text-white/30 leading-none">
-              {progressLabel}
-            </span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setAudioEnabled(!audioEnabled)}
+                className={`flex items-center justify-center p-1.5 rounded-full transition-colors border ${audioEnabled ? 'bg-fn-accent/20 border-fn-accent/30 text-fn-accent' : 'bg-white/5 border-white/5 text-fn-muted'}`}
+              >
+                {audioEnabled ? (
+                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" /></svg>
+                ) : (
+                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                )}
+              </button>
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/30 leading-none">
+                {progressLabel}
+              </span>
+            </div>
           </div>
         </header>
 
@@ -621,17 +688,32 @@ export default function GuidedWorkoutPage() {
                   </div>
                 )}
               </div>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => void swapCurrentExercise("equipment or comfort adjustment")}
-                  disabled={swapLoading}
-                  className="rounded-xl border border-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-fn-accent transition-colors hover:bg-white/5 disabled:opacity-60"
-                >
-                  {swapLoading ? "Swapping..." : "Swap Exercise"}
-                </button>
+              <div className="mt-4 flex flex-col gap-3">
+                {!isSwapOptionsVisible ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsSwapOptionsVisible(true)}
+                    disabled={swapLoading}
+                    className="self-start rounded-xl border border-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-fn-accent transition-colors hover:bg-white/5 disabled:opacity-60"
+                  >
+                    {swapLoading ? "Swapping..." : "Swap Exercise"}
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-3 p-4 rounded-xl border border-white/10 bg-black/40 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent flex items-center justify-between">
+                      Reason for Swap
+                      <button onClick={() => setIsSwapOptionsVisible(false)} className="text-white/40 hover:text-white">✕</button>
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={() => { setIsSwapOptionsVisible(false); void swapCurrentExercise("No equipment available"); }} className="rounded-lg bg-white/5 border border-white/5 px-3 py-2 text-[11px] font-bold text-white hover:bg-white/10 text-left transition-colors">No Equipment</button>
+                      <button onClick={() => { setIsSwapOptionsVisible(false); void swapCurrentExercise("Too difficult for today"); }} className="rounded-lg bg-white/5 border border-white/5 px-3 py-2 text-[11px] font-bold text-white hover:bg-white/10 text-left transition-colors">Too Hard</button>
+                      <button onClick={() => { setIsSwapOptionsVisible(false); void swapCurrentExercise("Pain or joint discomfort"); }} className="rounded-lg bg-white/5 border border-white/5 px-3 py-2 text-[11px] font-bold text-white hover:bg-white/10 text-left transition-colors">Pain / Discomfort</button>
+                      <button onClick={() => { setIsSwapOptionsVisible(false); void swapCurrentExercise("Bored, need variety"); }} className="rounded-lg bg-white/5 border border-white/5 px-3 py-2 text-[11px] font-bold text-white hover:bg-white/10 text-left transition-colors">Need Variety</button>
+                    </div>
+                  </div>
+                )}
                 {swapFeedback && (
-                  <p className="text-xs text-fn-muted">{swapFeedback}</p>
+                  <p className="text-xs font-medium text-fn-muted animate-in fade-in">{swapFeedback}</p>
                 )}
               </div>
             </div>
@@ -645,9 +727,19 @@ export default function GuidedWorkoutPage() {
               <button
                 type="button"
                 onClick={startRest}
-                className="w-full rounded-full bg-fn-accent py-5 text-lg font-black uppercase tracking-wider text-black shadow-[0_0_30px_rgba(10,217,196,0.3)] transition-transform active:scale-[0.98] hover:bg-white"
+                disabled={isPlayingAudio}
+                className="w-full rounded-full bg-fn-accent py-5 text-lg font-black uppercase tracking-wider text-black shadow-[0_0_30px_rgba(10,217,196,0.3)] transition-transform active:scale-[0.98] hover:bg-white disabled:opacity-80"
               >
-                Log Set & Rest
+                {isPlayingAudio ? (
+                  <div className="flex items-center justify-center gap-1">
+                    <div className="w-1 h-3 bg-black animate-[ping_1s_ease-in-out_infinite]" />
+                    <div className="w-1 h-5 bg-black animate-[ping_1s_ease-in-out_infinite_0.2s]" />
+                    <div className="w-1 h-2 bg-black animate-[ping_1s_ease-in-out_infinite_0.4s]" />
+                    <span className="ml-2 font-black italic">Coaching...</span>
+                  </div>
+                ) : (
+                  "Log Set & Rest"
+                )}
               </button>
             </div>
           </>

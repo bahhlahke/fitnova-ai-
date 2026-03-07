@@ -47,6 +47,7 @@ export default function ProgressPage() {
     push_pull_balance: number;
     recovery_debt: number;
     nutrition_compliance: number | null;
+    recent_prs?: Array<{ exercise_name: string; max_weight: number; highest_1rm: number; last_achieved_at: string }>;
   } | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [weeklyPlan, setWeeklyPlan] = useState<any>(null);
@@ -308,6 +309,37 @@ export default function ProgressPage() {
               </div>
             ) : (
               <EmptyState className="mt-4" message="Add at least 2 progress entries to see your trend." />
+            )}
+          </Card>
+
+          {/* PRs & 1RM Progression */}
+          <Card className="mt-4" padding="lg">
+            <CardHeader title="Strength Progression" subtitle="Verified PRs & Estimated 1RM History" />
+            {analyticsLoading ? (
+              <LoadingState className="mt-4" />
+            ) : analytics?.recent_prs?.length ? (
+              <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                {analytics.recent_prs.map((pr: any) => (
+                  <div key={pr.exercise_name} className="flex flex-col gap-1 rounded-xl border border-white/5 bg-white/[0.02] p-4 shadow-xl">
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-fn-accent">{pr.exercise_name}</p>
+                    <div className="flex justify-between items-end mt-2">
+                      <div>
+                        <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-0.5">Max Logged</p>
+                        <p className="text-xl font-black text-white">{pr.max_weight} <span className="text-[10px] tracking-widest text-fn-muted">{unitLabel.toUpperCase()}</span></p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-0.5">Est. 1RM</p>
+                        <p className="text-xl font-black text-fn-accent italic">{Math.round(pr.highest_1rm)} <span className="text-[10px] tracking-widest text-fn-muted">{unitLabel.toUpperCase()}</span></p>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-[9px] font-bold uppercase tracking-widest text-white/30 text-right">
+                      Last seen {new Date(pr.last_achieved_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState className="mt-4" message="No strength progression data available. Log heavy sets to establish a baseline." />
             )}
           </Card>
 

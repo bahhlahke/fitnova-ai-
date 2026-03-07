@@ -117,7 +117,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const replacement = chooseReplacement({
+    const fallbackReplacement = chooseReplacement({
       currentExercise,
       reason: body.reason,
       location: body.location,
@@ -126,11 +126,87 @@ export async function POST(request: Request) {
       intensity: body.intensity,
     });
 
+    let replacement = fallbackReplacement;
+    let confidence = 0.77;
+    let explanation = "Rule-based substitution using movement pattern and user reason.";
+
+    // Try OpenRouter AI for a smarter swap
+    if (process.env.OPENROUTER_API_KEY) {
+      try {
+        const prompt = `You are an elite strength and conditioning coach.
+The user is currently scheduled to perform:
+- Exercise: ${currentExercise}
+- Sets: ${body.sets || 3}
+- Reps: ${body.reps || "8-12"}
+- Intensity: ${body.intensity || "RPE 7"}
+
+They requested a substitution with the following reason: "${body.reason || "I need a change."}".
+
+Provide a smart alternative exercise that respects their limitations or equipment constraints, while maintaining the intended stimulus as much as possible.
+
+Return ONLY a valid JSON object with this exact structure (no markdown formatting, no backticks, just raw JSON):
+{
+  "name": "Exercise Name",
+  "sets": ${body.sets || 3},
+  "reps": "X-Y",
+  "intensity": "RPE Z",
+  "notes": "Brief coaching note focused on their reason for swapping",
+  "tempo": "e.g. 3-1-1-1",
+  "breathing": "e.g. Inhale down, exhale up",
+  "intent": "What they should feel",
+  "rationale": "Why this is a good substitute given their reason",
+  "confidence_score": 0.95
+}`;
+
+        const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://koda.ai",
+            "X-Title": "Koda AI"
+          },
+          body: JSON.stringify({
+            model: "anthropic/claude-3-haiku",
+            messages: [{ role: "user", content: prompt }],
+            response_format: { type: "json_object" }
+          })
+        });
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          let contentStr = aiData.choices?.[0]?.message?.content;
+          if (contentStr) {
+            // Remove markdown code blocks if the model ignored instructions
+            contentStr = contentStr.replace(/```json/g, '').replace(/```/g, '').trim();
+            const aiSwap = JSON.parse(contentStr);
+            if (aiSwap.name) {
+              replacement = {
+                name: aiSwap.name,
+                sets: aiSwap.sets || fallbackReplacement.sets,
+                reps: aiSwap.reps || fallbackReplacement.reps,
+                intensity: aiSwap.intensity || fallbackReplacement.intensity,
+                notes: aiSwap.notes || fallbackReplacement.notes,
+                tempo: aiSwap.tempo || fallbackReplacement.tempo,
+                breathing: aiSwap.breathing || fallbackReplacement.breathing,
+                intent: aiSwap.intent || fallbackReplacement.intent,
+                rationale: aiSwap.rationale || fallbackReplacement.rationale,
+              };
+              confidence = aiSwap.confidence_score || 0.85;
+              explanation = aiSwap.rationale || "AI-powered contextual substitution.";
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("AI Swap failed, falling back to rule-based", err);
+      }
+    }
+
     return NextResponse.json({
       replacement,
       reliability: {
-        confidence_score: 0.77,
-        explanation: "Rule-based substitution using movement pattern and user reason.",
+        confidence_score: confidence,
+        explanation,
         limitations: [
           "No live pain signal is available; confirm pain-free range before loading.",
           "Adjust load downward if readiness is low today.",
