@@ -82,14 +82,43 @@ export function DashboardAnalyticsSection({
           <>
             <ul className="mt-8 space-y-3">
               {[
-                { label: "Active Cycle", value: `${analytics.workout_days} / ${analytics.period_days} Days` },
-                { label: "Training Volume", value: `${analytics.estimated_total_sets} Sets` },
-                { label: "System Balance", value: `${analytics.push_pull_balance}` },
-                { label: "Recovery Debt", value: `${Math.round(analytics.recovery_debt * 100)}%` },
-                ...(analytics.nutrition_compliance != null ? [{ label: "Nutrition Compliance", value: `${Math.round(analytics.nutrition_compliance * 100)}%` }] : []),
+                {
+                  label: "Active Days",
+                  value: `${analytics.workout_days} of ${analytics.period_days} Days`,
+                  sub: "last 14 days"
+                },
+                {
+                  label: "Training Volume",
+                  value: `${analytics.estimated_total_sets} Sets`,
+                  sub: "estimated"
+                },
+                {
+                  label: "Push / Pull Balance",
+                  value: analytics.push_pull_balance === 1
+                    ? "Balanced"
+                    : analytics.push_pull_balance > 1.5
+                      ? `${analytics.push_pull_balance}:1 Push-Heavy`
+                      : analytics.push_pull_balance < 0.67
+                        ? `1:${(1 / analytics.push_pull_balance).toFixed(1)} Pull-Heavy`
+                        : `${analytics.push_pull_balance}:1`,
+                  sub: "push-to-pull ratio"
+                },
+                {
+                  label: "Recovery Debt",
+                  value: `${Math.round(analytics.recovery_debt * 100)}%`,
+                  sub: analytics.recovery_debt < 0.3 ? "well recovered" : analytics.recovery_debt < 0.6 ? "moderate fatigue" : "high fatigue"
+                },
+                ...(analytics.nutrition_compliance != null ? [{
+                  label: "Nutrition Compliance",
+                  value: `${Math.round(analytics.nutrition_compliance * 100)}%`,
+                  sub: "vs calorie target"
+                }] : []),
               ].map((item) => (
                 <li key={item.label} className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-black/40 px-5 py-3">
-                  <span className="text-[11px] font-black uppercase tracking-widest text-fn-ink/40">{item.label}</span>
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-fn-ink/40">{item.label}</span>
+                    {item.sub && <p className="text-[9px] text-fn-muted/40 mt-0.5 uppercase tracking-wider">{item.sub}</p>}
+                  </div>
                   <span className="text-sm font-black text-white italic">{item.value}</span>
                 </li>
               ))}

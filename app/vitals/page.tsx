@@ -9,49 +9,42 @@ import { PageLayout, LoadingState, Card, CardHeader, Button } from "@/components
 import { DashboardReadinessSection } from "@/components/dashboard/DashboardReadinessSection";
 import { calculateReadiness, type MuscleReadiness } from "@/lib/workout/recovery";
 
+type BiometricSignal = {
+    hrv?: number | null;
+    sleep_deep_hours?: number | null;
+    sleep_hours?: number | null;
+    blood_glucose_avg?: number | null;
+    strain_score?: number | null;
+    spo2_avg?: number | null;
+    respiratory_rate_avg?: number | null;
+    resting_hr?: number | null;
+    recovery_score?: number | null;
+    signal_date?: string | null;
+    provider?: string | null;
+};
+
 export default function VitalsPage() {
     const { user, loading: authLoading } = useAuth();
     const [readiness, setReadiness] = useState<Partial<MuscleReadiness>>({});
     const [readinessInsight, setReadinessInsight] = useState<string | null>(null);
     const [readinessInsightLoading, setReadinessInsightLoading] = useState(false);
     const [recoverySuggestion, setRecoverySuggestion] = useState<string | null>(null);
-    const [biometrics, setBiometrics] = useState<any[]>([]);
+    const [biometrics, setBiometrics] = useState<BiometricSignal[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [sex, setSex] = useState<string | null>(null);
 
     const loadVitals = useCallback(async () => {
-        console.log("[vitals] loadVitals triggered", { authLoading, hasUser: !!user });
-
-        if (authLoading) {
-            console.log("[vitals] skipping: auth is loading");
-            return;
-        }
-
-        if (!user) {
-            console.log("[vitals] skipping: no user session");
-            setLoading(false);
-            return;
-        }
-
-        if (!user.id) {
-            console.error("[vitals] CRITICAL: User object exists but missing ID!", user);
-            setError("Authentication synchronization error. Please try again.");
-            setLoading(false);
-            return;
-        }
+        if (authLoading) return;
+        if (!user) { setLoading(false); return; }
 
         const supabase = createClient();
-        if (!supabase) {
-            setLoading(false);
-            return;
-        }
+        if (!supabase) { setLoading(false); return; }
 
         setLoading(true);
         try {
-            console.log("[vitals] fetching data for user:", user.id);
             const today = toLocalDateString();
-
-            const [workoutsRes, signalsRes] = await Promise.all([
+            const [workoutsRes, signalsRes, profileRes] = await Promise.all([
                 supabase
                     .from("workout_logs")
                     .select("*")
@@ -63,19 +56,24 @@ export default function VitalsPage() {
                     .select("*")
                     .eq("user_id", user.id)
                     .order("signal_date", { ascending: false })
-                    .limit(10)
+                    .limit(10),
+                supabase
+                    .from("user_profile")
+                    .select("sex")
+                    .eq("user_id", user.id)
+                    .maybeSingle()
             ]);
 
-            const fetchError = workoutsRes.error || signalsRes.error;
-            if (fetchError) throw fetchError;
+            if (profileRes.data?.sex) {
+                setSex(profileRes.data.sex);
+            }
 
             if (signalsRes.data) {
-                setBiometrics(signalsRes.data);
+                setBiometrics(signalsRes.data as BiometricSignal[]);
             }
 
             const recentWorkouts = workoutsRes.data;
             if (recentWorkouts) {
-                console.log("[vitals] data fetched:", recentWorkouts.length, "workouts");
                 const calculated = calculateReadiness(recentWorkouts);
                 setReadiness(calculated);
 
@@ -85,13 +83,12 @@ export default function VitalsPage() {
                         (new Date(today).setHours(0, 0, 0, 0) - new Date(lastWorkoutDate).setHours(0, 0, 0, 0)) /
                         (24 * 60 * 60 * 1000)
                     );
-                    if (daysSinceLast === 0) setRecoverySuggestion("You already trained today.");
-                    else if (daysSinceLast === 1) setRecoverySuggestion("You trained yesterday. Active recovery recommended.");
+                    if (daysSinceLast === 0) setRecoverySuggestion("You trained today. Prioritize nutrition and sleep.");
+                    else if (daysSinceLast === 1) setRecoverySuggestion("Trained yesterday. Active recovery recommended.");
                 }
             }
-        } catch (err: any) {
-            console.error("Vitals load error:", err);
-            setError(err.message || "Failed to load vitals.");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to load vitals.");
         } finally {
             setLoading(false);
         }
@@ -106,33 +103,48 @@ export default function VitalsPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ localDate: toLocalDateString(), readiness }),
             });
-            const body = await res.json();
+            const body = await res.json() as { insight?: string };
             if (body.insight) setReadinessInsight(body.insight);
-        } catch (e) { } finally {
+        } catch { /* degraded AI */ } finally {
             setReadinessInsightLoading(false);
         }
     }, [readiness]);
 
     useEffect(() => {
-        loadVitals();
-        const timer = setTimeout(() => {
-            setLoading(false);
-        }, 3000); // Safety timeout
+        void loadVitals();
+        const timer = setTimeout(() => setLoading(false), 4000);
         return () => clearTimeout(timer);
     }, [loadVitals]);
 
     useEffect(() => {
-        if (!loading) loadInsight();
+        if (!loading) void loadInsight();
     }, [loading, loadInsight]);
+
+    const latest = biometrics[0];
+
+    const isFemale = sex === "female" || sex === "Female" || sex === "F" || sex === "f";
+
+    const statCards: Array<{ label: string; value: string | number; unit: string; icon: string }> = [];
+    if (latest) {
+        if (latest.hrv != null) statCards.push({ label: "Heart Rate Variability", value: Math.round(latest.hrv), unit: "ms", icon: "💚" });
+        if (latest.resting_hr != null) statCards.push({ label: "Resting Heart Rate", value: Math.round(latest.resting_hr), unit: "bpm", icon: "❤️" });
+        if (latest.sleep_hours != null) statCards.push({ label: "Total Sleep", value: latest.sleep_hours.toFixed(1), unit: "hrs", icon: "🌙" });
+        if (latest.sleep_deep_hours != null) statCards.push({ label: "Deep Sleep", value: latest.sleep_deep_hours.toFixed(1), unit: "hrs", icon: "💤" });
+        if (latest.spo2_avg != null) statCards.push({ label: "Blood Oxygen (SpO2)", value: Math.round(latest.spo2_avg), unit: "%", icon: "🫁" });
+        if (latest.respiratory_rate_avg != null) statCards.push({ label: "Respiratory Rate", value: latest.respiratory_rate_avg.toFixed(1), unit: "rpm", icon: "🌬️" });
+        if (latest.blood_glucose_avg != null) statCards.push({ label: "Avg Glucose", value: Math.round(latest.blood_glucose_avg), unit: "mg/dL", icon: "🩸" });
+        if (latest.strain_score != null) statCards.push({ label: "Training Strain", value: latest.strain_score.toFixed(1), unit: "", icon: "⚡" });
+        if (latest.recovery_score != null) statCards.push({ label: "Recovery Score", value: Math.round(latest.recovery_score), unit: "%", icon: "♻️" });
+    }
 
     return (
         <PageLayout
-            title="System Readiness"
-            subtitle="Comprehensive physiological signals and musculoskeletal recovery analysis"
+            title="Performance Readiness"
+            subtitle="Physiological signals and musculoskeletal recovery analysis"
         >
             {error && (
                 <div className="mb-4 rounded-xl border border-fn-danger/20 bg-fn-danger/5 p-4 text-xs text-fn-danger">
-                    Error loading vitals: {error}
+                    {error}
                 </div>
             )}
             {loading ? (
@@ -140,13 +152,10 @@ export default function VitalsPage() {
             ) : !user ? (
                 <div className="max-w-4xl space-y-6">
                     <Card padding="lg" className="border-fn-accent/20 bg-fn-accent/5">
-                        <CardHeader title="Intelligence Access Required" subtitle="Sign in to analyze your physiological signals" />
-                        <p className="mt-4 text-fn-muted leading-relaxed">
-                            To provide personalized readiness insights and muscle stress analysis, Koda AI needs access to your training history and biometric data.
-                        </p>
+                        <CardHeader title="Sign In Required" subtitle="Sign in to view your physiological signals" />
                         <div className="mt-8 flex flex-col sm:flex-row gap-4">
                             <Link href="/auth?next=/vitals">
-                                <Button className="w-full sm:w-auto px-8">Sign In to Continue</Button>
+                                <Button className="w-full sm:w-auto px-8">Sign In</Button>
                             </Link>
                             <Link href="/start">
                                 <Button variant="secondary" className="w-full sm:w-auto px-8">Start Assessment</Button>
@@ -155,81 +164,81 @@ export default function VitalsPage() {
                     </Card>
                 </div>
             ) : (
-                <div className="max-w-4xl">
-                    <div className="mb-6 flex justify-end">
+                <div className="max-w-4xl space-y-6">
+                    {/* Header actions */}
+                    <div className="flex items-center justify-between">
+                        <p className="text-xs text-fn-muted">
+                            {biometrics.length > 0
+                                ? `Last synced: ${latest?.signal_date && new Date(latest.signal_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })} via ${latest?.provider ?? "wearable"}`
+                                : "No wearable data yet — connect a device below"}
+                        </p>
                         <Link href="/integrations">
                             <Button variant="secondary" size="sm" className="gap-2">
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
                                 Connect Wearables
                             </Button>
                         </Link>
                     </div>
 
-                    {biometrics.length > 0 && (
-                        <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-4">
-                            {biometrics[0].hrv && (
-                                <Card padding="default" className="bg-black/40">
-                                    <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-1">HRV</p>
-                                    <p className="text-2xl font-black text-white">{Math.round(biometrics[0].hrv)} <span className="text-xs text-fn-muted">ms</span></p>
-                                </Card>
-                            )}
-                            {biometrics[0].sleep_deep_hours && (
-                                <Card padding="default" className="bg-black/40">
-                                    <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-1">Deep Sleep</p>
-                                    <p className="text-2xl font-black text-white">{biometrics[0].sleep_deep_hours.toFixed(1)} <span className="text-xs text-fn-muted">hrs</span></p>
-                                </Card>
-                            )}
-                            {biometrics[0].blood_glucose_avg && (
-                                <Card padding="default" className="bg-black/40">
-                                    <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-1">Avg Glucose</p>
-                                    <p className="text-2xl font-black text-white">{Math.round(biometrics[0].blood_glucose_avg)} <span className="text-xs text-fn-muted">mg/dL</span></p>
-                                </Card>
-                            )}
-                            {biometrics[0].strain_score && (
-                                <Card padding="default" className="bg-black/40">
-                                    <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-1">Strain</p>
-                                    <p className="text-2xl font-black text-white">{biometrics[0].strain_score.toFixed(1)}</p>
-                                </Card>
-                            )}
-                            {biometrics[0].spo2_avg && (
-                                <Card padding="default" className="bg-black/40">
-                                    <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-1">SpO2 (Blood O2)</p>
-                                    <p className="text-2xl font-black text-white">{Math.round(biometrics[0].spo2_avg)}<span className="text-xs text-fn-muted">%</span></p>
-                                </Card>
-                            )}
-                            {biometrics[0].respiratory_rate_avg && (
-                                <Card padding="default" className="bg-black/40">
-                                    <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-1">Resp. Rate</p>
-                                    <p className="text-2xl font-black text-white">{biometrics[0].respiratory_rate_avg.toFixed(1)} <span className="text-xs text-fn-muted">rpm</span></p>
-                                </Card>
-                            )}
+                    {/* Live biometric stat grid */}
+                    {statCards.length > 0 ? (
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent mb-3">Live Readings</p>
+                            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+                                {statCards.map((stat) => (
+                                    <div
+                                        key={stat.label}
+                                        className="rounded-2xl border border-white/[0.07] bg-fn-surface/60 p-4 hover:bg-fn-surface/80 transition-colors"
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-lg">{stat.icon}</span>
+                                            {stat.unit && (
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-fn-muted/50">{stat.unit}</span>
+                                            )}
+                                        </div>
+                                        <p className="text-2xl font-black text-white leading-none">{stat.value}</p>
+                                        <p className="mt-1.5 text-[9px] font-bold uppercase tracking-widest text-fn-muted leading-tight">{stat.label}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-6 text-center">
+                            <p className="text-sm text-fn-muted">No wearable data available yet.</p>
+                            <p className="mt-1 text-xs text-fn-muted/60">Connect a device via the Open Wearables dashboard to see live biometric readings here.</p>
+                            <Link href="/integrations" className="mt-4 inline-block">
+                                <Button size="sm">Connect a Device</Button>
+                            </Link>
                         </div>
                     )}
 
-                    <div className="grid gap-6 md:grid-cols-[1fr_2fr]">
-                        <div className="space-y-4">
-                            <Card padding="default" className="border-fn-accent/20 bg-fn-accent/5 hover:bg-fn-accent/10 transition-colors">
-                                <Link href="/vitals/cycle" className="block w-full">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent mb-1">Hormonal Phase</p>
-                                            <p className="text-sm font-semibold text-fn-ink">Log Cycle Data</p>
-                                        </div>
-                                        <svg className="h-5 w-5 text-fn-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                        </svg>
+                    {/* Main readiness section */}
+                    <DashboardReadinessSection
+                        readiness={readiness}
+                        readinessInsight={readinessInsight}
+                        readinessInsightLoading={readinessInsightLoading}
+                        recoverySuggestion={recoverySuggestion}
+                    />
+
+                    {/* Hormonal Phase — females only */}
+                    {isFemale && (
+                        <Card padding="default" className="border-fn-accent/20 bg-fn-accent/5 hover:bg-fn-accent/10 transition-colors">
+                            <Link href="/vitals/cycle" className="block w-full">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent mb-1">Hormonal Phase</p>
+                                        <p className="text-sm font-semibold text-fn-ink">Log Cycle Data →</p>
+                                        <p className="text-xs text-fn-muted mt-1">Adapt training volume to your menstrual phase.</p>
                                     </div>
-                                    <p className="text-xs text-fn-muted mt-2">Adapt your training volume to your physiology.</p>
-                                </Link>
-                            </Card>
-                        </div>
-                        <DashboardReadinessSection
-                            readiness={readiness}
-                            readinessInsight={readinessInsight}
-                            readinessInsightLoading={readinessInsightLoading}
-                            recoverySuggestion={recoverySuggestion}
-                        />
-                    </div>
+                                    <svg className="h-6 w-6 text-fn-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </div>
+                            </Link>
+                        </Card>
+                    )}
                 </div>
             )}
         </PageLayout>

@@ -131,14 +131,27 @@ export default function ProgressPage() {
     weight: number;
   }[];
   const latestWeight = weights[0]?.weight;
-  const previousWeight = weights[1]?.weight;
   const latestWeightDisplay = latestWeight != null ? formatDisplayNumber(toDisplayWeight(latestWeight, unitSystem), 1) : null;
   const unitLabel = weightUnitLabel(unitSystem);
+
+  // 7-day Exponential Moving Average for smooth trend direction
+  const ema7: number[] = [];
+  const smoothingFactor = 2 / (7 + 1);
+  const chronoWeights = [...weights].reverse(); // oldest first
+  chronoWeights.forEach((entry, idx) => {
+    if (idx === 0) {
+      ema7.push(entry.weight);
+    } else {
+      ema7.push(entry.weight * smoothingFactor + ema7[idx - 1] * (1 - smoothingFactor));
+    }
+  });
+  const latestEma = ema7[ema7.length - 1] ?? latestWeight;
+  const prevEma = ema7.length >= 3 ? ema7[ema7.length - 3] : null;
   const trend =
-    latestWeight != null && previousWeight != null
-      ? latestWeight < previousWeight
+    latestEma != null && prevEma != null
+      ? latestEma < prevEma - 0.2
         ? "down"
-        : latestWeight > previousWeight
+        : latestEma > prevEma + 0.2
           ? "up"
           : "stable"
       : null;
@@ -195,10 +208,16 @@ export default function ProgressPage() {
   const aiNarrative = aiInsight ?? fallbackNarrative;
 
   const chartWeights = weights.slice(0, 14).reverse();
-  const maxWeight = Math.max(...chartWeights.map((x) => x.weight), 1);
+  // Dynamic Y-axis: zoom into the range ±5% around actual weights so changes are visible
+  const rawMax = Math.max(...chartWeights.map((x) => toDisplayWeight(x.weight, unitSystem)), 1);
+  const rawMin = Math.min(...chartWeights.map((x) => toDisplayWeight(x.weight, unitSystem)), rawMax);
+  const padding = Math.max((rawMax - rawMin) * 0.5, rawMax * 0.02, 1);
+  const chartMin = rawMin - padding;
+  const chartMax = rawMax + padding;
+  const chartRange = chartMax - chartMin;
 
   return (
-    <PageLayout title="Progress" subtitle="Biometric trend interpretation and system-wide body composition tracking">
+    <PageLayout title="Progress" subtitle="Body composition tracking and AI-powered performance synthesis">
       {/* Prominent CTAs above the fold */}
       <div className="mb-8 flex flex-wrap gap-4">
         <Link href="/progress/add">
@@ -223,7 +242,7 @@ export default function ProgressPage() {
           <div className="grid gap-4 lg:grid-cols-3">
             {/* AI Narrative — wide */}
             <Card padding="lg" className="lg:col-span-2 border-fn-accent/20 bg-fn-accent/5">
-              <CardHeader title="Intelligence Narrative" subtitle="Based on multi-vector entry analysis" />
+              <CardHeader title="AI Performance Synthesis" subtitle="Based on your logged body composition data" />
               {aiInsightLoading ? (
                 <div className="mt-6 space-y-4 animate-pulse">
                   <div className="h-4 w-full rounded-full bg-white/5" />
@@ -241,20 +260,23 @@ export default function ProgressPage() {
               {latestWeight != null ? (
                 <div className="mt-4 space-y-4">
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-fn-ink/40 mb-2">Current System Weight</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-fn-ink/40 mb-2">Body Weight</p>
                     <div className="flex items-baseline gap-3">
                       <p className="text-5xl font-black text-white italic leading-none">{latestWeightDisplay}</p>
                       <p className="text-xl font-black uppercase tracking-widest text-fn-ink/40">{unitLabel}</p>
                     </div>
                     {trend && (
-                      <p className={`mt-4 text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${trend === "down" ? "text-fn-accent" : trend === "up" ? "text-fn-danger" : "text-fn-muted"}`}>
-                        {trend === "down" && <span className="text-sm">↓</span>}
-                        {trend === "up" && <span className="text-sm">↑</span>}
-                        {trend === "stable" && <span className="text-sm">→</span>}
-                        {trend === "down" && "Trending Down"}
-                        {trend === "up" && "Trending Up"}
-                        {trend === "stable" && "Stable Delta"}
-                      </p>
+                      <div className="mt-4">
+                        <p className={`text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${trend === "down" ? "text-fn-accent" : trend === "up" ? "text-fn-danger" : "text-fn-muted"}`}>
+                          {trend === "down" && <span>↓</span>}
+                          {trend === "up" && <span>↑</span>}
+                          {trend === "stable" && <span>→</span>}
+                          {trend === "down" && "7-Day Trend: Decreasing"}
+                          {trend === "up" && "7-Day Trend: Increasing"}
+                          {trend === "stable" && "7-Day Trend: Stable"}
+                        </p>
+                        <p className="text-[9px] text-fn-muted/50 mt-1">Based on 7-day moving average</p>
+                      </div>
                     )}
                   </div>
                   {latestBodyFat != null && (
@@ -282,33 +304,56 @@ export default function ProgressPage() {
 
           {/* Weight Trend Chart */}
           <Card className="mt-4" padding="lg">
-            <CardHeader title="System Weight Trend" subtitle="Phased biometric data over 14 cycles" />
-            {chartWeights.length > 0 ? (
-              <div className="mt-8">
-                <div className="flex h-56 items-end gap-3 px-2">
-                  {chartWeights.map((e) => {
-                    const heightPct = Math.max(8, (e.weight / maxWeight) * 90);
-                    const dayLabel = new Date(e.date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short" }).slice(0, 1);
-                    return (
-                      <div key={e.track_id} className="flex flex-1 flex-col items-center gap-3">
-                        <div
-                          className="w-full rounded-t-lg bg-fn-accent/20 transition-all duration-300 hover:bg-fn-accent/60 hover:shadow-[0_0_20px_rgba(10,217,196,0.3)] cursor-default"
-                          style={{ height: `${heightPct}%` }}
-                          title={`${e.date}: ${formatDisplayNumber(toDisplayWeight(e.weight, unitSystem), 1)} ${unitLabel}`}
-                        />
-                        <span className="text-[10px] font-black text-fn-ink/30 uppercase tracking-widest">{dayLabel}</span>
-                      </div>
-                    );
-                  })}
+            <CardHeader title="Biological Weight Trend" subtitle={chartWeights.length > 1 ? `Last ${chartWeights.length} entries · Y-axis zoomed to ±${Math.round(padding * 2 * 10) / 10} ${unitLabel} range` : "Log entries to see your trend"} />
+            {chartWeights.length > 1 ? (
+              <div className="mt-6">
+                {/* Y-axis labels */}
+                <div className="relative flex">
+                  <div className="flex flex-col justify-between text-right pr-3 py-1" style={{ height: 224, width: 52 }}>
+                    <span className="text-[9px] font-black text-fn-muted/40">{formatDisplayNumber(chartMax, 1)}</span>
+                    <span className="text-[9px] font-black text-fn-muted/40">{formatDisplayNumber((chartMax + chartMin) / 2, 1)}</span>
+                    <span className="text-[9px] font-black text-fn-muted/40">{formatDisplayNumber(chartMin, 1)}</span>
+                  </div>
+                  {/* The chart */}
+                  <div className="flex-1 relative">
+                    {/* Grid lines */}
+                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                      {[0, 1, 2].map(i => (
+                        <div key={i} className="border-t border-white/[0.05] w-full" />
+                      ))}
+                    </div>
+                    {/* Bars */}
+                    <div className="flex h-56 items-end gap-2 relative">
+                      {chartWeights.map((e, idx) => {
+                        const displayW = toDisplayWeight(e.weight, unitSystem);
+                        const heightPct = chartRange > 0 ? Math.max(2, ((displayW - chartMin) / chartRange) * 100) : 50;
+                        const dateObj = new Date(e.date + "T00:00:00");
+                        const dayLabel = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                        return (
+                          <div key={e.track_id} className="group flex flex-1 flex-col items-center justify-end h-full gap-1">
+                            <span className="hidden group-hover:flex text-[9px] font-black text-fn-accent mb-1 whitespace-nowrap">
+                              {formatDisplayNumber(displayW, 1)}
+                            </span>
+                            <div
+                              className="w-full rounded-t-md bg-fn-accent/25 hover:bg-fn-accent/70 transition-all duration-300 cursor-default shadow-[0_0_1px_rgba(10,217,196,0.2)] hover:shadow-[0_0_12px_rgba(10,217,196,0.4)]"
+                              style={{ height: `${heightPct}%` }}
+                              title={`${e.date}: ${formatDisplayNumber(displayW, 1)} ${unitLabel}`}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-6 flex justify-between text-[11px] font-black uppercase tracking-[0.2em] text-fn-ink/20 px-2">
-                  <span>{chartWeights[0]?.date}</span>
-                  <span>Initial Scan Cycle Completion</span>
-                  <span>{chartWeights[chartWeights.length - 1]?.date}</span>
+                {/* X-axis labels */}
+                <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-fn-muted/30 mt-3 pl-14 pr-1">
+                  <span>{new Date(chartWeights[0].date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                  <span className="text-fn-muted/20">{unitLabel.toUpperCase()}</span>
+                  <span>{new Date(chartWeights[chartWeights.length - 1].date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
                 </div>
               </div>
             ) : (
-              <EmptyState className="mt-4" message="Add at least 2 progress entries to see your trend." />
+              <EmptyState className="mt-4" message="Add at least 2 progress entries to see your biological weight trend." />
             )}
           </Card>
 
