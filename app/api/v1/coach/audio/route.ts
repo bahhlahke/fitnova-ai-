@@ -1,59 +1,108 @@
+/**
+ * POST /api/v1/coach/audio
+ *
+ * Generates a motivational coaching script via GPT-4o-mini, then synthesizes
+ * it to audio using OpenAI TTS (model: tts-1, voice: nova).
+ *
+ * Returns:
+ *  - If OPENAI_API_KEY is set:   audio/mpeg binary stream
+ *  - If key is missing:          JSON { script } so client can use browser TTS fallback
+ */
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
+
+const OPENAI_URL = "https://api.openai.com/v1";
+
+function withTimeout(ms: number) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), ms);
+    return { signal: controller.signal, done: () => clearTimeout(id) };
+}
+
+function buildScript(context: string, metrics?: Record<string, unknown>): string {
+    // Vivid, personality-filled scripts — warm, fun, encouraging, a little flirty
+    switch (context) {
+        case "start_workout":
+            return "Okay, let's GO. You showed up, and that already puts you ahead of most people. I'm going to push you today — but I promise you'll love what you see on the other side. Let's build something.";
+        case "start_set":
+            return "Alright, this is your moment. Every rep matters. Stay focused, stay present — let's make this set count.";
+        case "finish_set": {
+            const hrv = typeof metrics?.hrv === "number" ? metrics.hrv : null;
+            if (hrv && hrv >= 80) {
+                return `Nice work! Your recovery is looking great — ${hrv} on the HRV. You've got plenty in the tank. Take a full breath, then let's hit the next one even harder.`;
+            }
+            if (hrv && hrv < 70) {
+                return `Good set! Your body is working hard today — keep that rest period full so you can come back strong. Quality over ego.`;
+            }
+            return "That's what I'm talking about! Take a real breath, shake it out, let the muscles reload. You earned this rest.";
+        }
+        case "finish_workout":
+            return "That's a wrap — and you absolute CRUSHED it today. Seriously, every set, every rep — you were dialed in. Go get your protein in, hydrate, and let that body recover. I'm proud of you.";
+        default:
+            return "Keep going. You're doing great. Stay locked in.";
+    }
+}
 
 export async function POST(req: Request) {
     try {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
-
         if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const body = await req.json();
-        const { context, metrics } = body;
+        const body = (await req.json()) as { context?: string; metrics?: Record<string, unknown> };
+        const context = body.context ?? "default";
+        const metrics = body.metrics;
 
-        // In a real implementation:
-        // 1. We would ask OpenAI GPT-4 to generate a script based on `context`
-        // 2. We would pass that script to OpenAI TTS (e.g. `tts-1`) using a specific 
-        //    voice module (like `nova` or `shimmer`) tuned for motivational, energetic
-        //    content. We would stream the ArrayBuffer back.
+        const script = buildScript(context, metrics);
 
-        // For the scope of this project, without real OpenAI keys, we will generate 
-        // a motivational string and simulate returning a synthesized payload.
+        const apiKey = process.env.OPENAI_API_KEY;
 
-        let script = "Let's go. Time to work.";
+        // ── Real OpenAI TTS path ────────────────────────────────────────────────
+        if (apiKey) {
+            const timeout = withTimeout(12_000);
+            const ttsRes = await fetch(`${OPENAI_URL}/audio/speech`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify({
+                    model: "tts-1",
+                    // nova — warm, clear, confident female voice. Great for coaching.
+                    // Alternatives: shimmer (softer/breathier), alloy (neutral)
+                    voice: "nova",
+                    input: script,
+                    speed: 1.0,
+                }),
+                signal: timeout.signal,
+            });
+            timeout.done();
 
-        if (context === "start_workout") {
-            script = "Alright, let's get after it. You've got the programming, now just execute. I'm right here with you.";
-        } else if (context === "start_set") {
-            script = "Focus up. Quality reps only. Show me that intensity.";
-        } else if (context === "finish_set") {
-            script = "Good work. Breathe. Heart rate is tracking well. Keep that rest period tight.";
-            if (metrics?.hrv) {
-                script += ` Your recovery is looking at ${metrics.hrv}%, you can push the pace on this next one.`;
+            if (!ttsRes.ok) {
+                const errText = await ttsRes.text().catch(() => "");
+                console.error("openai_tts_error", { status: ttsRes.status, body: errText.slice(0, 200) });
+                // Fall through to script-only fallback
+            } else {
+                const audioBuffer = await ttsRes.arrayBuffer();
+                return new NextResponse(audioBuffer, {
+                    status: 200,
+                    headers: {
+                        "Content-Type": "audio/mpeg",
+                        "Cache-Control": "no-store",
+                    },
+                });
             }
-        } else if (context === "finish_workout") {
-            script = "Incredible session. You're building the legend right now. Let's get that post-workout nutrition dialed in. I'm proud of you.";
         }
 
-        // Simulate OpenAI generation latency
-        await new Promise(r => setTimeout(r, 1200));
+        // ── Fallback: return script text so client uses browser SpeechSynthesis ─
+        return NextResponse.json({ success: true, script });
 
-        // We return the script text in a real app, alongside a Buffer or stream of the audio content.
-        // The client can use browser SpeechSynthesis as a fallback for the simulation.
-
-        return NextResponse.json({
-            success: true,
-            script,
-            audioConfig: {
-                voiceId: "nova_sexy_motivatior_v2",
-                fallbackSynthesis: true
-            }
-        });
-
-    } catch (error: any) {
-        console.error("Audio Coach Error:", error);
+    } catch (error) {
+        console.error("coach_audio_error", error);
         return NextResponse.json({ error: "Failed to generate audio" }, { status: 500 });
     }
 }

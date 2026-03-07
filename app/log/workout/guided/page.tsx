@@ -60,38 +60,79 @@ export default function GuidedWorkoutPage() {
   const workoutStartedAt = useRef<number | null>(null);
 
   const playCoachAudio = useCallback(async (contextStr: string, metrics?: any) => {
-    if (!audioEnabled || !("speechSynthesis" in window)) return;
+    if (!audioEnabled) return;
 
     // Stop anything currently playing
-    window.speechSynthesis.cancel();
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 
     try {
       setIsPlayingAudio(true);
       const res = await fetch("/api/v1/coach/audio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ context: contextStr, metrics })
+        body: JSON.stringify({ context: contextStr, metrics }),
       });
+
+      const contentType = res.headers.get("content-type") ?? "";
+
+      // ── Real OpenAI TTS path — binary audio/mpeg ─────────────────────────
+      if (contentType.includes("audio")) {
+        const arrayBuffer = await res.arrayBuffer();
+        const audioCtx = new AudioContext();
+        const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+        const source = audioCtx.createBufferSource();
+        source.buffer = decoded;
+        source.connect(audioCtx.destination);
+        source.onended = () => {
+          setIsPlayingAudio(false);
+          audioCtx.close();
+        };
+        source.start(0);
+        return;
+      }
+
+      // ── Fallback: browser SpeechSynthesis with improved voice ─────────────
+      if (!("speechSynthesis" in window)) {
+        setIsPlayingAudio(false);
+        return;
+      }
+
       const data = await res.json();
+      if (!data.script) { setIsPlayingAudio(false); return; }
 
-      if (data.script) {
-        // Fallback simulation of OpenAI TTS stream using browser Synthesis
+      const speak = (voices: SpeechSynthesisVoice[]) => {
         const utterance = new SpeechSynthesisUtterance(data.script);
-        const voices = window.speechSynthesis.getVoices();
-        // Look for a pleasant/upbeat voice
-        const preferredVoice = voices.find(v => v.lang === "en-US" && (v.name.includes("Samantha") || v.name.includes("Karen") || v.name.includes("Victoria")));
-        if (preferredVoice) utterance.voice = preferredVoice;
-
-        // Slightly faster and higher pitch for energetic/sexy/motivational tone
-        utterance.rate = 1.05;
-        utterance.pitch = 1.2;
-
+        // Prefer warmer/female voices in order of preference
+        const preferred = voices.find(v =>
+          v.lang.startsWith("en") && (
+            v.name.includes("Samantha") ||
+            v.name.includes("Karen") ||
+            v.name.includes("Moira") ||
+            v.name.includes("Tessa") ||
+            v.name.includes("Victoria") ||
+            v.name.includes("Zira") ||
+            v.name.includes("Joanna") ||
+            v.name.includes("female") ||
+            v.name.toLowerCase().includes("female")
+          )
+        ) ?? voices.find(v => v.lang.startsWith("en-US")) ?? null;
+        if (preferred) utterance.voice = preferred;
+        utterance.rate = 1.08;
+        utterance.pitch = 1.15;
+        utterance.volume = 1.0;
         utterance.onend = () => setIsPlayingAudio(false);
         utterance.onerror = () => setIsPlayingAudio(false);
-
         window.speechSynthesis.speak(utterance);
+      };
+
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        speak(voices);
       } else {
-        setIsPlayingAudio(false);
+        // Chrome lazy-loads voices — wait for the event
+        window.speechSynthesis.onvoiceschanged = () => {
+          speak(window.speechSynthesis.getVoices());
+        };
       }
     } catch (e) {
       console.error("Audio playback error:", e);
