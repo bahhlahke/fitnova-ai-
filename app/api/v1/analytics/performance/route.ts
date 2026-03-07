@@ -68,13 +68,12 @@ export async function GET(request: Request) {
         .limit(30),
       supabase
         .from("connected_signals")
-        .select("signal_date, recovery_score, strain_score, sleep_hours, resting_hr, hrv")
+        .select("signal_date, provider, recovery_score, strain_score, sleep_hours, sleep_deep_hours, resting_hr, hrv, spo2_avg, respiratory_rate_avg, blood_glucose_avg, steps, active_calories")
         .eq("user_id", user.id)
-        .eq("provider", "whoop")
         .gte("signal_date", fourteenDaysAgo)
         .lte("signal_date", today)
         .order("signal_date", { ascending: false })
-        .limit(14),
+        .limit(28),
       supabase
         .from("nutrition_adherence_daily")
         .select("date_local, total_score")
@@ -113,12 +112,28 @@ export async function GET(request: Request) {
     }>;
     const recoverySignals = (signalsRes.data ?? []) as Array<{
       signal_date: string;
+      provider?: string | null;
       recovery_score?: number | null;
       strain_score?: number | null;
       sleep_hours?: number | null;
+      sleep_deep_hours?: number | null;
       resting_hr?: number | null;
       hrv?: number | null;
+      spo2_avg?: number | null;
+      respiratory_rate_avg?: number | null;
+      blood_glucose_avg?: number | null;
+      steps?: number | null;
+      active_calories?: number | null;
     }>;
+
+    // Pick the best (latest non-null) value for each key across all providers
+    const bestSignal = <K extends keyof (typeof recoverySignals)[0]>(key: K): (typeof recoverySignals)[0][K] => {
+      for (const s of recoverySignals) {
+        if (s[key] != null) return s[key];
+      }
+      return null as (typeof recoverySignals)[0][K];
+    };
+
     const adherenceRows = (adherenceRes.data ?? []) as Array<{ date_local: string; total_score?: number | null }>;
     const recentPrs = (prsRes?.data ?? []) as Array<{ exercise_name: string; max_weight: number; highest_1rm: number; last_achieved_at: string }>;
 
@@ -173,7 +188,7 @@ export async function GET(request: Request) {
     const progression = buildProgressionAnalytics(workouts, progressionSnapshots, adherenceRows);
 
     const latestRecovery = recoverySignals[0] ?? null;
-    const recoveryReadiness = toRecoveryFraction(latestRecovery?.recovery_score ?? null);
+    const recoveryReadiness = toRecoveryFraction(bestSignal("recovery_score") ?? null);
 
     return NextResponse.json({
       period_days: 14,

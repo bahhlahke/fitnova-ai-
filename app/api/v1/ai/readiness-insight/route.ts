@@ -52,17 +52,19 @@ export async function POST(req: Request) {
     }
 
     const today = localDate;
-    const [workoutsRes, checkInsRes, planRes] = await Promise.all([
+    const sevenDaysAgo = new Date(new Date(`${today}T12:00:00`).getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+    const [workoutsRes, checkInsRes, planRes, signalsRes] = await Promise.all([
       supabase
         .from("workout_logs")
         .select("date, workout_type, duration_minutes")
-        .eq("user_id", userId) // Use userId here
+        .eq("user_id", userId)
         .order("date", { ascending: false })
         .limit(7),
       supabase
         .from("check_ins")
         .select("date_local, energy_score, sleep_hours, soreness_notes")
-        .eq("user_id", userId) // Use userId here
+        .eq("user_id", userId)
         .eq("date_local", today)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -70,10 +72,17 @@ export async function POST(req: Request) {
       supabase
         .from("daily_plans")
         .select("plan_json")
-        .eq("user_id", userId) // Use userId here
+        .eq("user_id", userId)
         .eq("date_local", today)
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from("connected_signals")
+        .select("signal_date, provider, hrv, resting_hr, spo2_avg, sleep_hours, sleep_deep_hours, recovery_score")
+        .eq("user_id", userId)
+        .gte("signal_date", sevenDaysAgo)
+        .order("signal_date", { ascending: false })
+        .limit(7),
     ]);
 
     const workouts = (workoutsRes.data ?? []) as Array<{ date: string; workout_type?: string; duration_minutes?: number }>;
@@ -129,6 +138,18 @@ Instructions for Output:
       }
     }
 
+    const signals = (signalsRes?.data ?? []) as Array<{
+      signal_date: string;
+      provider?: string | null;
+      hrv?: number | null;
+      resting_hr?: number | null;
+      spo2_avg?: number | null;
+      sleep_hours?: number | null;
+      sleep_deep_hours?: number | null;
+      recovery_score?: number | null;
+    }>;
+    const latestSignal = signals[0] ?? null;
+
     const dataBlock = [
       "Today: " + today,
       "Last workout: " + (lastWorkoutDate ?? "no data") + (daysSinceLast != null ? " (" + daysSinceLast + " days ago)" : ""),
@@ -138,6 +159,15 @@ Instructions for Output:
         ? "Today's check-in: energy " + (todayCheckIn.energy_score ?? "?") + "/5, sleep " + (todayCheckIn.sleep_hours ?? "?") + "h" + (todayCheckIn.soreness_notes ? ", soreness: " + todayCheckIn.soreness_notes : "")
         : "No check-in today",
       "Has plan for today: " + hasPlanToday,
+      latestSignal ? [
+        "Wearable data (" + (latestSignal.provider ?? "device") + " - " + latestSignal.signal_date + "):",
+        latestSignal.hrv != null ? "  HRV: " + Math.round(latestSignal.hrv) + " ms" : null,
+        latestSignal.resting_hr != null ? "  Resting HR: " + Math.round(latestSignal.resting_hr) + " bpm" : null,
+        latestSignal.sleep_hours != null ? "  Total sleep: " + latestSignal.sleep_hours.toFixed(1) + " hrs" : null,
+        latestSignal.sleep_deep_hours != null ? "  Deep sleep: " + latestSignal.sleep_deep_hours.toFixed(1) + " hrs" : null,
+        latestSignal.spo2_avg != null ? "  SpO2: " + Math.round(latestSignal.spo2_avg) + "%" : null,
+        latestSignal.recovery_score != null ? "  Recovery score: " + Math.round(latestSignal.recovery_score) + "%" : null,
+      ].filter(Boolean).join("\n") : "No wearable data available",
     ].join("\n");
 
     const payload = {
