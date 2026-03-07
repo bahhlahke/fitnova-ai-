@@ -759,6 +759,31 @@ export default function HomePage() {
                 {briefingLoading ? "Polling Koda..." : briefing ? <>&ldquo;{briefing}&rdquo;</> : "Executing standard startup sequence."}
               </div>
             </div>
+
+            {/* Sensor Sync / Biometrics Status */}
+            <div className="rounded-xl bg-black/40 border border-white/5 p-4 group hover:bg-black/60 transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[9px] font-black uppercase text-fn-accent">Sensor Sync</p>
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fn-accent opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-fn-accent"></span>
+                </span>
+              </div>
+              <div className="space-y-2">
+                <Link href="/integrations" className="block p-2 rounded-lg bg-white/5 hover:bg-fn-accent/10 border border-white/5 hover:border-fn-accent/20 transition-all">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">⌚</span>
+                    <span className="text-[10px] font-bold text-white uppercase tracking-tight">Vitals Pipeline</span>
+                  </div>
+                </Link>
+                <Link href="/log/nutrition/fridge" className="block p-2 rounded-lg bg-white/5 hover:bg-fn-accent/10 border border-white/5 hover:border-fn-accent/20 transition-all">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">📸</span>
+                    <span className="text-[10px] font-bold text-white uppercase tracking-tight">Fridge Scanner</span>
+                  </div>
+                </Link>
+              </div>
+            </div>
           </div>
         </aside>
 

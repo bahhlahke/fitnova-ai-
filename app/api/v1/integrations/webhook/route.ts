@@ -20,13 +20,20 @@ export async function POST(request: Request) {
     const requestId = makeRequestId();
 
     try {
-        // 1. Verify Webhook Signature (Simulated for this MVP)
-        // In a real integration, we'd hash the payload with our secret and compare it to the "X-OW-Signature" header.
+        // 1. Verify Webhook Signature
         const signature = request.headers.get("x-ow-signature");
-
-        // For local testing, if it's the specific test secret in the header, we allow it.
-
         const rawBody = await request.text();
+
+        if (WEBHOOK_SECRET !== "simulated_secret_for_local_dev") {
+            const hmac = crypto.createHmac('sha256', WEBHOOK_SECRET);
+            const expectedSignature = hmac.update(rawBody).digest('hex');
+
+            if (signature !== expectedSignature) {
+                console.error("Webhook Signature Mismatch");
+                return jsonError(401, "AUTH_REQUIRED", "Invalid webhook signature");
+            }
+        }
+
         let payload: OpenWearablesPayload;
         try {
             payload = JSON.parse(rawBody) as OpenWearablesPayload;

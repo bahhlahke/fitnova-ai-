@@ -14,8 +14,8 @@ const PROVIDERS = [
 
 export default function IntegrationsPage() {
     const [loading, setLoading] = useState(true);
-    const [simulating, setSimulating] = useState<string | null>(null);
     const [activeProviders, setActiveProviders] = useState<Set<string>>(new Set());
+    const [userId, setUserId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -27,6 +27,10 @@ export default function IntegrationsPage() {
             if (!user) {
                 setLoading(false);
                 return;
+            }
+
+            if (user) {
+                setUserId(user.id);
             }
 
             // See which providers actually have data
@@ -44,70 +48,9 @@ export default function IntegrationsPage() {
         void load();
     }, []);
 
-    async function simulateConnection(providerId: string, providerName: string) {
-        setSimulating(providerId);
-        setError(null);
-        try {
-            const supabase = createClient();
-            if (!supabase) throw new Error("Supabase client not initialized");
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Must be logged in.");
-
-            // Simulate the aggregator OAuth flow + Webhook push
-            // We will hit our own webhook endpoint with a dummy payload
-
-            let payloadType = "sleep";
-            let payloadData: any = {};
-
-            if (providerId === "freestyle_libre") {
-                payloadType = "body";
-                payloadData = { blood_glucose_avg: 95, core_temperature_delta: 0.2 };
-            } else if (providerId === "whoop") {
-                payloadType = "readiness";
-                payloadData = { strain: 14.5 };
-            } else {
-                payloadType = "sleep";
-                payloadData = {
-                    duration_seconds: 25200, // 7 hours
-                    deep_sleep_seconds: 5400, // 1.5 hours
-                    rem_sleep_seconds: 7200, // 2 hours
-                    readiness: 85,
-                    hrv_rmssd: 65,
-                    resting_heart_rate: 52,
-                    spo2_avg: 98,
-                    respiratory_rate_avg: 14.5
-                };
-            }
-
-            const res = await fetch("/api/v1/integrations/webhook", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    event_type: payloadType,
-                    provider: providerId,
-                    user_id: user.id,
-                    data: [payloadData]
-                })
-            });
-
-            if (!res.ok) {
-                throw new Error("Failed to process integration webhook");
-            }
-
-            setActiveProviders(prev => {
-                const next = new Set(prev);
-                next.add(providerId);
-                return next;
-            });
-
-            // Show success
-            setTimeout(() => alert(`Successfully connected ${providerName}! Data is now sinking into Koda AI.`), 300);
-
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Integration failed.");
-        } finally {
-            setSimulating(null);
-        }
+    function copyToClipboard(text: string) {
+        navigator.clipboard.writeText(text);
+        alert("Koda ID copied to clipboard!");
     }
 
     return (
@@ -115,8 +58,49 @@ export default function IntegrationsPage() {
             title="Integrations & Devices"
             subtitle="Connect wearables via Open Wearables API to supercharge your AI Coach"
         >
+            <Card padding="lg" className="mb-6 border-fn-accent/20 bg-fn-accent/5">
+                <CardHeader
+                    title="Setup Instructions"
+                    subtitle="Link your wearable devices in 30 seconds"
+                />
+                <div className="mt-4 space-y-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/5">
+                        <div className="flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-1">Step 1: Get your Koda ID</p>
+                            <p className="text-xs text-fn-muted leading-relaxed">Required to pair your data securely.</p>
+                            <div className="mt-2 flex items-center gap-2">
+                                <code className="bg-black/40 px-3 py-1.5 rounded-lg text-xs font-mono text-white border border-white/10 break-all">
+                                    {userId || "loading..."}
+                                </code>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => userId && copyToClipboard(userId)}
+                                    className="shrink-0"
+                                >
+                                    Copy
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/5">
+                        <div className="flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-1">Step 2: Connect via Dashboard</p>
+                            <p className="text-xs text-fn-muted leading-relaxed">Login to your Open Wearables dashboard and paste your Koda ID into the "User ID" field when linking devices.</p>
+                        </div>
+                        <Link href="https://open-wearables-ui-production.up.railway.app" target="_blank">
+                            <Button className="w-full sm:w-auto bg-fn-accent text-black hover:bg-white transition-colors">
+                                Launch Dashboard
+                                <svg className="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            </Button>
+                        </Link>
+                    </div>
+                </div>
+            </Card>
+
             <Card padding="lg">
-                <CardHeader title="Available Providers" subtitle="Secure, encrypted biometric sync" />
+                <CardHeader title="Supported Devices" subtitle="Data will appear automatically once synced" />
 
                 {error && <ErrorMessage message={error} className="mb-4" />}
 
@@ -135,22 +119,23 @@ export default function IntegrationsPage() {
                                         <div>
                                             <p className="font-bold text-fn-ink flex items-center gap-2">
                                                 {provider.name}
-                                                {isConnected && <span className="text-[10px] font-black uppercase tracking-widest text-fn-accent bg-fn-accent/10 px-2 py-0.5 rounded-full">Active</span>}
+                                                {isConnected && <span className="text-[10px] font-black uppercase tracking-widest text-fn-accent bg-fn-accent/10 px-2 py-0.5 rounded-full">Active Sync</span>}
                                             </p>
                                             <p className="text-xs text-fn-muted mt-0.5">{provider.description}</p>
                                         </div>
                                     </div>
 
-                                    <Button
-                                        variant={isConnected ? "secondary" : "primary"}
-                                        size="sm"
-                                        loading={simulating === provider.id}
-                                        onClick={() => void simulateConnection(provider.id, provider.name)}
-                                        disabled={isConnected}
-                                        className="w-full sm:w-auto"
-                                    >
-                                        {isConnected ? "Connected" : "Sync Wearable"}
-                                    </Button>
+                                    {isConnected ? (
+                                        <div className="flex items-center gap-2 text-fn-accent text-xs font-bold px-3 py-1.5 rounded-full bg-fn-accent/5 border border-fn-accent/10">
+                                            <span className="relative flex h-2 w-2">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fn-accent opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-fn-accent"></span>
+                                            </span>
+                                            Live
+                                        </div>
+                                    ) : (
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-fn-muted/40">Not Linked</div>
+                                    )}
                                 </li>
                             );
                         })}

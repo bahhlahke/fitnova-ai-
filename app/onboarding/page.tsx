@@ -346,6 +346,7 @@ export default function OnboardingPage() {
                 <div className="mt-4">
                   <label className={labelClass}>Training setup and wearables (optional)</label>
                   <input type="text" value={devices} onChange={(e) => setDevices(e.target.value)} className={inputClass} placeholder="e.g. Home dumbbells, Apple Watch" />
+                  <p className="mt-2 text-[10px] text-fn-muted italic">Note: You can link Oura, Garmin, and WHOOP for real-time biometrics in the Integrations hub after setup.</p>
                 </div>
               )}
 
