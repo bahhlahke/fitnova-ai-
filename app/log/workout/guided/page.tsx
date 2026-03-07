@@ -157,19 +157,40 @@ export default function GuidedWorkoutPage() {
           setPhase("work");
           return;
         }
-        const [planRes, profileRes] = await Promise.all([
+        const targetDate = typeof window !== "undefined" ? (new URLSearchParams(window.location.search).get("date") || toLocalDateString()) : toLocalDateString();
+
+        const [planRes, profileRes, weeklyPlansRes] = await Promise.all([
           supabase
             .from("daily_plans")
             .select("plan_json")
             .eq("user_id", user.id)
-            .eq("date_local", toLocalDateString())
+            .eq("date_local", targetDate)
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle(),
           supabase.from("user_profile").select("injuries_limitations").eq("user_id", user.id).maybeSingle(),
+          supabase.from("weekly_plans").select("plan_json").eq("user_id", user.id).order("created_at", { ascending: false }).limit(3),
         ]);
 
-        const plan = (planRes.data?.plan_json ?? null) as DailyPlan | null;
+        let plan = (planRes.data?.plan_json ?? null) as DailyPlan | null;
+
+        // Fallback to weekly plan if no specific daily plan exists
+        if (!plan && weeklyPlansRes.data?.length) {
+          for (const wp of weeklyPlansRes.data) {
+            const days = wp.plan_json?.days || [];
+            const targetDay = days.find((d: any) => d.date_local === targetDate);
+            if (targetDay && targetDay.exercises?.length) {
+              plan = {
+                training_plan: {
+                  focus: targetDay.focus,
+                  intensity: targetDay.intensity,
+                  exercises: targetDay.exercises,
+                }
+              } as unknown as DailyPlan;
+              break;
+            }
+          }
+        }
         if (plan?.training_plan?.exercises?.length) {
           setPlanTitle(plan.training_plan.focus || "Personalized session");
           const newExercises = plan.training_plan.exercises.map((e) => ({
@@ -242,7 +263,7 @@ export default function GuidedWorkoutPage() {
 
     const payload = {
       user_id: user.id,
-      date: toLocalDateString(),
+      date: typeof window !== "undefined" ? (new URLSearchParams(window.location.search).get("date") || toLocalDateString()) : toLocalDateString(),
       workout_type: "strength" as const,
       exercises: exercises.map((e) => ({
         name: e.name,

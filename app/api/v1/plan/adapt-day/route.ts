@@ -24,6 +24,7 @@ type AdaptDayRequest = {
     target_duration_minutes: number;
     goals: string[];
     current_exercises: WeeklyPlanExercise[];
+    date_local?: string;
 };
 
 type AdaptDayResponse = {
@@ -157,6 +158,30 @@ Please return the adapted exercise list as a JSON array now.`;
             : "Workout adapted to your constraint.";
 
         const response: AdaptDayResponse = { exercises, adaptation_note };
+
+        // Save to daily_plans if date_local provided so the Guided Workout picks it up
+        if (body.date_local) {
+            const plan_json = {
+                training_plan: {
+                    focus: body.focus,
+                    intensity: body.intensity,
+                    target_duration_minutes: body.target_duration_minutes,
+                    exercises: exercises,
+                }
+            };
+            const upsertRes = await supabase.from("daily_plans").upsert(
+                {
+                    user_id: user.id,
+                    date_local: body.date_local,
+                    plan_json: plan_json,
+                },
+                { onConflict: "user_id,date_local" }
+            );
+            if (upsertRes.error) {
+                console.error("adapt_day_save_error", { requestId, message: upsertRes.error.message });
+            }
+        }
+
         return NextResponse.json(response);
 
     } catch (error) {

@@ -53,9 +53,9 @@ export function DashboardAnalyticsSection({
             <p className="mt-6 text-base font-medium leading-relaxed text-fn-muted">
               {weeklyPlan.adaptation_summary}
             </p>
-            <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {weeklyPlan.days.slice(0, 6).map((day) => (
-                <div key={day.date_local} className="rounded-xl border border-white/[0.08] bg-black/40 px-5 py-5 transition-all hover:bg-black/60">
+            <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 text-left">
+              {weeklyPlan.days.slice(0, 7).map((day) => (
+                <div key={day.date_local} className="rounded-xl border border-white/[0.08] bg-black/40 px-5 py-4 transition-all hover:bg-black/60">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent">
                     {day.day_label}
                   </p>

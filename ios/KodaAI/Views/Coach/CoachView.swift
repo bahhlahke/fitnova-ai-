@@ -53,6 +53,13 @@ struct CoachView: View {
                 .padding()
             }
             .navigationTitle("Coach")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    NavigationLink("Support") {
+                        CoachEscalateView()
+                    }
+                }
+            }
         }
     }
 

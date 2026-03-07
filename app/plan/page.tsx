@@ -71,14 +71,17 @@ export default function PlanPage() {
     const [adaptLoading, setAdaptLoading] = useState(false);
     const [adaptNote, setAdaptNote] = useState<string | null>(null);
     const [adaptedExercises, setAdaptedExercises] = useState<WeeklyPlanExercise[] | null>(null);
+    const [completedDates, setCompletedDates] = useState<Set<string>>(new Set());
 
     const loadPlan = useCallback(async () => {
         if (!user) return;
         setLoading(true);
         try {
-            const [planRes, profileRes] = await Promise.all([
+            const supabase = createClient();
+            const [planRes, profileRes, logsRes] = await Promise.all([
                 fetch(`/api/v1/plan/weekly?today=${toLocalDateString()}`),
-                createClient()?.from("user_profile").select("goals, devices").eq("user_id", user.id).maybeSingle(),
+                supabase?.from("user_profile").select("goals, devices").eq("user_id", user.id).maybeSingle(),
+                supabase?.from("workout_logs").select("date").eq("user_id", user.id).order("date", { ascending: false }).limit(14),
             ]);
 
             const planBody = await planRes.json() as { plan?: WeeklyPlan };
@@ -93,6 +96,10 @@ export default function PlanPage() {
                 setGoals((profileRes.data.goals as string[]) ?? []);
                 const schedule = (profileRes.data.devices as Record<string, unknown>)?.training_schedule as { preferred_training_days?: number[] } | undefined;
                 if (schedule?.preferred_training_days) setPreferredDays(schedule.preferred_training_days);
+            }
+
+            if (logsRes?.data) {
+                setCompletedDates(new Set(logsRes.data.map(log => log.date)));
             }
         } catch { /* degraded */ } finally {
             setLoading(false);
@@ -151,6 +158,7 @@ export default function PlanPage() {
                     target_duration_minutes: selectedDay.target_duration_minutes,
                     goals,
                     current_exercises: currentExercises,
+                    date_local: selectedDay.date_local,
                 }),
             });
             const body = await res.json() as { exercises?: WeeklyPlanExercise[]; adaptation_note?: string };
@@ -322,7 +330,8 @@ export default function PlanPage() {
                                                     {day.focus}
                                                 </p>
                                                 {today && <span className="text-[8px] font-black uppercase tracking-widest bg-fn-accent text-black px-2 py-0.5 rounded-full shrink-0">Today</span>}
-                                                {!isPreferred && !past && (
+                                                {completedDates.has(day.date_local) && <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded-full shrink-0">Completed</span>}
+                                                {!isPreferred && !past && !completedDates.has(day.date_local) && (
                                                     <span className="text-[8px] font-black uppercase tracking-widest bg-white/5 text-white/30 px-2 py-0.5 rounded-full shrink-0">Rest</span>
                                                 )}
                                             </div>
@@ -509,9 +518,9 @@ export default function PlanPage() {
                                             </Button>
                                         </Link>
                                     )}
-                                    <Link href="/log/workout" className="block">
+                                    <Link href={`/log/workout/guided?date=${selectedDay.date_local}`} className="block">
                                         <Button variant="secondary" className="w-full h-11">
-                                            {today ? "Start Workout Session" : "Log a Workout"}
+                                            {today ? "Start Workout Session" : "Start This Session"}
                                         </Button>
                                     </Link>
                                 </div>

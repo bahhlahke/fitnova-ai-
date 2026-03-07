@@ -47,8 +47,9 @@ struct KodaAPIService {
     // MARK: - Private
 
     private func get<T: Decodable>(_ path: String) async throws -> T {
-        let url = baseURL.appendingPathComponent(path)
+        let url = path.hasPrefix("http") ? URL(string: path)! : URL(string: path, relativeTo: baseURL)!.absoluteURL
         var request = URLRequest(url: url)
+        request.timeoutInterval = 30
         request.httpMethod = "GET"
         if let token = await getAccessToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -60,8 +61,9 @@ struct KodaAPIService {
     }
 
     private func post<T: Decodable>(_ path: String, body: [String: Any]) async throws -> T {
-        let url = baseURL.appendingPathComponent(path)
+        let url = path.hasPrefix("http") ? URL(string: path)! : URL(string: path, relativeTo: baseURL)!.absoluteURL
         var request = URLRequest(url: url)
+        request.timeoutInterval = 30
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -124,13 +126,16 @@ struct NutritionPlan: Decodable {
 }
 
 struct WeeklyPlanResponse: Decodable {
-    let plan: [String: AnyCodable]?
+    let plan: WeeklyPlan?
 }
 
 struct PerformanceResponse: Decodable {
     let workout_days: Int?
     let workout_minutes: Int?
     let set_volume: Int?
+    let push_pull_balance: String?
+    let recovery_debt: String?
+    let nutrition_compliance: Double?
 }
 
 struct DailyConstraints {
@@ -150,11 +155,16 @@ struct DailyConstraints {
 enum KodaAPIError: Error {
     case http(status: Int, message: String)
     case noAuth
+    case invalidResponse
+    case unknown
 }
 
-/// Type-erased Codable for flexible API responses.
-struct AnyCodable: Decodable {
+/// Type-erased Codable for flexible API/Supabase payloads.
+struct AnyCodable: Codable {
     let value: Any
+    init(value: Any) {
+        self.value = value
+    }
     init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
         if let b = try? c.decode(Bool.self) { value = b }
@@ -163,5 +173,17 @@ struct AnyCodable: Decodable {
         else if let a = try? c.decode([AnyCodable].self) { value = a.map(\.value) }
         else if let d = try? c.decode([String: AnyCodable].self) { value = d.mapValues(\.value) }
         else { value = NSNull() }
+    }
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch value {
+        case let b as Bool: try c.encode(b)
+        case let i as Int: try c.encode(i)
+        case let s as String: try c.encode(s)
+        case let a as [AnyCodable]: try c.encode(a)
+        case let a as [String]: try c.encode(a)
+        case let d as [String: AnyCodable]: try c.encode(d)
+        default: try c.encodeNil()
+        }
     }
 }

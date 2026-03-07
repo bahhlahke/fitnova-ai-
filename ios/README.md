@@ -66,34 +66,69 @@ If your Supabase Swift SDK uses a different method name (e.g. `signInWithOtp` in
 
 The Next.js API accepts **cookie** (web) or **Authorization: Bearer &lt;access_token&gt;** (mobile). The iOS app sends the Supabase `access_token` on every request via `KodaAPIService`. No backend changes are required beyond what’s already in `lib/supabase/server.ts`.
 
-## 7. Production / App Store
+## 7. Apple Health (HealthKit)
+
+- In Xcode, add the **HealthKit** capability (Signing & Capabilities → + Capability → HealthKit). Enable **Clinical Health Records** only if needed.
+- Add `NSHealthShareUsageDescription` to Info.plist (see Info.plist.example). Request read access for weight, sleep, and step count. The app syncs the last 90 days to progress_tracking and check_ins.
+- HealthKit is only available on physical iPhone (not Simulator for some APIs).
+
+## 8. Production / App Store
 
 - **Sign in with Apple:** If you offer email magic link, Apple requires also offering Sign in with Apple. Add a “Sign in with Apple” button and call `SupabaseService.signInWithApple(idToken:nonce:)` (implement using `AuthenticationServices` to get `idToken` and `nonce`).
 - **Privacy:** Add a **Privacy Policy** URL and, if needed, **App Privacy** details in App Store Connect.
 - **Capabilities:** Enable **Push Notifications** if you use them; **Background Modes** only if needed.
 - **App Transport Security:** Use HTTPS for `API_BASE_URL` and `SUPABASE_URL` (no change needed if you use your production URLs).
 
+## Feature parity with web
+
+The iOS app matches the web app for core flows:
+
+- **Dashboard (Home):** Briefing, today's plan, 14-day performance, coach nudges, generate plan.
+- **Plan:** Weekly plan, day selector, adapt day, weekly AI insight.
+- **Coach:** AI chat; Support (escalate) with list/create/messages.
+- **Log:** Workouts (list, quick log, **guided workout** from plan with sets/rest/swap/save); Nutrition (meals, targets, analyze meal, **fridge scanner**, **meal plan**/recipe gen).
+- **Progress:** List entries, add entry, **body comp scan** (3 photos → API → save).
+- **Check-in:** Daily energy, sleep, soreness, adherence.
+- **Community:** Friends, requests, accountability partner, challenges (join).
+- **Settings:** Profile, **Integrations** (Apple Health sync, Whoop link), export, **onboarding** link, **pricing**/Stripe, sign out.
+- **Onboarding:** Multi-step gate (name, age, sex, height, weight, goals, injuries, diet) → profile + onboarding.
+- **Integrations:** **Apple Health** (HealthKit): read weight/sleep/steps, sync last 90 days to progress and check-ins; Whoop (open web connect).
+- **Telemetry:** `Telemetry.track(_:props:)` for product events.
+
+Robustness: retry-friendly API client, loading/error/empty states, Supabase direct access, HealthKit sync.
+
 ## Project layout
 
 ```
 ios/
-├── README.md                 # This file
+├── README.md
 └── KodaAI/
-    ├── KodaAIApp.swift       # @main, RootView
-    ├── RootView.swift        # Auth vs MainTabView
-    ├── MainTabView.swift     # Tab bar
+    ├── KodaAIApp.swift
+    ├── RootView.swift
+    ├── MainTabView.swift
     ├── Config/
-    │   └── AppConfig.swift   # SUPABASE_URL, API_BASE_URL, etc.
+    │   └── AppConfig.swift
+    ├── Core/
+    │   ├── NetworkClient.swift   # Retry, timeout
+    │   └── DateHelpers.swift
+    ├── Models/
+    │   ├── APIModels.swift       # API DTOs
+    │   └── DataModels.swift     # Supabase row types
     ├── Services/
-    │   ├── SupabaseService.swift   # Auth, session, Bearer token
-    │   └── KodaAPIService.swift   # API client (plan, coach, analytics)
+    │   ├── SupabaseService.swift
+    │   ├── KodaAPIService.swift
+    │   ├── APIEndpoints.swift   # Full API surface
+    │   └── KodaDataService.swift # Supabase tables
+    ├── Components/
+    │   └── LoadingErrorView.swift
     └── Views/
         ├── Auth/
         ├── Home/
         ├── Plan/
-        ├── Coach/
+        ├── Coach/ (+ CoachEscalateView)
         ├── Log/
         ├── Progress/
+        ├── CheckIn/
         └── Settings/
 ```
 

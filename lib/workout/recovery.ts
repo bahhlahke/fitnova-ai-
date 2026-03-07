@@ -68,7 +68,7 @@ export function calculateReadiness(logs: any[]): MuscleReadiness {
         if (chronic === 0 && acute === 0) {
             readiness[m] = 50; // Baseline neutral if no data
         } else if (chronic === 0 && acute > 0) {
-            readiness[m] = 20; // High fatigue, very low fitness (new lifter shock)
+            readiness[m] = 40; // High fatigue, very low fitness (new lifter shock)
         } else {
             const acwr = acute / chronic;
 

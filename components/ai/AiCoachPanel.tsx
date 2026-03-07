@@ -105,6 +105,14 @@ export function AiCoachPanel({
       if (Array.isArray(data.refreshScopes) && data.refreshScopes.length > 0) {
         emitDataRefresh(data.refreshScopes);
       }
+
+      // Automatically handle navigation intents if they were triggered
+      if (Array.isArray(data.actions)) {
+        const navEvent = data.actions.find(a => (a as any).type === "navigation");
+        if (navEvent) {
+          router.push(navEvent.targetRoute);
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -156,7 +164,7 @@ export function AiCoachPanel({
 
   return (
     <section
-      className={`rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 shadow-2xl backdrop-blur-3xl ${className}`.trim()}
+      className={`flex flex-col rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 shadow-2xl backdrop-blur-3xl ${className}`.trim()}
       aria-label="Nova AI"
     >
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-5 sr-only">
@@ -195,8 +203,7 @@ export function AiCoachPanel({
               Ready for input
             </p>
             <p className="mt-3 text-sm font-medium leading-relaxed text-fn-muted">
-              Tell Koda what you ate, how you trained, or what you need to
-              change today.
+              You can ask Koda to do anything — log your meals, track a workout, adapt a daily plan, or analyze your progress. Koda will automatically process your data or seamlessly navigate you to the relevant part of the app.
             </p>
           </div>
         )}

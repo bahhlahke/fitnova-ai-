@@ -17,6 +17,10 @@ final class SupabaseService: ObservableObject {
 
     var isSignedIn: Bool { session != nil }
     var accessToken: String? { session?.accessToken }
+    var currentUserId: String? { session?.user.id }
+
+    /// Exposed for Supabase table access (profile, logs, plans, etc.). Use only when session is non-nil.
+    var supabaseClient: SupabaseClient { client }
 
     private let client: SupabaseClient
 

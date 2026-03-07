@@ -18,6 +18,10 @@ struct MainTabView: View {
                 .tabItem { Label("Log", systemImage: "list.bullet") }
             BodyProgressView()
                 .tabItem { Label("Progress", systemImage: "chart.bar.fill") }
+            CheckInView()
+                .tabItem { Label("Check-in", systemImage: "heart.fill") }
+            CommunityView()
+                .tabItem { Label("Community", systemImage: "person.2.fill") }
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
         }

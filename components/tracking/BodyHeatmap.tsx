@@ -141,8 +141,7 @@ function MusclePanel({ muscles, readiness, view, title }: MusclePanelProps) {
             <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 mb-1">{title}</p>
             <svg
                 viewBox="0 0 100 250"
-                className="w-full h-full"
-                style={{ filter: "drop-shadow(0 0 18px rgba(0,0,0,0.8))" }}
+                className="w-full h-full drop-shadow-2xl"
             >
                 <defs>
                     {panelMuscles.map(({ key }) => {
@@ -195,9 +194,7 @@ function MusclePanel({ muscles, readiness, view, title }: MusclePanelProps) {
                             stroke={color}
                             strokeWidth="0.5"
                             strokeOpacity={0.9}
-                            style={{
-                                filter: `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 2px ${glow})`,
-                            }}
+                            filter={`url(#glow-${key}-${view})`}
                         />
                     );
                 })}

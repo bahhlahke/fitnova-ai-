@@ -120,7 +120,7 @@ Exercise Science Context:
 - We track Readiness using the Banister Fitness-Fatigue model (Acute:Chronic Workload Ratio). 
 - A score of 80-100 means they are "Primed" (Fitness > Fatigue).
 - A score of 50-79 means they are "Recovering" or "Detraining".
-- A score <50 means they are "Overtraining" or in the "Danger Zone".
+- A score <40 means they are "Overtraining" or in the "Danger Zone".
 
 Instructions for Output:
 - Provide a simple, actionable insight based on their readiness score, sleep, and soreness.

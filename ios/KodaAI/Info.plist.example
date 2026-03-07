@@ -12,5 +12,11 @@
 	<string>Koda AI</string>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Koda AI syncs weight, sleep, and steps from Apple Health to your profile for better coaching and progress tracking.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Optional: capture body comp photos (front, side, back) for AI body fat estimation.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose photos for body comp scan and fridge scanner.</string>
 </dict>
 </plist>

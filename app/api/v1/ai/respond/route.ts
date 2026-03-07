@@ -115,8 +115,9 @@ export async function POST(request: Request) {
       "- Update the user's calibration, goals, and limitations (`update_user_profile`).\n" +
       "- Share achievements to the activity feed (`create_social_post`).\n" +
       "- Create new personalized plans (`generate_daily_plan`) based on time/equipment.\n" +
+      "- Navigate the user to a specific page context (`navigate_to`).\n" +
       "- Escalate complex medical or technical issues to a human coach (`request_coach_assistance`).\n\n" +
-      "Always prefer taking action when the user reports data. End with a concrete next step.";
+      "Always prefer taking action when the user reports data. You may call MULTIPLE tools in parallel if requested (e.g. generate a plan AND navigate to it). End with a concrete next step.";
 
     if (user?.id) {
       try {
@@ -283,6 +284,21 @@ export async function POST(request: Request) {
               weight_lbs: { type: "number", description: "Body weight in lbs" },
               body_fat_percent: { type: "number", description: "Body fat percentage" }
             }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "navigate_to",
+          description: "Navigates the user's screen to a specific sub-page. Use this if the user asks you to take them somewhere or open a specific view.",
+          parameters: {
+            type: "object",
+            properties: {
+              route: { type: "string", description: "The internal relative path to navigate to, e.g. '/log/workout/guided', '/progress', '/log/nutrition'." },
+              reason: { type: "string", description: "A short label for why we are navigating." }
+            },
+            required: ["route", "reason"]
           }
         }
       }
@@ -611,6 +627,13 @@ export async function POST(request: Request) {
                 });
                 refreshScopes.add("dashboard");
                 refreshScopes.add("progress");
+              } else if (tc.function.name === "navigate_to") {
+                resultStr = `Triggered navigation to ${args.route}`;
+                actions.push({
+                  type: "navigation",
+                  targetRoute: args.route,
+                  summary: args.reason || "Moved to new page",
+                } as any);
               } else {
                 resultStr = "Unknown tool.";
               }

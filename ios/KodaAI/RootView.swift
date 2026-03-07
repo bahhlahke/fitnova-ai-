@@ -14,7 +14,7 @@ struct RootView: View {
                 ProgressView("Loading…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if auth.isSignedIn {
-                MainTabView()
+                OnboardingCheckView()
             } else {
                 AuthView()
             }
