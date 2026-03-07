@@ -222,6 +222,13 @@ export default function WorkoutLogPage() {
                           onClick={async () => {
                             const supabase = createClient();
                             if (!supabase) return;
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (!user) {
+                              // User not logged in, cannot delete.
+                              // In a real app, you might show a message or redirect to login.
+                              console.warn("User not logged in, cannot delete workout.");
+                              return;
+                            }
                             const { error } = await supabase.from("workout_logs").delete().eq("log_id", w.log_id);
                             if (!error) {
                               setWorkouts(prev => prev.filter(item => item.log_id !== w.log_id));
@@ -264,6 +271,10 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
   const [type, setType] = useState<WorkoutType>("strength");
   const [duration, setDuration] = useState("");
   const [notes, setNotes] = useState("");
+  const [exerciseName, setExerciseName] = useState("");
+  const [sets, setSets] = useState("");
+  const [reps, setReps] = useState("");
+  const [weight, setWeight] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -289,11 +300,18 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
       setSaving(false);
       return;
     }
+    const exercisePayload = exerciseName.trim() ? [{
+      name: exerciseName.trim(),
+      sets: sets ? parseInt(sets, 10) : 1,
+      reps: reps || "0",
+      weight: weight ? parseFloat(weight) : undefined
+    }] : [];
+
     const { error: err } = await supabase.from("workout_logs").insert({
       user_id: user.id,
       date: toLocalDateString(),
       workout_type: type,
-      exercises: [],
+      exercises: exercisePayload,
       duration_minutes: durationNum ?? null,
       notes: notes.trim() || null,
     });
@@ -304,6 +322,10 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
     }
     setDuration("");
     setNotes("");
+    setExerciseName("");
+    setSets("");
+    setReps("");
+    setWeight("");
     onSuccess();
     // Trigger award check
     fetch("/api/v1/awards/check", { method: "POST" }).catch(() => { });
@@ -331,6 +353,23 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
       </div>
       <div className="grid gap-5">
+        <div>
+          <Label>Exercise Details (Optional)</Label>
+          <div className="mt-2 space-y-3">
+            <Input
+              type="text"
+              placeholder="Exercise name (e.g. Bench Press)"
+              value={exerciseName}
+              onChange={(e) => setExerciseName(e.target.value)}
+              className="bg-black/40 border-white/10 font-black italic uppercase text-[11px] tracking-widest"
+            />
+            <div className="grid grid-cols-3 gap-3">
+              <Input type="number" placeholder="Sets" value={sets} onChange={(e) => setSets(e.target.value)} className="bg-black/40 border-white/10" />
+              <Input type="number" placeholder="Reps" value={reps} onChange={(e) => setReps(e.target.value)} className="bg-black/40 border-white/10" />
+              <Input type="number" placeholder="Weight" value={weight} onChange={(e) => setWeight(e.target.value)} className="bg-black/40 border-white/10" />
+            </div>
+          </div>
+        </div>
         <div>
           <Label>Duration (min)</Label>
           <div className="mt-2 flex flex-wrap gap-2">

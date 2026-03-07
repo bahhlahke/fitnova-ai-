@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { toLocalDateString } from "@/lib/date/local-date";
 import Link from "next/link";
 import { PageLayout, LoadingState, Card, CardHeader, Button } from "@/components/ui";
@@ -9,37 +10,56 @@ import { DashboardReadinessSection } from "@/components/dashboard/DashboardReadi
 import { calculateReadiness, type MuscleReadiness } from "@/lib/workout/recovery";
 
 export default function VitalsPage() {
+    const { user, loading: authLoading } = useAuth();
     const [readiness, setReadiness] = useState<Partial<MuscleReadiness>>({});
     const [readinessInsight, setReadinessInsight] = useState<string | null>(null);
     const [readinessInsightLoading, setReadinessInsightLoading] = useState(false);
     const [recoverySuggestion, setRecoverySuggestion] = useState<string | null>(null);
-    const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const loadVitals = useCallback(async () => {
+        console.log("[vitals] loadVitals triggered", { authLoading, hasUser: !!user });
+
+        if (authLoading) {
+            console.log("[vitals] skipping: auth is loading");
+            return;
+        }
+
+        if (!user) {
+            console.log("[vitals] skipping: no user session");
+            setLoading(false);
+            return;
+        }
+
+        if (!user.id) {
+            console.error("[vitals] CRITICAL: User object exists but missing ID!", user);
+            setError("Authentication synchronization error. Please try again.");
+            setLoading(false);
+            return;
+        }
+
         const supabase = createClient();
-        if (!supabase) return;
+        if (!supabase) {
+            setLoading(false);
+            return;
+        }
 
         setLoading(true);
         try {
-            const { data: { user: sessionUser } } = await supabase.auth.getUser();
-            if (!sessionUser) {
-                setUser(null);
-                setLoading(false);
-                return;
-            }
-            setUser(sessionUser);
-
+            console.log("[vitals] fetching data for user:", user.id);
             const today = toLocalDateString();
-            const { data: recentWorkouts } = await supabase
+            const { data: recentWorkouts, error: fetchError } = await supabase
                 .from("workout_logs")
                 .select("*")
                 .eq("user_id", user.id)
                 .order("date", { ascending: false })
                 .limit(28);
 
+            if (fetchError) throw fetchError;
+
             if (recentWorkouts) {
+                console.log("[vitals] data fetched:", recentWorkouts.length, "workouts");
                 const calculated = calculateReadiness(recentWorkouts);
                 setReadiness(calculated);
 
@@ -55,11 +75,11 @@ export default function VitalsPage() {
             }
         } catch (err: any) {
             console.error("Vitals load error:", err);
-            setError(err.message);
+            setError(err.message || "Failed to load vitals.");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [user, authLoading]);
 
     const loadInsight = useCallback(async () => {
         if (Object.keys(readiness).length === 0) return;

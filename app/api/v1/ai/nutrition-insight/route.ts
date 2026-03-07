@@ -32,12 +32,15 @@ export async function POST(req: Request) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) {
+    const allowAnonymousInDev = process.env.ALLOW_DEV_ANON_AI === "true" && process.env.NODE_ENV === "development";
+    if (!user && !allowAnonymousInDev) {
       return jsonError(401, "AUTH_REQUIRED", "Sign in is required.");
     }
 
+    const userId = user?.id ?? "00000000-0000-0000-0000-000000000000";
+
     const limiter = consumeToken(
-      `nutrition-insight:${user.id}`,
+      `nutrition-insight:${userId}`,
       RATE_LIMIT_CAPACITY,
       RATE_LIMIT_REFILL_PER_SECOND
     );
@@ -53,7 +56,7 @@ export async function POST(req: Request) {
       supabase
         .from("nutrition_logs")
         .select("meals, total_calories")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("date", today)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -61,12 +64,12 @@ export async function POST(req: Request) {
       supabase
         .from("daily_plans")
         .select("plan_json")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("date_local", today)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
-      supabase.from("user_profile").select("goals, dietary_preferences").eq("user_id", user.id).maybeSingle(),
+      supabase.from("user_profile").select("goals, dietary_preferences").eq("user_id", userId).maybeSingle(),
     ]);
 
     const nutritionRow = nutritionRes.data as { meals?: Array<{ time?: string; description?: string; calories?: number }>; total_calories?: number } | null;

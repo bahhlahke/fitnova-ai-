@@ -4,10 +4,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./route";
 
+const mockInsert = vi.fn().mockResolvedValue({ error: null });
 const mockSupabase = {
   auth: { getUser: vi.fn() },
-  from: vi.fn(() => ({ insert: vi.fn().mockResolvedValue({ error: null }) })),
+  from: vi.fn(() => ({
+    insert: mockInsert,
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    order: vi.fn().mockResolvedValue({ data: [] }),
+  })),
 };
+
+vi.mock("@/lib/progression/plateau", () => ({
+  detectPlateaus: vi.fn(async () => ({ is_plateau: false, metrics: {} })),
+}));
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => mockSupabase),

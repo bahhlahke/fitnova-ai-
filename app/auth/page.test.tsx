@@ -26,7 +26,7 @@ describe("Auth page", () => {
     mockCreateClient.mockReturnValue(null);
     render(<AuthPage />);
 
-    expect(screen.getByRole("heading", { name: /Create your FitNova coaching account/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Create your Koda AI coaching account/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Continue with Google/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Send magic link/i })).toBeInTheDocument();
   });

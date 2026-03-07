@@ -8,8 +8,22 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: () => mockCreateClient(),
 }));
 
+const mockUser = { id: "user-1", email: "athlete@example.com" };
+
+vi.mock("@/components/auth/AuthProvider", () => ({
+  useAuth: () => ({
+    user: mockUser,
+    loading: false,
+    signOut: vi.fn(),
+  }),
+}));
+
 vi.mock("@/components/auth/AuthSettings", () => ({
   AuthSettings: () => <div data-testid="auth-settings" />,
+}));
+
+vi.mock("@/components/profile/BadgeCollection", () => ({
+  BadgeCollection: () => <div data-testid="badge-collection" />,
 }));
 
 type MockProfileRow = {
@@ -43,10 +57,23 @@ function setupSupabase(profile: MockProfileRow = {}) {
   const select = vi.fn().mockReturnValue(selectChain);
   const upsert = vi.fn().mockResolvedValue({ error: null });
   const from = vi.fn((table: string) => {
-    if (table !== "user_profile") {
-      throw new Error(`Unexpected table requested in settings test: ${table}`);
+    if (table === "user_profile") {
+      return { select, upsert };
     }
-    return { select, upsert };
+    // Return a default no-op chain for any other table
+    const defaultChain: any = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+      update: vi.fn().mockReturnThis(),
+      upsert: vi.fn().mockResolvedValue({ error: null }),
+      gte: vi.fn().mockReturnThis(),
+      lte: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+    };
+    return defaultChain;
   });
 
   const getUser = vi.fn().mockResolvedValue({

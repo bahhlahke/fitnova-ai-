@@ -79,7 +79,8 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    const allowAnonymousInDev = process.env.ALLOW_DEV_ANON_AI === "true" && process.env.NODE_ENV === "development";
+    if (!user && !allowAnonymousInDev) {
       return jsonError(401, "AUTH_REQUIRED", "Sign in is required.");
     }
 
@@ -90,16 +91,16 @@ export async function POST(request: Request) {
       body.type === "text"
         ? `Estimate macros for this meal: ${body.description}`
         : ([
-            {
-              type: "text" as const,
-              text:
-                "Estimate this photographed meal. Identify the likely meal, estimate calories and macros, and keep notes concise.",
-            },
-            {
-              type: "image_url" as const,
-              image_url: { url: body.data },
-            },
-          ]);
+          {
+            type: "text" as const,
+            text:
+              "Estimate this photographed meal. Identify the likely meal, estimate calories and macros, and keep notes concise.",
+          },
+          {
+            type: "image_url" as const,
+            image_url: { url: body.data },
+          },
+        ]);
 
     const { content } = await callModel({
       messages: [

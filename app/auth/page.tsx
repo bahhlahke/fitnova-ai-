@@ -45,10 +45,12 @@ export default function AuthPage() {
     }
 
     setLoadingEmail(true);
-    const callback =
-      typeof window !== "undefined"
-        ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
-        : undefined;
+    const getOrigin = () => {
+      if (typeof window !== "undefined") return window.location.origin;
+      return process.env.NEXT_PUBLIC_SITE_URL || "";
+    };
+
+    const callback = `${getOrigin()}/auth/callback?next=${encodeURIComponent(next)}`;
 
     const { error: err } = await supabase.auth.signInWithOtp({
       email: email.trim(),
@@ -111,6 +113,20 @@ export default function AuthPage() {
             <Button className="w-full" loading={loadingGoogle} onClick={handleGoogle}>
               Continue with Google
             </Button>
+
+            {process.env.NODE_ENV === "development" && (
+              <Button
+                className="w-full mt-2"
+                variant="secondary"
+                onClick={() => {
+                  // Auto setup local storage bypass tokens or mock session, 
+                  // Or redirect to a test bypass endpoint if we build one
+                  window.location.href = `/api/v1/auth/mock-login?next=${encodeURIComponent(next)}`;
+                }}
+              >
+                [DEV] Bypass Login
+              </Button>
+            )}
 
             {sent ? (
               <div className="rounded-2xl border border-fn-border bg-fn-surface-hover p-4 text-sm text-fn-ink">

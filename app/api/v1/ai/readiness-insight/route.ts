@@ -32,12 +32,15 @@ export async function POST(req: Request) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) {
+    const allowAnonymousInDev = process.env.ALLOW_DEV_ANON_AI === "true" && process.env.NODE_ENV === "development";
+    if (!user && !allowAnonymousInDev) {
       return jsonError(401, "AUTH_REQUIRED", "Sign in is required.");
     }
 
+    const userId = user?.id ?? "00000000-0000-0000-0000-000000000000";
+
     const limiter = consumeToken(
-      `readiness-insight:${user.id}`,
+      `readiness-insight:${userId}`,
       RATE_LIMIT_CAPACITY,
       RATE_LIMIT_REFILL_PER_SECOND
     );
@@ -53,13 +56,13 @@ export async function POST(req: Request) {
       supabase
         .from("workout_logs")
         .select("date, workout_type, duration_minutes")
-        .eq("user_id", user.id)
+        .eq("user_id", userId) // Use userId here
         .order("date", { ascending: false })
         .limit(7),
       supabase
         .from("check_ins")
         .select("date_local, energy_score, sleep_hours, soreness_notes")
-        .eq("user_id", user.id)
+        .eq("user_id", userId) // Use userId here
         .eq("date_local", today)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -67,7 +70,7 @@ export async function POST(req: Request) {
       supabase
         .from("daily_plans")
         .select("plan_json")
-        .eq("user_id", user.id)
+        .eq("user_id", userId) // Use userId here
         .eq("date_local", today)
         .limit(1)
         .maybeSingle(),

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import JSZip from "jszip";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
 import {
   PageLayout,
   Card,
@@ -118,71 +119,74 @@ export default function SettingsPage() {
     preferred_training_window: "morning",
   });
 
+  const { user, loading: authLoading } = useAuth();
+
   useEffect(() => {
+    if (authLoading || !user) {
+      if (!authLoading && !user) setLoading(false);
+      return;
+    }
+
     const supabase = createClient();
     if (!supabase) {
       setLoading(false);
       return;
     }
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      supabase
-        .from("user_profile")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle()
-        .then(
-          ({ data, error: fetchError }) => {
-            const nextProfile: Partial<UserProfile> = fetchError ? {} : ((data as UserProfile) ?? {});
-            const nextUnitSystem = readUnitSystemFromProfile(nextProfile as Record<string, unknown>);
-            const dev = (nextProfile.devices ?? {}) as Record<string, unknown>;
-            const dietary = (nextProfile.dietary_preferences ?? {}) as Record<string, unknown>;
-            const rem = (dev.reminders ?? {}) as { daily_plan?: boolean; workout_log?: boolean; weigh_in?: "weekly" | "off" };
-            const schedule = (dev.training_schedule ?? {}) as {
-              preferred_training_days?: number[];
-              preferred_training_window?: string;
-            };
-            setReminders({
-              daily_plan: rem.daily_plan ?? true,
-              workout_log: rem.workout_log ?? true,
-              weigh_in: rem.weigh_in ?? "weekly",
-            });
-            setTrainingSchedule({
-              preferred_training_days: Array.isArray(schedule.preferred_training_days)
-                ? schedule.preferred_training_days
-                  .map((entry) => Number(entry))
-                  .filter((entry) => Number.isInteger(entry) && entry >= 0 && entry <= 6)
-                : [1, 2, 3, 4, 5],
-              preferred_training_window:
-                typeof schedule.preferred_training_window === "string"
-                  ? schedule.preferred_training_window
-                  : "morning",
-            });
-            setCoachTone(typeof dev.ai_coach_tone === "string" ? dev.ai_coach_tone : "balanced");
-            setNudges(typeof dietary.ai_nudges === "string" ? dietary.ai_nudges : "standard");
-            setProfile(nextProfile);
-            setUnitSystem(nextUnitSystem);
-            const nextHeight = nextProfile.height;
-            const nextWeight = nextProfile.weight;
-            setHeightInput(
-              nextHeight != null && Number.isFinite(nextHeight)
-                ? formatDisplayNumber(toDisplayHeight(nextHeight, nextUnitSystem), nextUnitSystem === "imperial" ? 1 : 0)
-                : ""
-            );
-            setWeightInput(
-              nextWeight != null && Number.isFinite(nextWeight)
-                ? formatDisplayNumber(toDisplayWeight(nextWeight, nextUnitSystem), 1)
-                : ""
-            );
-            setLoading(false);
-          },
-          () => setLoading(false)
-        );
-    }).then(undefined, () => setLoading(false));
-  }, []);
+
+    setError(null);
+    supabase
+      .from("user_profile")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(
+        ({ data, error: fetchError }) => {
+          const nextProfile: Partial<UserProfile> = fetchError ? {} : ((data as UserProfile) ?? {});
+          const nextUnitSystem = readUnitSystemFromProfile(nextProfile as Record<string, unknown>);
+          const dev = (nextProfile.devices ?? {}) as Record<string, unknown>;
+          const dietary = (nextProfile.dietary_preferences ?? {}) as Record<string, unknown>;
+          const rem = (dev.reminders ?? {}) as { daily_plan?: boolean; workout_log?: boolean; weigh_in?: "weekly" | "off" };
+          const schedule = (dev.training_schedule ?? {}) as {
+            preferred_training_days?: number[];
+            preferred_training_window?: string;
+          };
+          setReminders({
+            daily_plan: rem.daily_plan ?? true,
+            workout_log: rem.workout_log ?? true,
+            weigh_in: rem.weigh_in ?? "weekly",
+          });
+          setTrainingSchedule({
+            preferred_training_days: Array.isArray(schedule.preferred_training_days)
+              ? schedule.preferred_training_days
+                .map((entry) => Number(entry))
+                .filter((entry) => Number.isInteger(entry) && entry >= 0 && entry <= 6)
+              : [1, 2, 3, 4, 5],
+            preferred_training_window:
+              typeof schedule.preferred_training_window === "string"
+                ? schedule.preferred_training_window
+                : "morning",
+          });
+          setCoachTone(typeof dev.ai_coach_tone === "string" ? dev.ai_coach_tone : "balanced");
+          setNudges(typeof dietary.ai_nudges === "string" ? dietary.ai_nudges : "standard");
+          setProfile(nextProfile);
+          setUnitSystem(nextUnitSystem);
+          const nextHeight = nextProfile.height;
+          const nextWeight = nextProfile.weight;
+          setHeightInput(
+            nextHeight != null && Number.isFinite(nextHeight)
+              ? formatDisplayNumber(toDisplayHeight(nextHeight, nextUnitSystem), nextUnitSystem === "imperial" ? 1 : 0)
+              : ""
+          );
+          setWeightInput(
+            nextWeight != null && Number.isFinite(nextWeight)
+              ? formatDisplayNumber(toDisplayWeight(nextWeight, nextUnitSystem), 1)
+              : ""
+          );
+          setLoading(false);
+        },
+        () => setLoading(false)
+      );
+  }, [user, authLoading]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

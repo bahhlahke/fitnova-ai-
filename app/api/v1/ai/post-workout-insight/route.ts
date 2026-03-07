@@ -29,12 +29,15 @@ export async function POST() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) {
+    const allowAnonymousInDev = process.env.ALLOW_DEV_ANON_AI === "true" && process.env.NODE_ENV === "development";
+    if (!user && !allowAnonymousInDev) {
       return jsonError(401, "AUTH_REQUIRED", "Sign in is required.");
     }
 
+    const userId = user?.id ?? "00000000-0000-0000-0000-000000000000";
+
     const limiter = consumeToken(
-      `post-workout-insight:${user.id}`,
+      `post-workout-insight:${userId}`,
       RATE_LIMIT_CAPACITY,
       RATE_LIMIT_REFILL_PER_SECOND
     );
@@ -48,7 +51,7 @@ export async function POST() {
     const { data: workouts } = await supabase
       .from("workout_logs")
       .select("date, workout_type, duration_minutes, exercises, notes")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("date", { ascending: false })
       .limit(6);
 

@@ -21,21 +21,27 @@ export function BadgeCollection() {
             const supabase = createClient();
             if (!supabase) return;
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (!user) {
+                setLoading(false);
+                return;
+            }
 
             const { data } = await supabase
                 .from("user_badges")
                 .select(`
           earned_at,
           badge:badge_definitions (
-            id, name, description, icon_slug
+            badge_id, name, description, icon_url
           )
         `)
                 .eq("user_id", user.id);
 
             if (data) {
                 setBadges(data.map((item: any) => ({
-                    ...item.badge,
+                    id: item.badge.badge_id,
+                    name: item.badge.name,
+                    description: item.badge.description,
+                    icon_slug: item.badge.icon_url,
                     earned_at: item.earned_at
                 })));
             }

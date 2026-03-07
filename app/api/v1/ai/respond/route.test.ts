@@ -233,7 +233,7 @@ describe("POST /api/v1/ai/respond", () => {
       weight: 83.9,
       body_fat_percent: 12,
       measurements: {},
-      notes: "Logged via Nova AI",
+      notes: "Logged via Koda AI",
     });
     expect(progressUpdate).not.toHaveBeenCalled();
   });

@@ -3,10 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => {
     const mockEq = vi.fn().mockResolvedValue({ error: null });
     const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
-    const mockFrom = vi.fn().mockReturnValue({ update: mockUpdate });
+    const mockUpsert = vi.fn().mockResolvedValue({ error: null });
+    const mockFrom = vi.fn().mockReturnValue({ update: mockUpdate, upsert: mockUpsert });
     const mockConstructEvent = vi.fn();
 
-    return { mockEq, mockUpdate, mockFrom, mockConstructEvent };
+    return { mockEq, mockUpdate, mockUpsert, mockFrom, mockConstructEvent };
 });
 
 vi.mock("stripe", () => {
@@ -72,7 +73,7 @@ describe("POST /api/v1/stripe/webhook", () => {
             },
         });
 
-        mocks.mockFrom.mockReturnValue({ update: mocks.mockUpdate });
+        mocks.mockFrom.mockReturnValue({ update: mocks.mockUpdate, upsert: mocks.mockUpsert });
         mocks.mockUpdate.mockReturnValue({ eq: mocks.mockEq });
 
         const res = await POST(req);

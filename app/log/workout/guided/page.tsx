@@ -63,7 +63,10 @@ export default function GuidedWorkoutPage() {
     supabase.auth
       .getUser()
       .then(async ({ data: { user } }) => {
-        if (!user) return;
+        if (!user) {
+          setPhase("work");
+          return;
+        }
         const [planRes, profileRes] = await Promise.all([
           supabase
             .from("daily_plans")

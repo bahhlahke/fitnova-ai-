@@ -112,7 +112,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${manrope.variable} ${fraunces.variable} min-h-screen flex flex-row font-sans text-fn-ink bg-black`}>
+      <body suppressHydrationWarning className={`${manrope.variable} ${fraunces.variable} min-h-screen flex flex-row font-sans text-fn-ink bg-black`}>
         <AuthProvider>
           <a
             href="#main"
