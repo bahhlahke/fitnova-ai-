@@ -6,7 +6,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { PageLayout, Card, CardHeader, Button, LoadingState } from "@/components/ui";
 import { toLocalDateString } from "@/lib/date/local-date";
 import Link from "next/link";
-import type { WeeklyPlan, WeeklyPlanDay } from "@/lib/plan/types";
+import type { WeeklyPlan, WeeklyPlanDay, WeeklyPlanExercise } from "@/lib/plan/types";
 
 const INTENSITY_CONFIG = {
     high: {
@@ -67,6 +67,10 @@ export default function PlanPage() {
     const [preferredDays, setPreferredDays] = useState<number[]>([1, 2, 3, 4, 5]);
     const [goals, setGoals] = useState<string[]>([]);
     const [weekStats, setWeekStats] = useState<{ workoutCount: number; avgCalories: number | null; weightTrend: string | null } | null>(null);
+    const [adaptMessage, setAdaptMessage] = useState("");
+    const [adaptLoading, setAdaptLoading] = useState(false);
+    const [adaptNote, setAdaptNote] = useState<string | null>(null);
+    const [adaptedExercises, setAdaptedExercises] = useState<WeeklyPlanExercise[] | null>(null);
 
     const loadPlan = useCallback(async () => {
         if (!user) return;
@@ -129,6 +133,44 @@ export default function PlanPage() {
             setRegenerating(false);
         }
     }, [user, loadAiInsight]);
+
+    const adaptDay = useCallback(async () => {
+        if (!selectedDay || !adaptMessage.trim()) return;
+        setAdaptLoading(true);
+        setAdaptNote(null);
+        try {
+            const dayWithEx = selectedDay as WeeklyPlanDay & { exercises?: WeeklyPlanExercise[]; equipment_context?: string };
+            const currentExercises = adaptedExercises ?? dayWithEx.exercises ?? [];
+            const res = await fetch("/api/v1/plan/adapt-day", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userMessage: adaptMessage.trim(),
+                    focus: selectedDay.focus,
+                    intensity: selectedDay.intensity,
+                    target_duration_minutes: selectedDay.target_duration_minutes,
+                    goals,
+                    current_exercises: currentExercises,
+                }),
+            });
+            const body = await res.json() as { exercises?: WeeklyPlanExercise[]; adaptation_note?: string };
+            if (body.exercises?.length) {
+                setAdaptedExercises(body.exercises);
+                setAdaptNote(body.adaptation_note ?? "Workout adapted.");
+                setAdaptMessage("");
+            }
+        } catch { /* degraded */ } finally {
+            setAdaptLoading(false);
+        }
+    }, [selectedDay, adaptMessage, adaptedExercises, goals]);
+
+    // Reset adaptation when day changes
+    const handleDaySelect = useCallback((day: WeeklyPlanDay) => {
+        setSelectedDay(day);
+        setAdaptedExercises(null);
+        setAdaptNote(null);
+        setAdaptMessage("");
+    }, []);
 
     useEffect(() => {
         if (!authLoading && user) {
@@ -366,44 +408,98 @@ export default function PlanPage() {
                                 </div>
 
                                 {/* Exercise List */}
-                                {(selectedDay as WeeklyPlanDay & { exercises?: Array<{ name: string; equipment: string; sets: number; reps: string; coaching_cue: string }> }).exercises?.length ? (
-                                    <div className="rounded-2xl border border-white/[0.07] bg-fn-surface/40 overflow-hidden">
-                                        <div className="px-5 pt-4 pb-3 border-b border-white/[0.05] flex items-center justify-between">
-                                            <div>
-                                                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-fn-muted">Planned Session</p>
-                                                {(selectedDay as WeeklyPlanDay & { equipment_context?: string }).equipment_context && (
-                                                    <p className="text-[9px] text-fn-muted/40 mt-0.5">
-                                                        {(selectedDay as WeeklyPlanDay & { equipment_context?: string }).equipment_context}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${config.border} ${config.text}`}>
-                                                {(selectedDay as WeeklyPlanDay & { exercises?: unknown[] }).exercises?.length} exercises
-                                            </span>
-                                        </div>
-                                        <ul className="divide-y divide-white/[0.04]">
-                                            {(selectedDay as WeeklyPlanDay & { exercises?: Array<{ name: string; equipment: string; sets: number; reps: string; coaching_cue: string }> }).exercises?.map((ex, i) => (
-                                                <li key={i} className="px-5 py-3.5 group hover:bg-white/[0.02] transition-colors">
-                                                    <div className="flex items-start justify-between gap-3">
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-bold text-white leading-tight">{ex.name}</p>
-                                                            <span className="inline-block mt-0.5 text-[8px] font-black uppercase tracking-widest bg-white/[0.05] border border-white/[0.07] text-fn-muted/60 px-1.5 py-0.5 rounded-md">
-                                                                {ex.equipment}
-                                                            </span>
-                                                        </div>
-                                                        <div className="text-right shrink-0">
-                                                            <p className={`text-sm font-black ${config.text}`}>{ex.sets}×</p>
-                                                            <p className="text-[9px] font-bold text-fn-muted/60">{ex.reps}</p>
-                                                        </div>
+                                {(() => {
+                                    const dayWithEx = selectedDay as WeeklyPlanDay & { exercises?: WeeklyPlanExercise[]; equipment_context?: string };
+                                    const displayExercises = adaptedExercises ?? dayWithEx.exercises ?? [];
+                                    const isAdapted = !!adaptedExercises;
+                                    if (!displayExercises.length) return null;
+                                    return (
+                                        <div className={`rounded-2xl border overflow-hidden transition-all ${isAdapted ? "border-fn-accent/25 bg-fn-accent/[0.03]" : "border-white/[0.07] bg-fn-surface/40"}`}>
+                                            <div className="px-5 pt-4 pb-3 border-b border-white/[0.05] flex items-center justify-between">
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-fn-muted">Planned Session</p>
+                                                        {isAdapted && (
+                                                            <span className="text-[8px] font-black uppercase tracking-widest bg-fn-accent/15 border border-fn-accent/30 text-fn-accent px-1.5 py-0.5 rounded-full">AI Adapted</span>
+                                                        )}
                                                     </div>
-                                                    <p className="text-[10px] text-fn-muted/50 mt-1.5 italic leading-snug pl-2 border-l border-white/[0.05]">
-                                                        {ex.coaching_cue}
-                                                    </p>
-                                                </li>
-                                            ))}
-                                        </ul>
+                                                    {!isAdapted && dayWithEx.equipment_context && (
+                                                        <p className="text-[9px] text-fn-muted/40 mt-0.5">{dayWithEx.equipment_context}</p>
+                                                    )}
+                                                </div>
+                                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${config.border} ${config.text}`}>
+                                                    {displayExercises.length} exercises
+                                                </span>
+                                            </div>
+                                            <ul className="divide-y divide-white/[0.04]">
+                                                {displayExercises.map((ex, i) => (
+                                                    <li key={i} className="px-5 py-3.5 group hover:bg-white/[0.02] transition-colors">
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-bold text-white leading-tight">{ex.name}</p>
+                                                                <span className="inline-block mt-0.5 text-[8px] font-black uppercase tracking-widest bg-white/[0.05] border border-white/[0.07] text-fn-muted/60 px-1.5 py-0.5 rounded-md">
+                                                                    {ex.equipment}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-right shrink-0">
+                                                                <p className={`text-sm font-black ${config.text}`}>{ex.sets}×</p>
+                                                                <p className="text-[9px] font-bold text-fn-muted/60">{ex.reps}</p>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-[10px] text-fn-muted/50 mt-1.5 italic leading-snug pl-2 border-l border-white/[0.05]">
+                                                            {ex.coaching_cue}
+                                                        </p>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* AI Constraint Chat */}
+                                <div className="rounded-2xl border border-white/[0.07] bg-fn-surface/40 p-4">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-fn-muted mb-2">Tailor This Workout</p>
+                                    <p className="text-[10px] text-fn-muted/50 mb-3 leading-relaxed">
+                                        Tell the AI any constraint — equipment available today, injuries, time limit, or preference.
+                                    </p>
+                                    {adaptNote && (
+                                        <div className="mb-3 rounded-xl bg-fn-accent/10 border border-fn-accent/20 px-3 py-2">
+                                            <p className="text-[10px] text-fn-accent font-medium">✓ {adaptNote}</p>
+                                            <button
+                                                onClick={() => { setAdaptedExercises(null); setAdaptNote(null); }}
+                                                className="mt-1 text-[9px] font-bold uppercase tracking-widest text-fn-muted/50 hover:text-fn-muted transition-colors"
+                                            >
+                                                Reset to original
+                                            </button>
+                                        </div>
+                                    )}
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={adaptMessage}
+                                            onChange={(e) => setAdaptMessage(e.target.value)}
+                                            onKeyDown={(e) => { if (e.key === "Enter" && !adaptLoading) void adaptDay(); }}
+                                            placeholder={`e.g. "I'm at the hotel gym, only dumbbells and cable machine"`}
+                                            disabled={adaptLoading}
+                                            className="flex-1 rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 text-sm text-white placeholder:text-fn-muted/30 focus:outline-none focus:border-fn-accent/40 transition-colors disabled:opacity-50"
+                                        />
+                                        <button
+                                            onClick={() => void adaptDay()}
+                                            disabled={!adaptMessage.trim() || adaptLoading}
+                                            className="shrink-0 rounded-xl bg-fn-accent/15 border border-fn-accent/30 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:bg-fn-accent/25 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                        >
+                                            {adaptLoading ? (
+                                                <span className="flex items-center gap-1.5">
+                                                    <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                                    </svg>
+                                                    Adapting
+                                                </span>
+                                            ) : "Adapt"}
+                                        </button>
                                     </div>
-                                ) : null}
+                                </div>
 
                                 <div className="space-y-2">
                                     {today && (
