@@ -505,7 +505,7 @@ export default function PlanPage() {
                                     {today && (
                                         <Link href="/check-in" className="block">
                                             <Button className="w-full h-11">
-                                                Do Today's Check-In
+                                                Do Today&apos;s Check-In
                                             </Button>
                                         </Link>
                                     )}
