@@ -64,6 +64,7 @@ struct NutritionLog: Codable {
     var protein_g: Int?
     var carbs_g: Int?
     var fat_g: Int?
+    var hydration_liters: Double?
     var created_at: String?
 }
 

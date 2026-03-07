@@ -88,7 +88,7 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 
 | Path | Description |
 |------|-------------|
-| `app/` | App Router routes: `/` (adaptive home), `/start`, `/auth`, `/onboarding`, `/log`, `/log/workout`, `/log/nutrition`, `/log/workout/guided`, `/coach`, `/coach/escalate`, `/progress`, `/progress/add`, `/settings`, `/vitals`, `/pricing`, `/integrations`, `/community`. |
+| `app/` | App Router routes: `/` (adaptive home), `/start`, `/auth`, `/onboarding`, `/log`, `/log/workout`, `/log/nutrition`, `/log/workout/guided`, `/log/nutrition/fridge`, `/log/nutrition/meal-plan`, `/coach`, `/coach/escalate`, `/progress`, `/progress/add`, `/progress/scan`, `/check-in`, `/settings`, `/vitals`, `/vitals/cycle`, `/history`, `/motion`, `/pricing`, `/integrations`, `/community`, `/community/friends`. |
 | `app/api/v1/ai/respond/` | POST API for AI coach; see [docs/API.md](docs/API.md). |
 | `app/api/v1/plan/daily/` | POST API for personalized daily plan generation and persistence. |
 | `app/api/v1/plan/adapt-day/` | POST API for AI-driven workout adaptation based on constraints. |
@@ -109,10 +109,13 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 
 | Doc | Purpose |
 |-----|---------|
-| [docs/RUNBOOK.md](docs/RUNBOOK.md) | Environment, deploy, health checks, troubleshooting. |
-| [docs/DESIGN.md](docs/DESIGN.md) | Design system (Concept 1), UI components, accessibility. |
-| [docs/API.md](docs/API.md) | AI respond API contract. |
+| [AGENTS.md](AGENTS.md) | Guide for AI agents and contributors: layout, config, build/test (web + iOS), docs index. |
+| [docs/RUNBOOK.md](docs/RUNBOOK.md) | Environment, deploy, health checks, production pass, troubleshooting. |
+| [docs/PROD-READY-CHECKLIST.md](docs/PROD-READY-CHECKLIST.md) | Production readiness: Vercel secrets, migrations, iOS config, verification. |
+| [docs/DESIGN.md](docs/DESIGN.md) | Design system, UI components, accessibility. |
+| [docs/API.md](docs/API.md) | API contract (auth, AI, plan, coach, jobs). |
 | [docs/SMOKE-CHECKLIST.md](docs/SMOKE-CHECKLIST.md) | Pre-launch smoke run for daily planning and logging flow. |
+| [docs/IOS-PARITY-MAP.md](docs/IOS-PARITY-MAP.md) | Web routes vs iOS screens and API coverage. |
 | [docs/SAAS-EXTENSION.md](docs/SAAS-EXTENSION.md) | Outline for multi-tenant SaaS (M5+). |
 | [docs/PRODUCT-AUDIT-2026-03-01.md](docs/PRODUCT-AUDIT-2026-03-01.md) | Comprehensive feature and AI improvement audit. |
 | [docs/COMPETITOR-BENCHMARK-2026-03-01.md](docs/COMPETITOR-BENCHMARK-2026-03-01.md) | Competitor comparison and feature gap matrix. |

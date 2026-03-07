@@ -1,4 +1,6 @@
-# Koda AI AI — API
+# Koda AI — API
+
+**Auth:** All authenticated routes accept **session cookie** (web) or **`Authorization: Bearer <access_token>`** (e.g. iOS). The server uses `lib/supabase/server.ts`, which reads the Bearer token when present.
 
 ## POST `/api/v1/ai/respond`
 
@@ -55,7 +57,7 @@ Builds and stores a personalized day plan for the signed-in user.
 
 - **Method:** `POST`
 - **Headers:** `Content-Type: application/json`
-- **Auth:** Session cookie (Supabase) required.
+- **Auth:** Session cookie (web) or `Authorization: Bearer <access_token>` (native). Required.
 - **Body:** optional constraints
 
 ```json

@@ -29,10 +29,12 @@ I have pushed several new migrations to the repository. Please ensure these are 
 ## 3. Verification
 Once the secrets are added and migrations applied:
 1. Re-deploy the latest commit in Vercel to pick up the new environment variables.
-2. Run the validator one last time:
+2. Run the validator against your production URL:
    ```bash
-   node scripts/ai-workflow-validator.mjs --base-url https://fitnova-ai.vercel.app
+   npm run validate
+   node scripts/ai-workflow-validator.mjs --base-url <YOUR_PRODUCTION_URL>
    ```
+   Example: `--base-url https://your-app.vercel.app`
 
 ## 4. iOS app (production)
 

@@ -60,15 +60,18 @@ Other: `user_cycle_logs`, `user_badges`, `product_events`.
 
 Auth → Onboarding → Dashboard (plan, briefing, quick actions) → Plan (weekly, adapt, swap) → Log workout (list, quick, guided) → Log nutrition (meals, targets, AI) → Progress (list, add, scan) → Check-in → Settings (profile, export) → Coach (chat, escalate) → Integrations → Community/Friends → Pricing.
 
-## 5. iOS implementation status
+## 5. iOS implementation status — 100% feature parity
 
-**Implemented:** Auth (magic link, deep link), Dashboard (briefing, plan, performance, nudges), Plan (weekly, day detail, weekly insight), Coach (chat, escalate list/create/messages), Log workout (list, quick log), Log nutrition (meals, targets, analyze meal + append to log), Progress (list, add entry), Check-in, Settings (profile, export, sign out). Robust networking (timeout, URL handling), full API client, Supabase data layer, loading/error/empty components.
+**Core:** Auth (magic link, deep link), Dashboard (briefing, plan, performance, **projection card**, **retention risk card**, nudges with **Dismiss/ack**), Plan (weekly, day detail, weekly insight), Coach (chat, escalate list/create/messages), Log workout (list, quick log, **swipe-to-delete**, **process-prs + awards after save**), Guided workout (**process-prs + awards after save**), Log nutrition (meals, targets, **hydration** +0.5 L / reset, **barcode lookup**, **analyze meal** + append, **edit/delete meal**, **nutrition insight**, **meal suggestions**, **awards after add**), Progress (list, add, body comp scan, **AI performance synthesis / progress insight**, **projection**), Check-in, History (workouts + nutrition tabs, expand, edit workout), Vitals (readiness insight), Motion Lab (Form check, 1–3 photos → vision API), Settings (profile, **Edit profile**, **Badges**, Vitals, Integrations, export, onboarding, Pricing, sign out), Integrations (Apple Health, Whoop, **Spotify**), Community/friends, Pricing/Stripe, Onboarding, telemetry.
 
-**All implemented:** Guided workout, body comp scan (photo picker), fridge scanner, meal plan/recipe gen, Integrations (Apple Health via HealthKit, Whoop link), community/friends, pricing/Stripe, onboarding gate, telemetry.
+**Parity details:**  
+- **Dashboard:** Projection card (GET `ai/projection` → 12-week projection, confidence, 4-week); Retention Monitor card (POST `ai/retention-risk` with localDate → risk_level, risk_score, recommended_action).  
+- **Workout:** Delete workout (swipe); after quick log or guided save → `analytics/process-prs` + `awards/check`.  
+- **Nudges:** “Dismiss” calls `coach/nudges/:id/ack`.  
+- **Nutrition:** Hydration card (goal 2.5 L, +0.5 L, Reset); barcode field + “Look up” → `nutrition/barcode` then “Add to log”; “Get insight” → `ai/nutrition-insight`; “Suggest meals” → `ai/meal-suggestions`; Edit/Delete per meal; awards/check after adding meal.  
+- **Settings:** “Edit profile” (name, age, sex, height, weight, goals, activity level) → `user_profile` upsert; “Badges” → `user_badges` + `badge_definitions` read.
 
-**Parity with web:**  
-- **History** — Log → “Workouts & nutrition”: tabs Workouts / Nutrition, list by date, expand details, edit workout (type, duration, notes).  
-- **Vitals** — Settings → “Vitals”: today’s readiness via `ai/readiness-insight` (server uses workouts, check-ins, connected_signals).  
-- **Motion Lab** — Log → “Form check (Motion Lab)”: pick 1–3 photos → `ai/vision` (images array); score, critique, correction.
+- **Progress:** "AI Performance Synthesis" (POST `ai/progress-insight`); Projection section (GET `ai/projection` → 12-week); list, add entry, body comp scan.
+- **Spotify:** Integrations → Music → Spotify. Status via `GET /api/v1/spotify/token`; Connect uses Supabase auth linkIdentity(provider: .spotify). Fallback: open web `/integrations`.
 
-**Web-only (no iOS equivalent):** `/start` (pre-auth assessment), `/omni` (redirects to ?focus=ai), `/vitals/cycle` (cycle tracking), `/admin`, `/coach/ops`, `/coach/queue` (internal/ops).
+**Web-only (no iOS equivalent):** `/start` (pre-auth assessment), `/omni` (redirects to ?focus=ai), `/vitals/cycle` (cycle tracking), `/admin`, `/coach/ops`, `/coach/queue` (internal/ops). Apple Health **file** import (web): iOS uses native HealthKit sync instead.

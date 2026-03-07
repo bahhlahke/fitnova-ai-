@@ -1,0 +1,559 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5551ED802F5C72E60054DDFF /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 5551ED7F2F5C72E60054DDFF /* Auth */; };
+		5551ED822F5C72E70054DDFF /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 5551ED812F5C72E70054DDFF /* Functions */; };
+		5551ED842F5C72E70054DDFF /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 5551ED832F5C72E70054DDFF /* PostgREST */; };
+		5551ED862F5C72E70054DDFF /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 5551ED852F5C72E70054DDFF /* Realtime */; };
+		5551ED882F5C72E70054DDFF /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 5551ED872F5C72E70054DDFF /* Storage */; };
+		5551ED8A2F5C72E70054DDFF /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 5551ED892F5C72E70054DDFF /* Supabase */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5551ED932F5C734C0054DDFF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 551AF0B22F5C6FB400DCA25A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 551AF0B92F5C6FB400DCA25A;
+			remoteInfo = AskKodaAI;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		551AF0BA2F5C6FB400DCA25A /* AskKodaAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AskKodaAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		551AF0CC2F5C6FBB00DCA25A /* Generated.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Generated.xcconfig; sourceTree = "<group>"; };
+		5551ED8F2F5C734C0054DDFF /* AskKodaAITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AskKodaAITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		551AF0BC2F5C6FB400DCA25A /* AskKodaAI */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AskKodaAI;
+			sourceTree = "<group>";
+		};
+		5551ED902F5C734C0054DDFF /* AskKodaAITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AskKodaAITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		551AF0B72F5C6FB400DCA25A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5551ED842F5C72E70054DDFF /* PostgREST in Frameworks */,
+				5551ED822F5C72E70054DDFF /* Functions in Frameworks */,
+				5551ED8A2F5C72E70054DDFF /* Supabase in Frameworks */,
+				5551ED802F5C72E60054DDFF /* Auth in Frameworks */,
+				5551ED882F5C72E70054DDFF /* Storage in Frameworks */,
+				5551ED862F5C72E70054DDFF /* Realtime in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5551ED8C2F5C734C0054DDFF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		551AF0B12F5C6FB400DCA25A = {
+			isa = PBXGroup;
+			children = (
+				551AF0BC2F5C6FB400DCA25A /* AskKodaAI */,
+				5551ED902F5C734C0054DDFF /* AskKodaAITests */,
+				551AF0CD2F5C6FBB00DCA25A /* Config */,
+				551AF0BB2F5C6FB400DCA25A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		551AF0CD2F5C6FBB00DCA25A /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				551AF0CC2F5C6FBB00DCA25A /* Generated.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		551AF0BB2F5C6FB400DCA25A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				551AF0BA2F5C6FB400DCA25A /* AskKodaAI.app */,
+				5551ED8F2F5C734C0054DDFF /* AskKodaAITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		551AF0B92F5C6FB400DCA25A /* AskKodaAI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 551AF0C52F5C6FBB00DCA25A /* Build configuration list for PBXNativeTarget "AskKodaAI" */;
+			buildPhases = (
+				551AF0CE2F5C6FBB00DCA25A /* Generate iOS env from .env.local */,
+				551AF0B62F5C6FB400DCA25A /* Sources */,
+				551AF0B72F5C6FB400DCA25A /* Frameworks */,
+				551AF0B82F5C6FB400DCA25A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				551AF0BC2F5C6FB400DCA25A /* AskKodaAI */,
+			);
+			name = AskKodaAI;
+			packageProductDependencies = (
+				5551ED7F2F5C72E60054DDFF /* Auth */,
+				5551ED812F5C72E70054DDFF /* Functions */,
+				5551ED832F5C72E70054DDFF /* PostgREST */,
+				5551ED852F5C72E70054DDFF /* Realtime */,
+				5551ED872F5C72E70054DDFF /* Storage */,
+				5551ED892F5C72E70054DDFF /* Supabase */,
+			);
+			productName = AskKodaAI;
+			productReference = 551AF0BA2F5C6FB400DCA25A /* AskKodaAI.app */;
+			productType = "com.apple.product-type.application";
+		};
+		5551ED8E2F5C734C0054DDFF /* AskKodaAITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5551ED952F5C734C0054DDFF /* Build configuration list for PBXNativeTarget "AskKodaAITests" */;
+			buildPhases = (
+				5551ED8B2F5C734C0054DDFF /* Sources */,
+				5551ED8C2F5C734C0054DDFF /* Frameworks */,
+				5551ED8D2F5C734C0054DDFF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5551ED942F5C734C0054DDFF /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5551ED902F5C734C0054DDFF /* AskKodaAITests */,
+			);
+			name = AskKodaAITests;
+			packageProductDependencies = (
+			);
+			productName = AskKodaAITests;
+			productReference = 5551ED8F2F5C734C0054DDFF /* AskKodaAITests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		551AF0B22F5C6FB400DCA25A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					551AF0B92F5C6FB400DCA25A = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					5551ED8E2F5C734C0054DDFF = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 551AF0B92F5C6FB400DCA25A;
+					};
+				};
+			};
+			buildConfigurationList = 551AF0B52F5C6FB400DCA25A /* Build configuration list for PBXProject "AskKodaAI" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 551AF0B12F5C6FB400DCA25A;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5551ED7E2F5C72E60054DDFF /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 551AF0BB2F5C6FB400DCA25A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				551AF0B92F5C6FB400DCA25A /* AskKodaAI */,
+				5551ED8E2F5C734C0054DDFF /* AskKodaAITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		551AF0B82F5C6FB400DCA25A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5551ED8D2F5C734C0054DDFF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		551AF0CE2F5C6FBB00DCA25A /* Generate iOS env from .env.local */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Generate iOS env from .env.local";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cd \"${PROJECT_DIR}/../..\" && export PATH=\"/usr/local/bin:/opt/homebrew/bin:$PATH\" && (node scripts/generate-ios-env.mjs || true)\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		551AF0B62F5C6FB400DCA25A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5551ED8B2F5C734C0054DDFF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5551ED942F5C734C0054DDFF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 551AF0B92F5C6FB400DCA25A /* AskKodaAI */;
+			targetProxy = 5551ED932F5C734C0054DDFF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		551AF0C32F5C6FBB00DCA25A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		551AF0C42F5C6FBB00DCA25A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		551AF0C62F5C6FBB00DCA25A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 551AF0CC2F5C6FBB00DCA25A /* Generated.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Main.AskKodaAI;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		551AF0C72F5C6FBB00DCA25A /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 551AF0CC2F5C6FBB00DCA25A /* Generated.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Main.AskKodaAI;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		5551ED962F5C734C0054DDFF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Main.AskKodaAITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AskKodaAI.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AskKodaAI";
+			};
+			name = Debug;
+		};
+		5551ED972F5C734C0054DDFF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Main.AskKodaAITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AskKodaAI.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AskKodaAI";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		551AF0B52F5C6FB400DCA25A /* Build configuration list for PBXProject "AskKodaAI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				551AF0C32F5C6FBB00DCA25A /* Debug */,
+				551AF0C42F5C6FBB00DCA25A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		551AF0C52F5C6FBB00DCA25A /* Build configuration list for PBXNativeTarget "AskKodaAI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				551AF0C62F5C6FBB00DCA25A /* Debug */,
+				551AF0C72F5C6FBB00DCA25A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5551ED952F5C734C0054DDFF /* Build configuration list for PBXNativeTarget "AskKodaAITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5551ED962F5C734C0054DDFF /* Debug */,
+				5551ED972F5C734C0054DDFF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		5551ED7E2F5C72E60054DDFF /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5551ED7F2F5C72E60054DDFF /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5551ED7E2F5C72E60054DDFF /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		5551ED812F5C72E70054DDFF /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5551ED7E2F5C72E60054DDFF /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		5551ED832F5C72E70054DDFF /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5551ED7E2F5C72E60054DDFF /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		5551ED852F5C72E70054DDFF /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5551ED7E2F5C72E60054DDFF /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		5551ED872F5C72E70054DDFF /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5551ED7E2F5C72E60054DDFF /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		5551ED892F5C72E70054DDFF /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5551ED7E2F5C72E60054DDFF /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 551AF0B22F5C6FB400DCA25A /* Project object */;
+}

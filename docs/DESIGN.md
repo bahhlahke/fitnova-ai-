@@ -1,4 +1,4 @@
-# Koda AI AI — Design system
+# Koda AI — Design system
 
 ## Imagery
 

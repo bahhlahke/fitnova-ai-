@@ -26,6 +26,9 @@ yarn-error.log*
 # env
 .env
 .env.local
+
+# iOS config generated from .env.local (same source as web)
+/ios/AskKodaAI/Config/Generated.xcconfig
 .env.development.local
 .env.test.local
 .env.production.local

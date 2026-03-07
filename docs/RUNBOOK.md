@@ -1,4 +1,6 @@
-# Koda AI AI — Runbook
+# Koda AI — Runbook
+
+For AI agents and new contributors: see [AGENTS.md](../AGENTS.md) for project layout, config, and build/test (web + iOS) in one place.
 
 ## Prerequisites
 
@@ -41,6 +43,21 @@
 - `npm test` — Vitest (unit/integration tests); run after changes to `lib/`, `app/api/`, or pages.
 - `npm run validate` — lint + build + test (CI-style).
 
+### Automated tests with AI review
+
+- **`npm run test:ai-review`** — Runs the full test suite, then sends the test file list and run output to an LLM (OpenRouter). The AI returns a structured review: verdict (healthy / needs_work / critical), coverage gaps with priority (P0/P1/P2), assertion/flakiness risks, and suggested test cases. Report is written to `docs/reports/ai-test-review-<timestamp>.md`. Requires `OPENROUTER_API_KEY` in the environment; if unset, the script still runs tests and writes a report without the AI section.
+- **`npm run test:ai-review:coverage`** — Same as above but runs Vitest with `--coverage` and includes the coverage summary in the AI context for better gap analysis.
+- Optional flags: `--no-ai` (skip LLM call), `--output path/report.md` (custom report path). Model can be overridden with `AI_TEST_REVIEW_MODEL` (default: `openai/gpt-4o-mini`).
+- **Workflow validation:** `npm run workflow:validate:ai` runs HTTP workflow checks against a running app (default `http://localhost:3000`) and uses the same OpenRouter key to AI-judge each workflow (verdict, friction points, recommendations). Reports go to `docs/reports/ai-workflow-validation-<timestamp>.md`.
+
+### iOS tests and AI review
+
+- **`npm run test:ios`** — Finds any `.xcodeproj` under `ios/` (e.g. `ios/AskKodaAI/AskKodaAI.xcodeproj`), runs `xcodebuild test` with that project and its scheme (e.g. **AskKodaAI**). If no project is found, exits 0. Requires Xcode and a **Unit Testing Bundle** target that includes the `ios/KodaAITests` sources (see `ios/README.md`).
+- **`npm run test:ai-review:ios`** — Discovers iOS test files under `ios/`, runs `xcodebuild test` when a project exists, then sends the test file list and run output to OpenRouter for an AI review (verdict, coverage gaps, suggested tests, assertion risks, **production readiness**). Report: `docs/reports/ai-test-review-ios-<timestamp>.md`. Set `OPENROUTER_API_KEY` for the AI section; use `--no-ai` to skip the LLM. Model override: `AI_TEST_REVIEW_MODEL`.
+- **`npm run test:ios:ready`** — **Production gate.** Runs `test:ios` then `test:ai-review:ios --fail-if-not-ready`. Exits with code 1 if tests failed or the AI reports not production ready (verdict critical or production_ready false). Use in CI or before release to block when the suite does not meet the production-readiness rubric.
+
+**When is the iOS app production ready?** The AI review uses a strict rubric: (1) tests ran and passed, (2) auth/session or equivalent covered, (3) API response decoding covered, (4) critical data models (workout, nutrition, progress, nudges) covered, (5) no P0 gaps, (6) no critical assertion risks. Only when all are satisfied does the report show **Production readiness: PASS**. Run `npm run test:ios:ready` (with `OPENROUTER_API_KEY` set) to gate releases.
+
 ## Deployment (Vercel)
 
 1. Connect the repo to Vercel.
@@ -69,6 +86,16 @@
 - **API auth:** Next.js API accepts `Authorization: Bearer <access_token>`; iOS sends Supabase `access_token` via `KodaAPIService`. No extra backend config.
 - **Magic link:** Set `AUTH_REDIRECT_URL` (e.g. `kodaai://auth/callback`) and add to Supabase Redirect URLs; handle URL in app with `SupabaseService.setSessionFrom(url:)`.
 - **App Store:** Sign in with Apple required if offering other social sign-in; Privacy Policy and usage descriptions for Health/camera/photos.
+
+## Production pass (pre-deploy)
+
+Before each production deploy:
+
+1. **Secrets:** All required env vars set in Vercel (see table above). No secrets in repo or client bundle.
+2. **Database:** All migrations in `supabase/migrations/` applied to production Supabase (order by filename).
+3. **iOS:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `API_BASE_URL` set via xcconfig or CI; HTTPS in release. Privacy Policy and usage descriptions in Info.plist.
+4. **Logging:** Server `console.log` in `lib/supabase/server.ts` is dev-only. API routes use `console.error` for failures; avoid logging PII.
+5. **Validate:** `npm run validate` (lint, build, test). Optionally run `node scripts/ai-workflow-validator.mjs --base-url <production-url>` after deploy.
 
 ## Troubleshooting
 

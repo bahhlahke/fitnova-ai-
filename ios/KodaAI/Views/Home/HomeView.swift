@@ -18,6 +18,8 @@ struct HomeView: View {
     @State private var performanceLoading = false
     @State private var nudges: [CoachNudge] = []
     @State private var nudgesLoading = false
+    @State private var projection: DashboardProjectionResponse?
+    @State private var retentionRisk: RetentionRiskResponse?
     @State private var errorMessage: String?
     @State private var generating = false
     @State private var refreshTask: Task<Void, Never>?
@@ -41,6 +43,8 @@ struct HomeView: View {
                     briefingCard
                     todayPlanCard
                     performanceCard
+                    projectionCard
+                    retentionRiskCard
                     nudgesCard
                 }
                 .padding()
@@ -166,6 +170,84 @@ struct HomeView: View {
     }
 
     @ViewBuilder
+    private var projectionCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("AI Projection")
+                .font(.headline)
+            if let p = projection, let proj12 = p.projected_12w {
+                Text(String(format: "%.1f kg", proj12))
+                    .font(.title2)
+                    .fontWeight(.bold)
+                if let conf = p.confidence {
+                    Text("\(Int(conf * 100))% confidence")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if let proj4 = p.projected_4w {
+                    Text("4-week: \(String(format: "%.1f", proj4)) kg")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Text("Log weight in Progress to unlock projection.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.systemGray6))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    @ViewBuilder
+    private var retentionRiskCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Retention Monitor")
+                .font(.headline)
+            if let r = retentionRisk {
+                HStack(spacing: 8) {
+                    if let level = r.risk_level, !level.isEmpty {
+                        Text("\(level) risk")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(riskColor(level))
+                            .clipShape(Capsule())
+                    }
+                    if let score = r.risk_score {
+                        Text("\(Int(score * 100))%")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if let action = r.recommended_action, !action.isEmpty {
+                    Text(action)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Text("Stable — keep up your routine.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.systemGray6))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func riskColor(_ level: String) -> Color {
+        switch level.lowercased() {
+        case "high": return Color.red.opacity(0.2)
+        case "medium": return Color.orange.opacity(0.2)
+        default: return Color.green.opacity(0.2)
+        }
+    }
+
+    @ViewBuilder
     private var nudgesCard: some View {
         if nudges.isEmpty && !nudgesLoading { return EmptyView() }
         VStack(alignment: .leading, spacing: 8) {
@@ -178,12 +260,19 @@ struct HomeView: View {
             } else {
                 ForEach(Array(nudges.prefix(3).enumerated()), id: \.offset) { _, nudge in
                     if let msg = nudge.message {
-                        Text(msg)
-                            .font(.caption)
-                            .padding(8)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.orange.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        HStack {
+                            Text(msg)
+                                .font(.caption)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Button("Dismiss") {
+                                Task { await ackNudge(nudge) }
+                            }
+                            .font(.caption2)
+                        }
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.orange.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                 }
             }
@@ -199,7 +288,27 @@ struct HomeView: View {
             group.addTask { await loadBriefing() }
             group.addTask { await loadPlan() }
             group.addTask { await loadPerformance() }
+            group.addTask { await loadProjection() }
+            group.addTask { await loadRetentionRisk() }
             group.addTask { await loadNudges() }
+        }
+    }
+
+    private func loadProjection() async {
+        do {
+            let p = try await api.aiProjection(today: DateHelpers.todayLocal)
+            await MainActor.run { projection = p }
+        } catch {
+            // Non-fatal
+        }
+    }
+
+    private func loadRetentionRisk() async {
+        do {
+            let r = try await api.aiRetentionRisk(localDate: DateHelpers.todayLocal)
+            await MainActor.run { retentionRisk = r }
+        } catch {
+            // Non-fatal
         }
     }
 
@@ -235,6 +344,12 @@ struct HomeView: View {
         } catch {
             await MainActor.run { errorMessage = error.localizedDescription }
         }
+    }
+
+    private func ackNudge(_ nudge: CoachNudge) async {
+        guard let id = nudge.nudge_id, !id.isEmpty else { return }
+        _ = try? await api.coachNudgeAck(nudgeId: id)
+        await loadNudges()
     }
 
     private func loadNudges() async {

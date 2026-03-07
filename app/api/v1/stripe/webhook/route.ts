@@ -42,7 +42,9 @@ export async function POST(req: Request) {
     return jsonError(400, "VALIDATION_ERROR", "Webhook signature verification failed.");
   }
 
-  console.log(`stripe_webhook_received: ${event.type}`, { eventId: event.id });
+  if (process.env.NODE_ENV === "development") {
+    console.log(`stripe_webhook_received: ${event.type}`, { eventId: event.id });
+  }
 
   try {
     switch (event.type) {
@@ -67,7 +69,9 @@ export async function POST(req: Request) {
           throw new Error(`supabase_upgrade_error: ${error.message}`);
         }
 
-        console.log("stripe_webhook_pro_upgrade_success", { userId, customerId: session.customer });
+        if (process.env.NODE_ENV === "development") {
+          console.log("stripe_webhook_pro_upgrade_success", { userId, customerId: session.customer });
+        }
         break;
       }
 
@@ -90,7 +94,9 @@ export async function POST(req: Request) {
           throw new Error(`supabase_renewal_update_error: ${error.message}`);
         }
 
-        console.log("stripe_webhook_renewal_pro_active", { customerId });
+        if (process.env.NODE_ENV === "development") {
+          console.log("stripe_webhook_renewal_pro_active", { customerId });
+        }
         break;
       }
 
@@ -107,7 +113,9 @@ export async function POST(req: Request) {
           throw new Error(`supabase_downgrade_error: ${error.message}`);
         }
 
-        console.log("stripe_webhook_subscription_downgraded", { customerId });
+        if (process.env.NODE_ENV === "development") {
+          console.log("stripe_webhook_subscription_downgraded", { customerId });
+        }
         break;
       }
     }
