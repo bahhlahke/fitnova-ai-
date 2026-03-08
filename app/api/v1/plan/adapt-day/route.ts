@@ -9,7 +9,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
-import type { WeeklyPlanExercise } from "@/lib/plan/types";
+import { enrichExercise } from "@/lib/workout/enrich-exercises";
+import type { DailyPlanTrainingExercise } from "@/lib/plan/types";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +24,12 @@ type AdaptDayRequest = {
     intensity: string;             // e.g. "high"
     target_duration_minutes: number;
     goals: string[];
-    current_exercises: WeeklyPlanExercise[];
+    current_exercises: any[];
     date_local?: string;
 };
 
 type AdaptDayResponse = {
-    exercises: WeeklyPlanExercise[];
+    exercises: DailyPlanTrainingExercise[];
     adaptation_note: string;
 };
 
@@ -64,6 +65,10 @@ export async function POST(request: Request) {
             return jsonError(401, "AUTH_REQUIRED", "Sign in is required.");
         }
 
+        const { data: profile } = await supabase.from("user_profile").select("experience_level, motivational_driver").eq("user_id", user.id).single();
+        const experience = profile?.experience_level || "intermediate";
+        const motivation = profile?.motivational_driver || "health";
+
         const limiter = consumeToken(
             `adapt-day:${user.id}`,
             RATE_LIMIT_CAPACITY,
@@ -81,17 +86,22 @@ export async function POST(request: Request) {
             .map((ex, i) => `${i + 1}. ${ex.name} | Equipment: ${ex.equipment} | ${ex.sets}×${ex.reps} | Cue: "${ex.coaching_cue}"`)
             .join("\n");
 
-        const systemPrompt = `You are an elite personal trainer and exercise scientist. A user needs their planned workout modified based on a constraint they've described. You must replace or swap exercises intelligently, maintaining the training focus and intensity where possible.
+        const systemPrompt = `You are an elite personal trainer and exercise scientist. A user needs their planned workout modified based on a constraint they've described. 
+        
+User Context:
+- Experience Level: ${experience}
+- Primary Motivation: ${motivation}
+
+You must replace or swap exercises intelligently, maintaining the training focus and intensity where possible.
 
 Rules:
 - ALWAYS return a valid JSON array of exercises in exactly this shape:
-  [{ "name": string, "equipment": string, "sets": number, "reps": string, "coaching_cue": string }, ...]
-- Respect the user's constraint above all else (e.g. if they say "no barbell", remove ALL barbell exercises)
-- Maintain the session focus: "${body.focus}" at "${body.intensity}" intensity for ~${body.target_duration_minutes} minutes
-- Keep similar total volume (number of exercises), sets, and reps
-- Provide professional coaching cues — specific, movement-focused, not generic
-- Vary equipment within the session — don't use the same piece for every exercise
-- Return ONLY the JSON array, no markdown fences, no explanation text`;
+  [{ "name": string, "equipment": string, "sets": number, "reps": string, "intensity": string, "coaching_cue": string }, ...]
+- Respect the user's constraint above all else.
+- Maintain the session focus: "${body.focus}" at "${body.intensity}" intensity.
+- Adapt the complexity and volume to the user's experience level (${experience}).
+- Tailor the coaching cues to their motivational driver (${motivation}).
+- Return ONLY the JSON array, no markdown fences, no explanation text.`;
 
         const userContent = `User's goals: ${body.goals.join(", ") || "general fitness"}
 
@@ -131,24 +141,31 @@ Please return the adapted exercise list as a JSON array now.`;
         const aiData = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
         const raw = (aiData.choices?.[0]?.message?.content ?? "").trim();
 
-        let exercises: WeeklyPlanExercise[];
+        let rawExercises: any[];
         try {
             // Strip any accidental markdown fences
             const clean = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-            exercises = JSON.parse(clean) as WeeklyPlanExercise[];
-            if (!Array.isArray(exercises)) throw new Error("Not an array");
+            rawExercises = JSON.parse(clean);
+            if (!Array.isArray(rawExercises)) throw new Error("Not an array");
         } catch {
             console.error("adapt_day_parse_error", { requestId, raw: raw.slice(0, 200) });
             return jsonError(502, "INTERNAL_ERROR", "AI returned an unexpected format.");
         }
 
+        // Enrich with metadata and assets
+        const exercises: DailyPlanTrainingExercise[] = rawExercises.map(ex => ({
+            ...ex,
+            ...enrichExercise(ex.name),
+            notes: ex.coaching_cue || ex.notes
+        }));
+
         // Build a concise note summarising what changed
-        const removedEquip = body.current_exercises
+        const removedEquip = (body.current_exercises as any[])
             .map((e) => e.equipment)
-            .filter((eq) => !exercises.some((e) => e.equipment === eq));
-        const addedEquip = exercises
+            .filter((eq) => !exercises.some((e: any) => e.equipment === eq));
+        const addedEquip = (exercises as any[])
             .map((e) => e.equipment)
-            .filter((eq) => !body.current_exercises.some((e) => e.equipment === eq));
+            .filter((eq) => !(body.current_exercises as any[]).some((e: any) => e.equipment === eq));
 
         const noteParts: string[] = [];
         if (removedEquip.length) noteParts.push(`Removed: ${Array.from(new Set(removedEquip)).join(", ")}`);

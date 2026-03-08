@@ -24,7 +24,11 @@ enum ExerciseImages {
         "db_curl": "https://videos.pexels.com/video-files/4754029/4754029-uhd_2560_1440_30fps.mp4",
         "core_crunch": "https://videos.pexels.com/video-files/4753956/4753956-uhd_2560_1440_25fps.mp4",
         "sprint_treadmill": "https://videos.pexels.com/video-files/8055998/8055998-hd_1920_1080_25fps.mp4",
-        "box_jumps": "https://videos.pexels.com/video-files/7673998/7673998-uhd_2732_1440_25fps.mp4"
+        "box_jumps": "https://videos.pexels.com/video-files/7673998/7673998-uhd_2732_1440_25fps.mp4",
+        "inverted_row": "https://videos.pexels.com/video-files/4665484/4665484-hd_1920_1080_30fps.mp4",
+        "block_pull": "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
+        "chest_row": "https://videos.pexels.com/video-files/4010375/4010375-hd_1920_1080_25fps.mp4",
+        "zone2": "https://videos.pexels.com/video-files/5267151/5267151-hd_1920_1080_24fps.mp4"
     ]
 
     private static let byName: [String: String] = {
@@ -94,9 +98,36 @@ enum ExerciseImages {
         map["battle ropes"] = rawPexels["battle_ropes"]!
         
         let sprintVideo = rawPexels["sprint_treadmill"]!
-        for name in ["sprints", "treadmill", "rowing machine", "high knees"] {
+        for name in ["sprints", "treadmill", "rowing machine", "high knees", "zone 2 finisher"] {
             map[name] = sprintVideo
         }
+        
+        map["zone 2 finisher"] = rawPexels["zone2"]!
+        map["inverted row"] = rawPexels["inverted_row"]!
+        map["block pull"] = rawPexels["block_pull"]!
+        map["chest-supported row"] = rawPexels["chest_row"]!
+        map["renegade row"] = rawPexels["barbell_row"]!
+
+        // PRO IMAGES
+        map["leg press"] = "/images/refined/leg_press_pro.png"
+        map["front squat"] = "/images/refined/front_squat_pro.png"
+        map["bodyweight squat"] = "/images/refined/bodyweight_squat_pro.png"
+        map["incline dumbbell press"] = "/images/refined/incline_db_press_pro.png"
+        map["dumbbell press"] = "/images/refined/dumbbell_press_pro.png"
+        map["dumbbell rdl"] = "/images/refined/dumbbell_rdl_pro.png"
+        map["kettlebell swing"] = "/images/refined/kettlebell_swing_pro.png"
+        map["seated row"] = "/images/refined/seated_row_pro.png"
+        map["lat pulldown"] = "/images/refined/lat_pulldown_pro.png"
+        map["barbell row"] = "/images/refined/barbell_row_pro.png"
+        map["couch stretch"] = "/images/refined/couch_stretch_pro.png"
+        map["dead bug"] = "/images/refined/dead_bug_pro.png"
+        map["pause squat"] = "/images/refined/pause_squat_pro.png"
+        map["tempo goblet squat"] = "/images/refined/tempo_goblet_squat_pro.png"
+        map["close-grip bench press"] = "/images/refined/close_grip_bench_pro.png"
+        map["decline push-up"] = "/images/refined/decline_pushup_pro.png"
+        map["deficit rdl"] = "/images/refined/deficit_rdl_pro.png"
+        map["push-up"] = "/images/refined/pushup_pro.png"
+        map["goblet squat"] = "/images/refined/goblet_squat_pro.png"
         
         return map
     }()

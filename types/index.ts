@@ -99,6 +99,8 @@ export interface UserProfile {
   injuries_limitations?: Record<string, unknown>;
   dietary_preferences?: Record<string, unknown>;
   activity_level?: string;
+  experience_level?: "beginner" | "intermediate" | "advanced";
+  motivational_driver?: "performance" | "health" | "aesthetics" | "stress";
   devices?: Record<string, unknown>;
   subscription_status?: "free" | "pro";
   stripe_customer_id?: string;

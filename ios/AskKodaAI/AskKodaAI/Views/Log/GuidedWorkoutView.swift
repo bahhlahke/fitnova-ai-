@@ -11,6 +11,7 @@ import Realtime
 
 struct GuidedWorkoutView: View {
     @EnvironmentObject var auth: SupabaseService
+    @StateObject private var healthKit = HealthKitService.shared
     @State private var exercises: [PlanExercise] = []
     @State private var exerciseIndex = 0
     @State private var setIndex = 0
@@ -24,7 +25,6 @@ struct GuidedWorkoutView: View {
 
     // Neural Mastery State (Phase 5)
     @State private var neuralRestMode = true
-    @State private var heartRate = 145
     @State private var recoveryTarget = 110
     @State private var isFormCheckActive = false
     @State private var formCheckLoading = false
@@ -86,6 +86,10 @@ struct GuidedWorkoutView: View {
             await loadPlan()
             hasSpotify = (try? await api.spotifyToken()) != nil
             await setupPulseSubscription()
+            startNeuralMastery()
+        }
+        .onDisappear {
+            stopNeuralMastery()
         }
         .overlay {
             if showingPulseAnimation {
@@ -149,9 +153,9 @@ struct GuidedWorkoutView: View {
         
         return ZStack {
             // Full Screen Background Video
-            if let name = ex.name, let url = URL(string: ExerciseImages.getExerciseImageUrl(exerciseName: name)) {
-                LoopingVideoPlayerView(videoURL: url)
-                    .aspectRatio(contentMode: .fill)
+            if let url = resolveAssetUrl(ex: ex) {
+                CinemaPlayerView(videoURL: url)
+                    .id(url.absoluteString) // Force rebuild on URL change
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .ignoresSafeArea()
                     .opacity(phase == .rest ? 0.2 : 0.6)
@@ -192,44 +196,27 @@ struct GuidedWorkoutView: View {
                                 .fontWeight(.black)
                                 .tracking(2)
                                 .foregroundStyle(Brand.Color.accent)
-                                .padding(.bottom, 20)
-                            
-                            ZStack {
-                                Circle()
-                                    .stroke(Color.white.opacity(0.1), lineWidth: 4)
-                                Circle()
-                                    .trim(from: 0, to: CGFloat(max(0, min(1, 1 - Double(heartRate - recoveryTarget) / 40.0))))
-                                    .stroke(Brand.Color.accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                                    .rotationEffect(.degrees(-90))
-                                    .animation(.easeInOut, value: heartRate)
-                                
-                                VStack(spacing: -4) {
-                                    Image(systemName: "heart.fill")
-                                        .font(.system(size: 24))
-                                        .foregroundStyle(Brand.Color.accent)
-                                        .symbolEffect(.bounce, options: .repeating, value: heartRate)
-                                    Text("\(heartRate)")
-                                        .font(.system(size: 48, weight: .black, design: .rounded))
-                                        .foregroundStyle(.white)
-                                    Text("BPM")
-                                        .font(.caption2)
-                                        .fontWeight(.bold)
-                                        .foregroundStyle(.white.opacity(0.5))
-                                }
-                            }
-                            .frame(width: 160, height: 160)
-                            
-                            VStack(spacing: 4) {
-                                Text("TARGET: \(recoveryTarget) BPM")
-                                    .font(.caption)
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(.white.opacity(0.8))
-                                
-                                Text(heartRate <= recoveryTarget ? "RECOVERY OPTIMAL" : "RECOVERING...")
-                                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                                    .foregroundStyle(heartRate <= recoveryTarget ? .green : Brand.Color.accent.opacity(0.6))
-                            }
-                            .padding(.top, 12)
+                                VStack(spacing: 30) {
+                        NeuralRestHUD(
+                            heartRate: healthKit.currentHeartRate,
+                            timeRemaining: restRemaining,
+                            recoveryScore: calculateRecoveryScore(),
+                            steeringMessage: getSteeringMessage()
+                        )
+                        .padding(.top, 40)
+                        
+                        VStack(spacing: 4) {
+                            Text("UP NEXT:")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundStyle(Brand.Color.accent.opacity(0.6))
+                            Text(ex.name?.uppercased() ?? "NEXT PROTOCOL")
+                                .font(.system(size: 24, weight: .black))
+                                .italic()
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    
+                    Spacer()
                         } else {
                             Text("REST PHASE")
                                 .font(.caption)
@@ -265,17 +252,17 @@ struct GuidedWorkoutView: View {
                     Spacer()
                     
                     Button(action: advanceRest) {
-                        Text(heartRate <= recoveryTarget ? "START NEXT SET" : "SKIP REST")
-                            .font(.headline)
-                            .fontWeight(.black)
+                        let isOptimal = (healthKit.currentHeartRate ?? 0) <= recoveryTarget
+                        Text(isOptimal ? "ENGAGE NEXT SET" : "RECOVERY OVERRIDE")
+                            .font(.system(size: 14, weight: .black))
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(heartRate <= recoveryTarget ? Brand.Color.accent : Color.white.opacity(0.1))
-                            .foregroundStyle(heartRate <= recoveryTarget ? .black : .white)
+                            .background(isOptimal ? Brand.Color.accent : Color.white.opacity(0.05))
+                            .foregroundStyle(isOptimal ? .black : .white)
                             .clipShape(Capsule())
                     }
-                    .padding(.horizontal, 30)
-                    .padding(.bottom, 20)
+                    .padding(.horizontal, 40)
+                    .padding(.bottom, 40)
                     
                 } else {
                     // Work UI
@@ -293,6 +280,20 @@ struct GuidedWorkoutView: View {
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(.white)
                         }
+                        
+                        // Coaching Cues Table
+                        VStack(spacing: 8) {
+                            if let tempo = ex.tempo, !tempo.isEmpty {
+                                cueRow(label: "TEMPO", value: tempo)
+                            }
+                            if let breathing = ex.breathing, !breathing.isEmpty {
+                                cueRow(label: "BREATH", value: breathing)
+                            }
+                            if let intent = ex.intent, !intent.isEmpty {
+                                cueRow(label: "INTENT", value: intent)
+                            }
+                        }
+                        .padding(.horizontal)
                         
                         // Targets
                         HStack(spacing: 12) {
@@ -316,7 +317,7 @@ struct GuidedWorkoutView: View {
                                     .font(.caption2)
                                     .fontWeight(.bold)
                                     .foregroundStyle(.white.opacity(0.6))
-                                Text("Push")
+                                Text(ex.intensity ?? "Push")
                                     .font(.title2)
                                     .fontWeight(.black)
                                     .foregroundStyle(Color.accentColor)
@@ -325,6 +326,23 @@ struct GuidedWorkoutView: View {
                             .padding()
                             .background(Color.white.opacity(0.05))
                             .clipShape(RoundedRectangle(cornerRadius: 16))
+                            
+                            if let rir = ex.target_rir {
+                                VStack {
+                                    Text("RIR")
+                                        .font(.caption2)
+                                        .fontWeight(.bold)
+                                        .foregroundStyle(.white.opacity(0.6))
+                                    Text("\(rir)")
+                                        .font(.title2)
+                                        .fontWeight(.black)
+                                        .foregroundStyle(.orange)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.white.opacity(0.05))
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                            }
                         }
                         
                         // Inputs
@@ -775,7 +793,67 @@ struct GuidedWorkoutView: View {
         }
     }
     
-    private var selectedItems: [PhotosPickerItem] = [] // Temp holder for PhotosPicker
+    private func startNeuralMastery() {
+        healthKit.startHeartRateStreaming()
+    }
+    
+    private func stopNeuralMastery() {
+        healthKit.stopHeartRateStreaming()
+    }
+    
+    private func calculateRecoveryScore() -> Double {
+        guard let hr = healthKit.currentHeartRate else { return 0.5 }
+        let spread = 160.0 - Double(recoveryTarget)
+        let progress = 1.0 - (Double(hr - recoveryTarget) / spread)
+        return max(0, min(1, progress))
+    }
+    
+    private func getSteeringMessage() -> String? {
+        guard let hr = healthKit.currentHeartRate else { return "Waiting for Synapse data..." }
+        
+        if hr <= recoveryTarget {
+            return "Metabolic Reset Complete. Readiness Optimal."
+        } else if restRemaining < 20 && hr > recoveryTarget + 20 {
+            return "Recovery Lag Detected. Suggest Neural Override."
+        } else if hr > 150 {
+            return "High Intensity Signal. Focus on Deep Respiration."
+        } else {
+            return "Physiological Calibration in Progress..."
+        }
+    }
+    
+    private func selectedItems: [PhotosPickerItem] = [] // Temp holder for PhotosPicker
+
+    // MARK: - Helpers
+    
+    private func resolveAssetUrl(ex: PlanExercise) -> URL? {
+        let assetStr = ex.cinema_video_url ?? ex.video_url ?? ex.image_url
+        let finalStr = ExerciseImages.getExerciseImageUrl(exerciseName: ex.name ?? "", overrideUrl: assetStr)
+        
+        if finalStr.hasPrefix("http") {
+            return URL(string: finalStr)
+        } else {
+            // Assume relative to web server if it starts with /
+            let path = finalStr.hasPrefix("/") ? String(finalStr.dropFirst()) : finalStr
+            return AppConfig.apiBaseURL.appendingPathComponent(path)
+        }
+    }
+    
+    private func cueRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundStyle(Brand.Color.accent.opacity(0.7))
+            Spacer()
+            Text(value)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.white.opacity(0.9))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color.white.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
 
     private func saveAndGetInsight() async {
         guard let ds = dataService else { return }

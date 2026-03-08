@@ -156,6 +156,8 @@ struct DailyPlan: Decodable {
 }
 
 struct TrainingPlan: Decodable {
+    let focus: String?
+    let duration_minutes: Int?
     let exercises: [PlanExercise]?
 }
 
@@ -163,7 +165,17 @@ struct PlanExercise: Decodable {
     let name: String?
     let sets: Int?
     let reps: String?
+    let intensity: String?
     let notes: String?
+    let tempo: String?
+    let breathing: String?
+    let intent: String?
+    let rationale: String?
+    let target_rir: Int?
+    let target_load_kg: Double?
+    let video_url: String?
+    let cinema_video_url: String?
+    let image_url: String?
 }
 
 struct NutritionPlan: Decodable {

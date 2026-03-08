@@ -1,5 +1,5 @@
 import { toLocalDateString } from "@/lib/date/local-date";
-import { getExpertCues } from "@/lib/workout/exercise-metadata";
+import { enrichExercise } from "../workout/enrich-exercises";
 import type { DailyPlan, DailyPlanTrainingExercise, PlannerDataSources, PlannerInputs } from "@/lib/plan/types";
 
 function clamp(n: number, min: number, max: number) {
@@ -32,7 +32,7 @@ function parsePreferredTrainingDays(profile: Record<string, unknown>): number[] 
 
 /** Exercise pools per movement slot; [0] is preferred when not recently done. */
 const SQUAT_POOL_GYM = ["Back Squat", "Goblet Squat", "Leg Press", "Front Squat"];
-const SQUAT_POOL_HOME = ["Dumbbell Goblet Squat", "Goblet Squat", "Bodyweight Squat"];
+const SQUAT_POOL_HOME = ["Goblet Squat", "Bodyweight Squat"];
 const PUSH_POOL_GYM = ["Bench Press", "Incline Dumbbell Press", "Push-up"];
 const PUSH_POOL_HOME = ["Push-up", "Incline Push-up", "Dumbbell Press"];
 const HINGE_POOL_GYM = ["Romanian Deadlift", "Dumbbell RDL", "Deadlift"];
@@ -40,19 +40,6 @@ const HINGE_POOL_HOME = ["Dumbbell RDL", "Romanian Deadlift", "Kettlebell Swing"
 const PULL_POOL_GYM = ["Seated Row", "Dumbbell Row", "Lat Pulldown", "Barbell Row"];
 const PULL_POOL_HOME = ["Single-arm Row", "Dumbbell Row", "Inverted Row"];
 
-const EXERCISE_VIDEO_MAP: Record<string, string> = {
-  "goblet squat": "/images/refined/goblet_squat_pro.png",
-  "dumbbell goblet squat": "/images/refined/goblet_squat_pro.png",
-  "push-up": "/images/refined/pushup_pro.png",
-  "incline push-up": "/images/refined/pushup_pro.png",
-  "back squat": "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
-  "bench press": "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4",
-  "dumbbell row": "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
-  "single-arm row": "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
-  "world's greatest stretch": "https://videos.pexels.com/video-files/4944021/4944021-uhd_2732_1440_24fps.mp4",
-  "romanian deadlift": "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
-  "deadlift": "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
-};
 
 function pickFromPool(pool: string[], recentNormalized: Set<string>): string {
   for (const name of pool) {
@@ -62,12 +49,12 @@ function pickFromPool(pool: string[], recentNormalized: Set<string>): string {
 }
 
 const STICKING_POINT_ACCESSORIES: Record<string, string> = {
-  "back squat": "Pause Squats",
-  "goblet squat": "Tempo Goblet Squats",
+  "back squat": "Pause Squat",
+  "goblet squat": "Tempo Goblet Squat",
   "bench press": "Close-Grip Bench Press",
-  "push-up": "Decline Push-ups",
+  "push-up": "Decline Push-up",
   "romanian deadlift": "Deficit RDL",
-  "deadlift": "Block Pulls",
+  "deadlift": "Block Pull",
   "seated row": "Chest-Supported Row",
   "dumbbell row": "Renegade Row"
 };
@@ -195,6 +182,8 @@ export async function composeDailyPlan(
     120
   );
   const location: "gym" | "home" = todayConstraints?.location ?? "gym";
+  const experience = (profile.experience_level as string) || "intermediate";
+  const motivation = (profile.motivational_driver as string) || "performance";
 
   let focus = "Full body strength";
   if (goals.some((g) => g.includes("weight") || g.includes("loss"))) {
@@ -204,6 +193,11 @@ export async function composeDailyPlan(
   } else if (goals.some((g) => g.includes("mobility"))) {
     focus = "Mobility and movement quality";
   }
+
+  // Refine focus based on motivation
+  if (motivation === "health") focus = `Longevity: ${focus}`;
+  if (motivation === "stress") focus = `Stress-relief: ${focus}`;
+  if (motivation === "aesthetics") focus = `Physique: ${focus}`;
 
   if (todayWeeklySlot?.focus) {
     focus = todayWeeklySlot.focus;
@@ -236,24 +230,31 @@ export async function composeDailyPlan(
   const hingeSelection = getPeriodizedAccessory(hingePool, recentExerciseNames);
   const pullSelection = getPeriodizedAccessory(pullPool, recentExerciseNames);
 
+  // Experience-based intensity and rep ranges
+  const baseRPE = experience === "beginner" ? "RPE 6" : experience === "advanced" ? "RPE 8" : "RPE 7";
+  const mainReps = experience === "beginner" ? "10-12" : experience === "advanced" ? "3-5" : "6-8";
+  const secondaryReps = experience === "beginner" ? "12-15" : experience === "advanced" ? "8-10" : "10-12";
+  const mainSets = experience === "beginner" ? 3 : experience === "advanced" ? 5 : 4;
+  const secondarySets = experience === "beginner" ? 2 : experience === "advanced" ? 4 : 3;
+
   const exercises: DailyPlanTrainingExercise[] =
     focus.includes("Mobility")
       ? [
         { name: "World's Greatest Stretch", sets: 2, reps: "6/side", intensity: "Controlled", notes: "Move slowly." },
         { name: "Couch Stretch", sets: 2, reps: "45s/side", intensity: "Moderate" },
-        { name: "Goblet Squat", sets: 3, reps: "10", intensity: "RPE 6-7" },
+        { name: "Goblet Squat", sets: 3, reps: "10", intensity: baseRPE },
         { name: "Dead Bug", sets: 3, reps: "8/side", intensity: "Controlled" },
       ]
       : [
-        { name: squatSelection.name, sets: 4, reps: "6-8", intensity: "RPE 7", notes: squatSelection.notes },
-        { name: pushSelection.name, sets: 4, reps: "6-10", intensity: "RPE 7", notes: pushSelection.notes },
-        { name: hingeSelection.name, sets: 3, reps: "8-10", intensity: "RPE 7", notes: hingeSelection.notes },
-        { name: pullSelection.name, sets: 3, reps: "10-12", intensity: "RPE 7", notes: pullSelection.notes },
+        { name: squatSelection.name, sets: mainSets, reps: mainReps, intensity: baseRPE, notes: squatSelection.notes },
+        { name: pushSelection.name, sets: mainSets, reps: mainReps, intensity: baseRPE, notes: pushSelection.notes },
+        { name: hingeSelection.name, sets: secondarySets, reps: secondaryReps, intensity: baseRPE, notes: hingeSelection.notes },
+        { name: pullSelection.name, sets: secondarySets, reps: secondaryReps, intensity: baseRPE, notes: pullSelection.notes },
         {
           name: "Zone 2 Finisher",
           sets: 1,
           reps: `${Math.max(8, Math.floor(minutesAvailable * 0.25))} min`,
-          intensity: "Easy-moderate",
+          intensity: experience === "beginner" ? "Very Easy" : "Easy-moderate",
         },
       ];
 
@@ -310,18 +311,13 @@ export async function composeDailyPlan(
 
   // Apply Bio-Sync to exercises
   const adjustedExercises = exercises.map(ex => {
-    const normalized = normalizeExerciseName(ex.name);
-    const cues = getExpertCues(normalized);
+    const enriched = enrichExercise(ex.name);
 
     return {
       ...ex,
       sets: Math.max(1, Math.round(ex.sets * volumeMultiplier)),
       notes: (ex.notes || "") + intensityAdjustment,
-      video_url: EXERCISE_VIDEO_MAP[normalized] || null,
-      tempo: cues.tempo,
-      breathing: cues.breathing,
-      intent: cues.intent,
-      rationale: cues.rationale
+      ...enriched,
     };
   });
 

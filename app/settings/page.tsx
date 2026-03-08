@@ -35,13 +35,25 @@ import { normalizePhoneNumber } from "@/lib/phone";
 import { parseAppleHealthExport } from "@/lib/apple-health/import";
 import { emitDataRefresh } from "@/lib/ui/data-sync";
 import { EQUIPMENT_PRESETS, EQUIPMENT_LABELS, type EquipmentTag, type GymAccessLevel } from "@/lib/plan/equipment";
-
 const GOAL_OPTIONS = [
   "Weight loss",
   "Muscle gain",
   "Endurance",
   "General fitness",
   "Mobility",
+];
+
+const EXPERIENCE_OPTIONS = [
+  { value: "beginner", label: "Beginner" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "advanced", label: "Advanced" },
+];
+
+const MOTIVATION_OPTIONS = [
+  { value: "performance", label: "Performance" },
+  { value: "health", label: "Health" },
+  { value: "aesthetics", label: "Aesthetics" },
+  { value: "stress", label: "Stress" },
 ];
 
 const ACTIVITY_LEVELS = [
@@ -249,6 +261,8 @@ export default function SettingsPage() {
         height,
         weight,
         goals: profile.goals ?? null,
+        experience_level: profile.experience_level ?? null,
+        motivational_driver: profile.motivational_driver ?? null,
         injuries_limitations: profile.injuries_limitations ?? {},
         dietary_preferences: {
           ...(profile.dietary_preferences ?? {}),
@@ -651,6 +665,37 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div>
+              <Label htmlFor="experience">Experience level</Label>
+              <Select
+                id="experience"
+                value={p.experience_level ?? ""}
+                onChange={(e) => setProfile({ ...profile!, experience_level: e.target.value as any })}
+                className="mt-1"
+              >
+                <option value="">Select</option>
+                {EXPERIENCE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="motivation">Motivational driver</Label>
+              <Select
+                id="motivation"
+                value={p.motivational_driver ?? ""}
+                onChange={(e) => setProfile({ ...profile!, motivational_driver: e.target.value as any })}
+                className="mt-1"
+              >
+                <option value="">Select</option>
+                {MOTIVATION_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </Select>
+            </div>
+          </div>
+
           <div className="mt-6">
             <Label>Injuries and limitations</Label>
             <Textarea
@@ -774,8 +819,8 @@ export default function SettingsPage() {
                     available_equipment: preset.equipment,
                   }))}
                   className={`text-left rounded-xl border px-4 py-3 transition-all duration-200 ${equipmentProfile.gym_access === key
-                      ? "border-fn-accent/40 bg-fn-accent/10 text-fn-accent"
-                      : "border-white/[0.07] bg-fn-surface/30 text-fn-muted hover:bg-fn-surface/60"
+                    ? "border-fn-accent/40 bg-fn-accent/10 text-fn-accent"
+                    : "border-white/[0.07] bg-fn-surface/30 text-fn-muted hover:bg-fn-surface/60"
                     }`}
                 >
                   <p className="text-xs font-black uppercase tracking-widest">{preset.label}</p>
@@ -800,8 +845,8 @@ export default function SettingsPage() {
                         : [...prev.available_equipment, tag],
                     }))}
                     className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border transition-all ${active
-                        ? "bg-fn-accent/10 border-fn-accent/30 text-fn-accent"
-                        : "bg-white/[0.03] border-white/[0.07] text-white/30 hover:text-white/60"
+                      ? "bg-fn-accent/10 border-fn-accent/30 text-fn-accent"
+                      : "bg-white/[0.03] border-white/[0.07] text-white/30 hover:text-white/60"
                       }`}
                   >
                     {label}
@@ -893,7 +938,7 @@ export default function SettingsPage() {
 
         {error && <ErrorMessage message={error} />}
         <Button type="submit" loading={saving} className="w-full">Save settings</Button>
-      </form>
-    </PageLayout>
+      </form >
+    </PageLayout >
   );
 }

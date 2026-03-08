@@ -19,6 +19,7 @@ import { normalizePhoneNumber } from "@/lib/phone";
 const steps = [
   { id: "stats", label: "Stats" },
   { id: "goals", label: "Goals" },
+  { id: "identity", label: "Identity" },
   { id: "injuries", label: "Injuries" },
   { id: "diet", label: "Diet" },
   { id: "squad", label: "Protocol" },
@@ -35,12 +36,27 @@ const goalOptions = [
 
 const dietOptions = ["None", "Vegetarian", "Vegan", "Pescatarian", "Keto", "Other"];
 
+const experienceOptions = [
+  { value: "beginner", label: "Beginner", desc: "0-6 months training" },
+  { value: "intermediate", label: "Intermediate", desc: "6-24 months training" },
+  { value: "advanced", label: "Advanced", desc: "2+ years training" },
+];
+
+const motivationOptions = [
+  { value: "performance", label: "Performance", desc: "Strength and stamina" },
+  { value: "health", label: "Health", desc: "Long-term vitality" },
+  { value: "aesthetics", label: "Aesthetics", desc: "Look and feel" },
+  { value: "stress", label: "Stress", desc: "Mental clarity" },
+];
+
 export default function OnboardingPage() {
   const [resume, setResume] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [unitSystem, setUnitSystem] = useState<UnitSystem>(DEFAULT_UNIT_SYSTEM);
   const [stats, setStats] = useState({ name: "", phone: "", age: "", sex: "", height: "", weight: "" });
   const [goals, setGoals] = useState<string[]>([]);
+  const [experience, setExperience] = useState("");
+  const [motivation, setMotivation] = useState("");
   const [injuries, setInjuries] = useState("");
   const [diet, setDiet] = useState("");
   const [allergies, setAllergies] = useState("");
@@ -123,6 +139,8 @@ export default function OnboardingPage() {
         height,
         weight,
         goals: goals.length ? goals : null,
+        experience_level: experience || null,
+        motivational_driver: motivation || null,
         injuries_limitations: injuries.trim() ? { notes: injuries.trim() } : {},
         dietary_preferences: { preference: diet || "none", allergies: allergies.trim() || null },
         activity_level: null,
@@ -325,6 +343,53 @@ export default function OnboardingPage() {
                 </div>
               )}
 
+              {steps[currentStep].id === "identity" && (
+                <div className="mt-4 space-y-6">
+                  <div>
+                    <label className={labelClass}>Fitness Experience</label>
+                    <div className="mt-2 grid gap-3 sm:grid-cols-3">
+                      {experienceOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setExperience(opt.value)}
+                          className={`flex flex-col items-center justify-center rounded-xl border-2 p-3 text-center transition-all ${experience === opt.value
+                            ? "border-fn-accent bg-fn-accent/10 shadow-lg"
+                            : "border-fn-border bg-fn-surface hover:border-fn-accent/40"
+                            }`}
+                        >
+                          <span className={`text-sm font-black uppercase tracking-tight ${experience === opt.value ? "text-fn-accent" : "text-white"}`}>{opt.label}</span>
+                          <span className="mt-1 text-[10px] text-fn-muted">{opt.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Primary Motivator</label>
+                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                      {motivationOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setMotivation(opt.value)}
+                          className={`flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all ${motivation === opt.value
+                            ? "border-fn-accent bg-fn-accent/10 shadow-lg"
+                            : "border-fn-border bg-fn-surface hover:border-fn-accent/40"
+                            }`}
+                        >
+                          <div className={`h-2 w-2 rounded-full ${motivation === opt.value ? "bg-fn-accent shadow-[0_0_8px_white]" : "bg-fn-muted"}`} />
+                          <div>
+                            <span className={`text-sm font-black uppercase tracking-tight ${motivation === opt.value ? "text-fn-accent" : "text-white"}`}>{opt.label}</span>
+                            <span className="block text-[10px] text-fn-muted">{opt.desc}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {steps[currentStep].id === "injuries" && (
                 <div className="mt-4">
                   <label className={labelClass}>Injuries or limitations (optional)</label>
@@ -421,7 +486,7 @@ export default function OnboardingPage() {
             <p className="mt-6 text-[10px] text-fn-muted/50 uppercase tracking-widest">Educational AI coaching · Not medical care</p>
           </Card>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

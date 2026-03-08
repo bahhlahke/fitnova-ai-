@@ -5,7 +5,7 @@ export type ExerciseExpertCues = {
     rationale: string;
 };
 
-export const EXPERT_COACHING_CUES: Record<string, ExerciseExpertCues> = {
+export const EXERCISE_METADATA: Record<string, ExerciseExpertCues> = {
     "back squat": {
         tempo: "3-0-1-0 (3s down, explode up)",
         breathing: "Inhale/Brace at top, Exhale past sticking point",
@@ -65,6 +65,144 @@ export const EXPERT_COACHING_CUES: Record<string, ExerciseExpertCues> = {
         breathing: "Inhale down, exhale up",
         intent: "Maintain a straight line from head to heels.",
         rationale: "Reduces absolute load while maintaining pushing volume and shoulder integrity."
+    },
+    "leg press": {
+        tempo: "3-1-1-0",
+        breathing: "Inhale down, exhale up",
+        intent: "Control the weight, don't lock out knees at top.",
+        rationale: "Hypertrophy focused volume for quads and glutes without lumbar loading."
+    },
+    "front squat": {
+        tempo: "3-0-1-0",
+        breathing: "Shelf chest high, brace hard",
+        intent: "Elbows up, drive hips through.",
+        rationale: "Increases quad demand and upright torso mechanics."
+    },
+    "bodyweight squat": {
+        tempo: "2-0-1-0",
+        breathing: "Standard rhythm",
+        intent: "Sink hips back, track knees over toes.",
+        rationale: "Foundational movement for mobility and high-rep volume."
+    },
+    "incline dumbbell press": {
+        tempo: "2-0-1-0",
+        breathing: "Inhale down, exhale up",
+        intent: "Drive dumbbells toward center at top.",
+        rationale: "Targets upper pectoral development and shoulder stability."
+    },
+    "dumbbell press": {
+        tempo: "2-0-1-0",
+        breathing: "Inhale down, exhale up",
+        intent: "Control the eccentric, full range of motion.",
+        rationale: "Builds pressing strength and horizontal stability."
+    },
+    "dumbbell rdl": {
+        tempo: "3-0-1-0",
+        breathing: "Inhale/Brace on hinge",
+        intent: "Feel the stretch in hamstrings, drive hips forward.",
+        rationale: "Unilateral control and posterior chain isolation."
+    },
+    "kettlebell swing": {
+        tempo: "Explosive",
+        breathing: "Sharp exhale on the 'snap'",
+        intent: "Hinge deep, snap the hips forward.",
+        rationale: "Develops explosive posterior power and conditioning."
+    },
+    "seated row": {
+        tempo: "2-0-1-1",
+        breathing: "Exhale on pull",
+        intent: "Pull shoulders back first, then elbows.",
+        rationale: "Focuses on mid-back thickness and postural health."
+    },
+    "lat pulldown": {
+        tempo: "2-0-1-1",
+        breathing: "Exhale on pull",
+        intent: "Pull bar to chin, squeeze shoulder blades.",
+        rationale: "Vertical pull for lat width and overhead strength."
+    },
+    "barbell row": {
+        tempo: "2-0-1-0",
+        breathing: "Exhale on pull",
+        intent: "Pull bar to lower sternum, keep spine neutral.",
+        rationale: "Primary builder of back thickness and hinge stability."
+    },
+    "single-arm row": {
+        tempo: "2-0-1-1",
+        breathing: "Exhale on pull",
+        intent: "Pull elbow to hip, control the descent.",
+        rationale: "Corrects asymmetries and improves grip strength."
+    },
+    "inverted row": {
+        tempo: "2-0-1-1",
+        breathing: "Exhale on pull",
+        intent: "Touch chest to bar, stay rigid.",
+        rationale: "Horizontal pulling bodyweight variant for scapular control."
+    },
+    "couch stretch": {
+        tempo: "Static hold",
+        breathing: "Deep belly breaths",
+        intent: "Tuck tailbone, feel the hip flexor stretch.",
+        rationale: "Opens the anterior chain, vital for desk-bound users."
+    },
+    "dead bug": {
+        tempo: "Slow & controlled",
+        breathing: "Exhale as limbs extend",
+        intent: "Keep lower back glued to the floor.",
+        rationale: "Core stabilization and rib-cage positioning mechanics."
+    },
+    "zone 2 finisher": {
+        tempo: "Moderate/Easy",
+        breathing: "Nasal breathing preferred",
+        intent: "Maintain a pace you can talk at.",
+        rationale: "Builds aerobic base and facilitates metabolic recovery."
+    },
+    "pause squat": {
+        tempo: "2-2-1-0 (2s pause at bottom)",
+        breathing: "Hold brace through pause, exhale on drive",
+        intent: "Stay tight in the hole, don't relax.",
+        rationale: "Builds enormous starting strength and positional awareness."
+    },
+    "tempo goblet squat": {
+        tempo: "3-3-1-0 (Slow down, slow pause)",
+        breathing: "Continuous control",
+        intent: "Focus on vertical torso and knee tracking.",
+        rationale: "Refines squat mechanics and increases time under tension."
+    },
+    "close-grip bench press": {
+        tempo: "2-0-1-0",
+        breathing: "Standard bench rhythm",
+        intent: "Keep elbows tucked to prioritize triceps.",
+        rationale: "Targets tricep hypertrophy and lock-out strength."
+    },
+    "decline push-up": {
+        tempo: "2-0-1-0",
+        breathing: "Standard rhythm",
+        intent: "Pike slightly, focus on upper chest.",
+        rationale: "Increases difficulty of the push-up and targets upper pecs."
+    },
+    "deficit rdl": {
+        tempo: "3-0-1-0",
+        breathing: "Maximum brace for depth",
+        intent: "Reach for depth without rounding back.",
+        rationale: "Extended range of motion for maximum hamstring recruitment."
+    },
+    "block pull": {
+        tempo: "1-0-1-0",
+        breathing: "Brace hard at start",
+        intent: "Drive through the floor, snap hips.",
+        rationale: "Focuses on the top half of the deadlift and allows heavier loading."
+    },
+    "chest-supported row": {
+        tempo: "2-0-1-1",
+        breathing: "Exhale on pull",
+        intent: "Squeeze the bench with your chest, pull wide.",
+        rationale: "Isolates the mid-back by removing lower back involvement."
+    },
+    "renegade row": {
+        tempo: "Controlled",
+        breathing: "Brace hard to prevent rotation",
+        intent: "Don't let hips tilt as you pull.",
+        rationale: "Combines horizontal pulling with intense anti-rotational core work."
     }
 };
 
@@ -77,5 +215,5 @@ export const DEFAULT_CUES: ExerciseExpertCues = {
 
 export function getExpertCues(name: string): ExerciseExpertCues {
     const normalized = name.toLowerCase().trim().replace(/\s+/g, " ");
-    return EXPERT_COACHING_CUES[normalized] || DEFAULT_CUES;
+    return EXERCISE_METADATA[normalized] || DEFAULT_CUES;
 }

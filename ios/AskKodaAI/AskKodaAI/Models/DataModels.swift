@@ -26,6 +26,8 @@ struct UserProfile: Codable {
     var subscription_status: String?
     var stripe_customer_id: String?
     var role: String?
+    var experience_level: String?
+    var motivational_driver: String?
     var created_at: String?
     var updated_at: String?
 }

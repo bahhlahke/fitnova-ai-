@@ -17,6 +17,8 @@ struct EditProfileView: View {
     @State private var goalsText = ""
     @State private var activityLevel = "moderate"
     @State private var saving = false
+    @State private var experienceLevel = "beginner"
+    @State private var motivationalDriver = "health"
     @State private var errorMessage: String?
 
     private var dataService: KodaDataService? {
@@ -52,6 +54,19 @@ struct EditProfileView: View {
                     Text("Active").tag("active")
                 }
             }
+            Section("Identity") {
+                Picker("Experience", selection: $experienceLevel) {
+                    Text("Beginner").tag("beginner")
+                    Text("Intermediate").tag("intermediate")
+                    Text("Advanced").tag("advanced")
+                }
+                Picker("Primary Motivator", selection: $motivationalDriver) {
+                    Text("Health & Longevity").tag("health")
+                    Text("Athletic Performance").tag("performance")
+                    Text("Body Composition").tag("aesthetics")
+                    Text("Stress Relief").tag("stress")
+                }
+            }
             if let err = errorMessage {
                 Section {
                     Text(err)
@@ -85,6 +100,8 @@ struct EditProfileView: View {
                 weightKg = p?.weight_kg.map { String(format: "%.1f", $0) } ?? ""
                 goalsText = (p?.goals ?? []).joined(separator: ", ")
                 activityLevel = p?.activity_level ?? "moderate"
+                experienceLevel = p?.experience_level ?? "beginner"
+                motivationalDriver = p?.motivational_driver ?? "health"
             }
         } catch { }
     }
@@ -104,6 +121,8 @@ struct EditProfileView: View {
             p.goals = goalsText.split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) }.filter { !$0.isEmpty }
             if p.goals?.isEmpty == true { p.goals = nil }
             p.activity_level = activityLevel
+            p.experience_level = experienceLevel
+            p.motivational_driver = motivationalDriver
             try await ds.upsertProfile(p)
         } catch {
             await MainActor.run { errorMessage = error.localizedDescription }

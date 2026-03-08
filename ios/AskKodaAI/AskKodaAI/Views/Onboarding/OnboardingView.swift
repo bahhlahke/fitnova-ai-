@@ -19,6 +19,8 @@ struct OnboardingView: View {
     @State private var injuries = ""
     @State private var diet = "balanced"
     @State private var squad = "hypertrophy"
+    @State private var experienceLevel = "beginner"
+    @State private var motivationalDriver = "health"
     @State private var saving = false
     @State private var errorMessage: String?
     var onComplete: (() -> Void)?
@@ -84,15 +86,42 @@ struct OnboardingView: View {
                     }
                 }
                 if step == 4 {
-                    Section(header: Text("Elite Protocol").font(.headline), footer: Text("Join a global cohort to share leaderboards and Synapse Pulses.")) {
-                        Picker("Squad", selection: $squad) {
-                            Text("Titanium Hypertrophy").tag("hypertrophy")
-                            Text("Aero Engine (Endurance)").tag("endurance")
-                            Text("Rogue Hybrid").tag("hybrid")
-                            Text("Vitality Protocol").tag("longevity")
+                    VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("SQUAD PROTOCOL")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundStyle(Brand.Color.accent)
+                            Text("Join a global cohort to synchronize performance metrics and masterclass data.")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
                         }
-                        .pickerStyle(.inline)
+                        .padding(.horizontal)
+                        
+                        EliteSelectionGrid(items: [
+                            EliteSelectionItem(id: "hypertrophy", title: "Titanium Hypertrophy", subtitle: "Mechanical tension focus. Build absolute mass.", icon: "dumbbell.fill", imageURL: nil),
+                            EliteSelectionItem(id: "endurance", title: "Aero Engine", subtitle: "Metabolic conditioning & VO2 max optimization.", icon: "bolt.heart.fill", imageURL: nil),
+                            EliteSelectionItem(id: "hybrid", title: "Rogue Hybrid", subtitle: "The ultimate athlete. Strength meets endurance.", icon: "shield.fill", imageURL: nil),
+                            EliteSelectionItem(id: "longevity", title: "Vitality Protocol", subtitle: "Sustainable health and biomechanical preservation.", icon: "leaf.fill", imageURL: nil)
+                        ], selection: $squad)
                     }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+                }
+                if step == 5 {
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text("MASTER ORIENTATION")
+                            .font(.system(size: 10, weight: .black))
+                            .foregroundStyle(Brand.Color.accent)
+                            .padding(.horizontal)
+                        
+                        EliteSelectionGrid(items: [
+                            EliteSelectionItem(id: "beginner", title: "Initiate", subtitle: "New to the protocol. Establishing base mechanics.", icon: "seedling.fill", imageURL: nil),
+                            EliteSelectionItem(id: "intermediate", title: "Specialist", subtitle: "Consistent output. Refining force production.", icon: "gauge.with.needle.fill", imageURL: nil),
+                            EliteSelectionItem(id: "advanced", title: "Elite Master", subtitle: "Peak performance. Optimizing neurological limits.", icon: "crown.fill", imageURL: nil)
+                        ], selection: $experienceLevel)
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
                 }
                 if let err = errorMessage {
                     Section {
@@ -110,7 +139,7 @@ struct OnboardingView: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    if step < 4 {
+                    if step < 5 {
                         Button("Next") { step += 1 }
                     } else {
                         Button("Finish") {
@@ -137,6 +166,8 @@ struct OnboardingView: View {
         profile.goals = goals.isEmpty ? nil : goals
         profile.injuries_limitations = injuries.isEmpty ? nil : injuries
         profile.dietary_preferences = [diet]
+        profile.experience_level = experienceLevel
+        profile.motivational_driver = motivationalDriver
         do {
             try await ds.upsertProfile(profile)
             var onboarding = OnboardingRow()
@@ -144,7 +175,9 @@ struct OnboardingView: View {
             onboarding.responses = [
                 "goals": AnyCodable(value: goals as [String]), 
                 "diet": AnyCodable(value: diet),
-                "squad": AnyCodable(value: squad)
+                "squad": AnyCodable(value: squad),
+                "experience_level": AnyCodable(value: experienceLevel),
+                "motivational_driver": AnyCodable(value: motivationalDriver)
             ]
             try await ds.upsertOnboarding(onboarding)
             await MainActor.run { onComplete?() }

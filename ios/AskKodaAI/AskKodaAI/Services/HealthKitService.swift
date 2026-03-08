@@ -19,6 +19,7 @@ final class HealthKitService: ObservableObject {
     @Published private(set) var lastSyncDate: Date?
     @Published private(set) var syncError: String?
     @Published private(set) var isSyncing = false
+    @Published private(set) var currentHeartRate: Int?
 
     #if canImport(HealthKit)
     private let store = HKHealthStore()
@@ -30,6 +31,49 @@ final class HealthKitService: ObservableObject {
         isAvailable = HKHealthStore.isHealthDataAvailable()
         #endif
     }
+    
+    #if canImport(HealthKit)
+    private var hrQuery: HKAnchoredObjectQuery?
+    #endif
+
+    func startHeartRateStreaming() {
+        #if canImport(HealthKit)
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        
+        let hrType = HKQuantityType(.heartRate)
+        let predicate = HKQuery.predicateForSamples(withStart: Date(), end: nil, options: .strictStartDate)
+        
+        hrQuery = HKAnchoredObjectQuery(type: hrType, predicate: predicate, anchor: nil, limit: HKObjectQueryNoLimit) { [weak self] _, samples, _, _, _ in
+            self?.processHRSamples(samples)
+        }
+        
+        hrQuery?.updateHandler = { [weak self] _, samples, _, _, _ in
+            self?.processHRSamples(samples)
+        }
+        
+        store.execute(hrQuery!)
+        #endif
+    }
+    
+    func stopHeartRateStreaming() {
+        #if canImport(HealthKit)
+        if let query = hrQuery {
+            store.stop(query)
+            hrQuery = nil
+        }
+        currentHeartRate = nil
+        #endif
+    }
+    
+    #if canImport(HealthKit)
+    private func processHRSamples(_ samples: [HKSample]?) {
+        guard let samples = samples as? [HKQuantitySample], let last = samples.last else { return }
+        let hr = Int(last.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute())))
+        Task { @MainActor in
+            self.currentHeartRate = hr
+        }
+    }
+    #endif
 
     /// Request authorization for weight, sleep, step count. Call before syncing.
     func requestAuthorization() async throws {
@@ -41,6 +85,7 @@ final class HealthKitService: ObservableObject {
             HKQuantityType(.bodyMass),
             HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
             HKQuantityType(.stepCount),
+            HKQuantityType(.heartRate)
         ]
         try await store.requestAuthorization(toShare: Set<HKSampleType>(), read: typesToRead)
         #else

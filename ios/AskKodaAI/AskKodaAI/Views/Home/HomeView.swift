@@ -22,6 +22,7 @@ struct HomeView: View {
     @State private var retentionRisk: RetentionRiskResponse?
     @State private var coachInsights: [CoachInsight] = []
     @State private var coachInsightsLoading = false
+    @State private var profile: UserProfile?
     @State private var errorMessage: String?
     @State private var showingVisionModal = false
     @State private var showingGuidedWorkout = false
@@ -52,8 +53,14 @@ struct HomeView: View {
                     .padding(.bottom, 8)
                     
                     if let err = errorMessage {
-                        errorBanner(err)
+                    errorBanner(err)
                     }
+                    
+                    BioSyncHUD(
+                        readinessScore: 0.85, // Mocked for now, will link to CNS logic
+                        activeSquad: profile?.activity_level ?? "Titanium Hypertrophy"
+                    )
+                    
                     briefingCard
                     coachDeskCard
                     todayPlanCard
@@ -427,6 +434,7 @@ struct HomeView: View {
     private func loadAll() async {
         errorMessage = nil
         await withTaskGroup(of: Void.self) { group in
+            group.addTask { await loadProfile() }
             group.addTask { await loadBriefing() }
             group.addTask { await loadCoachDesk() }
             group.addTask { await loadPlan() }
@@ -435,6 +443,14 @@ struct HomeView: View {
             group.addTask { await loadRetentionRisk() }
             group.addTask { await loadNudges() }
         }
+    }
+    
+    private func loadProfile() async {
+        guard let ds = dataService else { return }
+        do {
+            let p = try await ds.fetchProfile()
+            await MainActor.run { self.profile = p }
+        } catch {}
     }
 
     private func loadProjection() async {

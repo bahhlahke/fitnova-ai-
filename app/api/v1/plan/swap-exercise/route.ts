@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
 
-import { getExpertCues } from "@/lib/workout/exercise-metadata";
+import { enrichExercise } from "@/lib/workout/enrich-exercises";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +26,8 @@ type Replacement = {
   breathing: string;
   intent: string;
   rationale: string;
+  video_url?: string | null;
+  image_url?: string | null;
 };
 
 const RATE_LIMIT_CAPACITY = 20;
@@ -38,18 +40,15 @@ function chooseReplacement({ currentExercise, reason, location, sets, reps, inte
   const targetSets = Math.max(1, Math.min(8, Number.isFinite(sets) ? Math.round(sets as number) : 3));
 
   const withDefaults = (name: string, note: string): Replacement => {
-    const cues = getExpertCues(name);
+    const enriched = enrichExercise(name);
     return {
       name,
       sets: targetSets,
       reps: reps?.trim() || "8-12",
       intensity: intensity?.trim() || "RPE 6-7",
       notes: note,
-      tempo: cues.tempo,
-      breathing: cues.breathing,
-      intent: cues.intent,
-      rationale: cues.rationale,
-    };
+      ...enriched
+    } as Replacement;
   };
 
   if (why.includes("pain") || why.includes("injury") || why.includes("sore")) {
@@ -181,17 +180,15 @@ Return ONLY a valid JSON object with this exact structure (no markdown formattin
             contentStr = contentStr.replace(/```json/g, '').replace(/```/g, '').trim();
             const aiSwap = JSON.parse(contentStr);
             if (aiSwap.name) {
+              const enriched = enrichExercise(aiSwap.name);
               replacement = {
                 name: aiSwap.name,
                 sets: aiSwap.sets || fallbackReplacement.sets,
                 reps: aiSwap.reps || fallbackReplacement.reps,
                 intensity: aiSwap.intensity || fallbackReplacement.intensity,
                 notes: aiSwap.notes || fallbackReplacement.notes,
-                tempo: aiSwap.tempo || fallbackReplacement.tempo,
-                breathing: aiSwap.breathing || fallbackReplacement.breathing,
-                intent: aiSwap.intent || fallbackReplacement.intent,
-                rationale: aiSwap.rationale || fallbackReplacement.rationale,
-              };
+                ...enriched
+              } as Replacement;
               confidence = aiSwap.confidence_score || 0.85;
               explanation = aiSwap.rationale || "AI-powered contextual substitution.";
             }
