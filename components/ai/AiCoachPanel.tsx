@@ -254,15 +254,34 @@ export function AiCoachPanel({
               </div>
               {message.actions && message.actions.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {message.actions.map((action) => (
-                    <Link
-                      key={`${action.type}-${action.summary}`}
-                      href={action.targetRoute}
-                      className="rounded-full border border-fn-accent/30 bg-fn-accent/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-fn-accent transition-colors hover:bg-fn-accent/20"
-                    >
-                      {action.summary}
-                    </Link>
-                  ))}
+                  {message.actions.map((action) => {
+                    if ((action as any).type === "video_demo") {
+                      return (
+                        <div key={action.targetRoute} className="mt-3 w-full overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+                          <video
+                            src={action.targetRoute}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="aspect-video w-full object-cover shadow-[0_0_20px_rgba(10,217,196,0.3)]"
+                          />
+                          <div className="bg-fn-accent/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-fn-accent antialiased">
+                            4K Elite Demonstration: {action.summary.replace("Demo: ", "")}
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <Link
+                        key={`${action.type}-${action.summary}`}
+                        href={action.targetRoute}
+                        className="rounded-full border border-fn-accent/30 bg-fn-accent/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-fn-accent transition-colors hover:bg-fn-accent/20"
+                      >
+                        {action.summary}
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -315,6 +315,20 @@ export async function POST(request: Request) {
             required: ["route", "reason"]
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "show_movement_demo",
+          description: "Shows a 4K cinematic video demonstration of a specific exercise within the chat.",
+          parameters: {
+            type: "object",
+            properties: {
+              exercise_name: { type: "string", description: "Name of the exercise to demonstrate, e.g. 'Back Squat', 'Pigeon Stretch'." }
+            },
+            required: ["exercise_name"]
+          }
+        }
       }
     ];
 
@@ -657,6 +671,19 @@ export async function POST(request: Request) {
                   targetRoute: args.route,
                   summary: args.reason || "Moved to new page",
                 } as any);
+              } else if (tc.function.name === "show_movement_demo") {
+                const { enrichExercise } = await import("@/lib/workout/enrich-exercises");
+                const enriched = enrichExercise(args.exercise_name);
+                if (enriched.cinema_video_url) {
+                  resultStr = `Showing 4K demonstration for ${args.exercise_name}.`;
+                  actions.push({
+                    type: "video_demo",
+                    targetRoute: enriched.cinema_video_url,
+                    summary: `Demo: ${args.exercise_name}`,
+                  } as any);
+                } else {
+                  resultStr = `I don't have a 4K demo for "${args.exercise_name}" yet, but I can provide coaching cues.`;
+                }
               } else {
                 resultStr = "Unknown tool.";
               }
