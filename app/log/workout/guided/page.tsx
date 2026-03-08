@@ -578,13 +578,28 @@ export default function GuidedWorkoutPage() {
                     </div>
                   </div>
                   <div className="h-12 w-12 overflow-hidden rounded-xl bg-black/40">
-                    <Image
-                      src={getExerciseImageUrl(ex.name, ex.video_url || ex.image_url)}
-                      alt={ex.name}
-                      width={48}
-                      height={48}
-                      className="h-full w-full object-cover opacity-50 transition-opacity group-hover:opacity-100"
-                    />
+                    {(() => {
+                      const mediaUrl = getExerciseImageUrl(ex.name, ex.video_url || ex.image_url);
+                      return isExerciseVideoUrl(mediaUrl) ? (
+                        <video
+                          src={mediaUrl}
+                          muted
+                          autoPlay
+                          loop
+                          playsInline
+                          className="h-full w-full object-cover opacity-50 transition-opacity group-hover:opacity-100"
+                        />
+                      ) : (
+                        <Image
+                          src={mediaUrl}
+                          alt={ex.name}
+                          width={48}
+                          height={48}
+                          className="h-full w-full object-cover opacity-50 transition-opacity group-hover:opacity-100"
+                          unoptimized={isExerciseGifUrl(mediaUrl)}
+                        />
+                      );
+                    })()}
                   </div>
                 </div>
                 {ex.intent && (
