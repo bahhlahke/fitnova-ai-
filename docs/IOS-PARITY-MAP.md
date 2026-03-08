@@ -65,13 +65,14 @@ Auth → Onboarding → Dashboard (plan, briefing, quick actions) → Plan (week
 **Core:** Auth (magic link, deep link), Dashboard (briefing, plan, performance, **projection card**, **retention risk card**, nudges with **Dismiss/ack**), Plan (weekly, day detail, weekly insight), Coach (chat, escalate list/create/messages), Log workout (list, quick log, **swipe-to-delete**, **process-prs + awards after save**), Guided workout (**process-prs + awards after save**), Log nutrition (meals, targets, **hydration** +0.5 L / reset, **barcode lookup**, **analyze meal** + append, **edit/delete meal**, **nutrition insight**, **meal suggestions**, **awards after add**), Progress (list, add, body comp scan, **AI performance synthesis / progress insight**, **projection**), Check-in, History (workouts + nutrition tabs, expand, edit workout), Vitals (readiness insight), Motion Lab (Form check, 1–3 photos → vision API), Settings (profile, **Edit profile**, **Badges**, Vitals, Integrations, export, onboarding, Pricing, sign out), Integrations (Apple Health, Whoop, **Spotify**), Community/friends, Pricing/Stripe, Onboarding, telemetry.
 
 **Parity details:**  
-- **Dashboard:** Projection card (GET `ai/projection` → 12-week projection, confidence, 4-week); Retention Monitor card (POST `ai/retention-risk` with localDate → risk_level, risk_score, recommended_action).  
-- **Workout:** Delete workout (swipe); after quick log or guided save → `analytics/process-prs` + `awards/check`.  
+- **Dashboard:** Projection card; Retention Monitor card; **AI Briefing Terminal** (interactive shell with causal rationale).
+- **Workout:** Delete workout (swipe); after save → `analytics/process-prs` + `awards/check`.  
 - **Nudges:** “Dismiss” calls `coach/nudges/:id/ack`.  
-- **Nutrition:** Hydration card (goal 2.5 L, +0.5 L, Reset); barcode field + “Look up” → `nutrition/barcode` then “Add to log”; “Get insight” → `ai/nutrition-insight`; “Suggest meals” → `ai/meal-suggestions`; Edit/Delete per meal; awards/check after adding meal.  
-- **Settings:** “Edit profile” (name, age, sex, height, weight, goals, activity level) → `user_profile` upsert; “Badges” → `user_badges` + `badge_definitions` read.
+- **Nutrition:** Hydration card; barcode lookup; “Analyze meal” via AI; “Get insight” → `ai/nutrition-insight`.
+- **Settings:** “Edit profile”; **Elite Protocols / Badges** system with **Neural Rationale** justificaitons.
+- **Onboarding:** Multi-step with **Elite Squad selection** parity.
 
-- **Progress:** "AI Performance Synthesis" (POST `ai/progress-insight`); Projection section (GET `ai/projection` → 12-week); list, add entry, body comp scan.
-- **Spotify:** Integrations → Music → Spotify. Status via `GET /api/v1/spotify/token`; Connect uses Supabase auth linkIdentity(provider: .spotify). Fallback: open web `/integrations`.
+- **Progress:** "AI Performance Synthesis" (POST `ai/progress-insight`); **Evolutionary Summary** (POST `ai/history-summary`).
+- **Spotify:** Native SDK integration with auth parity via `spotify/token`.
 
-**Web-only (no iOS equivalent):** `/start` (pre-auth assessment), `/omni` (redirects to ?focus=ai), `/vitals/cycle` (cycle tracking), `/admin`, `/coach/ops`, `/coach/queue` (internal/ops). Apple Health **file** import (web): iOS uses native HealthKit sync instead.
+**Web-only (no iOS equivalent):** `/admin`, `/coach/ops`. Apple Health **file** import (web).

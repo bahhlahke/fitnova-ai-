@@ -14,7 +14,7 @@ enum DateHelpers {
     }
 
     static func weekStartLocal(from date: Date = Date()) -> String {
-        let cal = Calendar.current
+        var cal = Calendar(identifier: .iso8601)
         var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
         comps.weekday = 2 // Monday
         let monday = cal.date(from: comps) ?? date

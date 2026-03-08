@@ -21,6 +21,7 @@ const steps = [
   { id: "goals", label: "Goals" },
   { id: "injuries", label: "Injuries" },
   { id: "diet", label: "Diet" },
+  { id: "squad", label: "Protocol" },
   { id: "devices", label: "Setup" },
 ] as const;
 
@@ -43,6 +44,7 @@ export default function OnboardingPage() {
   const [injuries, setInjuries] = useState("");
   const [diet, setDiet] = useState("");
   const [allergies, setAllergies] = useState("");
+  const [squad, setSquad] = useState("");
   const [devices, setDevices] = useState("");
   const [completed, setCompleted] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -139,6 +141,7 @@ export default function OnboardingPage() {
       injuries,
       diet,
       allergies,
+      squad,
       devices,
       units_system: unitSystem,
       resumed_from_assessment: resumedFromAssessment,
@@ -339,6 +342,41 @@ export default function OnboardingPage() {
                   </select>
                   <label className={labelClass}>Allergies or restrictions</label>
                   <input type="text" value={allergies} onChange={(e) => setAllergies(e.target.value)} className={inputClass} placeholder="e.g. nuts, gluten" />
+                </div>
+              )}
+
+              {steps[currentStep].id === "squad" && (
+                <div className="mt-4 space-y-4">
+                  <p className="text-sm text-fn-muted mb-4 leading-relaxed">Choose an Elite Protocol to join a global community cohort. You will share a leaderboard and engage via Synapse Pulses.</p>
+
+                  {[
+                    { id: "hypertrophy", name: "Titanium Hypertrophy", desc: "Build mass. Heavy volume. Brutal consistency.", icon: "🏋️" },
+                    { id: "endurance", name: "Aero Engine", desc: "Zone 2 base with threshold intervals. Never stop.", icon: "❤️" },
+                    { id: "hybrid", name: "Rogue Hybrid", desc: "Strength meets stamina. The ultimate all-rounder.", icon: "🔥" },
+                    { id: "longevity", name: "Vitality Protocol", desc: "Mobility, joint health, and sustainable power.", icon: "⚡" }
+                  ].map((opts) => (
+                    <button
+                      key={opts.id}
+                      type="button"
+                      onClick={() => setSquad(opts.id)}
+                      className={`flex w-full items-center gap-4 cursor-pointer rounded-2xl border-2 px-5 py-4 text-left transition-all duration-200 ${squad === opts.id
+                        ? "border-fn-accent bg-fn-accent/10 shadow-[0_0_20px_rgba(10,217,196,0.15)]"
+                        : "border-fn-border bg-fn-surface hover:border-fn-accent/40 hover:bg-fn-surface-hover"
+                        }`}
+                    >
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-black/40 text-2xl border border-white/5 shadow-inner">
+                        {opts.icon}
+                      </div>
+                      <div>
+                        <span className={`font-black uppercase tracking-tight block ${squad === opts.id ? "text-fn-accent" : "text-white"}`}>
+                          {opts.name}
+                        </span>
+                        <span className={`mt-1 text-[11px] font-medium block ${squad === opts.id ? "text-fn-accent/80" : "text-fn-muted"}`}>
+                          {opts.desc}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               )}
 

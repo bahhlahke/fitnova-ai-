@@ -13,7 +13,7 @@ struct WeeklyPlan: Decodable {
     let week_start_local: String?
     let cycle_goal: String?
     let adaptation_summary: String?
-    let days: [WeeklyPlanDay]?
+    var days: [WeeklyPlanDay]?
 }
 
 struct WeeklyPlanDay: Decodable {
@@ -37,6 +37,12 @@ struct WeeklyPlanExercise: Decodable {
 
 // MARK: - Briefing, insights, projection
 
+struct AIBriefingResponse: Decodable {
+    let briefing: String?
+    let rationale: String?
+    let inputs: [String]?
+}
+
 struct BriefingResponse: Decodable {
     let briefing: String?
 }
@@ -53,8 +59,7 @@ struct ProgressInsightResponse: Decodable {
     let insight: String?
 }
 
-/// GET /api/v1/ai/projection — flat response: current, projected_4w, projected_12w, rate, confidence
-struct DashboardProjectionResponse: Decodable {
+struct ProjectionResponse: Decodable {
     let current: Double?
     let projected_4w: Double?
     let projected_12w: Double?
@@ -62,12 +67,16 @@ struct DashboardProjectionResponse: Decodable {
     let confidence: Double?
 }
 
+/// GET /api/v1/ai/projection — flat response: current, projected_4w, projected_12w, rate, confidence
+typealias DashboardProjectionResponse = ProjectionResponse
+
 /// POST /api/v1/ai/retention-risk — risk_score (0–1), risk_level, reasons, recommended_action
 struct RetentionRiskResponse: Decodable {
     let risk_score: Double?
     let risk_level: String?
     let reasons: [String]?
     let recommended_action: String?
+    let rationale: String?
 }
 
 // MARK: - Nutrition
@@ -142,10 +151,24 @@ struct SwapReliability: Decodable {
     let limitations: [String]?
 }
 
+struct PlanSwapResponse: Decodable {
+    let replacement: PlanExercise?
+    let rationale: String?
+    let reliability: ReliabilityInfo?
+}
+
+struct ReliabilityInfo: Decodable {
+    let confidence_score: Double?
+}
+
 // MARK: - Post-workout, body comp, vision
 
 struct PostWorkoutInsightResponse: Decodable {
     let insight: String?
+}
+
+struct SpotifyTokenResponse: Decodable {
+    let access_token: String?
 }
 
 struct WorkoutFeedbackResponse: Decodable {

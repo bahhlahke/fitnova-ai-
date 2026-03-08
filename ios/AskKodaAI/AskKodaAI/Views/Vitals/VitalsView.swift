@@ -47,11 +47,18 @@ struct VitalsView: View {
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.accentColor.opacity(0.08))
+                .background(Brand.Color.accent.opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Brand.Color.accent.opacity(0.3), lineWidth: 1)
+                )
+                
+                MuscleStressVisualizer()
             }
             .padding()
         }
+        .fnBackground()
         .navigationTitle("Vitals")
         .refreshable { await load() }
         .task { await load() }

@@ -10,6 +10,7 @@ struct CoachView: View {
     @State private var input = ""
     @State private var messages: [(role: String, text: String)] = []
     @State private var isLoading = false
+    @State private var hasLoadedHistory = false
 
     private var api: KodaAPIService {
         KodaAPIService(getAccessToken: { await auth.accessToken })
@@ -21,8 +22,12 @@ struct CoachView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 12) {
-                            ForEach(Array(messages.enumerated()), id: \.offset) { _, m in
-                                MessageBubble(role: m.role, text: m.text)
+                            if messages.isEmpty {
+                                emptyStateCard
+                            } else {
+                                ForEach(Array(messages.enumerated()), id: \.offset) { _, m in
+                                    MessageBubble(role: m.role, text: m.text)
+                                }
                             }
                             if isLoading {
                                 HStack {
@@ -36,6 +41,7 @@ struct CoachView: View {
                         }
                         .padding()
                     }
+                    .scrollDismissesKeyboard(.interactively)
                     .onChange(of: messages.count) { _, _ in
                         if let last = messages.indices.last {
                             proxy.scrollTo(last, anchor: .bottom)
@@ -52,13 +58,21 @@ struct CoachView: View {
                 }
                 .padding()
             }
+            .fnBackground()
             .navigationTitle("Coach")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     NavigationLink("Support") {
                         CoachEscalateView()
                     }
                 }
+            }
+        }
+        .task {
+            if !hasLoadedHistory {
+                hasLoadedHistory = true
+                await fetchHistory()
             }
         }
     }
@@ -83,6 +97,37 @@ struct CoachView: View {
             await MainActor.run { isLoading = false }
         }
     }
+    
+    private func fetchHistory() async {
+        do {
+            let response = try await api.aiHistory()
+            if let hist = response.history, !hist.isEmpty {
+                await MainActor.run {
+                    self.messages = hist.map { (role: $0.role, text: $0.content) }
+                }
+            }
+        } catch {
+            print("Failed to fetch history: \(error)")
+        }
+    }
+    
+    private var emptyStateCard: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.largeTitle)
+                .foregroundColor(.accentColor)
+            Text("How can I help you today?")
+                .font(.headline)
+            Text("I can adapt your daily plan, analyze a meal via text, explain your muscle recovery, or guide you through a workout. Just ask!")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+        .padding(.horizontal, 20)
+        .glassCard()
+    }
 }
 
 struct MessageBubble: View {
@@ -94,9 +139,18 @@ struct MessageBubble: View {
             if role == "user" { Spacer(minLength: 60) }
             Text(text)
                 .padding(12)
-                .background(role == "user" ? Color.accentColor : Color(.systemGray5))
-                .foregroundColor(role == "user" ? .white : .primary)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .background(role == "user" ? Brand.Color.accent : Brand.Color.surface)
+                .background {
+                    if role == "assistant" {
+                        Color.clear.background(.ultraThinMaterial)
+                    }
+                }
+                .foregroundColor(role == "user" ? .black : .primary)
+                .cornerRadius(16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(role == "user" ? Brand.Color.accent : Brand.Color.border, lineWidth: 1)
+                )
             if role == "assistant" { Spacer(minLength: 60) }
         }
     }

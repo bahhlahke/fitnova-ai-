@@ -25,6 +25,11 @@ struct KodaAPIService {
         }()
         return try await post("api/v1/ai/respond", body: body)
     }
+    
+    /// GET /api/v1/ai/history — AI chat history.
+    func aiHistory() async throws -> HistoryResponse {
+        return try await get("api/v1/ai/history")
+    }
 
     /// POST /api/v1/plan/daily — Generate and save daily plan.
     func planDaily(todayConstraints: DailyConstraints? = nil) async throws -> DailyPlanResponse {
@@ -108,6 +113,15 @@ struct APIErrorBody: Decodable {
 
 struct AIReplyResponse: Decodable {
     let reply: String
+}
+
+struct HistoryResponse: Decodable {
+    let history: [HistoryMessage]?
+}
+
+struct HistoryMessage: Decodable {
+    let role: String
+    let content: String
 }
 
 struct DailyPlanResponse: Decodable {

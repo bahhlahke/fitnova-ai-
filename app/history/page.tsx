@@ -43,6 +43,8 @@ export default function HistoryPage() {
   const [nutrition, setNutrition] = useState<NutritionRow[]>([]);
   const [workoutTypeFilter, setWorkoutTypeFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
   const [expandedNutritionDate, setExpandedNutritionDate] = useState<string | null>(null);
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
@@ -60,6 +62,13 @@ export default function HistoryPage() {
         setLoading(false);
         return;
       }
+
+      setAiSummaryLoading(true);
+      fetch("/api/v1/ai/history-summary", { method: "POST" })
+        .then(r => r.json())
+        .then(body => { if (body.summary) setAiSummary(body.summary); })
+        .finally(() => setAiSummaryLoading(false));
+
       Promise.all([
         supabase
           .from("workout_logs")
@@ -143,6 +152,25 @@ export default function HistoryPage() {
       backHref={tab === "nutrition" ? "/log/nutrition" : "/log/workout"}
       backLabel={tab === "nutrition" ? "Nutrition" : "Workout"}
     >
+      {/* AI Performance Evolutionary Summary */}
+      <Card className="mb-8 border-fn-accent/20 bg-fn-accent/5 overflow-hidden">
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <div className="h-2 w-2 rounded-full bg-fn-accent animate-pulse" />
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Evolutionary Performance Synthesis</span>
+        </div>
+        {aiSummaryLoading ? (
+          <div className="space-y-3 animate-pulse">
+            <div className="h-3 w-full rounded bg-white/5" />
+            <div className="h-3 w-4/5 rounded bg-white/5" />
+            <div className="h-3 w-5/6 rounded bg-white/5" />
+          </div>
+        ) : (
+          <p className="text-sm font-medium italic text-white/80 leading-relaxed border-l border-fn-accent/30 pl-4 py-1">
+            "{aiSummary ?? "Synthesizing longitudinal data strands... Complete at least 5 sessions to establish a stable evolutionary baseline."}"
+          </p>
+        )}
+      </Card>
+
       <div className="mb-8 inline-flex rounded-xl border border-white/[0.08] bg-black/40 p-1 backdrop-blur-md">
         <button
           type="button"

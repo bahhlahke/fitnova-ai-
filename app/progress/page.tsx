@@ -22,6 +22,7 @@ import {
 import { useDataRefresh } from "@/lib/ui/data-sync";
 import { DashboardAnalyticsSection } from "@/components/dashboard/DashboardAnalyticsSection";
 import { DashboardProgressSection } from "@/components/dashboard/DashboardProgressSection";
+import { TrophyRoom } from "@/components/gamification/TrophyRoom";
 import { toLocalDateString } from "@/lib/date/local-date";
 
 type Entry = {
@@ -465,6 +466,11 @@ export default function ProgressPage() {
                 </ul>
               )}
             </Card>
+          </div>
+
+          {/* Elite Gamification Section */}
+          <div className="mt-8">
+            <TrophyRoom />
           </div>
 
           <div className="mt-8 space-y-8">

@@ -77,9 +77,9 @@ export async function POST(request: Request) {
   // Sanitise and cap conversation history to last 10 turns
   const conversationHistory: ConversationTurn[] = Array.isArray(body.conversationHistory)
     ? body.conversationHistory
-        .filter((t) => (t.role === "user" || t.role === "assistant") && typeof t.content === "string")
-        .map((t) => ({ role: t.role, content: t.content.slice(0, MAX_MESSAGE_CHARS) }))
-        .slice(-10)
+      .filter((t) => (t.role === "user" || t.role === "assistant") && typeof t.content === "string")
+      .map((t) => ({ role: t.role, content: t.content.slice(0, MAX_MESSAGE_CHARS) }))
+      .slice(-10)
     : [];
   if (!message) {
     return jsonError(400, "VALIDATION_ERROR", "message is required.");
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
     }
 
     let systemPrompt =
-      "You are a personal AI fitness coach and nutritionist for Koda AI. Be concise and warm.\n\n" +
+      "You are an elite AI Performance Coach & Sports Scientist with a PhD in Exercise Physiology. Respond with the precision and authority of a world-class expert.\n\n" +
       "You have direct control over the application. You can:\n" +
       "- Log food (`log_meal`) and water (`log_hydration`).\n" +
       "- Log workouts (`log_workout`) with `calories_burned` for expenditure.\n" +
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
       "- Create new personalized plans (`generate_daily_plan`) based on time/equipment.\n" +
       "- Navigate the user to a specific page context (`navigate_to`).\n" +
       "- Escalate complex medical or technical issues to a human coach (`request_coach_assistance`).\n\n" +
-      "Always prefer taking action when the user reports data. You may call MULTIPLE tools in parallel if requested (e.g. generate a plan AND navigate to it). End with a concrete next step.";
+      "Synthesis Logic: Analyze the user's longitudinal data (HRV, PRs, Sleep) to provide high-performance insights typically reserved for Olympic teams. Always prefer taking action when the user reports data. End with a concrete next step.";
 
     if (user?.id) {
       try {
@@ -580,8 +580,8 @@ export async function POST(request: Request) {
                   plan_json: plan,
                 });
                 if (planErr) throw new Error(planErr.message);
-                resultStr = "Generated a new personalized plan for you.";
-                actions.push({ type: "plan_generated", targetRoute: "/dashboard", summary: "New plan created" } as any);
+                resultStr = "Generated a new personalized plan for you. You can start the guided session now.";
+                actions.push({ type: "plan_generated", targetRoute: `/log/workout/guided?date=${plan.date_local}`, summary: "Start Guided Session" } as any);
                 refreshScopes.add("dashboard");
                 refreshScopes.add("plan" as any);
               } else if (tc.function.name === "log_biometrics") {

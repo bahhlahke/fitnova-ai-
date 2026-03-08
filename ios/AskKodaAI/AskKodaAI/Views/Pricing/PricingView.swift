@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct PricingView: View {
     @EnvironmentObject var auth: SupabaseService

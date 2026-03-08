@@ -66,6 +66,14 @@ struct BodyProgressView: View {
                         Section {
                             NavigationLink("Body comp scan") { BodyCompScanView() }
                         }
+                        
+                        // Gamification Section
+                        TrophyRoomView()
+                            .padding(.vertical, 8)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+
                         Section("History") {
                             ForEach(entries, id: \.track_id) { e in
                                 progressRow(e)

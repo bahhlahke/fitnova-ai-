@@ -6,16 +6,12 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 
 - **Adaptive Home** — Signed-out users see a premium conversion funnel; signed-in users see a coaching cockpit.
 - **Assessment Funnel** — `/start` quiz-first flow saves a draft before auth and resumes onboarding.
-- **AI Coach** — Chat with an AI coach; context includes profile, recent workouts, nutrition, and conversation history. Supports multi-intent requests and site navigation.
-- **Daily Plan Engine** — Generate a personalized day plan (training + calories/macros + safety notes).
-- **AI Workout Adaptation** — On-the-fly workout modifications (`/api/v1/plan/adapt-day` and `adapt-session`) based on user constraints (equipment, injuries, etc.).
-- **Spotify Integration** — In-app music control with audio ducking for AI coach prompts.
-- **Log** — Workout (guided step-by-step or quick log) and nutrition (meals + calories per day); data persisted in Supabase.
-- **Progress & Vitals** — Weight, body fat %, measurements, and real-time health metrics.
-- **Muscle Stress Analysis** — Sophisticated UI for tracking and visualizing muscle stress and recovery.
-- **Settings** — Profile edit (name, age, sex, height, weight, goals, activity level, injuries, dietary preferences).
-- **Onboarding** — Multi-step wizard; saves to `user_profile` and `onboarding` when signed in.
-- **Auth** — Magic link (Supabase); redirect after sign-in is validated to prevent open redirects.
+- **AI Coach (PhD Level)** — An elite performance scientist with a PhD in Exercise Physiology. Context includes biometrics (HRV, sleep), historic PRs, workout logs, and nutrition. Supports multi-intent requests and site navigation.
+- **Daily Plan Engine** — Generate a personalized day plan (training + calories/macros + safety notes) informed by recovery signals.
+- **Evolutionary Performance Synthesis** — Longitudinal analysis of training, biometrics, and nutrition trends injected into History and Progress surfaces.
+- **Elite Protocols & Trophy Room** — Native achievement system with "Neural Rationale" justifying honors based on specific user data strands.
+- **Community Hub & Synapse Pulses** — Real-time social engagement and elite squad cohort tracking.
+- **AI Workout Adaptation** — On-the-fly workout modifications (`/api/v1/plan/adapt-day` and `adapt-session`) based on user constraints.
 
 ## Stack
 

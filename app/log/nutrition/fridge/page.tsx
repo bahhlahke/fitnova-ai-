@@ -149,7 +149,10 @@ export default function FridgeScannerPage() {
                             mediaType === "video" ? (
                                 <video src={mediaData} controls className="h-full w-full object-cover opacity-80" />
                             ) : (
-                                <img src={mediaData} className="h-full w-full object-cover opacity-80" alt="Scanned" />
+                                <>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={mediaData} className="h-full w-full object-cover opacity-80" alt="Scanned" />
+                                </>
                             )
                         ) : (
                             <div className="flex flex-col items-center p-8 text-center text-fn-muted">

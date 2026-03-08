@@ -40,3 +40,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# logs
+*.log
+test-output-ios.log
+test-results-final.log
+
+# iOS build
+/ios/AskKodaAI/build/

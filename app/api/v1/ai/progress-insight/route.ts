@@ -49,7 +49,9 @@ export async function POST(req: Request) {
     }
 
     const today = localDate;
-    const [progressRes, workoutsRes, nutritionRes, checkInsRes, profileRes] = await Promise.all([
+    const sevenDaysAgo = new Date(new Date(`${today}T12:00:00`).getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+    const [progressRes, workoutsRes, nutritionRes, checkInsRes, profileRes, signalsRes, prsRes] = await Promise.all([
       supabase
         .from("progress_tracking")
         .select("date, weight, body_fat_percent, measurements, notes")
@@ -73,15 +75,29 @@ export async function POST(req: Request) {
         .select("date_local, energy_score, sleep_hours, soreness_notes")
         .eq("user_id", user.id)
         .order("date_local", { ascending: false })
+        .limit(7),
+      supabase.from("user_profile").select("goals, activity_level").eq("user_id", user.id).maybeSingle(),
+      supabase
+        .from("connected_signals")
+        .select("signal_date, hrv, resting_hr, recovery_score, sleep_hours, sleep_deep_hours")
+        .eq("user_id", user.id)
+        .gte("signal_date", sevenDaysAgo)
+        .order("signal_date", { ascending: false })
+        .limit(7),
+      supabase
+        .from("exercise_prs")
+        .select("exercise_name, highest_1rm")
+        .eq("user_id", user.id)
         .limit(5),
-      supabase.from("user_profile").select("goals").eq("user_id", user.id).maybeSingle(),
     ]);
 
-    const progress = (progressRes.data ?? []) as Array<{ date: string; weight?: number; body_fat_percent?: number; notes?: string }>;
-    const workouts = (workoutsRes.data ?? []) as Array<{ date: string; workout_type?: string; duration_minutes?: number }>;
-    const nutrition = (nutritionRes.data ?? []) as Array<{ date: string; total_calories?: number }>;
-    const checkIns = (checkInsRes.data ?? []) as Array<{ date_local: string; energy_score?: number; sleep_hours?: number; soreness_notes?: string }>;
-    const goals = (profileRes.data as { goals?: string[] } | null)?.goals ?? [];
+    const progress = (progressRes.data ?? []) as any[];
+    const workouts = (workoutsRes.data ?? []) as any[];
+    const nutrition = (nutritionRes.data ?? []) as any[];
+    const checkIns = (checkInsRes.data ?? []) as any[];
+    const profile = profileRes.data;
+    const signals = (signalsRes.data ?? []) as any[];
+    const prs = (prsRes.data ?? []) as any[];
 
     const weights = progress.filter((p) => p.weight != null).map((p) => ({ date: p.date, weight: p.weight! }));
     const latestWeight = weights[0]?.weight;
@@ -95,38 +111,43 @@ export async function POST(req: Request) {
             : "stable"
         : null;
 
-    const systemPrompt = `You are an elite sports scientist and nutritionist. Given the user's progress and recent activity data below, write exactly 2-3 short sentences that interpret their progress in light of their goals.
+    const systemPrompt = `You are an elite AI Performance Coach & Sports Scientist with a PhD in Exercise Physiology. Your goal is to synthesize the user's longitudinal biometrics, training volume, and nutrition into a concise, high-level performance insight.
     
 Exercise Science Context:
-- Analyze their weight trend alongside training consistency and nutrition.
-- Use concepts like progressive overload, body recomposition, stimulus-to-fatigue ratio, and nutrient partitioning.
+- Analyze correlations between signals (e.g., HRV, Sleep) and actual performance (PRs, Workout Duration).
+- Detect metabolic trends: How does calorie intake align with weight progress and training intensity?
+- Recovery Debt: If HRV is low and soreness is high, recommend specific recovery modalities.
 
 Instructions:
-- Translate these complex concepts into simple, empowering, and actionable feedback.
-- Be specific to their actual data (e.g., "Maintaining weight while logging consistent strength volume suggests positive body recomposition").
-- Output ONLY the 2-3 sentence narrative. No greetings or bullet points.`;
+- Provide exactly 2-3 sentences of world-class synthesis.
+- Be authoritative, data-driven, and encouraging.
+- Do NOT use generic advice. Reference specific trends (e.g., "Your positive weight trend correlates perfectly with your consistent 8h sleep cycle").
+- Output ONLY the 2-3 sentence narrative. No greetings or formatting.`;
 
     const dataBlock = [
-      "User goals: " + (goals.length ? goals.join(", ") : "not specified"),
-      "Progress (recent): " + progress.map((p) => `${p.date} weight=${p.weight ?? "—"} ${p.body_fat_percent != null ? `bf=${p.body_fat_percent}%` : ""}`).join("; "),
-      "Weight trend (latest vs previous): " + (trend ?? "insufficient data"),
-      "Recent workouts: " + workouts.map((w) => `${w.date} ${w.workout_type ?? ""} ${w.duration_minutes ?? ""}min`).join("; "),
-      "Recent nutrition (calories): " + nutrition.map((n) => `${n.date} ${n.total_calories ?? "?"} cal`).join("; "),
-      checkIns.length ? "Recent check-ins: " + checkIns.map((c) => `${c.date_local} energy=${c.energy_score ?? "?"} sleep=${c.sleep_hours ?? "?"}h`).join("; ") : "",
+      "Goals: " + (profile?.goals?.length ? profile.goals.join(", ") : "Growth"),
+      "Weight: " + weights.map((w) => `${w.date}:${w.weight}kg`).join("; "),
+      "Trend: " + (trend ?? "stable"),
+      "Workouts (14d): " + workouts.map((w) => `${w.date}:${w.workout_type}`).join("; "),
+      "PR Baselines: " + prs.map((p) => `${p.exercise_name}:1RM ${Math.round(p.highest_1rm)}kg`).join(", "),
+      "Daily Check-ins: " + checkIns.map((c) => `${c.date_local}: energy ${c.energy_score}/5, sleep ${c.sleep_hours}h`).join("; "),
+      "Vitals (Wearable): " + signals.map((s) => `${s.signal_date}: hrv ${s.hrv}ms, recovery ${s.recovery_score}%`).join("; "),
+      "Nutrition: " + nutrition.map((n) => `${n.date}:${n.total_calories}cal`).join("; "),
     ]
       .filter(Boolean)
       .join("\n");
 
     const payload = {
-      model: "openai/gpt-4o-mini",
+      model: "openai/gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `Data:\n${dataBlock}\n\nWrite the 2-3 sentence progress narrative now:` },
+        { role: "user", content: `Data:\n${dataBlock}\n\nWrite the performance synthesis now:` },
       ],
-      max_tokens: 256,
+      max_tokens: 300,
+      temperature: 0.7,
     };
 
-    const timeout = withTimeout(12_000);
+    const timeout = withTimeout(15_000);
     const res = await fetch(OPENROUTER_URL, {
       method: "POST",
       headers: {

@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import Supabase
+import Realtime
 
 struct CommunityView: View {
     @EnvironmentObject var auth: SupabaseService
@@ -14,6 +16,11 @@ struct CommunityView: View {
     @State private var challenges: [ChallengeItem] = []
     @State private var loading = false
     @State private var errorMessage: String?
+    
+    // Synapse Pulse State
+    @State private var recentPulses: [String] = []
+    @State private var showingPulseAnimation = false
+    @State private var pulseMessage = ""
 
     private var api: KodaAPIService {
         KodaAPIService(getAccessToken: { await auth.accessToken })
@@ -32,7 +39,21 @@ struct CommunityView: View {
                 }
                 Section("Friends") {
                     ForEach(Array(acceptedConnections.enumerated()), id: \.offset) { _, row in
-                        Text(otherDisplayName(row) ?? "")
+                        HStack {
+                            Text(otherDisplayName(row) ?? "")
+                            Spacer()
+                            Button(action: {
+                                if let id = otherUserId(row) {
+                                    Task { await sendPulse(to: id, name: otherDisplayName(row) ?? "Friend") }
+                                }
+                            }) {
+                                Image(systemName: "bolt.fill")
+                                    .foregroundStyle(Color.accentColor)
+                                    .padding(8)
+                                    .background(Color.accentColor.opacity(0.2))
+                                    .clipShape(Circle())
+                            }
+                        }
                     }
                 }
                 Section("Pending requests") {
@@ -64,7 +85,30 @@ struct CommunityView: View {
             }
             .navigationTitle("Community")
             .refreshable { await load() }
-            .task { await load() }
+            .task { 
+                await load() 
+                await setupPulseSubscription()
+            }
+            .overlay {
+                if showingPulseAnimation {
+                    VStack {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 60))
+                            .foregroundStyle(Color.accentColor)
+                            .shadow(color: .accentColor, radius: 20)
+                        Text(pulseMessage)
+                            .font(.headline)
+                            .fontWeight(.black)
+                            .foregroundStyle(.white)
+                            .padding(.top, 8)
+                    }
+                    .padding(30)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                    .transition(.scale.combined(with: .opacity))
+                    .zIndex(100)
+                }
+            }
         }
     }
 
@@ -101,5 +145,55 @@ struct CommunityView: View {
         } catch {
             await MainActor.run { errorMessage = error.localizedDescription }
         }
+    }
+    
+    private func setupPulseSubscription() async {
+        guard let myId = auth.currentUserId else { return }
+        
+        let channel = auth.supabaseClient.channel("synapse_pulses_\(myId)")
+        await channel.subscribe()
+        
+        Task {
+            for await message in channel.broadcastStream(event: "pulse") {
+                guard let senderName = message["sender_name"]?.stringValue else { continue }
+                
+                await MainActor.run {
+                    self.pulseMessage = "\(senderName) sent a Synapse Pulse!"
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                        self.showingPulseAnimation = true
+                    }
+                    
+                    // Haptic feedback
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
+                
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                
+                await MainActor.run {
+                    withAnimation {
+                        self.showingPulseAnimation = false
+                    }
+                }
+            }
+        }
+    }
+    
+    private func sendPulse(to userId: String, name: String) async {
+        guard let myId = auth.currentUserId else { return }
+        
+        // Prepare the broadcast payload
+        let payload: AnyJSON = .object([
+            "sender_id": .string(myId),
+            "sender_name": .string("A Friend"),
+            "type": .string("pulse")
+        ])
+        
+        // This broadcasts the pulse directly to the recipient's channel
+        let channel = auth.supabaseClient.channel("synapse_pulses_\(userId)")
+        await channel.subscribe()
+        try? await channel.broadcast(event: "pulse", message: payload)
+        
+        // Optional haptic locally
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
     }
 }

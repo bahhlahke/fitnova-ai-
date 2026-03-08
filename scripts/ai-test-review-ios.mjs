@@ -40,7 +40,6 @@ function run(cmd, args, opts = {}) {
   return new Promise((resolve) => {
     const child = spawn(cmd, args, {
       cwd: opts.cwd || ROOT,
-      shell: true,
       stdio: ["ignore", "pipe", "pipe"],
       ...opts,
     });
@@ -112,7 +111,7 @@ async function runXcodebuildTest(projectPath) {
     "test",
     "-project", projectPath,
     "-scheme", schemeName,
-    "-destination", "platform=iOS Simulator,name=iPhone 16",
+    "-destination", "platform=iOS Simulator,name=iPhone 17",
     "-resultBundlePath", path.join(projectDir, "build", "TestResults.xcresult"),
   ];
   const { code, stdout, stderr } = await run("xcodebuild", args, { cwd: projectDir });

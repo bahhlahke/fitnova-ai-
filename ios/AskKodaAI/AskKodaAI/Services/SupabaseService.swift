@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 import Combine
 import Supabase
 
@@ -67,6 +68,25 @@ final class SupabaseService: ObservableObject {
             )
         )
         await refreshSession()
+    }
+    
+    /// Get the URL to open for Google OAuth sign-in.
+    func getGoogleSignInURL() async throws -> URL {
+        let redirect = AppConfig.authRedirectURL ?? AppConfig.apiBaseURL
+        return try client.auth.getOAuthSignInURL(
+            provider: .google,
+            redirectTo: redirect
+        )
+    }
+
+    /// DEV only bypass: signs in with a mock session for local testing.
+    func signInWithBypass() async {
+        let baseUrl = AppConfig.apiBaseURL.absoluteString.replacingOccurrences(of: "localhost", with: "127.0.0.1")
+        let redirect = AppConfig.authRedirectURL?.absoluteString ?? "kodaai://auth/callback"
+        guard let url = URL(string: "\(baseUrl)/api/v1/auth/mock-login?next=\(redirect)") else { return }
+        await MainActor.run {
+            UIApplication.shared.open(url)
+        }
     }
 
     func signOut() async throws {

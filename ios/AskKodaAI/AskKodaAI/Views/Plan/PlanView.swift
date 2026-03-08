@@ -15,6 +15,11 @@ struct PlanView: View {
     @State private var errorMessage: String?
     @State private var weeklyInsight: String?
     @State private var insightLoading = false
+    
+    // Adapt Day state
+    @State private var isAdapting = false
+    @State private var adaptInput = ""
+    @State private var adaptLoading = false
 
     private var api: KodaAPIService {
         KodaAPIService(getAccessToken: { await auth.accessToken })
@@ -39,6 +44,7 @@ struct PlanView: View {
                                 weekDaysRow(days: days)
                                 if let day = selectedDay ?? days.first(where: { $0.date_local == DateHelpers.todayLocal }) ?? days.first {
                                     dayDetailCard(day)
+                                    adaptDaySection
                                 }
                             } else {
                                 emptyPlanView
@@ -49,9 +55,13 @@ struct PlanView: View {
                     }
                 }
             }
+            .fnBackground()
             .navigationTitle("Plan")
             .refreshable { await loadPlan() }
             .task { await loadPlan() }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppEnteredForeground"))) { _ in
+                Task { await loadPlan() }
+            }
         }
     }
 
@@ -72,8 +82,12 @@ struct PlanView: View {
                         }
                         .frame(width: 56)
                         .padding(.vertical, 8)
-                        .background(selectedDay?.date_local == d.date_local || isToday ? Color.accentColor.opacity(0.2) : Color(.systemGray6))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .background(selectedDay?.date_local == d.date_local || isToday ? Brand.Color.accent.opacity(0.15) : Brand.Color.surface)
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(selectedDay?.date_local == d.date_local || isToday ? Brand.Color.accent.opacity(0.5) : Brand.Color.border, lineWidth: 1)
+                        )
                     }
                     .buttonStyle(.plain)
                 }
@@ -120,8 +134,37 @@ struct PlanView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .glassCard()
+    }
+    
+    @ViewBuilder
+    private var adaptDaySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button("Adapt this day") {
+                withAnimation { isAdapting.toggle() }
+            }
+            .font(.subheadline)
+            .buttonStyle(.bordered)
+            
+            if isAdapting {
+                HStack {
+                    TextField("E.g., I only have 20 mins...", text: $adaptInput)
+                        .textFieldStyle(.roundedBorder)
+                        .disabled(adaptLoading)
+                    
+                    Button("Adapt") {
+                        Task { await adaptDay() }
+                    }
+                    .disabled(adaptInput.isEmpty || adaptLoading)
+                }
+                
+                if adaptLoading {
+                    ProgressView("Adapting...")
+                        .font(.caption)
+                }
+            }
+        }
+        .padding(.top, 8)
     }
 
     private var emptyPlanView: some View {
@@ -193,5 +236,36 @@ struct PlanView: View {
             let res = try await api.aiWeeklyInsight()
             await MainActor.run { weeklyInsight = res.insight }
         } catch { }
+    }
+    
+    private func adaptDay() async {
+        guard !adaptInput.isEmpty else { return }
+        adaptLoading = true
+        errorMessage = nil
+        defer { adaptLoading = false }
+        
+        do {
+            // Simplified call leveraging existing adaptDay endpoint footprint
+            let res = try await api.planAdaptDay(minutesAvailable: nil, location: adaptInput, soreness: nil, intensity: nil, equipmentContext: nil)
+            
+            await MainActor.run {
+                if let updatedPlan = res.plan {
+                    let mappedExercises = updatedPlan.training_plan?.exercises?.map { ex in
+                        WeeklyPlanExercise(name: ex.name, equipment: nil, sets: ex.sets, reps: ex.reps, coaching_cue: ex.notes)
+                    }
+                    
+                    let updatedDay = WeeklyPlanDay(date_local: updatedPlan.date_local, day_label: selectedDay?.day_label, focus: selectedDay?.focus, intensity: selectedDay?.intensity, target_duration_minutes: updatedPlan.training_plan?.exercises != nil ? 45 : 0, rationale: selectedDay?.rationale, equipment_context: selectedDay?.equipment_context, exercises: mappedExercises)
+                    
+                    if let index = weeklyPlan?.days?.firstIndex(where: { $0.date_local == selectedDay?.date_local }) {
+                        weeklyPlan?.days?[index] = updatedDay
+                        selectedDay = updatedDay
+                        adaptInput = ""
+                        isAdapting = false
+                    }
+                }
+            }
+        } catch {
+            await MainActor.run { errorMessage = error.localizedDescription }
+        }
     }
 }

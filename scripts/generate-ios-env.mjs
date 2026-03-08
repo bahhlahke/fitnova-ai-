@@ -58,6 +58,7 @@ function main() {
 INFOPLIST_KEY_SUPABASE_URL = ${escapeXcconfigValue(supabaseUrl)}
 INFOPLIST_KEY_SUPABASE_ANON_KEY = ${escapeXcconfigValue(supabaseAnonKey)}
 INFOPLIST_KEY_API_BASE_URL = ${escapeXcconfigValue(apiBaseUrl)}
+INFOPLIST_KEY_AUTH_REDIRECT_URL = ${escapeXcconfigValue(env.AUTH_REDIRECT_URL || "kodaai://auth/callback")}
 `;
 
   const outDir = join(repoRoot, "ios", "AskKodaAI", "Config");

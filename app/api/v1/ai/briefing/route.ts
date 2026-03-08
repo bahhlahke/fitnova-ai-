@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         let prompt;
         if (!plan && workout) {
             prompt = `
-      You are an elite AI Performance Coach. Provide a concise, 2-3 sentence "Daily Briefing" for the user.
+      You are an elite AI Performance Coach. Provide a concise "Daily Briefing" for the user.
       The user executed a workout today but did not generate a prescribed protocol.
       
       User Data:
@@ -48,13 +48,17 @@ export async function POST(request: Request) {
       - Sleep: ${checkIn?.sleep_hours ?? 'Not provided'}h
       
       Requirements:
-      - Tone: Professional, authoritative, elite, encouraging.
-      - Length: Max 250 characters.
-      - Focus: Acknowledge their initiative and provide a sharp recovery or nutrition tip (e.g., protein synthesis, hydration).
+      - Return ONLY raw JSON without markdown formatting.
+      - Structure:
+        {
+          "briefing": "Short 1-2 sentence encouraging message",
+          "rationale": "Why you are saying this",
+          "inputs": ["Array of", "Specific data", "Points used (e.g. 'Sleep: 4h')"]
+        }
     `;
         } else {
             prompt = `
-      You are an elite AI Performance Coach. Provide a concise, 2-3 sentence "Daily Briefing" for the user.
+      You are an elite AI Performance Coach. Provide a concise JSON "Daily Briefing" for the user.
       Focus on the RATIONALE behind today's plan based on their readiness.
       
       User Data:
@@ -65,19 +69,38 @@ export async function POST(request: Request) {
       - Soreness: ${checkIn?.soreness_notes ?? 'None'}
       
       Requirements:
-      - Tone: Professional, authoritative, elite, encouraging.
-      - Length: Max 250 characters.
-      - Focus: Why these targets were chosen (e.g., "Adjusting for low sleep to protect recovery" or "Pushing intensity due to high energy baseline").
+      - Return ONLY raw JSON without markdown formatting.
+      - Structure:
+        {
+          "briefing": "Short 1-2 sentence elite directive",
+          "rationale": "Medical/physiological reasoning for today's protocol",
+          "inputs": ["Array of", "Specific data", "Points used (e.g. 'Soreness: High')"]
+        }
     `;
         }
 
-        const { content: briefing } = await callModel({
+        const { content: rawContent } = await callModel({
             messages: [{ role: "user", content: prompt }],
-            maxTokens: 150,
+            maxTokens: 300,
             temperature: 0.7,
         });
 
-        return NextResponse.json({ briefing: briefing.trim().replace(/^"|"$/g, '') });
+        // Attempt to parse JSON
+        let briefingData = {
+            briefing: rawContent.trim().replace(/^"|"$/g, ''),
+            rationale: "Standard protocol initialized.",
+            inputs: ["Baseline"]
+        };
+
+        try {
+            const jsonStr = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
+            briefingData = JSON.parse(jsonStr);
+        } catch (e) {
+            // fallback to raw text if parse fails
+            briefingData.briefing = rawContent.substring(0, 150) + "...";
+        }
+
+        return NextResponse.json(briefingData);
     } catch (error) {
         console.error("briefing_unhandled", {
             requestId,

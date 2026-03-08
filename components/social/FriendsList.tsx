@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LoadingState, Button } from "@/components/ui";
+import { createClient } from "@/lib/supabase/client";
 
 export function FriendsList() {
     const [connections, setConnections] = useState<any[]>([]);
@@ -26,6 +27,32 @@ export function FriendsList() {
             body: JSON.stringify({ friendId, action })
         });
         if (res.ok) fetchFriends();
+    };
+
+    const sendPulse = async (friendId: string) => {
+        const supabase = createClient();
+        if (!supabase) return;
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user || (!user.email && !user.user_metadata?.name)) return;
+
+        const senderName = user.user_metadata?.name || user.email?.split("@")[0] || "Someone";
+
+        const channel = supabase.channel(`synapse_pulses_${friendId}`);
+        await channel.subscribe();
+
+        await channel.send({
+            type: "broadcast",
+            event: "pulse",
+            payload: {
+                sender_id: user.id,
+                sender_name: senderName,
+                type: "pulse"
+            }
+        });
+
+        // Optional local visual feedback over the button would go here
+        channel.unsubscribe();
     };
 
     if (loading) return <LoadingState />;
@@ -74,6 +101,22 @@ export function FriendsList() {
                                 <div className="flex gap-2">
                                     <Button
                                         size="sm"
+                                        variant="ghost"
+                                        className="text-[10px] font-black uppercase tracking-tighter text-fn-accent bg-fn-accent/10 hover:bg-fn-accent/20"
+                                        onClick={() => {
+                                            const btn = document.activeElement as HTMLElement;
+                                            if (btn) {
+                                                btn.style.transform = "scale(0.9)";
+                                                setTimeout(() => btn.style.transform = "scale(1)", 150);
+                                            }
+                                            sendPulse(friend?.user_id);
+                                        }}
+                                        icon={<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" className="h-4 w-4"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>}
+                                    >
+                                        Pulse
+                                    </Button>
+                                    <Button
+                                        size="sm"
                                         variant="secondary"
                                         className="text-[10px] font-black uppercase tracking-tighter"
                                         onClick={async () => {
@@ -86,7 +129,7 @@ export function FriendsList() {
                                     >
                                         Set Partner
                                     </Button>
-                                    <Button size="sm" variant="ghost" className="text-fn-danger hover:bg-fn-danger-light" onClick={() => handleAction(friend?.user_id, "remove")}>Remove</Button>
+                                    <Button size="sm" variant="ghost" className="text-[10px] font-black uppercase tracking-tighter text-fn-danger hover:bg-fn-danger-light" onClick={() => handleAction(friend?.user_id, "remove")}>Remove</Button>
                                 </div>
                             </div>
                         );

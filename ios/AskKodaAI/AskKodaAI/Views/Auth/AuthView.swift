@@ -4,6 +4,8 @@
 //
 
 import SwiftUI
+import UIKit
+import AuthenticationServices
 
 struct AuthView: View {
     @EnvironmentObject var auth: SupabaseService
@@ -52,10 +54,95 @@ struct AuthView: View {
                     .disabled(isLoading || email.isEmpty)
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+                    
+                    Divider()
+                        .overlay(Brand.Color.border)
+                    
+                    Button(action: signInWithGoogle) {
+                        HStack {
+                            Image(systemName: "globe")
+                            Text("Continue with Google")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Brand.Color.surface)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Brand.Color.border, lineWidth: 1)
+                        )
+                    }
+                    .foregroundColor(.primary)
+                    
+                    SignInWithAppleButton(.continue) { request in
+                        request.requestedScopes = [.email, .fullName]
+                    } onCompletion: { result in
+                        handleAppleResult(result)
+                    }
+                    .signInWithAppleButtonStyle(.black)
+                    .frame(height: 50)
+                    .cornerRadius(12)
+                    
+                    #if DEBUG
+                    Button(action: { Task { await auth.signInWithBypass() } }) {
+                        Text("[DEV] Bypass Login")
+                            .font(.caption)
+                            .foregroundStyle(Brand.Color.accent)
+                    }
+                    .padding(.top, 8)
+                    #endif
                 }
                 .padding(32)
             }
+            .background {
+                ZStack {
+                    Brand.Color.background.ignoresSafeArea()
+                    if let url = Bundle.main.url(forResource: "push-ups", withExtension: "mp4") {
+                        LoopingVideoPlayerView(videoURL: url)
+                            .ignoresSafeArea()
+                            .opacity(0.4)
+                            .saturation(0.0)
+                            .contrast(1.25)
+                    }
+                    LinearGradient(colors: [Color.black, Color.black.opacity(0.9), Color.clear], startPoint: .leading, endPoint: .trailing)
+                        .ignoresSafeArea()
+                    LinearGradient(colors: [Color.black, Color.clear, Color.black.opacity(0.3)], startPoint: .bottom, endPoint: .top)
+                        .ignoresSafeArea()
+                }
+            }
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private func signInWithGoogle() {
+        Task {
+            do {
+                let url = try await auth.getGoogleSignInURL()
+                await MainActor.run {
+                    UIApplication.shared.open(url)
+                }
+            } catch {
+                message = error.localizedDescription
+            }
+        }
+    }
+
+    private func handleAppleResult(_ result: Result<ASAuthorization, Error>) {
+        switch result {
+        case .success(let authResult):
+            if let appleIDCredential = authResult.credential as? ASAuthorizationAppleIDCredential,
+               let tokenData = appleIDCredential.identityToken,
+               let token = String(data: tokenData, encoding: .utf8) {
+                Task {
+                    do {
+                        try await auth.signInWithApple(idToken: token, nonce: "")
+                    } catch {
+                        message = error.localizedDescription
+                    }
+                }
+            }
+        case .failure(let error):
+            message = error.localizedDescription
         }
     }
 

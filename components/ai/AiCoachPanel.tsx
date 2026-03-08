@@ -54,10 +54,31 @@ export function AiCoachPanel({
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [showTooltip, setShowTooltip] = useState(true);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   const hide =
     HIDDEN_ROUTES.some((route) => pathname.startsWith(route)) ||
     (!user && pathname === "/");
+
+  useEffect(() => {
+    if (!user || hide || historyLoaded) return;
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch("/api/v1/ai/history");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.history && Array.isArray(data.history) && data.history.length > 0) {
+            setMessages(data.history);
+          }
+        }
+      } catch (e) {
+        // Ignore fetch errors
+      } finally {
+        setHistoryLoaded(true);
+      }
+    };
+    void fetchHistory();
+  }, [user, hide, historyLoaded]);
 
   useEffect(() => {
     if (mode !== "embedded") return;

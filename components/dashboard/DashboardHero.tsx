@@ -4,9 +4,11 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { LevelDisplay } from "./LevelDisplay";
 
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { emitDataRefresh } from "@/lib/ui/data-sync";
+
 export interface DashboardHeroProps {
-  briefing: string | null;
-  briefingLoading: boolean;
   isPro: boolean;
 }
 
@@ -20,11 +22,38 @@ function getGreeting() {
 }
 
 export function DashboardHero({
-  briefing,
-  briefingLoading,
   isPro,
 }: DashboardHeroProps) {
   const greeting = useMemo(() => getGreeting(), []);
+  const [adaptInput, setAdaptInput] = useState("");
+  const [adapting, setAdapting] = useState(false);
+  const [adaptSuccess, setAdaptSuccess] = useState(false);
+
+  async function handleAdapt(e: React.FormEvent) {
+    e.preventDefault();
+    if (!adaptInput.trim()) return;
+
+    setAdapting(true);
+    setAdaptSuccess(false);
+    try {
+      const res = await fetch("/api/v1/plan/adapt-day", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: adaptInput }),
+      });
+
+      if (res.ok) {
+        setAdaptSuccess(true);
+        setAdaptInput("");
+        emitDataRefresh(["dashboard", "workout", "nutrition"]);
+        setTimeout(() => setAdaptSuccess(false), 3000);
+      }
+    } catch (err) {
+      console.error("Failed to adapt day", err);
+    } finally {
+      setAdapting(false);
+    }
+  }
 
   return (
     <header className="relative overflow-hidden rounded-xl3 border border-white/[0.08] bg-fn-surface p-6 shadow-fn-card sm:p-10">
@@ -60,24 +89,36 @@ export function DashboardHero({
           Your daily adaptive protocol is ready. Sync your biometric data, log your intake, and execute today&apos;s training.
         </p>
 
-        {/* AI Briefing */}
-        {briefingLoading ? (
-          <div className="mt-8 h-20 max-w-3xl rounded-2xl bg-white/[0.03] animate-pulse" />
-        ) : briefing ? (
-          <div className="mt-8 flex items-start gap-5 rounded-2xl border border-fn-accent/20 bg-fn-accent/5 p-6 backdrop-blur-sm">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-fn-accent/30 bg-black/40">
-              <span className="text-[11px] font-black text-fn-accent">AI</span>
+        {/* AI Adapt Protocol Command Input */}
+        <div className="mt-8 max-w-xl">
+          <form onSubmit={handleAdapt} className="relative flex items-center group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <span className="text-fn-accent font-mono font-bold">{">"}</span>
             </div>
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent/80">
-                Performance Briefing
-              </p>
-              <p className="mt-2 text-base font-medium italic leading-relaxed text-white/95">
-                &quot;{briefing}&quot;
-              </p>
+            <input
+              type="text"
+              value={adaptInput}
+              onChange={(e) => setAdaptInput(e.target.value)}
+              placeholder="Adapt today's protocol... (e.g. 'I only have 20 mins')"
+              className="w-full bg-black/40 border border-white/10 text-white placeholder:text-white/30 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-fn-accent focus:border-fn-accent rounded-lg py-3 pl-10 pr-24 transition-all"
+              disabled={adapting}
+            />
+            <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
+              <button
+                type="submit"
+                disabled={adapting || !adaptInput.trim()}
+                className="bg-fn-accent/10 hover:bg-fn-accent/20 text-fn-accent border border-fn-accent/20 rounded px-3 py-1 text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
+              >
+                {adapting ? <Loader2 className="h-3 w-3 animate-spin mx-auto" /> : (adaptSuccess ? "Adapted" : "Override")}
+              </button>
             </div>
-          </div>
-        ) : null}
+          </form>
+          {adaptSuccess && (
+            <p className="mt-2 text-[10px] font-mono text-emerald-400 uppercase tracking-widest pl-4">
+              Protocol successfully re-calculated.
+            </p>
+          )}
+        </div>
       </div>
     </header>
   );

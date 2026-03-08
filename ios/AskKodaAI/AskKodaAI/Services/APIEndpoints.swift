@@ -11,7 +11,7 @@ extension KodaAPIService {
 
     // MARK: - AI
 
-    func aiBriefing(localDate: String? = nil) async throws -> BriefingResponse {
+    func aiBriefing(localDate: String? = nil) async throws -> AIBriefingResponse {
         let body = localDate.map { ["localDate": $0] } ?? [:]
         return try await post("api/v1/ai/briefing", body: body)
     }
@@ -29,7 +29,7 @@ extension KodaAPIService {
         try await post("api/v1/ai/progress-insight", body: [:])
     }
 
-    func aiProjection(today: String? = nil) async throws -> DashboardProjectionResponse {
+    func aiProjection(today: String? = nil) async throws -> ProjectionResponse {
         var path = "api/v1/ai/projection"
         if let t = today, !t.isEmpty { path += "?today=\(t)" }
         return try await get(path)
@@ -88,15 +88,17 @@ extension KodaAPIService {
 
     // MARK: - Plan
 
-    func planAdaptDay(minutesAvailable: Int?, location: String?, soreness: String?) async throws -> AdaptDayResponse {
+    func planAdaptDay(minutesAvailable: Int?, location: String?, soreness: String?, intensity: String?, equipmentContext: String?) async throws -> AdaptDayResponse {
         var body: [String: Any] = [:]
         if let m = minutesAvailable { body["minutesAvailable"] = m }
         if let l = location { body["location"] = l }
         if let s = soreness { body["soreness"] = s }
+        if let i = intensity { body["intensity"] = i }
+        if let e = equipmentContext { body["equipment_context"] = e }
         return try await post("api/v1/plan/adapt-day", body: body)
     }
 
-    func planSwapExercise(currentExercise: String, reason: String, location: String?, sets: Int?, reps: String?, intensity: String?) async throws -> SwapExerciseResponse {
+    func planSwapExercise(currentExercise: String, reason: String, location: String?, sets: Int?, reps: String?, intensity: String?) async throws -> PlanSwapResponse {
         var body: [String: Any] = ["currentExercise": currentExercise, "reason": reason]
         if let l = location { body["location"] = l }
         if let s = sets { body["sets"] = s }
@@ -169,7 +171,7 @@ extension KodaAPIService {
         try await post("api/v1/coach/escalate/\(escalationId)/messages", body: ["body": body])
     }
 
-    func coachNudgeAck(nudgeId: String) async throws -> EmptyJSONResponse {
+    func coachNudgeAck(nudgeId: String) async throws -> AnyCodable {
         try await post("api/v1/coach/nudges/\(nudgeId)/ack", body: [:])
     }
 

@@ -13,7 +13,7 @@ struct RootView: View {
             if !auth.isInitialized {
                 ProgressView("Loading…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(.systemBackground))
+                    .fnBackground()
             } else if auth.isSignedIn {
                 OnboardingCheckView()
             } else {
@@ -21,6 +21,8 @@ struct RootView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        .preferredColorScheme(.dark)
+        .tint(Brand.Color.accent)
+        .fnBackground()
     }
 }

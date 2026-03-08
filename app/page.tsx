@@ -78,7 +78,7 @@ export default function HomePage() {
   const [quickMeals, setQuickMeals] = useState<any[]>([]);
   const [quickWorkouts, setQuickWorkouts] = useState<any[]>([]);
   const [progressData, setProgressData] = useState<any[]>([]);
-  const [briefing, setBriefing] = useState<string | null>(null);
+  const [briefing, setBriefing] = useState<{ briefing: string, rationale: string, inputs: string[] } | null>(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [projection, setProjection] = useState<DashboardProjection | null>(null);
   const [lastWorkoutDate, setLastWorkoutDate] = useState<string | null>(null);
@@ -289,9 +289,13 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ localDate: toLocalDateString() }),
       });
-      const body = (await res.json()) as { briefing?: string | null };
+      const body = (await res.json()) as { briefing?: string | null, rationale?: string, inputs?: string[] };
       if (typeof body.briefing === "string" && body.briefing) {
-        setBriefing(body.briefing);
+        setBriefing({
+          briefing: body.briefing,
+          rationale: body.rationale || "Optimization parameters validated.",
+          inputs: body.inputs || ["System Base"]
+        });
       }
     } catch {
       // Ignore degraded briefing fetches.
@@ -753,12 +757,50 @@ export default function HomePage() {
               </div>
             ))}
 
-            {/* Morning Brief / Briefing Box */}
-            <div className="rounded-xl bg-fn-surface/30 border border-white/5 p-4">
-              <p className="text-[10px] font-black uppercase text-white/40 mb-2">Morning Brief</p>
-              <div className="text-xs leading-relaxed text-fn-muted line-clamp-4 font-medium italic">
-                {briefingLoading ? "Polling Koda..." : briefing ? <>&ldquo;{briefing}&rdquo;</> : "Executing standard startup sequence."}
+            {/* Elite AI Synthesis Terminal */}
+            <div className="rounded-xl bg-gradient-to-br from-fn-bg to-fn-surface/50 border border-fn-accent/20 p-4 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-fn-accent/5 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-fn-accent/10 transition-all duration-700"></div>
+
+              <div className="flex items-center gap-2 mb-3">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fn-accent opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-fn-accent"></span>
+                </span>
+                <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">AI Synthesis</p>
               </div>
+
+              {briefingLoading ? (
+                <div className="space-y-2 animate-pulse">
+                  <div className="h-3 w-3/4 bg-white/10 rounded"></div>
+                  <div className="h-3 w-1/2 bg-white/10 rounded"></div>
+                  <div className="h-3 w-5/6 bg-white/10 rounded"></div>
+                </div>
+              ) : briefing ? (
+                <div className="space-y-4">
+                  <p className="text-xs font-medium text-white italic leading-relaxed border-l-2 border-fn-accent/50 pl-2">
+                    &ldquo;{briefing.briefing}&rdquo;
+                  </p>
+
+                  <div className="bg-black/40 rounded-lg p-3 border border-white/5 space-y-2">
+                    <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest">Causal Rationale</p>
+                    <p className="text-[10px] text-fn-muted leading-relaxed">{briefing.rationale}</p>
+                  </div>
+
+                  {briefing.inputs && briefing.inputs.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {briefing.inputs.map((input, idx) => (
+                        <span key={idx} className="bg-white/5 border border-white/10 rounded px-2 py-0.5 text-[8px] font-mono text-fn-accent uppercase tracking-wider">
+                          {input}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-xs leading-relaxed text-fn-muted font-mono h-[80px] flex items-center justify-center border border-dashed border-white/10 rounded-lg">
+                  System awaiting initialization.
+                </div>
+              )}
             </div>
 
             {/* Spotify Integration */}

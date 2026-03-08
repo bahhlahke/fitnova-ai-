@@ -51,6 +51,7 @@ struct WorkoutExerciseEntry: Codable {
     var reps: String?
     var weight_kg: Double?
     var rpe: Int?
+    var form_cues: String?
 }
 
 // MARK: - nutrition_logs

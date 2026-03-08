@@ -10,7 +10,7 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var auth: SupabaseService
-    @State private var briefing: String?
+    @State private var briefing: AIBriefingResponse?
     @State private var briefingLoading = false
     @State private var dailyPlan: DailyPlan?
     @State private var planLoading = false
@@ -37,6 +37,15 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    HStack {
+                        Image("KodaLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 32)
+                        Spacer()
+                    }
+                    .padding(.bottom, 8)
+                    
                     if let err = errorMessage {
                         errorBanner(err)
                     }
@@ -49,9 +58,14 @@ struct HomeView: View {
                 }
                 .padding()
             }
+            .fnBackground()
             .navigationTitle("Home")
+            .navigationBarTitleDisplayMode(.large)
             .refreshable { await loadAll() }
             .task { await loadAll() }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppEnteredForeground"))) { _ in
+                Task { await loadAll() }
+            }
         }
     }
 
@@ -73,23 +87,90 @@ struct HomeView: View {
     private var briefingCard: some View {
         Section {
             if briefingLoading {
-                ProgressView("Briefing…")
+                ProgressView("Initializing Synthesis…")
                     .frame(maxWidth: .infinity)
                     .padding()
-            } else if let b = briefing, !b.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Performance Briefing")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.secondary)
-                    Text(b)
-                        .font(.subheadline)
-                        .italic()
+                    .glassCard()
+            } else if let b = briefing {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Circle()
+                            .fill(Brand.Color.accent)
+                            .frame(width: 8, height: 8)
+                            .opacity(0.8)
+                        Text("AI Synthesis")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .textCase(.uppercase)
+                            .tracking(2)
+                            .foregroundStyle(Brand.Color.accent)
+                    }
+                    
+                    if let brief = b.briefing, !brief.isEmpty {
+                        Text("\"\(brief)\"")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .italic()
+                            .foregroundStyle(.white)
+                            .padding(.leading, 8)
+                            .overlay(
+                                Rectangle()
+                                    .fill(Brand.Color.accent.opacity(0.5))
+                                    .frame(width: 2),
+                                alignment: .leading
+                            )
+                    }
+                    
+                    if let rationale = b.rationale, !rationale.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Causal Rationale")
+                                .font(.system(size: 9, weight: .bold))
+                                .textCase(.uppercase)
+                                .tracking(1)
+                                .foregroundStyle(.white.opacity(0.5))
+                            
+                            Text(rationale)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.black.opacity(0.4))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                        )
+                    }
+                    
+                    if let inputs = b.inputs, !inputs.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 6) {
+                                ForEach(inputs, id: \.self) { input in
+                                    Text(input)
+                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                        .textCase(.uppercase)
+                                        .foregroundStyle(Brand.Color.accent)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.white.opacity(0.05))
+                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                        )
+                                }
+                            }
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
-                .background(Color.accentColor.opacity(0.1))
+                .background(Brand.Color.accent.opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Brand.Color.accent.opacity(0.2), lineWidth: 1)
+                )
             }
         } header: {
             Text("Command Center")
@@ -131,8 +212,7 @@ struct HomeView: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .glassCard()
     }
 
     @ViewBuilder
@@ -154,8 +234,7 @@ struct HomeView: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .glassCard()
     }
 
     private func stat(_ label: String, value: String) -> some View {
@@ -196,8 +275,7 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .glassCard()
     }
 
     @ViewBuilder
@@ -235,8 +313,7 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .glassCard()
     }
 
     private func riskColor(_ level: String) -> Color {
@@ -280,8 +357,7 @@ struct HomeView: View {
                 }
             }
             .padding()
-            .background(Color(.systemGray6))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .glassCard()
         }
     }
 
@@ -320,7 +396,7 @@ struct HomeView: View {
         defer { briefingLoading = false }
         do {
             let res = try await api.aiBriefing(localDate: DateHelpers.todayLocal)
-            await MainActor.run { briefing = res.briefing }
+            await MainActor.run { briefing = res }
         } catch {
             await MainActor.run { errorMessage = error.localizedDescription }
         }

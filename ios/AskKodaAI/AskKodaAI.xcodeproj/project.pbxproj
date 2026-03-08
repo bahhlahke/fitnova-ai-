@@ -78,14 +78,6 @@
 			);
 			sourceTree = "<group>";
 		};
-		551AF0CD2F5C6FBB00DCA25A /* Config */ = {
-			isa = PBXGroup;
-			children = (
-				551AF0CC2F5C6FBB00DCA25A /* Generated.xcconfig */,
-			);
-			path = Config;
-			sourceTree = "<group>";
-		};
 		551AF0BB2F5C6FB400DCA25A /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -93,6 +85,14 @@
 				5551ED8F2F5C734C0054DDFF /* AskKodaAITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		551AF0CD2F5C6FBB00DCA25A /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				551AF0CC2F5C6FBB00DCA25A /* Generated.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -223,6 +223,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(PROJECT_DIR)/Config/Generated.xcconfig",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -383,6 +384,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3HZDUX7YJF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -415,6 +417,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3HZDUX7YJF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

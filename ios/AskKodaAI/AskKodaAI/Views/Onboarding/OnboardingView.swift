@@ -18,6 +18,7 @@ struct OnboardingView: View {
     @State private var goals: [String] = []
     @State private var injuries = ""
     @State private var diet = "balanced"
+    @State private var squad = "hypertrophy"
     @State private var saving = false
     @State private var errorMessage: String?
     var onComplete: (() -> Void)?
@@ -30,6 +31,17 @@ struct OnboardingView: View {
     var body: some View {
         NavigationStack {
             Form {
+                HStack {
+                    Spacer()
+                    Image("KodaLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 48)
+                    Spacer()
+                }
+                .listRowBackground(Color.clear)
+                .padding(.vertical, 16)
+                
                 if step == 0 {
                     Section("About you") {
                         TextField("Name", text: $name)
@@ -71,6 +83,17 @@ struct OnboardingView: View {
                         }
                     }
                 }
+                if step == 4 {
+                    Section(header: Text("Elite Protocol").font(.headline), footer: Text("Join a global cohort to share leaderboards and Synapse Pulses.")) {
+                        Picker("Squad", selection: $squad) {
+                            Text("Titanium Hypertrophy").tag("hypertrophy")
+                            Text("Aero Engine (Endurance)").tag("endurance")
+                            Text("Rogue Hybrid").tag("hybrid")
+                            Text("Vitality Protocol").tag("longevity")
+                        }
+                        .pickerStyle(.inline)
+                    }
+                }
                 if let err = errorMessage {
                     Section {
                         Text(err)
@@ -87,7 +110,7 @@ struct OnboardingView: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    if step < 3 {
+                    if step < 4 {
                         Button("Next") { step += 1 }
                     } else {
                         Button("Finish") {
@@ -118,7 +141,11 @@ struct OnboardingView: View {
             try await ds.upsertProfile(profile)
             var onboarding = OnboardingRow()
             onboarding.completed_at = ISO8601DateFormatter().string(from: Date())
-            onboarding.responses = ["goals": AnyCodable(value: goals as [String]), "diet": AnyCodable(value: diet)]
+            onboarding.responses = [
+                "goals": AnyCodable(value: goals as [String]), 
+                "diet": AnyCodable(value: diet),
+                "squad": AnyCodable(value: squad)
+            ]
             try await ds.upsertOnboarding(onboarding)
             await MainActor.run { onComplete?() }
         } catch {

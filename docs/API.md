@@ -44,10 +44,11 @@ Chat endpoint for the AI coach. Uses OpenRouter; when the user is signed in, con
 
 ### Behavior
 
-- The handler loads profile, recent workout/nutrition logs, and latest conversation from Supabase and builds a system prompt via `lib/ai/assemble-context.ts`.
-- Safety policy is appended to system prompt (balanced mode: no diagnosis/treatment, injury-aware alternatives, escalation guidance).
-- Requests are rate limited per user and bounded by message length.
-- The request is sent to OpenRouter (`openai/gpt-4o-mini`); reply is returned and appended to `ai_conversations`.
+- The handler loads profile, recent workout/nutrition logs, biometric signals (HRV, Sleep trends), Exercise PRs, and latest conversation from Supabase.
+- Builds a system prompt via `lib/ai/assemble-context.ts` embodying a PhD-level Performance Coach persona.
+- Safety policy is balanced: no diagnosis, injury-aware, escalation guidance.
+- The request is sent to OpenRouter (`openai/gpt-4o`); reply is returned and appended to `ai_conversations`.
+- Synthesis Logic: Correlates physiological signals with training intensity for high-performance insights.
 
 ## POST `/api/v1/plan/daily`
 
@@ -201,3 +202,24 @@ Runs reminder/nudge dispatch job (cron endpoint).
 - Optional secret gate via `CRON_SECRET` with header:
   - `x-cron-secret: <CRON_SECRET>` or
   - `Authorization: Bearer <CRON_SECRET>`
+
+## POST `/api/v1/ai/history-summary`
+
+Returns a macro-view evolutionary performance synthesis based on the user's longitudinal workout and nutrition data.
+
+### Request
+- **Method:** `POST`
+- **Body:** `{ "localDate": "2026-03-07" }` (optional)
+
+### Response
+```json
+{ "summary": "Your peak mechanical output in the squat has stabilized..." }
+```
+
+## POST `/api/v1/ai/briefing`
+
+Generates the interactive shell briefing for the dashboard. Includes causal analysis of why specific training and nutrition targets were selected.
+
+## POST `/api/v1/ai/progress-insight`
+
+Synthesizes progress entries, weights, and biometrics into a short narrative (2-3 sentences).

@@ -20,15 +20,15 @@ final class DateHelpersTests: XCTestCase {
     }
 
     func testWeekStartLocalMonday() {
-        // 2026-03-09 is Sunday; week start (Monday) for that week is 2026-03-02
+        // 2026-03-08 is Sunday; week start (Monday) for that week is 2026-03-02
         var comp = DateComponents()
         comp.year = 2026
         comp.month = 3
-        comp.day = 9
+        comp.day = 8
         let calendar = Calendar.current
         let date = calendar.date(from: comp)!
         let weekStart = DateHelpers.weekStartLocal(from: date)
-        XCTAssertEqual(weekStart, "2026-03-02", "Week containing 2026-03-09 should start 2026-03-02 (Monday)")
+        XCTAssertEqual(weekStart, "2026-03-02", "Week containing 2026-03-08 should start 2026-03-02 (Monday)")
     }
 
     func testWeekStartLocalMondaySameDay() {

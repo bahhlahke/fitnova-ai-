@@ -58,11 +58,22 @@ export default function GuidedWorkoutPage() {
   const [coachLoading, setCoachLoading] = useState(false);
   const [showExpertCues, setShowExpertCues] = useState(false);
   const [isSwapOptionsVisible, setIsSwapOptionsVisible] = useState(false);
+  const [swapInput, setSwapInput] = useState("");
+
+  // Synapse Pulse State
+  const [showingPulseAnimation, setShowingPulseAnimation] = useState(false);
+  const [pulseMessage, setPulseMessage] = useState("");
+
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isMusicPanelOpen, setIsMusicPanelOpen] = useState(false);
   const { setVolume, volume: spotifyVolume } = useSpotify();
   const workoutStartedAt = useRef<number | null>(null);
+
+  // New State for Logging
+  const [loggedSets, setLoggedSets] = useState<Array<{ weight?: number; reps?: number }>>([]);
+  const [currentWeight, setCurrentWeight] = useState<string>("");
+  const [currentReps, setCurrentReps] = useState<string>("");
 
   const playCoachAudio = useCallback(async (contextStr: string, metrics?: any) => {
     if (!audioEnabled) return;
@@ -243,6 +254,26 @@ export default function GuidedWorkoutPage() {
         } else {
           setPhase("work"); // Fallback if no specific plan
         }
+
+        // Pulse Subscription
+        const channel = supabase.channel(`synapse_pulses_${user.id}`);
+        channel.on("broadcast", { event: "pulse" }, (payload) => {
+          const senderName = payload.payload?.sender_name;
+          if (senderName) {
+            setPulseMessage(`${senderName.toUpperCase()} SENT A PULSE!`);
+            setShowingPulseAnimation(true);
+
+            // Haptic (if supported on mobile web)
+            if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
+              window.navigator.vibrate(100);
+            }
+
+            setTimeout(() => {
+              setShowingPulseAnimation(false);
+            }, 3000);
+          }
+        }).subscribe();
+
       })
       .catch(() => setPhase("work"));
   }, []);
@@ -279,14 +310,25 @@ export default function GuidedWorkoutPage() {
       user_id: user.id,
       date: typeof window !== "undefined" ? (new URLSearchParams(window.location.search).get("date") || toLocalDateString()) : toLocalDateString(),
       workout_type: "strength" as const,
-      exercises: exercises.map((e) => ({
-        name: e.name,
-        sets: e.sets,
-        reps: e.reps,
-        weight: undefined,
-        rest_seconds_after_set: 90,
-        form_cues: e.notes,
-      })),
+      exercises: exercises.map((e, index) => {
+        // Collect logged sets for this exercise. If 3 sets, grab the next 3 from loggedSets based on prior set counts.
+        const priorSets = exercises.slice(0, index).reduce((sum, ex) => sum + ex.sets, 0);
+        const exLogs = loggedSets.slice(priorSets, priorSets + e.sets);
+
+        // Use the highest weight logged for this exercise as the primary weight (as was the DB schema assumption)
+        // Or store detailed logs in form_cues if we don't have a dedicated jsonb column yet.
+        const maxWeight = exLogs.reduce((max, log) => (log.weight && log.weight > max ? log.weight : max), 0);
+        const detailedLog = exLogs.map((l, i) => `Set ${i + 1}: ${l.weight || 0}kg x ${l.reps || 0}`).join("; ");
+
+        return {
+          name: e.name,
+          sets: e.sets,
+          reps: e.reps, // planned reps
+          weight: maxWeight > 0 ? maxWeight : undefined,
+          rest_seconds_after_set: 90,
+          form_cues: e.notes ? `${e.notes} | Log: ${detailedLog}` : `Log: ${detailedLog}`,
+        };
+      }),
       duration_minutes: durationMinutes,
       notes: `Guided: ${planTitle}`,
     };
@@ -302,6 +344,7 @@ export default function GuidedWorkoutPage() {
     // Trigger award check and PR calculation
     fetch("/api/v1/awards/check", { method: "POST" }).catch(() => { });
     fetch("/api/v1/analytics/process-prs", { method: "POST" }).catch(() => { });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exercises, planTitle]);
 
   useEffect(() => {
@@ -334,9 +377,12 @@ export default function GuidedWorkoutPage() {
     if (isLastSet) {
       setExerciseIndex((i) => i + 1);
       setSetIndex(0);
+      setCurrentWeight("");
+      setCurrentReps("");
     } else {
       setSetIndex((i) => i + 1);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLastSet, isLastExercise, persistWorkout]);
 
   const swapCurrentExercise = useCallback(
@@ -381,6 +427,8 @@ export default function GuidedWorkoutPage() {
             ? `AI confidence ${Math.round(body.reliability.confidence_score * 100)}%.`
             : "")
         );
+        setSwapInput("");
+        setIsSwapOptionsVisible(false);
         setInjuryBannerDismissed(true);
       } catch {
         setSwapFeedback("Substitution failed. Try again.");
@@ -417,6 +465,7 @@ export default function GuidedWorkoutPage() {
     } finally {
       setCoachLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coachQuestion, exercise, setIndex]);
 
   const startRest = useCallback(() => {
@@ -426,9 +475,20 @@ export default function GuidedWorkoutPage() {
       void playCoachAudio("finish_workout");
       return;
     }
+
+    // Save current inputs to state
+    const w = parseFloat(currentWeight);
+    const r = parseInt(currentReps, 10);
+    setLoggedSets(prev => {
+      const newLogs = [...prev];
+      newLogs.push({ weight: isNaN(w) ? undefined : w, reps: isNaN(r) ? parseInt(exercise?.reps || "10") : r });
+      return newLogs;
+    });
+
     setPhase("rest");
     setRestSeconds(90);
     void playCoachAudio("finish_set", { hrv: 85 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLastSet, isLastExercise, persistWorkout, playCoachAudio]);
 
   useEffect(() => {
@@ -621,15 +681,15 @@ export default function GuidedWorkoutPage() {
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg px-0 py-0">
       {/* Progress bar - fixed at top for gym use */}
-      <div className="sticky top-0 z-10 h-1.5 w-full overflow-hidden bg-fn-border">
+      <div className="fixed top-0 inset-x-0 z-50 h-1.5 w-full bg-fn-border/50 backdrop-blur-md">
         <div
-          className="h-full bg-fn-primary transition-all duration-300"
+          className="h-full bg-fn-primary shadow-[0_0_10px_rgba(255,255,255,0.8)] transition-all duration-300"
           style={{ width: `${progressPct}%` }}
         />
       </div>
 
       {injuryBanner && !injuryBannerDismissed && (
-        <div className="mx-4 mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <div className="fixed top-4 inset-x-4 z-50 rounded-xl border border-amber-200/50 bg-amber-500/10 backdrop-blur-xl px-4 py-3 text-sm text-white shadow-2xl">
           <p className="font-semibold">Injury note</p>
           <p className="mt-1">{injuryBanner.message}</p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -648,7 +708,53 @@ export default function GuidedWorkoutPage() {
         </div>
       )}
 
-      <div className="flex flex-1 flex-col px-4 pb-6 pt-4">
+      {/* Optional: Add Full Screen Video Background for 'work' and 'rest' phases */}
+      {(phase === "work" || phase === "rest") && (
+        <div className="fixed inset-0 z-0 bg-black">
+          {isExerciseVideoUrl(imageUrl) ? (
+            <video
+              src={imageUrl}
+              className="absolute inset-0 h-full w-full object-cover opacity-40 transition-opacity duration-1000"
+              loop
+              muted
+              autoPlay
+              playsInline
+            />
+          ) : (
+            <Image
+              src={imageUrl}
+              alt={exercise.name}
+              fill
+              className="object-cover opacity-40 transition-opacity duration-1000"
+              unoptimized={isExerciseGifUrl(imageUrl)}
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/20" />
+        </div>
+      )}
+
+      {/* Synapse Pulse Overlay */}
+      {showingPulseAnimation && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="flex flex-col items-center animate-in zoom-in-50 duration-500">
+            <div className="relative mb-6">
+              <div className="absolute inset-0 bg-fn-accent opacity-50 blur-[50px] rounded-full animate-pulse" />
+              <svg
+                className="relative h-40 w-40 text-fn-accent drop-shadow-[0_0_30px_rgba(10,217,196,0.8)]"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+            </div>
+            <h2 className="font-display text-4xl font-black italic uppercase text-white drop-shadow-2xl text-center px-4 tracking-tight">
+              {pulseMessage}
+            </h2>
+          </div>
+        </div>
+      )}
+
+      <div className="relative z-10 flex flex-1 flex-col px-4 pb-6 pt-8">
         <header className="mb-8 flex items-center justify-between">
           <Link
             href="/log/workout"
@@ -690,197 +796,198 @@ export default function GuidedWorkoutPage() {
         )}
 
         {phase === "work" && (
-          <>
-            {/* Large move media: animated (video/GIF) for form, or static image */}
-            <div className="relative mb-6 aspect-[4/5] sm:aspect-video w-full overflow-hidden rounded-[2rem] border border-white/5 bg-black shadow-2xl">
-              {isExerciseVideoUrl(imageUrl) ? (
-                <video
-                  src={imageUrl}
-                  className="absolute inset-0 h-full w-full object-cover opacity-80"
-                  loop
-                  muted
-                  autoPlay
-                  playsInline
-                  aria-label={exercise.name}
-                />
-              ) : isExerciseGifUrl(imageUrl) ? (
-                <Image
-                  src={imageUrl}
-                  alt={exercise.name}
-                  fill
-                  className="object-cover opacity-80"
-                  sizes="(max-width: 768px) 100vw, 72rem"
-                  unoptimized
-                />
-              ) : (
-                <Image
-                  src={imageUrl}
-                  alt={exercise.name}
-                  fill
-                  className="object-cover opacity-80"
-                  sizes="(max-width: 768px) 100vw, 72rem"
-                  priority
-                />
+          <div className="flex flex-col flex-1 pb-6 mt-10">
+            {/* Header Data */}
+            <div className="text-center mb-auto mt-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-2">Set {setIndex + 1} of {totalSets}</p>
+              <h2 className="font-display text-5xl sm:text-6xl font-black italic tracking-tighter text-white uppercase drop-shadow-2xl">
+                {exercise.name}
+              </h2>
+              {exercise.notes && (
+                <div className="mt-4 mx-auto max-w-sm rounded-2xl bg-black/40 backdrop-blur-md p-4 border border-white/10 shadow-2xl">
+                  <p className="text-sm font-medium leading-relaxed text-white text-center">&quot;{exercise.notes}&quot;</p>
+                </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-                <p className="mb-1 text-xs font-black uppercase tracking-[0.3em] text-fn-accent">
-                  Set {setIndex + 1} of {totalSets}
-                </p>
-                <h2 className="font-display text-4xl font-black italic tracking-tighter text-white sm:text-5xl uppercase">
-                  {exercise.name}
-                </h2>
-                {exercise.rationale && (
-                  <p className="mt-2 text-xs font-medium text-white/60 line-clamp-1">
-                    {exercise.rationale}
-                  </p>
-                )}
+            </div>
+
+            {/* Target Display and Coaching Details */}
+            <div className="grid grid-cols-2 gap-4 mt-8 mb-6">
+              <div className="rounded-[2rem] border border-white/10 bg-black/40 p-5 shadow-2xl backdrop-blur-xl text-center">
+                <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-2 block">Planned Reps</span>
+                <p className="text-3xl font-black text-white">{exercise.reps}</p>
+              </div>
+              <div className="rounded-[2rem] border border-white/10 bg-black/40 p-5 shadow-2xl backdrop-blur-xl text-center">
+                <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-2 block">Intensity Target</span>
+                <p className="text-2xl font-black text-fn-accent mt-1">{exercise.intensity}</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-4 shadow-xl backdrop-blur-md">
-                <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1 block">Target</span>
-                <p className="text-2xl font-black text-white">{exercise.reps} reps</p>
-              </div>
-              <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-4 shadow-xl backdrop-blur-md">
-                <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1 block">Intensity</span>
-                <p className="text-xl font-black text-fn-accent">{exercise.intensity}</p>
-              </div>
-            </div>
-
-            <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 shadow-xl backdrop-blur-md overflow-hidden">
+            {/* Live Input Form for Weight/Reps */}
+            <div className="rounded-[2.5rem] border border-white/15 bg-black/60 p-6 shadow-2xl backdrop-blur-2xl mb-6">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Expert Coaching</p>
-                <button
-                  onClick={() => setShowExpertCues(!showExpertCues)}
-                  className="text-[10px] font-black uppercase tracking-widest text-fn-muted hover:text-white transition-colors"
-                >
-                  {showExpertCues ? "Less" : "Details"}
-                </button>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Log This Set</p>
+                {/* Simulated Previous History Data point */}
+                <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Focus & Execute</p>
               </div>
 
-              <div className="space-y-4">
-                {exercise.intent && (
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted/70 block mb-1">Intent</span>
-                    <p className="text-sm font-bold text-white leading-tight">{exercise.intent}</p>
-                  </div>
-                )}
-
-                {showExpertCues && (
-                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/5 animate-in fade-in slide-in-from-top-2">
-                    {exercise.tempo && (
-                      <div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted/70 block mb-1">Tempo</span>
-                        <p className="text-xs font-bold text-white">{exercise.tempo}</p>
-                      </div>
-                    )}
-                    {exercise.breathing && (
-                      <div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted/70 block mb-1">Breathing</span>
-                        <p className="text-xs font-bold text-white">{exercise.breathing}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {exercise.notes && (
-                  <div className="mt-4 rounded-xl bg-black/40 p-4 border border-white/5">
-                    <p className="text-sm font-medium leading-relaxed text-white/80">{exercise.notes}</p>
-                  </div>
-                )}
-              </div>
-              <div className="mt-4 flex flex-col gap-3">
-                {!isSwapOptionsVisible ? (
-                  <button
-                    type="button"
-                    onClick={() => setIsSwapOptionsVisible(true)}
-                    disabled={swapLoading}
-                    className="self-start rounded-xl border border-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-fn-accent transition-colors hover:bg-white/5 disabled:opacity-60"
-                  >
-                    {swapLoading ? "Swapping..." : "Swap Exercise"}
-                  </button>
-                ) : (
-                  <div className="flex flex-col gap-3 p-4 rounded-xl border border-white/10 bg-black/40 shadow-xl animate-in fade-in zoom-in-95 duration-200">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent flex items-center justify-between">
-                      Reason for Swap
-                      <button onClick={() => setIsSwapOptionsVisible(false)} className="text-white/40 hover:text-white">✕</button>
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button onClick={() => { setIsSwapOptionsVisible(false); void swapCurrentExercise("No equipment available"); }} className="rounded-lg bg-white/5 border border-white/5 px-3 py-2 text-[11px] font-bold text-white hover:bg-white/10 text-left transition-colors">No Equipment</button>
-                      <button onClick={() => { setIsSwapOptionsVisible(false); void swapCurrentExercise("Too difficult for today"); }} className="rounded-lg bg-white/5 border border-white/5 px-3 py-2 text-[11px] font-bold text-white hover:bg-white/10 text-left transition-colors">Too Hard</button>
-                      <button onClick={() => { setIsSwapOptionsVisible(false); void swapCurrentExercise("Pain or joint discomfort"); }} className="rounded-lg bg-white/5 border border-white/5 px-3 py-2 text-[11px] font-bold text-white hover:bg-white/10 text-left transition-colors">Pain / Discomfort</button>
-                      <button onClick={() => { setIsSwapOptionsVisible(false); void swapCurrentExercise("Bored, need variety"); }} className="rounded-lg bg-white/5 border border-white/5 px-3 py-2 text-[11px] font-bold text-white hover:bg-white/10 text-left transition-colors">Need Variety</button>
-                    </div>
-                  </div>
-                )}
-                {swapFeedback && (
-                  <p className="text-xs font-medium text-fn-muted animate-in fade-in">{swapFeedback}</p>
-                )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black uppercase tracking-widest text-fn-muted">Weight</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={currentWeight}
+                    onChange={(e) => setCurrentWeight(e.target.value)}
+                    placeholder="0"
+                    className="w-full rounded-2xl border-2 border-white/10 bg-white/5 py-4 pl-20 pr-4 text-right text-2xl font-black text-white focus:border-fn-accent focus:outline-none transition-colors"
+                  />
+                </div>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black uppercase tracking-widest text-fn-muted">Reps</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={currentReps}
+                    onChange={(e) => setCurrentReps(e.target.value)}
+                    placeholder={exercise.reps.split("-")[0] || "0"}
+                    className="w-full rounded-2xl border-2 border-white/10 bg-white/5 py-4 pl-16 pr-4 text-right text-2xl font-black text-white focus:border-fn-accent focus:outline-none transition-colors"
+                  />
+                </div>
               </div>
             </div>
-
-            <p className="mt-6 px-1 text-center text-[10px] font-bold uppercase tracking-widest text-fn-muted/50">
-              {planTitle} · AI guidance is educational. Stop if pain worsens.
-            </p>
 
             {/* Large gym-friendly actions */}
-            <div className="mt-auto pt-6 pb-4">
+            <div className="mt-2 text-center">
               <button
                 type="button"
                 onClick={startRest}
                 disabled={isPlayingAudio}
-                className="w-full rounded-full bg-fn-accent py-5 text-lg font-black uppercase tracking-wider text-black shadow-[0_0_30px_rgba(10,217,196,0.3)] transition-transform active:scale-[0.98] hover:bg-white disabled:opacity-80"
+                className="w-full max-w-sm mx-auto rounded-[2rem] bg-fn-accent py-6 text-xl font-black uppercase tracking-wider text-black shadow-[0_0_40px_rgba(10,217,196,0.3)] transition-transform active:scale-[0.98] hover:bg-white disabled:opacity-80 disabled:scale-100"
               >
                 {isPlayingAudio ? (
                   <div className="flex items-center justify-center gap-1">
-                    <div className="w-1 h-3 bg-black animate-[ping_1s_ease-in-out_infinite]" />
-                    <div className="w-1 h-5 bg-black animate-[ping_1s_ease-in-out_infinite_0.2s]" />
-                    <div className="w-1 h-2 bg-black animate-[ping_1s_ease-in-out_infinite_0.4s]" />
-                    <span className="ml-2 font-black italic">Coaching...</span>
+                    <div className="w-1.5 h-4 bg-black rounded-full animate-[pulse_1s_ease-in-out_infinite]" />
+                    <div className="w-1.5 h-6 bg-black rounded-full animate-[pulse_1s_ease-in-out_infinite_0.2s]" />
+                    <div className="w-1.5 h-3 bg-black rounded-full animate-[pulse_1s_ease-in-out_infinite_0.4s]" />
+                    <span className="ml-3 font-black italic tracking-widest">Coaching...</span>
                   </div>
                 ) : (
-                  "Log Set & Rest"
+                  "Log Set"
                 )}
               </button>
             </div>
-          </>
+
+            <div className="mt-6 flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsSwapOptionsVisible(true)}
+                className="text-[10px] font-black uppercase tracking-widest text-fn-accent/70 hover:text-fn-accent transition-colors"
+              >
+                AI Override / Swap
+              </button>
+              {swapFeedback && (
+                <p className="text-[10px] text-emerald-400 font-mono text-center max-w-sm">System: {swapFeedback}</p>
+              )}
+            </div>
+
+            {isSwapOptionsVisible && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-md">
+                <div className="w-full max-w-sm flex flex-col gap-4 p-6 rounded-[2rem] border border-fn-accent/20 bg-fn-surface shadow-2xl animate-in zoom-in-95 duration-200">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent flex items-center gap-2">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fn-accent opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-fn-accent"></span>
+                      </span>
+                      Neural Override
+                    </p>
+                    <button onClick={() => setIsSwapOptionsVisible(false)} className="text-white/40 hover:text-white p-2">✕</button>
+                  </div>
+
+                  <p className="text-sm font-medium text-fn-muted italic">How should Koda adapt this movement?</p>
+
+                  <div className="relative flex items-center group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <span className="text-fn-accent font-mono font-bold">{">"}</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={swapInput}
+                      onChange={(e) => setSwapInput(e.target.value)}
+                      placeholder="e.g. 'I only have dumbbells'"
+                      className="w-full bg-black/60 border border-white/10 text-white placeholder:text-white/30 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-fn-accent focus:border-fn-accent rounded-xl py-4 pl-10 pr-20 transition-all"
+                      disabled={swapLoading}
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && swapInput.trim() && !swapLoading) {
+                          void swapCurrentExercise(swapInput);
+                        }
+                      }}
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
+                      <button
+                        onClick={() => void swapCurrentExercise(swapInput)}
+                        disabled={swapLoading || !swapInput.trim()}
+                        className="bg-fn-accent/10 hover:bg-fn-accent/20 text-fn-accent border border-fn-accent/20 rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
+                      >
+                        {swapLoading ? "..." : "EXE"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {["No Equipment", "Too Hard", "Knee Pain"].map(quickAction => (
+                      <button
+                        key={quickAction}
+                        onClick={() => setSwapInput(quickAction)}
+                        className="bg-white/5 hover:bg-white/10 border border-white/5 rounded px-2 py-1 text-[9px] font-bold text-white/60 uppercase tracking-widest transition-colors"
+                      >
+                        {quickAction}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {phase === "rest" && (
-          <div className="flex flex-1 flex-col items-center justify-center text-center p-6">
-            <div className="relative flex items-center justify-center w-64 h-64 mb-8">
+          <div className="flex flex-1 flex-col items-center justify-center text-center p-6 relative z-10">
+            <div className="relative flex items-center justify-center w-72 h-72 mb-10 mt-10 drop-shadow-2xl">
               <svg className="absolute inset-0 w-full h-full transform -rotate-90">
-                <circle cx="128" cy="128" r="120" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
-                <circle cx="128" cy="128" r="120" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={754} strokeDashoffset={754 - (754 * (restSeconds / 90))} className="text-fn-accent transition-all duration-1000 ease-linear" />
+                <circle cx="144" cy="144" r="136" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-white/10" />
+                <circle cx="144" cy="144" r="136" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={854} strokeDashoffset={854 - (854 * (restSeconds / 90))} className="text-fn-accent transition-all duration-1000 ease-linear shadow-[0_0_30px_rgba(10,217,196,0.5)]" />
               </svg>
               <div className="flex flex-col items-center">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-muted mb-2">Rest</span>
-                <p className="font-display text-7xl font-black italic tracking-tighter text-white tabular-nums">
+                <span className="text-xs font-black uppercase tracking-[0.4em] text-white/50 mb-2">Rest Phase</span>
+                <p className="font-display text-8xl font-black italic tracking-tighter text-white tabular-nums drop-shadow-lg">
                   {restSeconds}
                 </p>
-                <span className="text-sm font-bold text-fn-muted">sec</span>
+                <span className="text-sm font-bold text-fn-accent uppercase tracking-widest mt-2">seconds</span>
               </div>
             </div>
 
-            <div className="mb-12">
-              <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2 block">Up Next</p>
-              <p className="text-2xl font-black text-white">
+            <div className="mb-auto rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10 p-8 shadow-2xl w-full max-w-sm mx-auto">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent mb-3 block">Preparing Next Set</p>
+              <p className="text-3xl font-black text-white italic uppercase drop-shadow-md">
                 {exercise.name}
               </p>
-              <p className="text-sm font-bold text-fn-muted mt-1">Set {setIndex + 2} of {totalSets}</p>
+              <div className="mt-4 flex justify-between items-center border-t border-white/10 pt-4">
+                <span className="text-xs font-bold text-white/50 uppercase tracking-widest">Set {setIndex + 2} of {totalSets}</span>
+                <span className="text-xs font-bold text-white/50 uppercase tracking-widest">Target: {exercise.reps} Reps</span>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={nextSet}
-              className={`w-full max-w-sm rounded-full py-5 text-sm font-black uppercase tracking-widest transition-all duration-300 ${restSeconds <= 10
-                ? "bg-fn-accent text-black shadow-[0_0_30px_rgba(10,217,196,0.3)] hover:bg-white"
-                : "bg-white/10 text-white hover:bg-white/20"
+              className={`w-full max-w-sm mx-auto mt-8 rounded-[2.5rem] py-6 text-sm font-black uppercase tracking-[0.2em] transition-all duration-300 ${restSeconds <= 10
+                ? "bg-fn-accent text-black shadow-[0_0_40px_rgba(10,217,196,0.3)] hover:bg-white hover:scale-105 active:scale-95"
+                : "bg-black/60 border border-white/10 text-white backdrop-blur-md hover:bg-white/10 hover:border-white/20 active:scale-95"
                 }`}
             >
-              Skip Rest
+              Skip Rest Interval
             </button>
           </div>
         )}
