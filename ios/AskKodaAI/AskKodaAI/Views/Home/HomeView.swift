@@ -22,7 +22,16 @@ struct HomeView: View {
     @State private var coachInsights: [CoachInsight] = []
     @State private var coachInsightsLoading = false
     @State private var profile: UserProfile?
+    @State private var todayCheckIn: CheckIn?
     @State private var errorMessage: String?
+
+    /// Readiness score derived from today's check-in energy/sleep scores (0–1).
+    private var readinessScore: Double {
+        guard let checkIn = todayCheckIn else { return 0.0 }
+        let energy = Double(checkIn.energy_score ?? 3) / 5.0
+        let adherence = Double(checkIn.adherence_score ?? 50) / 100.0
+        return min(1.0, max(0.0, (energy * 0.7) + (adherence * 0.3)))
+    }
     @State private var showingVisionModal = false
     @State private var showingGuidedWorkout = false
     @State private var showingCoachChat = false
@@ -56,7 +65,7 @@ struct HomeView: View {
                     }
                     
                     BioSyncHUD(
-                        readinessScore: 0.85, 
+                        readinessScore: readinessScore,
                         activeSquad: profile?.activity_level ?? "Titanium Hypertrophy"
                     )
                     
@@ -353,6 +362,7 @@ struct HomeView: View {
         errorMessage = nil
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await loadProfile() }
+            group.addTask { await loadCheckIn() }
             group.addTask { await loadBriefing() }
             group.addTask { await loadCoachDesk() }
             group.addTask { await loadPlan() }
@@ -362,27 +372,43 @@ struct HomeView: View {
             group.addTask { await loadNudges() }
         }
     }
-    
+
     private func loadProfile() async {
         guard let ds = dataService else { return }
         do {
             let p = try await ds.fetchProfile()
             await MainActor.run { self.profile = p }
-        } catch {}
+        } catch {
+            // Profile is non-critical; suppress error so other cards still render
+        }
+    }
+
+    private func loadCheckIn() async {
+        guard let ds = dataService else { return }
+        do {
+            let checkIn = try await ds.fetchCheckIn(dateLocal: DateHelpers.todayLocal)
+            await MainActor.run { todayCheckIn = checkIn }
+        } catch {
+            // Check-in absence is normal; readinessScore falls back to 0
+        }
     }
 
     private func loadProjection() async {
         do {
             let p = try await api.aiProjection(today: DateHelpers.todayLocal)
             await MainActor.run { projection = p }
-        } catch {}
+        } catch {
+            // Projection is supplementary; card shows a safe fallback message
+        }
     }
 
     private func loadRetentionRisk() async {
         do {
             let r = try await api.aiRetentionRisk(localDate: DateHelpers.todayLocal)
             await MainActor.run { retentionRisk = r }
-        } catch {}
+        } catch {
+            // Retention risk is supplementary; card shows a safe fallback message
+        }
     }
 
     private func loadBriefing() async {
@@ -402,7 +428,9 @@ struct HomeView: View {
         do {
             let res = try await api.aiCoachDesk()
             await MainActor.run { coachInsights = res.insights ?? [] }
-        } catch {}
+        } catch {
+            // Coach desk is supplementary; card shows "Systems nominal" fallback
+        }
     }
 
     private func loadPlan() async {
@@ -453,7 +481,9 @@ struct HomeView: View {
         do {
             let n = try await ds.fetchNudges(dateLocal: nil, unacknowledgedOnly: true, limit: 5)
             await MainActor.run { nudges = n }
-        } catch {}
+        } catch {
+            // Nudges are supplementary; card is hidden when the list is empty
+        }
     }
 
     private func generatePlan() async {

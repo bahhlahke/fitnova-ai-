@@ -332,8 +332,8 @@ struct LogNutritionView: View {
                 mealText = ""
                 barcodeText = ""
                 showAddMeal = false
-                Task { await load() }
             }
+            await load()
         } catch {
             await MainActor.run { errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription }
         }
@@ -476,32 +476,8 @@ struct LogNutritionView: View {
         defer { analyzeLoading = false }
         do {
             let res = try await api.aiAnalyzeMeal(text: text, imageBase64: nil)
+            // Only update state — user must tap "Add to log" to confirm and save.
             await MainActor.run { analyzedMeal = res }
-            guard let ds = dataService else { return }
-            var meal = MealEntry()
-            meal.name = res.name
-            meal.calories = res.calories
-            meal.protein_g = res.protein_g
-            meal.carbs_g = res.carbs_g
-            meal.fat_g = res.fat_g
-            meal.time_of_day = nil
-            var log = try await ds.fetchNutritionLog(date: selectedDate) ?? NutritionLog()
-            log.date = selectedDate
-            var meals = log.meals ?? []
-            meals.append(meal)
-            log.meals = meals
-            log.total_calories = meals.compactMap(\.calories).reduce(0, +)
-            log.protein_g = meals.compactMap(\.protein_g).reduce(0, +)
-            log.carbs_g = meals.compactMap(\.carbs_g).reduce(0, +)
-            log.fat_g = meals.compactMap(\.fat_g).reduce(0, +)
-            try await ds.upsertNutritionLog(log)
-            _ = try? await api.awardsCheck()
-            await MainActor.run {
-                errorMessage = nil
-                analyzedMeal = nil
-                mealText = ""
-                Task { await load() }
-            }
         } catch {
             await MainActor.run { errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription }
         }

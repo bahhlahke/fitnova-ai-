@@ -213,7 +213,7 @@ struct CommunityView: View {
     private var friendsListView: some View {
         List {
             Section("Accountability partner") {
-                if let p = partner, let name = p.display_name {
+                if let p = partner, let name = p.partner_profile?.display_name {
                     Text(name)
                         .fontWeight(.bold)
                 } else {
@@ -266,38 +266,60 @@ struct CommunityView: View {
     }
 
     private func otherDisplayName(_ row: ConnectionRow) -> String? {
-        row.friend?.name ?? row.user?.name
+        let myId = auth.currentUserId
+        if row.user_id_1 == myId {
+            return row.profile_2?.display_name
+        } else {
+            return row.profile_1?.display_name
+        }
     }
 
     private func otherUserId(_ row: ConnectionRow) -> String? {
-        row.friend?.user_id ?? row.user?.user_id
+        let myId = auth.currentUserId
+        if row.user_id_1 == myId {
+            return row.user_id_2
+        } else {
+            return row.user_id_1
+        }
     }
 
     private func load() async {
         loading = true
         defer { loading = false }
-        do {
-            async let connsTask = api.socialFriends()
-            async let aResTask = api.socialAccountability()
-            async let cResTask = api.communityChallenges()
-            async let sOverTask = api.communitySquadOverview()
-            async let sVibeTask = api.communitySquadVibes()
-
-            let conns = try await connsTask
-            let aRes = try await aResTask
-            let cRes = try await cResTask
-            let sOver = try await sOverTask
-            let sVibe = try await sVibeTask
-
-            await MainActor.run {
-                connections = conns
-                partner = aRes.partner
-                challenges = cRes.challenges ?? []
-                squadOverview = sOver
-                squadVibes = sVibe.vibes ?? []
+        // Load social and squad data concurrently; squad is non-critical and fails gracefully.
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask {
+                do {
+                    let conns = try await self.api.socialFriends()
+                    await MainActor.run { self.connections = conns }
+                } catch {
+                    await MainActor.run { self.errorMessage = error.localizedDescription }
+                }
             }
-        } catch {
-            await MainActor.run { errorMessage = error.localizedDescription }
+            group.addTask {
+                do {
+                    let aRes = try await self.api.socialAccountability()
+                    await MainActor.run { self.partner = aRes.partner }
+                } catch {}
+            }
+            group.addTask {
+                do {
+                    let cRes = try await self.api.communityChallenges()
+                    await MainActor.run { self.challenges = cRes.challenges ?? [] }
+                } catch {}
+            }
+            group.addTask {
+                do {
+                    let sOver = try await self.api.communitySquadOverview()
+                    await MainActor.run { self.squadOverview = sOver }
+                } catch {}
+            }
+            group.addTask {
+                do {
+                    let sVibe = try await self.api.communitySquadVibes()
+                    await MainActor.run { self.squadVibes = sVibe.vibes ?? [] }
+                } catch {}
+            }
         }
     }
     

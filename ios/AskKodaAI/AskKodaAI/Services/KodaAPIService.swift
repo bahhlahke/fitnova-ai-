@@ -144,9 +144,9 @@ struct KodaAPIService {
         return data
     }
 
-    /// POST /api/v1/ai/readiness
+    /// POST /api/v1/ai/readiness-insight
     func aiReadinessInsight(localDate: String) async throws -> ReadinessInsightResponse {
-        return try await post("api/v1/ai/readiness", body: ["local_date": localDate])
+        return try await post("api/v1/ai/readiness-insight", body: ["localDate": localDate])
     }
 
     /// POST /api/v1/ai/post-workout-insight
