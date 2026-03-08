@@ -277,13 +277,18 @@ struct CommunityView: View {
         loading = true
         defer { loading = false }
         do {
-            let (conns, aRes, cRes, sOver, sVibe) = try await (
-                api.socialFriends(),
-                api.socialAccountability(),
-                api.communityChallenges(),
-                api.communitySquadOverview(),
-                api.communitySquadVibes()
-            )
+            async let connsTask = api.socialFriends()
+            async let aResTask = api.socialAccountability()
+            async let cResTask = api.communityChallenges()
+            async let sOverTask = api.communitySquadOverview()
+            async let sVibeTask = api.communitySquadVibes()
+
+            let conns = try await connsTask
+            let aRes = try await aResTask
+            let cRes = try await cResTask
+            let sOver = try await sOverTask
+            let sVibe = try await sVibeTask
+
             await MainActor.run {
                 connections = conns
                 partner = aRes.partner

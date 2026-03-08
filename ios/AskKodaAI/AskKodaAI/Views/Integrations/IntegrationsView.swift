@@ -136,7 +136,9 @@ struct IntegrationsView: View {
         spotifyConnectError = nil
         do {
             let token = try await api.spotifyToken()
-            await MainActor.run { spotifyConnected = (token != nil && !(token?.isEmpty ?? true)) }
+            await MainActor.run { 
+                spotifyConnected = !(token.access_token?.isEmpty ?? true) 
+            }
         } catch {
             await MainActor.run { spotifyConnected = false }
         }

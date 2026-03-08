@@ -148,7 +148,7 @@ function TrophyCard({ trophy }: { trophy: Trophy }) {
                     <span className="text-[8px] font-black uppercase tracking-[0.2em] text-fn-accent">Neural Rationale</span>
                 </div>
                 <p className="text-[10px] font-medium text-white/70 italic leading-relaxed">
-                    "{trophy.ai_rationale}"
+                    &quot;{trophy.ai_rationale}&quot;
                 </p>
             </div>
 

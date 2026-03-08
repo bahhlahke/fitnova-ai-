@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-
 struct HomeView: View {
     @EnvironmentObject var auth: SupabaseService
     @State private var briefing: AIBriefingResponse?
@@ -53,11 +52,11 @@ struct HomeView: View {
                     .padding(.bottom, 8)
                     
                     if let err = errorMessage {
-                    errorBanner(err)
+                        errorBanner(err)
                     }
                     
                     BioSyncHUD(
-                        readinessScore: 0.85, // Mocked for now, will link to CNS logic
+                        readinessScore: 0.85, 
                         activeSquad: profile?.activity_level ?? "Titanium Hypertrophy"
                     )
                     
@@ -79,6 +78,14 @@ struct HomeView: View {
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppEnteredForeground"))) { _ in
                 Task { await loadAll() }
             }
+            .fullScreenCover(isPresented: $showingGuidedWorkout) {
+                if let plan = dailyPlan?.training_plan {
+                    GuidedWorkoutView(exercises: plan.exercises ?? [])
+                }
+            }
+            .sheet(isPresented: $showingCoachChat) {
+                CoachView()
+            }
         }
     }
 
@@ -98,189 +105,106 @@ struct HomeView: View {
 
     @ViewBuilder
     private var briefingCard: some View {
-        Section {
-            if briefingLoading {
-                ProgressView("Initializing Synthesis…")
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .glassCard()
-            } else if let b = briefing {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Circle()
-                            .fill(Brand.Color.accent)
-                            .frame(width: 8, height: 8)
-                            .opacity(0.8)
-                        Text("AI Synthesis")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .textCase(.uppercase)
-                            .tracking(2)
-                            .foregroundStyle(Brand.Color.accent)
-                    }
-                    
-                    if let brief = b.briefing, !brief.isEmpty {
-                        Text("\"\(brief)\"")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .italic()
-                            .foregroundStyle(.white)
-                            .padding(.leading, 8)
-                            .overlay(
-                                Rectangle()
-                                    .fill(Brand.Color.accent.opacity(0.5))
-                                    .frame(width: 2),
-                                alignment: .leading
-                            )
-                    }
-                    
-                    if let rationale = b.rationale, !rationale.isEmpty {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Causal Rationale")
-                                .font(.system(size: 9, weight: .bold))
-                                .textCase(.uppercase)
-                                .tracking(1)
-                                .foregroundStyle(.white.opacity(0.5))
-                            
-                            Text(rationale)
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.black.opacity(0.4))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.white.opacity(0.05), lineWidth: 1)
-                        )
-                    }
-                    
-                    if let inputs = b.inputs, !inputs.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 6) {
-                                ForEach(inputs, id: \.self) { input in
-                                    Text(input)
-                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                        .textCase(.uppercase)
-                                        .foregroundStyle(Brand.Color.accent)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color.white.opacity(0.05))
-                                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 4)
-                                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                        )
-                                }
-                            }
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(Brand.Color.accent.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Brand.Color.accent.opacity(0.2), lineWidth: 1)
-                )
-            }
-        } header: {
-            Text("Command Center")
+        VStack(alignment: .leading, spacing: 8) {
+            Text("AI Performance Briefing")
                 .font(.headline)
+            if briefingLoading {
+                ProgressView()
+            } else if let b = briefing {
+                Text(b.briefing ?? "No briefing content provided.")
+                    .font(.subheadline)
+                    .italic()
+                if let rat = b.rationale {
+                    Text(rat)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Text("No briefing available.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .glassCard()
     }
 
     @ViewBuilder
     private var coachDeskCard: some View {
-        if coachInsightsLoading && coachInsights.isEmpty {
-             ProgressView("Synthesizing mastery insights…")
-                .frame(maxWidth: .infinity)
-                .padding()
-                .glassCard()
-        } else if !coachInsights.isEmpty {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Image(systemName: "shield.checkered")
-                        .foregroundStyle(Brand.Color.accent)
-                    Text("COACH'S DESK")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .textCase(.uppercase)
-                        .tracking(2)
-                        .foregroundStyle(Brand.Color.accent)
-                    Spacer()
-                }
-                
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Coach's Desk")
+                .font(.headline)
+            if coachInsightsLoading {
+                ProgressView()
+            } else if coachInsights.isEmpty {
+                Text("Systems nominal. No active interventions.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
                 ForEach(coachInsights) { insight in
-                    Button(action: { handleSteering(insight.cta_route) }) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text(insight.title)
-                                    .font(.subheadline)
-                                    .fontWeight(.black)
-                                    .foregroundStyle(.white)
-                                Spacer()
-                                if insight.urgency == "high" {
-                                    Text("CRITICAL")
-                                        .font(.system(size: 8, weight: .black))
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.red.opacity(0.2))
-                                        .foregroundStyle(.red)
-                                        .clipShape(Capsule())
-                                }
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(insight.title)
+                                .font(.subheadline)
+                                .fontWeight(.bold)
+                            Spacer()
+                            if let cta = insight.cta_route {
+                                Button("Execute") { handleSteering(cta) }
+                                    .font(.caption)
+                                    .buttonStyle(.borderedProminent)
                             }
-                            Text(insight.message)
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.7))
-                                .lineLimit(3)
                         }
-                        .padding()
-                        .background(Color.white.opacity(0.03))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(insight.urgency == "high" ? Color.red.opacity(0.3) : Color.white.opacity(0.05), lineWidth: 1))
+                        Text(insight.message)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.plain)
+                    .padding(8)
+                    .background(Color.white.opacity(0.05))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
             }
-            .padding()
-            .background(Brand.Color.accent.opacity(0.05))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.Color.accent.opacity(0.1), lineWidth: 1))
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .glassCard()
+    }
+
     @ViewBuilder
     private var todayPlanCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Today's Plan")
-                    .font(.headline)
-                Spacer()
-                if dailyPlan == nil && !planLoading {
-                    Button(action: { Task { await generatePlan() } }) {
-                        if generating {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else {
-                            Text("Generate")
-                                .font(.caption)
-                        }
+            Text("Daily Protocol")
+                .font(.headline)
+            if planLoading {
+                ProgressView()
+            } else if let plan = dailyPlan {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(plan.training_plan?.focus ?? "Recovery")
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                    Text("\(plan.training_plan?.duration_minutes ?? 0) min session")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    
+                    Button("Start Guided Session") {
+                        showingGuidedWorkout = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.top, 8)
+                }
+            } else {
+                VStack(spacing: 8) {
+                    Text("No protocol active.")
+                        .font(.subheadline)
+                    Button("Generate Plan") {
+                        Task { await generatePlan() }
                     }
                     .disabled(generating)
+                    .buttonStyle(.bordered)
                 }
             }
-            if planLoading && dailyPlan == nil {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .padding()
-            } else if let p = dailyPlan {
-                DailyPlanCard(plan: p)
-            } else {
-                Text("No plan for today. Tap Generate to create one.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding()
-            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .glassCard()
     }
@@ -288,57 +212,51 @@ struct HomeView: View {
     @ViewBuilder
     private var performanceCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("14-Day Performance")
+            Text("Neural Performance")
                 .font(.headline)
-            if performanceLoading && performance == nil {
+            if performanceLoading {
                 ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .padding()
             } else if let p = performance {
-                HStack(spacing: 16) {
-                    stat("Workout days", value: "\(p.workout_days ?? 0)")
-                    stat("Minutes", value: "\(p.workout_minutes ?? 0)")
-                    stat("Set volume", value: "\(p.set_volume ?? 0)")
+                HStack(spacing: 20) {
+                    statBox(label: "VOL", value: "\(p.set_volume ?? 0)")
+                    statBox(label: "MIN", value: "\(p.workout_minutes ?? 0)")
+                    statBox(label: "BAL", value: p.push_pull_balance ?? "N/A")
                 }
-                .padding(.vertical, 4)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .glassCard()
     }
 
-    private func stat(_ label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+    private func statBox(label: String, value: String) -> some View {
+        VStack(alignment: .leading) {
             Text(label)
-                .font(.caption)
+                .font(.caption2)
                 .foregroundStyle(.secondary)
             Text(value)
                 .font(.subheadline)
-                .fontWeight(.semibold)
+                .fontWeight(.bold)
         }
     }
 
     @ViewBuilder
     private var projectionCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("AI Projection")
+            Text("Outcome Projection")
                 .font(.headline)
-            if let p = projection, let proj12 = p.projected_12w {
-                Text(String(format: "%.1f kg", proj12))
-                    .font(.title2)
-                    .fontWeight(.bold)
-                if let conf = p.confidence {
-                    Text("\(Int(conf * 100))% confidence")
-                        .font(.caption)
+            if let p = projection {
+                if let p12 = p.projected_12w {
+                    Text(String(format: "12-week projection: %.1f kg", p12))
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
-                }
-                if let proj4 = p.projected_4w {
-                    Text("4-week: \(String(format: "%.1f", proj4)) kg")
-                        .font(.caption)
+                } else {
+                    Text("Predictive models stable.")
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
             } else {
-                Text("Log weight in Progress to unlock projection.")
+                Text("Data synthesis in progress.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -457,18 +375,14 @@ struct HomeView: View {
         do {
             let p = try await api.aiProjection(today: DateHelpers.todayLocal)
             await MainActor.run { projection = p }
-        } catch {
-            // Non-fatal
-        }
+        } catch {}
     }
 
     private func loadRetentionRisk() async {
         do {
             let r = try await api.aiRetentionRisk(localDate: DateHelpers.todayLocal)
             await MainActor.run { retentionRisk = r }
-        } catch {
-            // Non-fatal
-        }
+        } catch {}
     }
 
     private func loadBriefing() async {
@@ -488,9 +402,7 @@ struct HomeView: View {
         do {
             let res = try await api.aiCoachDesk()
             await MainActor.run { coachInsights = res.insights ?? [] }
-        } catch {
-            // Non-fatal
-        }
+        } catch {}
     }
 
     private func loadPlan() async {
@@ -509,13 +421,10 @@ struct HomeView: View {
         guard let route = route else { return }
         switch route {
         case "/log/workout":
-            // In a real app, this might switch tabs. 
-            // For this specific view, we'll trigger a modal for the guided workout.
             showingGuidedWorkout = true
         case "/coach":
             showingCoachChat = true
         default:
-            // Could handle other routes like /history or /check-in
             break
         }
     }
@@ -544,9 +453,7 @@ struct HomeView: View {
         do {
             let n = try await ds.fetchNudges(dateLocal: nil, unacknowledgedOnly: true, limit: 5)
             await MainActor.run { nudges = n }
-        } catch {
-            // Non-fatal
-        }
+        } catch {}
     }
 
     private func generatePlan() async {

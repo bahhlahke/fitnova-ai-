@@ -1,0 +1,23 @@
+{
+  "/Users/blakeaycock/code/fitnessAI/ios/build/SourcePackages/checkouts/supabase-swift/Sources/Helpers/Logger/OSLogSupabaseLogger.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/OSLogSupabaseLogger.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/OSLogSupabaseLogger.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/OSLogSupabaseLogger.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/OSLogSupabaseLogger.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/OSLogSupabaseLogger.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/build/SourcePackages/checkouts/supabase-swift/Sources/Helpers/Logger/SupabaseLogger.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/SupabaseLogger.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/SupabaseLogger.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/SupabaseLogger.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/SupabaseLogger.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/SupabaseLogger.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/build/SourcePackages/checkouts/supabase-swift/Sources/Helpers/SharedModels/HTTPError.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/HTTPError.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/HTTPError.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/HTTPError.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/HTTPError.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/HTTPError.swiftdeps"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "/Users/blakeaycock/code/fitnessAI/ios/AskKodaAI/AskKodaAI/Models/APIModels.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/APIModels.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/APIModels.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/APIModels.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/APIModels.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/APIModels.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/AskKodaAI/AskKodaAI/Models/DataModels.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/DataModels.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/DataModels.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/DataModels.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/DataModels.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/DataModels.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/AskKodaAI/AskKodaAI/Models/ExerciseImages.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/ExerciseImages.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/ExerciseImages.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/ExerciseImages.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/ExerciseImages.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/ExerciseImages.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/AskKodaAI/AskKodaAI/Services/APIEndpoints.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/APIEndpoints.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/APIEndpoints.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/APIEndpoints.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/APIEndpoints.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/APIEndpoints.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/AskKodaAI/AskKodaAI/Services/HealthKitService.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/HealthKitService.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/HealthKitService.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/HealthKitService.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/HealthKitService.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/HealthKitService.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/AskKodaAI/AskKodaAI/Services/KodaAPIService.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/KodaAPIService.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/KodaAPIService.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/KodaAPIService.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/KodaAPIService.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/KodaAPIService.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/AskKodaAI/AskKodaAI/Services/KodaDataService.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/KodaDataService.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/KodaDataService.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/KodaDataService.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/KodaDataService.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/KodaDataService.swiftdeps"
+  }
+}

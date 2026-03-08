@@ -17,7 +17,7 @@ struct AskKodaAIApp: App {
                 .onOpenURL { url in
                     Task { await auth.setSessionFrom(url: url) }
                 }
-                .onChange(of: scenePhase) { newPhase in
+                .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
                         Task { await auth.refreshSession() }
                     }

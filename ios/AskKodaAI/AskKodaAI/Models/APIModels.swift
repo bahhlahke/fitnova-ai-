@@ -109,6 +109,19 @@ struct AnalyzeMealResponse: Decodable {
     let confidence: Double?
 }
 
+struct BarcodeResponse: Decodable {
+    let nutrition: BarcodeNutrition?
+}
+
+struct BarcodeNutrition: Decodable {
+    let name: String?
+    let brand: String?
+    let calories: Int?
+    let protein: Double?
+    let carbs: Double?
+    let fat: Double?
+}
+
 struct MealSuggestionsResponse: Decodable {
     let suggestions: [MealSuggestion]?
 }
@@ -287,4 +300,17 @@ struct GroceryItem: Decodable {
     let item: String?
     let category: String?
     let quantity: String?
+}
+// MARK: - Social / Community
+
+struct SocialAccountabilityResponse: Decodable {
+    let partner: AccountabilityPartner?
+}
+
+struct CommunityChallengesResponse: Decodable {
+    let challenges: [ChallengeItem]?
+}
+
+struct SocialFriendsResponse: Decodable {
+    let friends: [ConnectionRow]?
 }

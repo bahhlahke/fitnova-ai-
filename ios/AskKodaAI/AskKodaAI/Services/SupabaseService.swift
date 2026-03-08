@@ -85,7 +85,8 @@ final class SupabaseService: ObservableObject {
         
         guard let finalRedirect = components?.url else {
              // Fallback to direct redirect if components fail
-             return try client.auth.getOAuthSignInURL(provider: .google, redirectTo: appRedirect)
+             let redirectURL = URL(string: appRedirect) ?? URL(string: "kodaai://auth/callback")!
+             return try client.auth.getOAuthSignInURL(provider: .google, redirectTo: redirectURL)
         }
         
         return try client.auth.getOAuthSignInURL(

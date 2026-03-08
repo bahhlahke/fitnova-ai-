@@ -12,6 +12,7 @@ struct AuthView: View {
     @State private var email = ""
     @State private var message: String?
     @State private var isLoading = false
+    @State private var currentNonce: String?
 
     var body: some View {
         NavigationStack {
@@ -130,7 +131,6 @@ struct AuthView: View {
         }
     }
 
-    @State private var currentNonce: String?
 
     private func handleAppleResult(_ result: Result<ASAuthorization, Error>) {
         switch result {

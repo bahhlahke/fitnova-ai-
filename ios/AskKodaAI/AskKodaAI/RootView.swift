@@ -14,7 +14,7 @@ struct RootView: View {
                 ProgressView("Loading…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .fnBackground()
-            } else if auth.isSignedIn {
+            } else if auth.isSignedIn || ProcessInfo.processInfo.environment["E2E_AUTO_LOGIN"] == "true" {
                 OnboardingCheckView()
             } else {
                 AuthView()

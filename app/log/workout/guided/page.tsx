@@ -439,7 +439,7 @@ export default function GuidedWorkoutPage() {
         setSwapLoading(false);
       }
     },
-    [exercise, exerciseIndex, playCoachAudio]
+    [exercise, exerciseIndex]
   );
 
   const askCoach = useCallback(async () => {

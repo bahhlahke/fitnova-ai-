@@ -1,0 +1,44 @@
+{
+  "/Users/blakeaycock/code/fitnessAI/ios/AskKodaAI/AskKodaAI/Views/Log/MotionLabView.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/MotionLabView.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/MotionLabView.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/MotionLabView.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/MotionLabView.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/MotionLabView.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/AskKodaAI/AskKodaAI/Views/Nutrition/FridgeScannerView.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/FridgeScannerView.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/FridgeScannerView.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/FridgeScannerView.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/FridgeScannerView.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/FridgeScannerView.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/AskKodaAI/AskKodaAI/Views/Nutrition/MealPlanView.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/MealPlanView.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/MealPlanView.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/MealPlanView.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/MealPlanView.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/MealPlanView.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/AskKodaAI/AskKodaAI/Views/Onboarding/OnboardingCheckView.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/OnboardingCheckView.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/OnboardingCheckView.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/OnboardingCheckView.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/OnboardingCheckView.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/OnboardingCheckView.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/AskKodaAI/AskKodaAI/Views/Onboarding/OnboardingView.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/OnboardingView.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/OnboardingView.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/OnboardingView.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/OnboardingView.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/OnboardingView.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/AskKodaAI/AskKodaAI/Views/Plan/PlanView.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/PlanView.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/PlanView.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/PlanView.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/PlanView.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/AskKodaAI.build/Debug-iphonesimulator/AskKodaAI.build/Objects-normal/arm64/PlanView.swiftdeps"
+  }
+}

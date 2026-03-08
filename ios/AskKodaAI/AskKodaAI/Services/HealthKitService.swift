@@ -44,11 +44,15 @@ final class HealthKitService: ObservableObject {
         let predicate = HKQuery.predicateForSamples(withStart: Date(), end: nil, options: .strictStartDate)
         
         hrQuery = HKAnchoredObjectQuery(type: hrType, predicate: predicate, anchor: nil, limit: HKObjectQueryNoLimit) { [weak self] _, samples, _, _, _ in
-            self?.processHRSamples(samples)
+            Task { @MainActor in
+                self?.processHRSamples(samples)
+            }
         }
         
         hrQuery?.updateHandler = { [weak self] _, samples, _, _, _ in
-            self?.processHRSamples(samples)
+            Task { @MainActor in
+                self?.processHRSamples(samples)
+            }
         }
         
         store.execute(hrQuery!)

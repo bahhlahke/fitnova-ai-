@@ -23,4 +23,10 @@ enum DateHelpers {
         f.timeZone = TimeZone.current
         return f.string(from: monday)
     }
+
+    static func fromISO(_ isoString: String) -> Date? {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f.date(from: isoString) ?? ISO8601DateFormatter().date(from: isoString)
+    }
 }

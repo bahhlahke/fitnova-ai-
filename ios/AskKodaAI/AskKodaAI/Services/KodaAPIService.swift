@@ -69,6 +69,215 @@ struct KodaAPIService {
         try await get("api/v1/community/squad/vibes")
     }
 
+    /// GET /api/v1/ai/weekly-insight
+    func aiWeeklyInsight() async throws -> WeeklyInsightResponse {
+        try await get("api/v1/ai/weekly-insight")
+    }
+
+    /// POST /api/v1/plan/adapt-day
+    func planAdaptDay(minutesAvailable: Int?, location: String?, soreness: String?, intensity: String?, equipmentContext: String?) async throws -> DailyPlanResponse {
+        var body: [String: Any] = [:]
+        if let m = minutesAvailable { body["minutesAvailable"] = m }
+        if let l = location { body["location"] = l }
+        if let s = soreness { body["soreness"] = s }
+        if let i = intensity { body["intensity"] = i }
+        if let ec = equipmentContext { body["equipmentContext"] = ec }
+        return try await post("api/v1/plan/adapt-day", body: body)
+    }
+
+    /// POST /api/v1/stripe/checkout
+    func stripeCheckout(priceId: String?, successUrl: String?, cancelUrl: String?) async throws -> StripeCheckoutResponse {
+        var body: [String: Any] = [:]
+        if let p = priceId { body["priceId"] = p }
+        if let s = successUrl { body["successUrl"] = s }
+        if let c = cancelUrl { body["cancelUrl"] = c }
+        return try await post("api/v1/stripe/checkout", body: body)
+    }
+
+    /// POST /api/v1/ai/body-comp
+    func aiBodyComp(images: (String, String, String), localDate: String) async throws -> BodyCompResponse {
+        let body: [String: Any] = [
+            "images": [images.0, images.1, images.2],
+            "localDate": localDate
+        ]
+        return try await post("api/v1/ai/body-comp", body: body)
+    }
+
+    /// GET /api/v1/ai/projection
+    func aiProjection(today: String) async throws -> DashboardProjectionResponse {
+        try await get("api/v1/ai/projection?today=\(today)")
+    }
+
+    /// POST /api/v1/ai/retention-risk
+    func aiRetentionRisk(localDate: String) async throws -> RetentionRiskResponse {
+        let body = ["localDate": localDate]
+        return try await post("api/v1/ai/retention-risk", body: body)
+    }
+
+    /// POST /api/v1/ai/briefing
+    func aiBriefing(localDate: String) async throws -> AIBriefingResponse {
+        let body = ["localDate": localDate]
+        return try await post("api/v1/ai/briefing", body: body)
+    }
+
+    /// POST /api/v1/ai/coach-nudge/ack
+    func coachNudgeAck(nudgeId: String) async throws -> [String: AnyCodable] {
+        let body = ["nudgeId": nudgeId]
+        return try await post("api/v1/ai/coach-nudge/ack", body: body)
+    }
+
+    /// GET /api/v1/user/export
+    func exportData(format: String) async throws -> Data {
+        let path = "api/v1/user/export?format=\(format)"
+        let url: URL
+        if let u = URL(string: path, relativeTo: baseURL)?.absoluteURL {
+            url = u
+        } else { throw KodaAPIError.invalidURL }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        if let token = await getAccessToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validateResponse(response, data: data)
+        return data
+    }
+
+    /// POST /api/v1/ai/readiness
+    func aiReadinessInsight(localDate: String) async throws -> ReadinessInsightResponse {
+        return try await post("api/v1/ai/readiness", body: ["local_date": localDate])
+    }
+
+    /// POST /api/v1/ai/post-workout-insight
+    func aiPostWorkoutInsight(dateLocal: String) async throws -> PostWorkoutInsightResponse {
+        return try await post("api/v1/ai/post-workout-insight", body: ["dateLocal": dateLocal])
+    }
+
+    /// POST /api/v1/user/awards/check
+    func awardsCheck() async throws -> AwardsCheckResponse {
+        return try await post("api/v1/user/awards/check", body: [:])
+    }
+
+    /// POST /api/v1/analytics/process-prs
+    func analyticsProcessPRs() async throws -> [String: AnyCodable] {
+        return try await post("api/v1/analytics/process-prs", body: [:])
+    }
+
+    /// GET /api/v1/spotify/token
+    func spotifyToken() async throws -> SpotifyTokenResponse {
+        return try await get("api/v1/spotify/token")
+    }
+
+    /// POST /api/v1/ai/vision
+    func aiVision(images: [String]) async throws -> VisionAnalysisResponse {
+        return try await post("api/v1/ai/vision", body: ["images": images])
+    }
+
+    /// POST /api/v1/plan/swap-exercise
+    func planSwapExercise(currentExercise: String, reason: String, location: String?, sets: Int?, reps: String?, intensity: String?) async throws -> PlanSwapResponse {
+        var body: [String: Any] = ["currentExercise": currentExercise, "reason": reason]
+        if let l = location { body["location"] = l }
+        if let s = sets { body["sets"] = s }
+        if let r = reps { body["reps"] = r }
+        if let i = intensity { body["intensity"] = i }
+        return try await post("api/v1/plan/swap-exercise", body: body)
+    }
+
+    /// GET /api/v1/ai/progress-insight
+    func aiProgressInsight() async throws -> ProgressInsightResponse {
+        return try await get("api/v1/ai/progress-insight")
+    }
+
+    /// POST /api/v1/nutrition/fridge-scanner
+    func nutritionFridgeScanner(media: String, type: String, localDate: String) async throws -> FridgeScannerResponse {
+        return try await post("api/v1/nutrition/fridge-scanner", body: ["media": media, "type": type, "localDate": localDate])
+    }
+
+    /// POST /api/v1/ai/recipe-gen
+    func aiRecipeGen(startDate: String, durationDays: Int) async throws -> RecipeGenResponse {
+        return try await post("api/v1/ai/recipe-gen", body: ["startDate": startDate, "durationDays": durationDays])
+    }
+
+    /// POST /api/v1/telemetry/event
+    func telemetryEvent(eventName: String, eventProps: [String: Any]?) async throws -> [String: AnyCodable] {
+        var body: [String: Any] = ["eventName": eventName]
+        if let p = eventProps { body["eventProps"] = p }
+        return try await post("api/v1/telemetry/event", body: body)
+    }
+
+    /// GET /api/v1/coach/escalate/list
+    func coachEscalateList() async throws -> EscalationListResponse {
+        return try await get("api/v1/coach/escalate/list")
+    }
+
+    /// POST /api/v1/coach/escalate/create
+    func coachEscalateCreate(topic: String, urgency: String, details: String?, preferredChannel: String?) async throws -> ActiveEscalationResponse {
+        var body: [String: Any] = ["topic": topic, "urgency": urgency]
+        if let d = details { body["details"] = d }
+        if let p = preferredChannel { body["preferredChannel"] = p }
+        return try await post("api/v1/coach/escalate/create", body: body)
+    }
+
+    /// GET /api/v1/coach/escalate/messages
+    func coachEscalateMessages(escalationId: String) async throws -> EscalationMessagesResponse {
+        return try await get("api/v1/coach/escalate/messages?escalationId=\(escalationId)")
+    }
+
+    /// POST /api/v1/coach/escalate/send
+    func coachEscalateSendMessage(escalationId: String, body: String) async throws -> EscalationMessagesResponse {
+        return try await post("api/v1/coach/escalate/send", body: ["escalationId": escalationId, "body": body])
+    }
+
+    /// GET /api/v1/social/friends
+    func socialFriends() async throws -> [ConnectionRow] {
+        return try await get("api/v1/social/friends")
+    }
+
+    /// GET /api/v1/social/accountability
+    func socialAccountability() async throws -> SocialAccountabilityResponse {
+        return try await get("api/v1/social/accountability")
+    }
+
+    /// GET /api/v1/community/challenges
+    func communityChallenges() async throws -> CommunityChallengesResponse {
+        return try await get("api/v1/community/challenges")
+    }
+
+    /// POST /api/v1/community/challenges/join
+    func communityChallengesPost(challengeId: String) async throws -> [String: AnyCodable] {
+        return try await post("api/v1/community/challenges/join", body: ["challengeId": challengeId])
+    }
+
+
+    /// GET /api/v1/nutrition/targets
+    func nutritionTargetsGet() async throws -> NutritionTargetResponse {
+        return try await get("api/v1/nutrition/targets")
+    }
+
+    /// GET /api/v1/ai/nutrition-insight
+    func aiNutritionInsight(dateLocal: String) async throws -> NutritionInsightResponse {
+        return try await get("api/v1/ai/nutrition-insight?dateLocal=\(dateLocal)")
+    }
+
+    /// GET /api/v1/ai/meal-suggestions
+    func aiMealSuggestions() async throws -> MealSuggestionsResponse {
+        return try await get("api/v1/ai/meal-suggestions")
+    }
+
+    /// GET /api/v1/nutrition/barcode/:code
+    func nutritionBarcode(barcode: String) async throws -> BarcodeResponse {
+        return try await get("api/v1/nutrition/barcode/\(barcode)")
+    }
+
+    /// POST /api/v1/ai/analyze-meal
+    func aiAnalyzeMeal(text: String?, imageBase64: String?) async throws -> AnalyzeMealResponse {
+        var body: [String: Any] = [:]
+        if let t = text { body["text"] = t }
+        if let i = imageBase64 { body["imageBase64"] = i }
+        return try await post("api/v1/ai/analyze-meal", body: body)
+    }
+
     // MARK: - Private
 
     func get<T: Decodable>(_ path: String) async throws -> T {

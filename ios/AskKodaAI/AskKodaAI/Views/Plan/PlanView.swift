@@ -249,19 +249,18 @@ struct PlanView: View {
             let res = try await api.planAdaptDay(minutesAvailable: nil, location: adaptInput, soreness: nil, intensity: nil, equipmentContext: nil)
             
             await MainActor.run {
-                if let updatedPlan = res.plan {
-                    let mappedExercises = updatedPlan.training_plan?.exercises?.map { ex in
-                        WeeklyPlanExercise(name: ex.name, equipment: nil, sets: ex.sets, reps: ex.reps, coaching_cue: ex.notes)
-                    }
-                    
-                    let updatedDay = WeeklyPlanDay(date_local: updatedPlan.date_local, day_label: selectedDay?.day_label, focus: selectedDay?.focus, intensity: selectedDay?.intensity, target_duration_minutes: updatedPlan.training_plan?.exercises != nil ? 45 : 0, rationale: selectedDay?.rationale, equipment_context: selectedDay?.equipment_context, exercises: mappedExercises)
-                    
-                    if let index = weeklyPlan?.days?.firstIndex(where: { $0.date_local == selectedDay?.date_local }) {
-                        weeklyPlan?.days?[index] = updatedDay
-                        selectedDay = updatedDay
-                        adaptInput = ""
-                        isAdapting = false
-                    }
+                let updatedPlan = res.plan
+                let mappedExercises = updatedPlan.training_plan?.exercises?.map { ex in
+                    WeeklyPlanExercise(name: ex.name, equipment: nil, sets: ex.sets, reps: ex.reps, coaching_cue: ex.notes)
+                }
+                
+                let updatedDay = WeeklyPlanDay(date_local: updatedPlan.date_local, day_label: selectedDay?.day_label, focus: selectedDay?.focus, intensity: selectedDay?.intensity, target_duration_minutes: updatedPlan.training_plan?.exercises != nil ? 45 : 0, rationale: selectedDay?.rationale, equipment_context: selectedDay?.equipment_context, exercises: mappedExercises)
+                
+                if let index = weeklyPlan?.days?.firstIndex(where: { $0.date_local == selectedDay?.date_local }) {
+                    weeklyPlan?.days?[index] = updatedDay
+                    selectedDay = updatedDay
+                    adaptInput = ""
+                    isAdapting = false
                 }
             }
         } catch {

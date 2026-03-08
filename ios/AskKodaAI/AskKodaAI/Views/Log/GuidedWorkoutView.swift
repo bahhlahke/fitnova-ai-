@@ -13,6 +13,10 @@ struct GuidedWorkoutView: View {
     @EnvironmentObject var auth: SupabaseService
     @StateObject private var healthKit = HealthKitService.shared
     @State private var exercises: [PlanExercise] = []
+    
+    init(exercises: [PlanExercise] = []) {
+        self._exercises = State(initialValue: exercises)
+    }
     @State private var exerciseIndex = 0
     @State private var setIndex = 0
     @State private var phase: Phase = .loading
@@ -550,7 +554,7 @@ struct GuidedWorkoutView: View {
                     }
                 }
                 
-                if i == 0 || (neuralRestMode && heartRate <= recoveryTarget && i < restSeconds - 10) {
+                if i == 0 || (neuralRestMode && (healthKit.currentHeartRate ?? 0) <= recoveryTarget && i < restSeconds - 10) {
                     await MainActor.run { phase = .work }
                     break
                 }
@@ -832,7 +836,6 @@ struct GuidedWorkoutView: View {
         }
     }
     
-    private func selectedItems: [PhotosPickerItem] = [] // Temp holder for PhotosPicker
 
     // MARK: - Helpers
     

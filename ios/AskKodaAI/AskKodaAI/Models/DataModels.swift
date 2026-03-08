@@ -141,3 +141,31 @@ struct CoachNudge: Codable {
     var expires_at: String?
     var acknowledged_at: String?
 }
+// MARK: - community
+
+struct ConnectionRow: Codable {
+    var connection_id: String?
+    var user_id_1: String?
+    var user_id_2: String?
+    var status: String?
+    var created_at: String?
+    var profile_1: UserProfile?
+    var profile_2: UserProfile?
+}
+
+struct AccountabilityPartner: Codable {
+    var partner_id: String?
+    var user_id: String?
+    var partner_user_id: String?
+    var status: String?
+    var partner_profile: UserProfile?
+}
+
+struct ChallengeItem: Codable {
+    var challenge_id: String?
+    var name: String?
+    var description: String?
+    var start_date: String?
+    var end_date: String?
+    var participant_count: Int?
+}

@@ -30,7 +30,14 @@ struct OnboardingCheckView: View {
                 MainTabView()
             }
         }
-        .task { await check() }
+        .task { 
+            if ProcessInfo.processInfo.environment["E2E_AUTO_LOGIN"] == "true" {
+                checked = true
+                needsOnboarding = false
+            } else {
+                await check()
+            }
+        }
     }
 
     private func check() async {

@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct Trophy: Identifiable {
+struct TrophyItem: Identifiable {
     let id: String
     let name: String
     let description: String
@@ -34,18 +34,16 @@ struct Trophy: Identifiable {
 }
 
 // Temporary hardcoded achievements for visual demo of the Elite Gamification Protocol
-let mockTrophies: [Trophy] = [
-    Trophy(id: "t1", name: "Titanium CNS", description: "Logged 10 consecutive workouts.", aiRationale: "Neural analysis detects high neuromuscular efficiency. Your recovery-to-strain ratio remained above 85% despite increasing volume.", dateEarned: Date(), iconSystemName: "bolt.fill", rarity: .epic),
-    Trophy(id: "t2", name: "Volume Legend", description: "Moved >10k lbs in a session.", aiRationale: "Synthesis of session 03-05 shows a 12% increase in tonnage. Mechanical tension thresholds reached an all-time record.", dateEarned: Calendar.current.date(byAdding: .day, value: -2, to: Date())!, iconSystemName: "dumbbell.fill", rarity: .legendary),
-    Trophy(id: "t3", name: "First Blood", description: "Completed 1st Koda AI protocol.", aiRationale: "Initial baseline established. Biometric sync confirms physiological response matches predicted metabolic expenditure.", dateEarned: Calendar.current.date(byAdding: .day, value: -14, to: Date())!, iconSystemName: "flame.fill", rarity: .common)
+let mockTrophies: [TrophyItem] = [
+    TrophyItem(id: "t1", name: "Titanium CNS", description: "Logged 10 consecutive workouts.", aiRationale: "Neural analysis detects high neuromuscular efficiency. Your recovery-to-strain ratio remained above 85% despite increasing volume.", dateEarned: Date(), iconSystemName: "bolt.fill", rarity: .epic),
+    TrophyItem(id: "t2", name: "Volume Legend", description: "Moved >10k lbs in a session.", aiRationale: "Synthesis of session 03-05 shows a 12% increase in tonnage. Mechanical tension thresholds reached an all-time record.", dateEarned: Calendar.current.date(byAdding: .day, value: -2, to: Date())!, iconSystemName: "dumbbell.fill", rarity: .legendary),
+    TrophyItem(id: "t3", name: "First Blood", description: "Completed 1st Koda AI protocol.", aiRationale: "Initial baseline established. Biometric sync confirms physiological response matches predicted metabolic expenditure.", dateEarned: Calendar.current.date(byAdding: .day, value: -14, to: Date())!, iconSystemName: "flame.fill", rarity: .common)
 ]
 
 struct TrophyRoomView: View {
     @EnvironmentObject var auth: SupabaseService
-    @State private var trophies: [Trophy] = []
+    @State private var trophies: [TrophyItem] = []
     @State private var loading = true
-    
-    // Animation states
     @State private var appear = false
 
     private var api: KodaAPIService {
@@ -54,7 +52,6 @@ struct TrophyRoomView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Header
             VStack(alignment: .leading, spacing: 4) {
                 Text("Elite Protocols")
                     .font(.title2)
@@ -96,7 +93,7 @@ struct TrophyRoomView: View {
             }
         }
         .padding(.vertical)
-        .background(Color.black.opacity(0.3)) // Subtle glass backing
+        .background(Color.black.opacity(0.3))
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .overlay(
             RoundedRectangle(cornerRadius: 24)
@@ -111,14 +108,14 @@ struct TrophyRoomView: View {
         do {
             let res = try await api.getTrophies()
             let mapped = res.trophies.map { t in
-                Trophy(
+                TrophyItem(
                     id: t.id,
                     name: t.name,
                     description: t.description ?? "",
                     aiRationale: t.ai_rationale ?? "",
                     dateEarned: DateHelpers.fromISO(t.earned_at) ?? Date(),
                     iconSystemName: t.icon_slug ?? "bolt.fill",
-                    rarity: Trophy.Rarity(rawValue: t.rarity?.uppercased() ?? "COMMON") ?? .common
+                    rarity: TrophyItem.Rarity(rawValue: t.rarity?.uppercased() ?? "COMMON") ?? .common
                 )
             }
             await MainActor.run {
@@ -133,13 +130,11 @@ struct TrophyRoomView: View {
 }
 
 struct TrophyCard: View {
-    let trophy: Trophy
-    
-    // Interaction
+    let trophy: TrophyItem
     @State private var isTapped = false
     
     var body: some View {
-            // Medallic ProBadge
+        VStack(spacing: 12) {
             ProBadge(
                 type: BadgeType(rawValue: trophy.name.lowercased().replacingOccurrences(of: " ", with: "_")) ?? .architect,
                 size: 80

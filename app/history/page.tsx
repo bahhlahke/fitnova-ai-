@@ -166,7 +166,7 @@ export default function HistoryPage() {
           </div>
         ) : (
           <p className="text-sm font-medium italic text-white/80 leading-relaxed border-l border-fn-accent/30 pl-4 py-1">
-            "{aiSummary ?? "Synthesizing longitudinal data strands... Complete at least 5 sessions to establish a stable evolutionary baseline."}"
+            &quot;{aiSummary ?? "Synthesizing longitudinal data strands... Complete at least 5 sessions to establish a stable evolutionary baseline."}&quot;
           </p>
         )}
       </Card>
