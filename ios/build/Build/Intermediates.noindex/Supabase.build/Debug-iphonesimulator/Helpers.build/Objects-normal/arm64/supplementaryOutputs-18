@@ -1,0 +1,23 @@
+{
+  "/Users/blakeaycock/code/fitnessAI/ios/build/SourcePackages/checkouts/supabase-swift/Sources/Helpers/HTTP/LoggerInterceptor.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/LoggerInterceptor.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/LoggerInterceptor.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/LoggerInterceptor.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/LoggerInterceptor.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/LoggerInterceptor.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/build/SourcePackages/checkouts/supabase-swift/Sources/Helpers/HTTP/RetryRequestInterceptor.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/RetryRequestInterceptor.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/RetryRequestInterceptor.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/RetryRequestInterceptor.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/RetryRequestInterceptor.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/RetryRequestInterceptor.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/build/SourcePackages/checkouts/supabase-swift/Sources/Helpers/JWT.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/JWT.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/JWT.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/JWT.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/JWT.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Helpers.build/Objects-normal/arm64/JWT.swiftdeps"
+  }
+}

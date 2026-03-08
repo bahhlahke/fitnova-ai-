@@ -1,0 +1,23 @@
+{
+  "/Users/blakeaycock/code/fitnessAI/ios/build/SourcePackages/checkouts/supabase-swift/Sources/Auth/Internal/Keychain.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Keychain.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Keychain.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Keychain.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Keychain.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Keychain.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/build/SourcePackages/checkouts/supabase-swift/Sources/Auth/Internal/PKCE.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/PKCE.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/PKCE.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/PKCE.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/PKCE.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/PKCE.swiftdeps"
+  },
+  "/Users/blakeaycock/code/fitnessAI/ios/build/SourcePackages/checkouts/supabase-swift/Sources/Auth/Internal/SessionManager.swift" : {
+    "const-values" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/SessionManager.swiftconstvalues",
+    "dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/SessionManager.d",
+    "diagnostics" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/SessionManager.dia",
+    "object" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/SessionManager.o",
+    "swift-dependencies" : "/Users/blakeaycock/code/fitnessAI/ios/build/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/SessionManager.swiftdeps"
+  }
+}

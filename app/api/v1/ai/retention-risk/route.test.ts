@@ -19,7 +19,7 @@ describe("retention-risk route", () => {
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
     } as any);
 
-    const res = await POST();
+    const res = await POST(new Request("http://localhost", { method: "POST" }));
     expect(res.status).toBe(401);
   });
 
@@ -50,7 +50,7 @@ describe("retention-risk route", () => {
       from,
     } as any);
 
-    const res = await POST();
+    const res = await POST(new Request("http://localhost", { method: "POST" }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(typeof body.risk_score).toBe("number");
