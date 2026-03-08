@@ -8,9 +8,16 @@ import SwiftUI
 struct CoachView: View {
     @EnvironmentObject var auth: SupabaseService
     @State private var input = ""
-    @State private var messages: [(role: String, text: String)] = []
+    @State private var messages: [MessageContent] = []
     @State private var isLoading = false
     @State private var hasLoadedHistory = false
+
+    struct MessageContent: Identifiable {
+        let id = UUID()
+        let role: String
+        let text: String
+        let action: AIAction?
+    }
 
     private var api: KodaAPIService {
         KodaAPIService(getAccessToken: { await auth.accessToken })
@@ -25,8 +32,8 @@ struct CoachView: View {
                             if messages.isEmpty {
                                 emptyStateCard
                             } else {
-                                ForEach(Array(messages.enumerated()), id: \.offset) { _, m in
-                                    MessageBubble(role: m.role, text: m.text)
+                                ForEach(messages) { m in
+                                    MessageBubble(message: m)
                                 }
                             }
                             if isLoading {
@@ -44,7 +51,7 @@ struct CoachView: View {
                     .scrollDismissesKeyboard(.interactively)
                     .onChange(of: messages.count) { _, _ in
                         if let last = messages.indices.last {
-                            proxy.scrollTo(last, anchor: .bottom)
+                            proxy.scrollTo(messages[last].id, anchor: .bottom)
                         }
                     }
                 }
@@ -80,18 +87,18 @@ struct CoachView: View {
     private func send() {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        messages.append((role: "user", text: text))
+        messages.append(MessageContent(role: "user", text: text, action: nil))
         input = ""
         isLoading = true
         Task {
             do {
                 let response = try await api.aiRespond(message: text)
                 await MainActor.run {
-                    messages.append((role: "assistant", text: response.reply))
+                    messages.append(MessageContent(role: "assistant", text: response.reply, action: response.action))
                 }
             } catch {
                 await MainActor.run {
-                    messages.append((role: "assistant", text: "Sorry, something went wrong: \(error.localizedDescription)"))
+                    messages.append(MessageContent(role: "assistant", text: "Sorry, something went wrong: \(error.localizedDescription)", action: nil))
                 }
             }
             await MainActor.run { isLoading = false }
@@ -103,7 +110,7 @@ struct CoachView: View {
             let response = try await api.aiHistory()
             if let hist = response.history, !hist.isEmpty {
                 await MainActor.run {
-                    self.messages = hist.map { (role: $0.role, text: $0.content) }
+                    self.messages = hist.map { MessageContent(role: $0.role, text: $0.content, action: nil) }
                 }
             }
         } catch {
@@ -131,27 +138,51 @@ struct CoachView: View {
 }
 
 struct MessageBubble: View {
-    let role: String
-    let text: String
+    let message: CoachView.MessageContent
 
     var body: some View {
-        HStack {
-            if role == "user" { Spacer(minLength: 60) }
-            Text(text)
-                .padding(12)
-                .background(role == "user" ? Brand.Color.accent : Brand.Color.surface)
-                .background {
-                    if role == "assistant" {
-                        Color.clear.background(.ultraThinMaterial)
+        VStack(alignment: message.role == "user" ? .trailing : .leading, spacing: 8) {
+            HStack {
+                if message.role == "user" { Spacer(minLength: 60) }
+                Text(message.text)
+                    .padding(12)
+                    .background(message.role == "user" ? Brand.Color.accent : Brand.Color.surface)
+                    .background {
+                        if message.role == "assistant" {
+                            Color.clear.background(.ultraThinMaterial)
+                        }
                     }
+                    .foregroundColor(message.role == "user" ? .black : .primary)
+                    .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(message.role == "user" ? Brand.Color.accent : Brand.Color.border, lineWidth: 1)
+                    )
+                if message.role == "assistant" { Spacer(minLength: 60) }
+            }
+            
+            if let action = message.action, action.type == "video_demo", let urlStr = action.payload?.video_url, let url = URL(string: urlStr) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "play.rectangle.fill")
+                            .font(.caption2)
+                        Text("ELITE DEMONSTRATION: \(action.payload?.exercise_name?.uppercased() ?? "EXERCISE")")
+                            .font(.system(size: 8, weight: .black))
+                            .tracking(1)
+                    }
+                    .foregroundStyle(Brand.Color.accent)
+                    
+                    CinemaPlayerView(videoURL: url)
+                        .frame(height: 300)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Brand.Color.accent.opacity(0.3), lineWidth: 1)
+                        )
                 }
-                .foregroundColor(role == "user" ? .black : .primary)
-                .cornerRadius(16)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(role == "user" ? Brand.Color.accent : Brand.Color.border, lineWidth: 1)
-                )
-            if role == "assistant" { Spacer(minLength: 60) }
+                .padding(.leading, 12)
+                .padding(.top, 4)
+            }
         }
     }
 }

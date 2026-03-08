@@ -139,27 +139,11 @@ struct TrophyCard: View {
     @State private var isTapped = false
     
     var body: some View {
-        VStack(spacing: 12) {
-            
-            // Hex/Badge Shape
-            ZStack {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(LinearGradient(colors: trophy.rarity.colors, startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 80, height: 80)
-                    .rotationEffect(.degrees(isTapped ? 10 : 0))
-                    .shadow(color: trophy.rarity.colors.first!.opacity(0.5), radius: 10, x: 0, y: 5)
-                
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.black.opacity(0.8))
-                    .frame(width: 72, height: 72)
-                    .rotationEffect(.degrees(isTapped ? 10 : 0))
-                
-                Image(systemName: trophy.iconSystemName)
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundStyle(LinearGradient(colors: trophy.rarity.colors, startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .rotationEffect(.degrees(isTapped ? 10 : 0))
-                    .shadow(color: trophy.rarity.colors.first!.opacity(0.8), radius: 5)
-            }
+            // Medallic ProBadge
+            ProBadge(
+                type: BadgeType(rawValue: trophy.name.lowercased().replacingOccurrences(of: " ", with: "_")) ?? .architect,
+                size: 80
+            )
             .scaleEffect(isTapped ? 0.9 : 1.0)
             
             VStack(spacing: 4) {

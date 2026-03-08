@@ -448,8 +448,18 @@ struct GuidedWorkoutView: View {
                 Text("Workout complete!")
                     .font(.title)
                 if saved {
-                    Text("Saved to your log.")
-                        .foregroundStyle(.green)
+                    VStack(spacing: 24) {
+                        ProBadge(
+                            type: exercises.first?.name?.lowercased().contains("squat") == true ? .iron_core : .architect,
+                            label: "Elite Attainment",
+                            size: 150
+                        )
+                        .padding(.vertical, 20)
+                        
+                        Text("Session Decoded. Protocol Logged.")
+                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                            .foregroundStyle(Brand.Color.accent)
+                    }
                 }
                 if insightLoading {
                     ProgressView("Getting insight…")

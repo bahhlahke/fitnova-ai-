@@ -108,14 +108,35 @@ enum ExerciseImages {
         map["chest-supported row"] = rawPexels["chest_row"]!
         map["renegade row"] = rawPexels["barbell_row"]!
 
-        // PRO IMAGES
+        // COMPELLLING COMPOUND BASICS (4K)
+        map["back squat"] = "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4"
+        map["bench press"] = "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4"
+        map["deadlift"] = "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4"
+        map["squat"] = "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4"
+        map["pull-up"] = "https://videos.pexels.com/video-files/4366620/4366620-hd_1080_1920_25fps.mp4"
+        map["overhead press"] = "https://videos.pexels.com/video-files/5267149/5267149-hd_1080_1920_24fps.mp4"
+        map["goblet squat"] = "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4"
+        map["front squat"] = "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4"
+        map["kettlebell swing"] = "https://videos.pexels.com/video-files/4804368/4804368-hd_1080_1920_25fps.mp4"
+        
+        // Elite Accessories & Mobility
+        map["bulgarian split squat"] = "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4"
+        map["box jumps"] = "https://videos.pexels.com/video-files/4405105/4405105-hd_1080_1920_30fps.mp4"
+        map["jump rope"] = "https://videos.pexels.com/video-files/4915605/4915605-hd_1080_1920_25fps.mp4"
+        map["burpees"] = "https://videos.pexels.com/video-files/5319451/5319451-hd_1080_1920_25fps.mp4"
+        map["mountain climbers"] = "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4"
+        map["devil press"] = "https://videos.pexels.com/video-files/5320015/5320015-hd_1080_1920_25fps.mp4"
+        map["muscle-up"] = "https://videos.pexels.com/video-files/4366620/4366620-hd_1080_1920_25fps.mp4"
+        map["pistol squat"] = "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4"
+        map["90/90 hip switches"] = "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4"
+        map["pigeon stretch"] = "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4"
+
+        // PRO IMAGES FALLBACKS
         map["leg press"] = "/images/refined/leg_press_pro.png"
-        map["front squat"] = "/images/refined/front_squat_pro.png"
         map["bodyweight squat"] = "/images/refined/bodyweight_squat_pro.png"
         map["incline dumbbell press"] = "/images/refined/incline_db_press_pro.png"
         map["dumbbell press"] = "/images/refined/dumbbell_press_pro.png"
         map["dumbbell rdl"] = "/images/refined/dumbbell_rdl_pro.png"
-        map["kettlebell swing"] = "/images/refined/kettlebell_swing_pro.png"
         map["seated row"] = "/images/refined/seated_row_pro.png"
         map["lat pulldown"] = "/images/refined/lat_pulldown_pro.png"
         map["barbell row"] = "/images/refined/barbell_row_pro.png"

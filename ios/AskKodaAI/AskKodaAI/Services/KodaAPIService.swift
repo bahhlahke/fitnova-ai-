@@ -133,6 +133,17 @@ struct APIErrorBody: Decodable {
 
 struct AIReplyResponse: Decodable {
     let reply: String
+    let action: AIAction?
+}
+
+struct AIAction: Decodable {
+    let type: String
+    let payload: AIActionPayload?
+}
+
+struct AIActionPayload: Decodable {
+    let exercise_name: String?
+    let video_url: String?
 }
 
 struct HistoryResponse: Decodable {
