@@ -29,6 +29,7 @@ type GuidedExercise = {
   rationale?: string;
   image_url?: string | null;
   video_url?: string | null;
+  cinema_video_url?: string | null;
 };
 
 const FALLBACK_EXERCISES: GuidedExercise[] = [
@@ -230,6 +231,7 @@ export default function GuidedWorkoutPage() {
             rationale: e.rationale,
             image_url: e.image_url ?? null,
             video_url: e.video_url ?? null,
+            cinema_video_url: e.cinema_video_url ?? null,
           }));
           setExercises(newExercises);
 
@@ -675,7 +677,7 @@ export default function GuidedWorkoutPage() {
     );
   }
 
-  const imageUrl = getExerciseImageUrl(exercise.name, exercise.video_url || exercise.image_url);
+  const imageUrl = getExerciseImageUrl(exercise.name, exercise.cinema_video_url || exercise.video_url || exercise.image_url);
   const progressLabel = `Move ${exerciseIndex + 1}/${totalExercises} · Set ${setIndex + 1}/${totalSets}`;
 
   return (
