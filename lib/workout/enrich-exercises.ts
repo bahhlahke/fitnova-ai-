@@ -39,6 +39,9 @@ export const EXERCISE_VIDEO_MAP: Record<string, string> = {
     "chest-supported row": "https://videos.pexels.com/video-files/4010375/4010375-hd_1920_1080_25fps.mp4",
     "renegade row": "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
     "zone 2 finisher": "https://videos.pexels.com/video-files/5267151/5267151-hd_1920_1080_24fps.mp4",
+    "pull-up": "https://videos.pexels.com/video-files/4366620/4366620-hd_1080_1920_25fps.mp4",
+    "overhead press": "https://videos.pexels.com/video-files/5267149/5267149-hd_1080_1920_24fps.mp4",
+    "treadmill": "https://videos.pexels.com/video-files/4405105/4405105-hd_1080_1920_30fps.mp4",
 };
 
 /**
@@ -49,7 +52,8 @@ export const CINEMA_ASSET_MAP: Record<string, string> = {
     "back squat": "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
     "bench press": "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4",
     "deadlift": "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4",
-    // Add more as sourced...
+    "pull-up": "https://videos.pexels.com/video-files/4366620/4366620-hd_1080_1920_25fps.mp4",
+    "overhead press": "https://videos.pexels.com/video-files/5267149/5267149-hd_1080_1920_24fps.mp4",
 };
 
 export function enrichExercise(name: string) {

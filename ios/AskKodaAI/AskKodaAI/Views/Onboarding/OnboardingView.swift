@@ -98,10 +98,10 @@ struct OnboardingView: View {
                         .padding(.horizontal)
                         
                         EliteSelectionGrid(items: [
-                            EliteSelectionItem(id: "hypertrophy", title: "Titanium Hypertrophy", subtitle: "Mechanical tension focus. Build absolute mass.", icon: "dumbbell.fill", imageURL: nil),
-                            EliteSelectionItem(id: "endurance", title: "Aero Engine", subtitle: "Metabolic conditioning & VO2 max optimization.", icon: "bolt.heart.fill", imageURL: nil),
-                            EliteSelectionItem(id: "hybrid", title: "Rogue Hybrid", subtitle: "The ultimate athlete. Strength meets endurance.", icon: "shield.fill", imageURL: nil),
-                            EliteSelectionItem(id: "longevity", title: "Vitality Protocol", subtitle: "Sustainable health and biomechanical preservation.", icon: "leaf.fill", imageURL: nil)
+                            EliteSelectionItem(id: "hypertrophy", title: "Titanium Hypertrophy", subtitle: "Mechanical tension focus. Build absolute mass.", icon: "dumbbell.fill", imageURL: "https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"),
+                            EliteSelectionItem(id: "endurance", title: "Aero Engine", subtitle: "Metabolic conditioning & VO2 max optimization.", icon: "bolt.heart.fill", imageURL: "https://images.pexels.com/photos/1552252/pexels-photo-1552252.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"),
+                            EliteSelectionItem(id: "hybrid", title: "Rogue Hybrid", subtitle: "The ultimate athlete. Strength meets endurance.", icon: "shield.fill", imageURL: "https://images.pexels.com/photos/6456108/pexels-photo-6456108.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"),
+                            EliteSelectionItem(id: "longevity", title: "Vitality Protocol", subtitle: "Sustainable health and biomechanical preservation.", icon: "leaf.fill", imageURL: "https://images.pexels.com/photos/4056723/pexels-photo-4056723.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2")
                         ], selection: $squad)
                     }
                     .listRowBackground(Color.clear)
