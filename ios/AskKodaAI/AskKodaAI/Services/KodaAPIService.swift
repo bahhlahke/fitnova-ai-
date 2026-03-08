@@ -25,6 +25,16 @@ struct KodaAPIService {
         }()
         return try await post("api/v1/ai/respond", body: body)
     }
+
+    /// GET /api/v1/ai/coach-desk — Proactive mastery insights.
+    func aiCoachDesk() async throws -> CoachDeskResponse {
+        try await get("api/v1/ai/coach-desk")
+    }
+
+    /// GET /api/v1/user/trophies — Earned elite protocols.
+    func getTrophies() async throws -> TrophyResponse {
+        try await get("api/v1/user/trophies")
+    }
     
     /// GET /api/v1/ai/history — AI chat history.
     func aiHistory() async throws -> HistoryResponse {
@@ -47,6 +57,16 @@ struct KodaAPIService {
     /// GET /api/v1/analytics/performance — 14-day analytics.
     func analyticsPerformance() async throws -> PerformanceResponse {
         try await get("api/v1/analytics/performance")
+    }
+    
+    /// GET /api/v1/community/squad/overview — Squad leaderboard and rank.
+    func communitySquadOverview() async throws -> SquadOverviewResponse {
+        try await get("api/v1/community/squad/overview")
+    }
+    
+    /// GET /api/v1/community/squad/vibes — Real-time squad activity feed.
+    func communitySquadVibes() async throws -> SquadVibesResponse {
+        try await get("api/v1/community/squad/vibes")
     }
 
     // MARK: - Private
@@ -229,4 +249,63 @@ struct AnyCodable: Codable {
         default: try c.encodeNil()
         }
     }
+}
+struct ProductEventRecord: Decodable {
+    let event_id: String?
+    let event_name: String?
+}
+
+// Phase 5: Squad Types
+struct SquadOverviewResponse: Decodable {
+    let squadId: String?
+    let squadName: String?
+    let rank: Int?
+    let leaderboard: [SquadLeaderboardEntry]?
+}
+
+struct SquadLeaderboardEntry: Decodable, Identifiable {
+    let userId: String
+    let name: String
+    let score: Int
+    let rank: Int
+    var id: String { userId }
+}
+
+struct SquadVibesResponse: Decodable {
+    let vibes: [SquadVibe]?
+}
+
+struct SquadVibe: Decodable, Identifiable {
+    let id: String
+    let userName: String
+    let type: String
+    let message: String
+    let time: String
+}
+
+// Phase 5: Coach Desk Types
+struct CoachDeskResponse: Decodable {
+    let insights: [CoachInsight]?
+}
+
+struct CoachInsight: Decodable, Identifiable {
+    let title: String
+    let message: String
+    let urgency: String
+    let cta_route: String?
+    var id: String { title }
+}
+
+struct TrophyResponse: Decodable {
+    let trophies: [Trophy]
+}
+
+struct Trophy: Decodable, Identifiable {
+    let id: String
+    let name: String
+    let description: String?
+    let ai_rationale: String?
+    let icon_slug: String?
+    let rarity: String?
+    let earned_at: String
 }

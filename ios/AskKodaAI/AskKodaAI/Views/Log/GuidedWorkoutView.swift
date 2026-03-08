@@ -22,6 +22,15 @@ struct GuidedWorkoutView: View {
     @State private var insightLoading = false
     @State private var hasSpotify = false
 
+    // Neural Mastery State (Phase 5)
+    @State private var neuralRestMode = true
+    @State private var heartRate = 145
+    @State private var recoveryTarget = 110
+    @State private var isFormCheckActive = false
+    @State private var formCheckLoading = false
+    @State private var formCheckResult: VisionAnalysisResponse?
+    @State private var capturedPhotos: [String] = [] // Base64 strings for simplicity in this flow
+
     // AI Override State
     @State private var isSwapOptionsVisible = false
     @State private var swapInput = ""
@@ -66,6 +75,10 @@ struct GuidedWorkoutView: View {
             
             if isSwapOptionsVisible {
                 neuralOverrideModal
+            }
+            
+            if isFormCheckActive {
+                neuralFormCheckModal
             }
         }
         .navigationTitle("Guided workout")
@@ -173,22 +186,68 @@ struct GuidedWorkoutView: View {
                 if phase == .rest {
                     // Rest UI
                     VStack(spacing: 8) {
-                        Text("REST PHASE")
-                            .font(.caption)
-                            .fontWeight(.black)
-                            .tracking(3)
-                            .foregroundStyle(Color.accentColor)
-                        
-                        Text("\(restRemaining)")
-                            .font(.system(size: 96, weight: .black, design: .rounded))
-                            .italic()
-                            .foregroundStyle(.white)
-                            .shadow(color: .accentColor.opacity(0.5), radius: 20)
-                        
-                        Text("SECONDS")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundStyle(Color.accentColor)
+                        if neuralRestMode {
+                            Text("NEURAL RECOVERY ACTIVE")
+                                .font(.caption2)
+                                .fontWeight(.black)
+                                .tracking(2)
+                                .foregroundStyle(Brand.Color.accent)
+                                .padding(.bottom, 20)
+                            
+                            ZStack {
+                                Circle()
+                                    .stroke(Color.white.opacity(0.1), lineWidth: 4)
+                                Circle()
+                                    .trim(from: 0, to: CGFloat(max(0, min(1, 1 - Double(heartRate - recoveryTarget) / 40.0))))
+                                    .stroke(Brand.Color.accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                                    .rotationEffect(.degrees(-90))
+                                    .animation(.easeInOut, value: heartRate)
+                                
+                                VStack(spacing: -4) {
+                                    Image(systemName: "heart.fill")
+                                        .font(.system(size: 24))
+                                        .foregroundStyle(Brand.Color.accent)
+                                        .symbolEffect(.bounce, options: .repeating, value: heartRate)
+                                    Text("\(heartRate)")
+                                        .font(.system(size: 48, weight: .black, design: .rounded))
+                                        .foregroundStyle(.white)
+                                    Text("BPM")
+                                        .font(.caption2)
+                                        .fontWeight(.bold)
+                                        .foregroundStyle(.white.opacity(0.5))
+                                }
+                            }
+                            .frame(width: 160, height: 160)
+                            
+                            VStack(spacing: 4) {
+                                Text("TARGET: \(recoveryTarget) BPM")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(.white.opacity(0.8))
+                                
+                                Text(heartRate <= recoveryTarget ? "RECOVERY OPTIMAL" : "RECOVERING...")
+                                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    .foregroundStyle(heartRate <= recoveryTarget ? .green : Brand.Color.accent.opacity(0.6))
+                            }
+                            .padding(.top, 12)
+                        } else {
+                            Text("REST PHASE")
+                                .font(.caption)
+                                .fontWeight(.black)
+                                .tracking(3)
+                                .foregroundStyle(Color.accentColor)
+                            
+                            Text("\(restRemaining)")
+                                .font(.system(size: 96, weight: .black, design: .rounded))
+                                .italic()
+                                .foregroundStyle(.white)
+                                .shadow(color: .accentColor.opacity(0.5), radius: 20)
+                            
+                            Text("SECONDS")
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundStyle(Color.accentColor)
+                        }
                         
                         VStack(spacing: 4) {
                             Text("UP NEXT:")
@@ -206,13 +265,13 @@ struct GuidedWorkoutView: View {
                     Spacer()
                     
                     Button(action: advanceRest) {
-                        Text("SKIP REST")
+                        Text(heartRate <= recoveryTarget ? "START NEXT SET" : "SKIP REST")
                             .font(.headline)
                             .fontWeight(.black)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(restRemaining < 10 ? Color.accentColor : Color.white.opacity(0.1))
-                            .foregroundStyle(restRemaining < 10 ? .black : .white)
+                            .background(heartRate <= recoveryTarget ? Brand.Color.accent : Color.white.opacity(0.1))
+                            .foregroundStyle(heartRate <= recoveryTarget ? .black : .white)
                             .clipShape(Capsule())
                     }
                     .padding(.horizontal, 30)
@@ -316,7 +375,7 @@ struct GuidedWorkoutView: View {
                     Spacer().frame(height: 30)
                     
                     // Actions
-                    VStack(spacing: 16) {
+                    VStack(spacing: 12) {
                         Button(action: { advanceSet() }) {
                             Text("LOG SET")
                                 .font(.title3)
@@ -329,21 +388,32 @@ struct GuidedWorkoutView: View {
                                 .shadow(color: .accentColor.opacity(0.3), radius: 20, y: 10)
                         }
                         
-                        Button(action: { isSwapOptionsVisible = true }) {
-                            VStack(spacing: 4) {
-                                Text("AI Override / Swap")
-                                    .font(.caption)
-                                    .fontWeight(.black)
-                                    .textCase(.uppercase)
-                                    .tracking(1)
-                                    .foregroundStyle(Color.accentColor.opacity(0.8))
-                                
-                                if let feedback = swapFeedback {
-                                    Text(feedback)
-                                        .font(.system(size: 10, design: .monospaced))
-                                        .foregroundStyle(.green)
-                                        .multilineTextAlignment(.center)
+                        HStack(spacing: 12) {
+                            Button(action: { isFormCheckActive = true }) {
+                                HStack {
+                                    Image(systemName: "camera.viewfinder")
+                                    Text("NEURAL FORM CHECK")
                                 }
+                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                .padding(.vertical, 10)
+                                .frame(maxWidth: .infinity)
+                                .background(Color.white.opacity(0.05))
+                                .foregroundStyle(Color.accentColor)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.accentColor.opacity(0.3), lineWidth: 1))
+                            }
+                            
+                            Button(action: { isSwapOptionsVisible = true }) {
+                                VStack(spacing: 4) {
+                                    Text("AI OVERRIDE")
+                                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                                        .foregroundStyle(.white.opacity(0.6))
+                                }
+                                .padding(.vertical, 10)
+                                .frame(maxWidth: .infinity)
+                                .background(Color.white.opacity(0.05))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 1))
                             }
                         }
                     }
@@ -434,11 +504,25 @@ struct GuidedWorkoutView: View {
     private func startRestTimer() {
         phase = .rest
         restRemaining = restSeconds
+        
+        if neuralRestMode {
+            heartRate = 148 // Simulate high post-set HR
+            recoveryTarget = 110 // Simulated PhD-level target
+        }
+        
         Task {
             for i in (0..<restSeconds).reversed() {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
-                await MainActor.run { restRemaining = i }
-                if i == 0 {
+                await MainActor.run { 
+                    restRemaining = i 
+                    if neuralRestMode && heartRate > recoveryTarget {
+                        // Simulate HR drop by 1-3 bpm per second
+                        heartRate -= Int.random(in: 1...3)
+                        if heartRate < recoveryTarget { heartRate = recoveryTarget }
+                    }
+                }
+                
+                if i == 0 || (neuralRestMode && heartRate <= recoveryTarget && i < restSeconds - 10) {
                     await MainActor.run { phase = .work }
                     break
                 }
@@ -574,6 +658,124 @@ struct GuidedWorkoutView: View {
         }
         .zIndex(200)
     }
+    
+    // Integrated Motion Lab Modal
+    private var neuralFormCheckModal: some View {
+        ZStack {
+            Color.black.opacity(0.95).ignoresSafeArea().background(.ultraThinMaterial)
+            
+            VStack(spacing: 24) {
+                HStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "camera.viewfinder")
+                            .foregroundStyle(Brand.Color.accent)
+                        Text("NEURAL MOTION ANALYSIS")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .textCase(.uppercase)
+                            .tracking(2)
+                            .foregroundStyle(Brand.Color.accent)
+                    }
+                    Spacer()
+                    Button(action: { isFormCheckActive = false }) {
+                        Image(systemName: "xmark")
+                            .foregroundStyle(.white.opacity(0.5))
+                    }
+                    .disabled(formCheckLoading)
+                }
+                
+                if let result = formCheckResult {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("BIOMECHANICAL SCORE:")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("\(Int(result.score ?? 0))")
+                                .font(.system(size: 24, weight: .black, design: .rounded))
+                                .foregroundStyle(Brand.Color.accent)
+                        }
+                        
+                        Text(result.critique ?? "No critique available.")
+                            .font(.subheadline)
+                            .foregroundStyle(.white)
+                        
+                        if let corr = result.correction {
+                            Text("ADJUSTMENT: \(corr)")
+                                .font(.caption.bold())
+                                .foregroundStyle(Brand.Color.accent)
+                                .padding(8)
+                                .background(Brand.Color.accent.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+                    }
+                    .padding()
+                    .background(Color.white.opacity(0.05))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                } else {
+                    VStack(spacing: 20) {
+                        Image(systemName: "waveform.path.ecg")
+                            .font(.system(size: 44))
+                            .foregroundStyle(Brand.Color.accent.opacity(0.4))
+                        
+                        Text("Record or capture a photo of your set for immediate biomechanical feedback.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        
+                        PhotosPicker(selection: $selectedItems, maxSelectionCount: 1, matching: .images) {
+                            Text("CHOOSE PHOTO")
+                                .font(.system(size: 12, weight: .black))
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Brand.Color.accent)
+                                .foregroundStyle(.black)
+                                .clipShape(Capsule())
+                        }
+                        .onChange(of: selectedItems) { _, items in
+                            Task {
+                                if let item = items.first, let data = try? await item.loadTransferable(type: Data.self) {
+                                    let base64 = "data:image/jpeg;base64,\(data.base64EncodedString())"
+                                    await MainActor.run { 
+                                        capturedPhotos = [base64]
+                                        executeFormCheck()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(.vertical, 40)
+                }
+                
+                if formCheckLoading {
+                    ProgressView("Analyzing Kinetic Chain…")
+                        .tint(Brand.Color.accent)
+                }
+            }
+            .padding(30)
+            .background(Color(.systemGray6))
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .padding(20)
+        }
+    }
+    
+    private func executeFormCheck() {
+        guard !capturedPhotos.isEmpty else { return }
+        formCheckLoading = true
+        formCheckResult = nil
+        Task {
+            do {
+                let res = try await api.aiVision(images: capturedPhotos)
+                await MainActor.run {
+                    formCheckResult = res
+                    formCheckLoading = false
+                }
+            } catch {
+                await MainActor.run { formCheckLoading = false }
+            }
+        }
+    }
+    
+    private var selectedItems: [PhotosPickerItem] = [] // Temp holder for PhotosPicker
 
     private func saveAndGetInsight() async {
         guard let ds = dataService else { return }

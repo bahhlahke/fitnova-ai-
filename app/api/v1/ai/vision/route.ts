@@ -51,12 +51,23 @@ export async function POST(req: Request) {
             const confidence = clampConfidence(
                 typeof parsed.confidence_score === "number" ? parsed.confidence_score : 0.64
             );
+
+            // Persist the result to the motion_analysis table
+            await supabase.from("motion_analysis").insert({
+                user_id: user.id,
+                score: parsed.score,
+                critique: parsed.critique,
+                correction: parsed.correction,
+                image_urls: frames, // Store analyzed frames (base64)
+                exercise_name: "Detected Movement", // Future enhancement: detect name via AI
+            });
+
             return NextResponse.json({
                 ...parsed,
                 confidence_score: confidence,
                 reliability: {
                     confidence_score: confidence,
-                    explanation: "Confidence reflects frame clarity and agreement across sampled movement frames.",
+                    explanation: "Confidence reflects frame clarity and agreement across sampled movement frames. Results persisted to performance history.",
                     limitations: defaultLimitations("motion"),
                 },
             });

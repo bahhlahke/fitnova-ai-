@@ -91,6 +91,8 @@ export default function HomePage() {
   const [retentionRisk, setRetentionRisk] = useState<DashboardRetentionRisk | null>(null);
   const [retentionRiskLoading, setRetentionRiskLoading] = useState(false);
   const [nudges, setNudges] = useState<DashboardNudge[]>([]);
+  const [coachInsights, setCoachInsights] = useState<any[]>([]);
+  const [coachInsightsLoading, setCoachInsightsLoading] = useState(false);
 
   // Telemetry state
   const [telemetryOptIn, setTelemetryOptIn] = useState<boolean>(false);
@@ -351,6 +353,18 @@ export default function HomePage() {
     }
   }, []);
 
+  const loadCoachDesk = useCallback(async () => {
+    setCoachInsightsLoading(true);
+    try {
+      const res = await fetch("/api/v1/ai/coach-desk");
+      const body = await res.json();
+      if (body.insights) setCoachInsights(body.insights);
+    } catch {
+    } finally {
+      setCoachInsightsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadDashboardSnapshot();
   }, [loadDashboardSnapshot]);
@@ -363,13 +377,9 @@ export default function HomePage() {
 
   useEffect(() => {
     if (authState !== "signed_in") return;
-    void loadReadinessInsight();
-    void loadWeeklyInsight();
-    void loadProjection();
-    void loadBriefing();
-    void loadWeeklyPlan();
     void loadPerformanceAnalytics();
     void loadRetentionRisk();
+    void loadCoachDesk();
   }, [
     authState,
     loadBriefing,
@@ -379,6 +389,7 @@ export default function HomePage() {
     loadRetentionRisk,
     loadWeeklyPlan,
     loadWeeklyInsight,
+    loadCoachDesk,
   ]);
 
   useDataRefresh(["dashboard"], () => {
@@ -391,6 +402,7 @@ export default function HomePage() {
     void loadWeeklyPlan();
     void loadPerformanceAnalytics();
     void loadRetentionRisk();
+    void loadCoachDesk();
   });
 
   const streak = useMemo(() => {
@@ -799,6 +811,38 @@ export default function HomePage() {
               ) : (
                 <div className="text-xs leading-relaxed text-fn-muted font-mono h-[80px] flex items-center justify-center border border-dashed border-white/10 rounded-lg">
                   System awaiting initialization.
+                </div>
+              )}
+              {/* Coach's Desk Mastery Insights */}
+              {(coachInsights.length > 0 || coachInsightsLoading) && (
+                <div className="rounded-xl bg-fn-accent/5 border border-fn-accent/20 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">🛡️</span>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Coach&apos;s Desk</p>
+                  </div>
+                  {coachInsightsLoading ? (
+                    <div className="space-y-2 animate-pulse">
+                      <div className="h-2 w-full bg-fn-accent/10 rounded"></div>
+                      <div className="h-2 w-2/3 bg-fn-accent/10 rounded"></div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {coachInsights.map((insight: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className={`space-y-1 ${insight.cta_route ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                          onClick={() => {
+                            if (insight.cta_route) {
+                              window.location.href = insight.cta_route;
+                            }
+                          }}
+                        >
+                          <p className="text-[11px] font-black text-white uppercase italic">{insight.title}</p>
+                          <p className="text-[10px] text-fn-ink/60 leading-relaxed line-clamp-2">{insight.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

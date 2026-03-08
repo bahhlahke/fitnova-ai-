@@ -20,7 +20,12 @@ struct HomeView: View {
     @State private var nudgesLoading = false
     @State private var projection: DashboardProjectionResponse?
     @State private var retentionRisk: RetentionRiskResponse?
+    @State private var coachInsights: [CoachInsight] = []
+    @State private var coachInsightsLoading = false
     @State private var errorMessage: String?
+    @State private var showingVisionModal = false
+    @State private var showingGuidedWorkout = false
+    @State private var showingCoachChat = false
     @State private var generating = false
     @State private var refreshTask: Task<Void, Never>?
 
@@ -50,6 +55,7 @@ struct HomeView: View {
                         errorBanner(err)
                     }
                     briefingCard
+                    coachDeskCard
                     todayPlanCard
                     performanceCard
                     projectionCard
@@ -178,6 +184,63 @@ struct HomeView: View {
         }
     }
 
+    @ViewBuilder
+    private var coachDeskCard: some View {
+        if coachInsightsLoading && coachInsights.isEmpty {
+             ProgressView("Synthesizing mastery insights…")
+                .frame(maxWidth: .infinity)
+                .padding()
+                .glassCard()
+        } else if !coachInsights.isEmpty {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Image(systemName: "shield.checkered")
+                        .foregroundStyle(Brand.Color.accent)
+                    Text("COACH'S DESK")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .textCase(.uppercase)
+                        .tracking(2)
+                        .foregroundStyle(Brand.Color.accent)
+                    Spacer()
+                }
+                
+                ForEach(coachInsights) { insight in
+                    Button(action: { handleSteering(insight.cta_route) }) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text(insight.title)
+                                    .font(.subheadline)
+                                    .fontWeight(.black)
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                if insight.urgency == "high" {
+                                    Text("CRITICAL")
+                                        .font(.system(size: 8, weight: .black))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.red.opacity(0.2))
+                                        .foregroundStyle(.red)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                            Text(insight.message)
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.7))
+                                .lineLimit(3)
+                        }
+                        .padding()
+                        .background(Color.white.opacity(0.03))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(insight.urgency == "high" ? Color.red.opacity(0.3) : Color.white.opacity(0.05), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding()
+            .background(Brand.Color.accent.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.Color.accent.opacity(0.1), lineWidth: 1))
+        }
     @ViewBuilder
     private var todayPlanCard: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -365,6 +428,7 @@ struct HomeView: View {
         errorMessage = nil
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await loadBriefing() }
+            group.addTask { await loadCoachDesk() }
             group.addTask { await loadPlan() }
             group.addTask { await loadPerformance() }
             group.addTask { await loadProjection() }
@@ -401,6 +465,17 @@ struct HomeView: View {
             await MainActor.run { errorMessage = error.localizedDescription }
         }
     }
+    
+    private func loadCoachDesk() async {
+        coachInsightsLoading = true
+        defer { coachInsightsLoading = false }
+        do {
+            let res = try await api.aiCoachDesk()
+            await MainActor.run { coachInsights = res.insights ?? [] }
+        } catch {
+            // Non-fatal
+        }
+    }
 
     private func loadPlan() async {
         planLoading = true
@@ -411,6 +486,21 @@ struct HomeView: View {
             await MainActor.run { dailyPlan = p }
         } catch {
             await MainActor.run { errorMessage = error.localizedDescription }
+        }
+    }
+
+    private func handleSteering(_ route: String?) {
+        guard let route = route else { return }
+        switch route {
+        case "/log/workout":
+            // In a real app, this might switch tabs. 
+            // For this specific view, we'll trigger a modal for the guided workout.
+            showingGuidedWorkout = true
+        case "/coach":
+            showingCoachChat = true
+        default:
+            // Could handle other routes like /history or /check-in
+            break
         }
     }
 

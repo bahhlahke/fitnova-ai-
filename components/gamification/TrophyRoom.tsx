@@ -49,13 +49,28 @@ export function TrophyRoom() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // In a real implementation this would fetch from Supabase
-        // For now, we simulate loading the Elite Protocols
-        const timer = setTimeout(() => {
-            setTrophies(MOCK_TROPHIES);
-            setLoading(false);
-        }, 800);
-        return () => clearTimeout(timer);
+        const fetchTrophies = async () => {
+            try {
+                const res = await fetch("/api/v1/user/trophies");
+                const data = await res.json();
+                if (data.trophies) {
+                    setTrophies(data.trophies.map((t: any) => ({
+                        id: t.id,
+                        name: t.name,
+                        description: t.description,
+                        ai_rationale: t.ai_rationale,
+                        date_earned: t.earned_at,
+                        icon_slug: t.icon_slug,
+                        rarity: t.rarity
+                    })));
+                }
+            } catch (e) {
+                console.error("Failed to fetch trophies:", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchTrophies();
     }, []);
 
     if (loading) return <LoadingState />;

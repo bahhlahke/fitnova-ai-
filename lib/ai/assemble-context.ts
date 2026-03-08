@@ -36,7 +36,7 @@ export async function assembleContext(
   const today = toLocalDateString();
   const sevenDaysAgo = new Date(new Date(`${today}T12:00:00`).getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
-  const [profileRes, workoutsRes, nutritionRes, checkInsRes, convoRes, signalsRes, prsRes] = await Promise.all([
+  const [profileRes, workoutsRes, nutritionRes, checkInsRes, convoRes, signalsRes, prsRes, squadRes, motionRes, deskRes] = await Promise.all([
     supabase.from("user_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase
       .from("workout_logs")
@@ -75,6 +75,22 @@ export async function assembleContext(
       .select("exercise_name, highest_1rm, max_weight, last_achieved_at")
       .eq("user_id", userId)
       .order("highest_1rm", { ascending: false }),
+    supabase
+      .from("group_members")
+      .select("group_id, role, groups(name, description)")
+      .eq("user_id", userId),
+    supabase
+      .from("motion_analysis")
+      .select("exercise_name, score, critique, correction, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(3),
+    supabase
+      .from("coach_nudges")
+      .select("message, risk_level, nudge_type, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(3),
   ]);
 
   const parts: string[] = [SYSTEM_BASE];
@@ -119,6 +135,33 @@ export async function assembleContext(
     const lines: string[] = ["Personal Records (Historic PRs):"];
     prList.forEach((pr) => {
       lines.push(`- ${pr.exercise_name}: Est. 1RM ${Math.round(pr.highest_1rm)}kg (Best weight: ${pr.max_weight}kg)`);
+    });
+    parts.push(lines.join("\n"));
+  }
+
+  if (squadRes.data?.length) {
+    const squads = squadRes.data as any[];
+    const lines: string[] = ["Elite Squad Membership:"];
+    squads.forEach((sm) => {
+      lines.push(`- ${sm.groups?.name || "Active Squad"}: ${sm.groups?.description || ""} (Role: ${sm.role})`);
+    });
+    parts.push(lines.join("\n"));
+  }
+
+  if (motionRes.data?.length) {
+    const analysis = motionRes.data as any[];
+    const lines: string[] = ["Recent Biomechanical (Motion Lab) Analysis:"];
+    analysis.forEach((m) => {
+      lines.push(`- ${m.exercise_name}: Score ${m.score}/100. Critique: ${m.critique}. Correction: ${m.correction}`);
+    });
+    parts.push(lines.join("\n"));
+  }
+
+  if (deskRes.data?.length) {
+    const nudges = deskRes.data as any[];
+    const lines: string[] = ["Recent Coach Inbox Proactive Warnings:"];
+    nudges.forEach((n) => {
+      lines.push(`- [${n.risk_level.toUpperCase()}] ${n.message} (Type: ${n.nudge_type})`);
     });
     parts.push(lines.join("\n"));
   }

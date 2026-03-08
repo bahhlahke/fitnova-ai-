@@ -41,11 +41,16 @@ let mockTrophies: [Trophy] = [
 ]
 
 struct TrophyRoomView: View {
+    @EnvironmentObject var auth: SupabaseService
     @State private var trophies: [Trophy] = []
     @State private var loading = true
     
     // Animation states
     @State private var appear = false
+
+    private var api: KodaAPIService {
+        KodaAPIService(getAccessToken: { await auth.accessToken })
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -65,11 +70,16 @@ struct TrophyRoomView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 40)
             } else if trophies.isEmpty {
-                Text("No protocols unlocked yet.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 40)
+                VStack(spacing: 8) {
+                    Image(systemName: "lock.shield")
+                        .font(.system(size: 30))
+                        .foregroundStyle(.secondary)
+                    Text("No protocols unlocked yet.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 40)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 16) {
@@ -93,13 +103,31 @@ struct TrophyRoomView: View {
                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
         )
         .task {
-            // Simulate network load
-            try? await Task.sleep(nanoseconds: 800_000_000)
-            await MainActor.run {
-                self.trophies = mockTrophies
-                self.loading = false
-                self.appear = true
+            await loadTrophies()
+        }
+    }
+
+    private func loadTrophies() async {
+        do {
+            let res = try await api.getTrophies()
+            let mapped = res.trophies.map { t in
+                Trophy(
+                    id: t.id,
+                    name: t.name,
+                    description: t.description ?? "",
+                    aiRationale: t.ai_rationale ?? "",
+                    dateEarned: DateHelpers.fromISO(t.earned_at) ?? Date(),
+                    iconSystemName: t.icon_slug ?? "bolt.fill",
+                    rarity: Trophy.Rarity(rawValue: t.rarity?.uppercased() ?? "COMMON") ?? .common
+                )
             }
+            await MainActor.run {
+                self.trophies = mapped
+                self.loading = false
+                withAnimation { self.appear = true }
+            }
+        } catch {
+            await MainActor.run { self.loading = false }
         }
     }
 }

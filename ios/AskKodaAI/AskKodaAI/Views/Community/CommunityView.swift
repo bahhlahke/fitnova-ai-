@@ -17,8 +17,12 @@ struct CommunityView: View {
     @State private var loading = false
     @State private var errorMessage: String?
     
+    // Squad Mastery State (Phase 5)
+    @State private var selectedTab: CommunityTab = .squad
+    @State private var squadOverview: SquadOverviewResponse?
+    @State private var squadVibes: [SquadVibe] = []
+    
     // Synapse Pulse State
-    @State private var recentPulses: [String] = []
     @State private var showingPulseAnimation = false
     @State private var pulseMessage = ""
 
@@ -26,64 +30,28 @@ struct CommunityView: View {
         KodaAPIService(getAccessToken: { await auth.accessToken })
     }
 
+    enum CommunityTab { case squad, friends }
+
     var body: some View {
         NavigationStack {
-            List {
-                Section("Accountability partner") {
-                    if let p = partner, let name = p.display_name {
-                        Text(name)
-                    } else {
-                        Text("No partner set")
-                            .foregroundStyle(.secondary)
-                    }
+            VStack(spacing: 0) {
+                // Custom Tab Picker
+                HStack(spacing: 20) {
+                    TabButton(title: "Squad Hub", isActive: selectedTab == .squad) { selectedTab = .squad }
+                    TabButton(title: "Social", isActive: selectedTab == .friends) { selectedTab = .friends }
                 }
-                Section("Friends") {
-                    ForEach(Array(acceptedConnections.enumerated()), id: \.offset) { _, row in
-                        HStack {
-                            Text(otherDisplayName(row) ?? "")
-                            Spacer()
-                            Button(action: {
-                                if let id = otherUserId(row) {
-                                    Task { await sendPulse(to: id, name: otherDisplayName(row) ?? "Friend") }
-                                }
-                            }) {
-                                Image(systemName: "bolt.fill")
-                                    .foregroundStyle(Color.accentColor)
-                                    .padding(8)
-                                    .background(Color.accentColor.opacity(0.2))
-                                    .clipShape(Circle())
-                            }
-                        }
-                    }
-                }
-                Section("Pending requests") {
-                    ForEach(Array(pendingConnections.enumerated()), id: \.offset) { _, row in
-                        HStack {
-                            Text(otherDisplayName(row) ?? "")
-                            Spacer()
-                            Button("Accept") {
-                                if let id = otherUserId(row) {
-                                    Task { try? await api.socialFriendsPost(friendId: id, action: "accept"); await load() }
-                                }
-                            }
-                        }
-                    }
-                }
-                Section("Challenges") {
-                    ForEach(challenges, id: \.challenge_id) { c in
-                        HStack {
-                            Text(c.name ?? "")
-                            Spacer()
-                            Button("Join") {
-                                if let id = c.challenge_id {
-                                    Task { try? await api.communityChallengesPost(challengeId: id); await load() }
-                                }
-                            }
-                        }
-                    }
+                .padding(.horizontal)
+                .padding(.top, 10)
+                
+                if selectedTab == .squad {
+                    squadHubView
+                } else {
+                    friendsListView
                 }
             }
+            .fnBackground()
             .navigationTitle("Community")
+            .navigationBarTitleDisplayMode(.inline)
             .refreshable { await load() }
             .task { 
                 await load() 
@@ -91,20 +59,25 @@ struct CommunityView: View {
             }
             .overlay {
                 if showingPulseAnimation {
-                    VStack {
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: 60))
-                            .foregroundStyle(Color.accentColor)
-                            .shadow(color: .accentColor, radius: 20)
-                        Text(pulseMessage)
-                            .font(.headline)
-                            .fontWeight(.black)
-                            .foregroundStyle(.white)
-                            .padding(.top, 8)
+                    ZStack {
+                        Color.black.opacity(0.4).ignoresSafeArea()
+                        VStack {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 80))
+                                .foregroundStyle(Brand.Color.accent)
+                                .shadow(color: Brand.Color.accent, radius: 30)
+                            Text(pulseMessage)
+                                .font(.headline)
+                                .fontWeight(.black)
+                                .foregroundStyle(.white)
+                                .multilineTextAlignment(.center)
+                                .padding(.top, 12)
+                        }
+                        .padding(40)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 32))
+                        .overlay(RoundedRectangle(cornerRadius: 32).stroke(Brand.Color.accent.opacity(0.3), lineWidth: 1))
                     }
-                    .padding(30)
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
                     .transition(.scale.combined(with: .opacity))
                     .zIndex(100)
                 }
@@ -112,12 +85,184 @@ struct CommunityView: View {
         }
     }
 
-    private var acceptedConnections: [ConnectionRow] {
-        connections.filter { $0.status == "accepted" }
+    private var squadHubView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                // Squad Header
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Circle()
+                            .fill(Brand.Color.accent)
+                            .frame(width: 8, height: 8)
+                        Text("ACTIVE COHORT")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(Brand.Color.accent)
+                    }
+                    
+                    Text(squadOverview?.squadName ?? "ELITE PROTOCOL")
+                        .font(.system(size: 32, weight: .black, design: .default))
+                        .italic()
+                        .foregroundStyle(.white)
+                    
+                    HStack {
+                        Text("YOUR RANK:")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.secondary)
+                        Text("#\(squadOverview?.rank ?? 0)")
+                            .font(.headline)
+                            .fontWeight(.black)
+                            .foregroundStyle(Brand.Color.accent)
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Brand.Color.accent.opacity(0.05))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal)
+
+                // Leaderboard Preview
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("SQUAD LEADERBOARD")
+                        .font(.system(size: 12, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .padding(.horizontal)
+                    
+                    VStack(spacing: 1) {
+                        ForEach(squadOverview?.leaderboard ?? []) { entry in
+                            HStack(spacing: 16) {
+                                Text("\(entry.rank)")
+                                    .font(.system(size: 14, weight: .black, design: .monospaced))
+                                    .foregroundStyle(entry.rank <= 3 ? Brand.Color.accent : .secondary)
+                                    .frame(width: 24)
+                                
+                                Text(entry.name)
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(.white)
+                                
+                                Spacer()
+                                
+                                Text("\(entry.score)")
+                                    .font(.system(size: 14, weight: .black, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding()
+                            .background(entry.userId == auth.currentUserId ? Brand.Color.accent.opacity(0.1) : Color.white.opacity(0.02))
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .padding(.horizontal)
+                }
+
+                // Vibes Feed
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("SQUAD VIBES")
+                        .font(.system(size: 12, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .padding(.horizontal)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(squadVibes) { vibe in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text(vibe.userName)
+                                            .font(.caption)
+                                            .fontWeight(.black)
+                                            .foregroundStyle(Brand.Color.accent)
+                                        Spacer()
+                                        Text(vibe.time)
+                                            .font(.system(size: 9))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    
+                                    Text(vibe.message)
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(.white)
+                                        .lineLimit(2)
+                                    
+                                    Button(action: { Task { await sendPulse(to: "global_squad", name: vibe.userName) } }) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "bolt.fill")
+                                            Text("PULSE")
+                                        }
+                                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Brand.Color.accent.opacity(0.2))
+                                        .foregroundStyle(Brand.Color.accent)
+                                        .clipShape(Capsule())
+                                    }
+                                }
+                                .padding()
+                                .frame(width: 200)
+                                .background(Color.white.opacity(0.05))
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.05), lineWidth: 1))
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+            }
+            .padding(.vertical)
+        }
     }
 
-    private var pendingConnections: [ConnectionRow] {
-        connections.filter { $0.status == "pending" }
+    private var friendsListView: some View {
+        List {
+            Section("Accountability partner") {
+                if let p = partner, let name = p.display_name {
+                    Text(name)
+                        .fontWeight(.bold)
+                } else {
+                    Text("No partner set")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Section("Friends") {
+                ForEach(Array(acceptedConnections.enumerated()), id: \.offset) { _, row in
+                    HStack {
+                        Text(otherDisplayName(row) ?? "")
+                            .fontWeight(.bold)
+                        Spacer()
+                        Button(action: {
+                            if let id = otherUserId(row) {
+                                Task { await sendPulse(to: id, name: otherDisplayName(row) ?? "Friend") }
+                            }
+                        }) {
+                            Image(systemName: "bolt.fill")
+                                .foregroundStyle(Brand.Color.accent)
+                                .padding(8)
+                                .background(Brand.Color.accent.opacity(0.2))
+                                .clipShape(Circle())
+                        }
+                    }
+                }
+            }
+            Section("Challenges") {
+                ForEach(challenges, id: \.challenge_id) { c in
+                    HStack {
+                        Text(c.name ?? "")
+                        Spacer()
+                        Button("Join") {
+                            if let id = c.challenge_id {
+                                Task { try? await api.communityChallengesPost(challengeId: id); await load() }
+                            }
+                        }
+                        .font(.caption.bold())
+                        .foregroundStyle(Brand.Color.accent)
+                    }
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+    }
+
+    private var acceptedConnections: [ConnectionRow] {
+        connections.filter { $0.status == "accepted" }
     }
 
     private func otherDisplayName(_ row: ConnectionRow) -> String? {
@@ -132,15 +277,19 @@ struct CommunityView: View {
         loading = true
         defer { loading = false }
         do {
-            let (conns, aRes, cRes) = try await (
+            let (conns, aRes, cRes, sOver, sVibe) = try await (
                 api.socialFriends(),
                 api.socialAccountability(),
-                api.communityChallenges()
+                api.communityChallenges(),
+                api.communitySquadOverview(),
+                api.communitySquadVibes()
             )
             await MainActor.run {
                 connections = conns
                 partner = aRes.partner
                 challenges = cRes.challenges ?? []
+                squadOverview = sOver
+                squadVibes = sVibe.vibes ?? []
             }
         } catch {
             await MainActor.run { errorMessage = error.localizedDescription }
@@ -149,51 +298,55 @@ struct CommunityView: View {
     
     private func setupPulseSubscription() async {
         guard let myId = auth.currentUserId else { return }
-        
         let channel = auth.supabaseClient.channel("synapse_pulses_\(myId)")
         await channel.subscribe()
         
         Task {
             for await message in channel.broadcastStream(event: "pulse") {
                 guard let senderName = message["sender_name"]?.stringValue else { continue }
-                
                 await MainActor.run {
-                    self.pulseMessage = "\(senderName) sent a Synapse Pulse!"
+                    self.pulseMessage = "\(senderName.uppercased()) SENT A PULSE!"
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
                         self.showingPulseAnimation = true
                     }
-                    
-                    // Haptic feedback
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                 }
-                
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
-                
-                await MainActor.run {
-                    withAnimation {
-                        self.showingPulseAnimation = false
-                    }
-                }
+                await MainActor.run { withAnimation { self.showingPulseAnimation = false } }
             }
         }
     }
     
     private func sendPulse(to userId: String, name: String) async {
         guard let myId = auth.currentUserId else { return }
-        
-        // Prepare the broadcast payload
         let payload: AnyJSON = .object([
             "sender_id": .string(myId),
             "sender_name": .string("A Friend"),
             "type": .string("pulse")
         ])
-        
-        // This broadcasts the pulse directly to the recipient's channel
         let channel = auth.supabaseClient.channel("synapse_pulses_\(userId)")
         await channel.subscribe()
         try? await channel.broadcast(event: "pulse", message: payload)
-        
-        // Optional haptic locally
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+    }
+}
+
+private struct TabButton: View {
+    let title: String
+    let isActive: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Text(title)
+                    .font(.system(size: 13, weight: .black))
+                    .foregroundStyle(isActive ? .white : .white.opacity(0.4))
+                
+                Rectangle()
+                    .fill(isActive ? Brand.Color.accent : Color.clear)
+                    .frame(height: 2)
+            }
+        }
     }
 }
