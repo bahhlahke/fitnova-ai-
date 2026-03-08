@@ -158,6 +158,16 @@ struct KodaDataService {
         try await client.from("check_ins").upsert(row).execute()
     }
 
+    // MARK: - connected_signals
+
+    func upsertConnectedSignal(_ signal: ConnectedSignal) async throws {
+        var row = signal
+        row.user_id = userId
+        try await client.from("connected_signals")
+            .upsert(row, onConflict: "user_id,provider,signal_date")
+            .execute()
+    }
+
     // MARK: - onboarding
 
     func fetchOnboarding() async throws -> OnboardingRow? {

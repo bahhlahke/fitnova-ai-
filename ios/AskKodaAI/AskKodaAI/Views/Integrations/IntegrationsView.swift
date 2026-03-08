@@ -13,19 +13,14 @@ import Auth
 struct IntegrationsView: View {
     @EnvironmentObject var auth: SupabaseService
     @StateObject private var healthKit = HealthKitService.shared
+    @StateObject private var spotify = SpotifyService.shared
     @State private var errorMessage: String?
     @State private var showAuthAlert = false
-    @State private var spotifyConnected = false
-    @State private var spotifyLoading = false
     @State private var spotifyConnectError: String?
 
     private var dataService: KodaDataService? {
         guard let uid = auth.currentUserId else { return nil }
         return KodaDataService(client: auth.supabaseClient, userId: uid)
-    }
-
-    private var api: KodaAPIService {
-        KodaAPIService(getAccessToken: { await auth.accessToken })
     }
 
     private let whoopConnectURL: URL? = {
@@ -45,9 +40,9 @@ struct IntegrationsView: View {
                     HStack {
                         Label("Spotify", systemImage: "music.note")
                         Spacer()
-                        if spotifyLoading {
+                        if spotify.isLoading {
                             ProgressView()
-                        } else if spotifyConnected {
+                        } else if spotify.isConnected {
                             Text("Connected")
                                 .font(.caption)
                                 .foregroundStyle(.green)
@@ -63,7 +58,8 @@ struct IntegrationsView: View {
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
-                    Text("Link Spotify for in-app music during guided workouts (web). Connect in browser if needed.")
+                    SpotifyPlayerView()
+                    Text("Koda can read playback state and send play, pause, next, and previous commands to your active Spotify device.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -89,12 +85,17 @@ struct IntegrationsView: View {
                                 .font(.caption)
                                 .foregroundStyle(.red)
                         }
+                        if let summary = healthKit.lastSyncSummary {
+                            Text(summary)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                         if let d = healthKit.lastSyncDate {
                             Text("Last sync: \(d.formatted(date: .abbreviated, time: .shortened))")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        Text("Syncs weight → Progress, sleep → Check-in for the last 90 days.")
+                        Text("Syncs weight to Progress, sleep to Check-in, and sleep plus steps to wearable signals for the last 90 days.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -122,34 +123,37 @@ struct IntegrationsView: View {
                 }
             }
             .navigationTitle("Integrations")
-            .task { await checkSpotifyConnection() }
-            .refreshable { await checkSpotifyConnection() }
+            .task { await refreshIntegrations() }
+            .refreshable { await refreshIntegrations() }
             .alert("Apple Health Access", isPresented: $showAuthAlert) {
                 Button("OK") { }
             } message: {
-                Text("Allow read access for Weight, Sleep, and Step Count so we can sync to your Koda profile.")
+                Text("Allow read access for Weight, Sleep, and Step Count so Koda can keep your progress, check-ins, and wearable signal timeline current.")
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppEnteredForeground"))) { _ in
+                Task { await refreshIntegrations() }
             }
         }
+    }
+
+    private func refreshIntegrations() async {
+        await checkSpotifyConnection()
     }
 
     private func checkSpotifyConnection() async {
         spotifyConnectError = nil
-        do {
-            let token = try await api.spotifyToken()
-            await MainActor.run { 
-                spotifyConnected = !(token.access_token?.isEmpty ?? true) 
-            }
-        } catch {
-            await MainActor.run { spotifyConnected = false }
-        }
+        await spotify.refresh(using: auth)
     }
 
     private func connectSpotify() async {
-        spotifyLoading = true
         spotifyConnectError = nil
-        defer { spotifyLoading = false }
         do {
-            try await auth.supabaseClient.auth.linkIdentity(provider: .spotify)
+            let redirectURL = AppConfig.authRedirectURL ?? URL(string: "kodaai://auth/callback")
+            try await auth.supabaseClient.auth.linkIdentity(
+                provider: .spotify,
+                scopes: SpotifyService.requiredScopes,
+                redirectTo: redirectURL
+            )
             await auth.refreshSession()
             await checkSpotifyConnection()
         } catch {

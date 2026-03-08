@@ -60,9 +60,11 @@ Other: `user_cycle_logs`, `user_badges`, `product_events`.
 
 Auth → Onboarding → Dashboard (plan, briefing, quick actions) → Plan (weekly, adapt, swap) → Log workout (list, quick, guided) → Log nutrition (meals, targets, AI) → Progress (list, add, scan) → Check-in → Settings (profile, export) → Coach (chat, escalate) → Integrations → Community/Friends → Pricing.
 
-## 5. iOS implementation status — 100% feature parity
+## 5. iOS implementation status
 
-**Core:** Auth (magic link, deep link), Dashboard (briefing, plan, performance, **projection card**, **retention risk card**, nudges with **Dismiss/ack**), Plan (weekly, day detail, weekly insight), Coach (chat, escalate list/create/messages), Log workout (list, quick log, **swipe-to-delete**, **process-prs + awards after save**), Guided workout (**process-prs + awards after save**), Log nutrition (meals, targets, **hydration** +0.5 L / reset, **barcode lookup**, **analyze meal** + append, **edit/delete meal**, **nutrition insight**, **meal suggestions**, **awards after add**), Progress (list, add, body comp scan, **AI performance synthesis / progress insight**, **projection**), Check-in, History (workouts + nutrition tabs, expand, edit workout), Vitals (readiness insight), Motion Lab (Form check, 1–3 photos → vision API), Settings (profile, **Edit profile**, **Badges**, Vitals, Integrations, export, onboarding, Pricing, sign out), Integrations (Apple Health, Whoop, **Spotify**), Community/friends, Pricing/Stripe, Onboarding, telemetry.
+Current implementation covers the major user flows and API surfaces, but "production ready" still depends on passing XCTest reliably and validating device-bound integrations on hardware.
+
+**Core:** Auth (magic link, deep link), Dashboard (briefing, plan, performance, **projection card**, **retention risk card**, nudges with **Dismiss/ack**), Plan (weekly, day detail, weekly insight), Coach (chat, escalate list/create/messages), Log workout (list, quick log, **swipe-to-delete**, **process-prs + awards after save**), Guided workout (**process-prs + awards after save**), Log nutrition (meals, targets, **hydration** +0.5 L / reset, **barcode lookup**, **analyze meal** + append, **edit/delete meal**, **nutrition insight**, **meal suggestions**, **awards after add**), Progress (list, add, body comp scan, **AI performance synthesis / progress insight**, **projection**), Check-in, History (workouts + nutrition tabs, expand, edit workout), Vitals (readiness insight), Motion Lab (Form check, 1–3 photos → vision API), Settings (profile, **Edit profile**, **Badges**, Vitals, Integrations, export, onboarding, Pricing, sign out), Integrations (Apple Health, Whoop, **Spotify playback controls**), Community/friends, Pricing/Stripe, Onboarding, telemetry.
 
 **Parity details:**  
 - **Dashboard:** Projection card; Retention Monitor card; **AI Briefing Terminal** (interactive shell with causal rationale).
@@ -73,6 +75,10 @@ Auth → Onboarding → Dashboard (plan, briefing, quick actions) → Plan (week
 - **Onboarding:** Multi-step with **Elite Squad selection** parity.
 
 - **Progress:** "AI Performance Synthesis" (POST `ai/progress-insight`); **Evolutionary Summary** (POST `ai/history-summary`).
-- **Spotify:** Native SDK integration with auth parity via `spotify/token`.
+- **Spotify:** Native playback state and transport controls using the Supabase linked provider token, with Spotify scopes requested during account linking.
+
+**Validated on simulator:** Home, Plan, Coach, Log, Log Workout, Log Nutrition, Guided Workout, Motion Lab, Progress, Body Scan, History, Check-in, Community, Settings, Integrations, Vitals, Pricing, Badges, Coach Support, Meal Plan, Fridge Scanner, Onboarding. Use `npm run test:ios:surfaces` to rebuild this report and screenshots.
+
+**Still requires manual device/account validation:** Apple Health read permissions and live sample sync on physical iPhone; Spotify playback control against an active Spotify device; stable end-to-end XCTest execution in the host app.
 
 **Web-only (no iOS equivalent):** `/admin`, `/coach/ops`. Apple Health **file** import (web).

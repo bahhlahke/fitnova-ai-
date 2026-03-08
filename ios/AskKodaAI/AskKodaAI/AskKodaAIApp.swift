@@ -9,6 +9,7 @@ import SwiftUI
 struct AskKodaAIApp: App {
     @StateObject private var auth = SupabaseService.shared
     @Environment(\.scenePhase) private var scenePhase
+    private let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 
     var body: some Scene {
         WindowGroup {
@@ -18,7 +19,7 @@ struct AskKodaAIApp: App {
                     Task { await auth.setSessionFrom(url: url) }
                 }
                 .onChange(of: scenePhase) { _, newPhase in
-                    if newPhase == .active {
+                    if newPhase == .active && !isRunningTests {
                         Task { await auth.refreshSession() }
                     }
                 }

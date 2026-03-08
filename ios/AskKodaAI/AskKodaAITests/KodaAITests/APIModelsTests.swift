@@ -156,4 +156,22 @@ final class APIModelsTests: XCTestCase {
         XCTAssertNotNil(decoded.url)
         XCTAssertNotNil(decoded.sessionId)
     }
+
+    func testSpotifyTokenResponseSupportsTokenAlias() throws {
+        let json = """
+        {"token":"spotify-provider-token"}
+        """
+        let data = Data(json.utf8)
+        let decoded = try decoder.decode(SpotifyTokenResponse.self, from: data)
+        XCTAssertEqual(decoded.access_token, "spotify-provider-token")
+    }
+
+    func testSpotifyTokenResponseSupportsAccessTokenKey() throws {
+        let json = """
+        {"access_token":"spotify-provider-token"}
+        """
+        let data = Data(json.utf8)
+        let decoded = try decoder.decode(SpotifyTokenResponse.self, from: data)
+        XCTAssertEqual(decoded.access_token, "spotify-provider-token")
+    }
 }

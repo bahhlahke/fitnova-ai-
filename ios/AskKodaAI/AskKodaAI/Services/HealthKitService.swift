@@ -17,6 +17,7 @@ final class HealthKitService: ObservableObject {
 
     @Published private(set) var isAvailable = false
     @Published private(set) var lastSyncDate: Date?
+    @Published private(set) var lastSyncSummary: String?
     @Published private(set) var syncError: String?
     @Published private(set) var isSyncing = false
     @Published private(set) var currentHeartRate: Int?
@@ -44,13 +45,13 @@ final class HealthKitService: ObservableObject {
         let predicate = HKQuery.predicateForSamples(withStart: Date(), end: nil, options: .strictStartDate)
         
         hrQuery = HKAnchoredObjectQuery(type: hrType, predicate: predicate, anchor: nil, limit: HKObjectQueryNoLimit) { [weak self] _, samples, _, _, _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.processHRSamples(samples)
             }
         }
         
         hrQuery?.updateHandler = { [weak self] _, samples, _, _, _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.processHRSamples(samples)
             }
         }
@@ -117,6 +118,9 @@ final class HealthKitService: ObservableObject {
         dateFormatter.timeZone = TimeZone.current
 
         do {
+            var weightCount = 0
+            var sleepCount = 0
+            var stepCount = 0
             // 1) Weight → progress_tracking
             let weightType = HKQuantityType(.bodyMass)
             let weightPredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
@@ -135,6 +139,7 @@ final class HealthKitService: ObservableObject {
                 entry.weight_kg = kg
                 entry.notes = "Synced from Apple Health"
                 try? await dataService.insertProgressEntry(entry)
+                weightCount += 1
             }
 
             // 2) Sleep → check_ins (sleep_hours per day)
@@ -158,9 +163,43 @@ final class HealthKitService: ObservableObject {
                 checkIn.date_local = dateLocal
                 checkIn.sleep_hours = hours
                 try? await dataService.upsertCheckIn(checkIn)
+                var signal = ConnectedSignal()
+                signal.provider = "apple_health"
+                signal.signal_date = dateLocal
+                signal.sleep_hours = hours
+                signal.updated_at = ISO8601DateFormatter().string(from: Date())
+                try? await dataService.upsertConnectedSignal(signal)
+                sleepCount += 1
+            }
+
+            // 3) Steps → connected_signals
+            let stepType = HKQuantityType(.stepCount)
+            let stepPredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+            let stepSamples: [HKQuantitySample] = try await withCheckedThrowingContinuation { cont in
+                let q = HKSampleQuery(sampleType: stepType, predicate: stepPredicate, limit: HKObjectQueryNoLimit, sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]) { _, samples, err in
+                    if let err = err { return cont.resume(throwing: err) }
+                    cont.resume(returning: (samples as? [HKQuantitySample]) ?? [])
+                }
+                store.execute(q)
+            }
+            var stepsByDay: [String: Int] = [:]
+            for sample in stepSamples {
+                let dateLocal = dateFormatter.string(from: sample.startDate)
+                let steps = Int(sample.quantity.doubleValue(for: .count()))
+                stepsByDay[dateLocal, default: 0] += steps
+            }
+            for (dateLocal, steps) in stepsByDay {
+                var signal = ConnectedSignal()
+                signal.provider = "apple_health"
+                signal.signal_date = dateLocal
+                signal.steps = steps
+                signal.updated_at = ISO8601DateFormatter().string(from: Date())
+                try? await dataService.upsertConnectedSignal(signal)
+                stepCount += 1
             }
 
             lastSyncDate = Date()
+            lastSyncSummary = "Synced \(weightCount) weight entries, \(sleepCount) sleep days, and \(stepCount) step days."
         } catch {
             syncError = error.localizedDescription
         }

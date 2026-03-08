@@ -22,7 +22,7 @@ struct PlanView: View {
     @State private var adaptLoading = false
 
     private var api: KodaAPIService {
-        KodaAPIService(getAccessToken: { await auth.accessToken })
+        KodaAPIService(getAccessToken: { auth.accessToken })
     }
 
     var body: some View {

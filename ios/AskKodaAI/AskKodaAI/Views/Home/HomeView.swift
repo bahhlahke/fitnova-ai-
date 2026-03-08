@@ -40,7 +40,7 @@ struct HomeView: View {
     @State private var refreshTask: Task<Void, Never>?
 
     private var api: KodaAPIService {
-        KodaAPIService(getAccessToken: { await auth.accessToken })
+        KodaAPIService(getAccessToken: { auth.accessToken })
     }
 
     private var dataService: KodaDataService? {

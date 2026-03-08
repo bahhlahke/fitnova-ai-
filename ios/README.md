@@ -1,6 +1,6 @@
 # Koda AI — iOS App
 
-Production-ready iOS client for Koda AI. Uses the same Supabase backend and Next.js API as the web app; auth is via **Bearer token** so the API accepts requests from native clients.
+Native iOS client for Koda AI. Uses the same Supabase backend and Next.js API as the web app; auth is via **Bearer token** so the API accepts requests from native clients.
 
 ---
 
@@ -30,6 +30,7 @@ Production-ready iOS client for Koda AI. Uses the same Supabase backend and Next
 
 - **In Xcode:** **Product → Test** (⌘U). Ensure **AskKodaAITests** is in the scheme’s Test action.
 - **From repo root (terminal):** `npm run test:ios` (or `npm run test:ai-review:ios` / `npm run test:ios:ready` for AI review and production gate). The script uses a single simulator (iPhone 17); **run only one iOS test job at a time** on resource-limited machines.
+- **Surface smoke pass:** `npm run test:ios:surfaces` builds the app, launches each major screen one by one in the `iPhone 17` simulator, captures screenshots, and writes a report to `docs/reports/ios-surface-smoke-<timestamp>/SUMMARY.md`.
 - **If tests crash before running** (e.g. “Early unexpected exit” / “signal trap”): the test host is the app; it must launch successfully. Run `node scripts/generate-ios-env.mjs` from repo root so `ios/AskKodaAI/Config/Generated.xcconfig` exists with valid values from `.env.local`, then build and run the app once (⌘R) to confirm it launches, then run tests again.
 
 ---
@@ -93,10 +94,16 @@ The Next.js API accepts **cookie** (web) or **Authorization: Bearer &lt;access_t
 ## 7. Apple Health (HealthKit)
 
 - In Xcode, add the **HealthKit** capability (Signing & Capabilities → + Capability → HealthKit). Enable **Clinical Health Records** only if needed.
-- Add `NSHealthShareUsageDescription` to Info.plist (see Info.plist.example). Request read access for weight, sleep, and step count. The app syncs the last 90 days to progress_tracking and check_ins.
-- HealthKit is only available on physical iPhone (not Simulator for some APIs).
+- Add `NSHealthShareUsageDescription` to Info.plist (see Info.plist.example). Request read access for weight, sleep, and step count. The app syncs the last 90 days of weight to `progress_tracking`, sleep to `check_ins`, and sleep plus steps to `connected_signals`.
+- HealthKit requires a physical iPhone for realistic validation. Simulator smoke tests only confirm the screen launches and permission flow code paths compile.
 
-## 8. Production / App Store
+## 8. Spotify
+
+- Spotify linking uses the Supabase linked identity token for the signed-in user. The native player UI can refresh playback state and send play, pause, next, and previous commands to the active Spotify device.
+- The Spotify connection flow requires the scopes `user-read-playback-state`, `user-modify-playback-state`, and `user-read-currently-playing`.
+- Real playback validation requires a linked Spotify account and an active Spotify playback device. Simulator smoke tests do not prove end-to-end playback control.
+
+## 9. Production / App Store
 
 - **Sign in with Apple:** If you offer email magic link, Apple requires also offering Sign in with Apple. Add a “Sign in with Apple” button and call `SupabaseService.signInWithApple(idToken:nonce:)` (implement using `AuthenticationServices` to get `idToken` and `nonce`).
 - **Privacy:** Add a **Privacy Policy** URL and, if needed, **App Privacy** details in App Store Connect.
@@ -111,9 +118,11 @@ Before release or CI “production ready” gate:
 2. **Build:** `xcodebuild -scheme AskKodaAI -destination 'platform=iOS Simulator,name=iPhone 17' build` succeeds.
 3. **Run:** App launches in simulator or device; auth screen or main UI appears (no white screen); magic link or Sign in with Apple works.
 4. **Tests:** Unit tests (DateHelpers, APIModels, DataModels, ProductionReadiness) pass. If the test host crashes, ensure `Generated.xcconfig` exists and the app launches when run directly.
-5. **Secrets:** No real keys committed; `ios/AskKodaAI/Config/Generated.xcconfig` is in `.gitignore`.
-6. **HTTPS:** Production builds use HTTPS for API and Supabase URLs.
-7. **Feature parity:** See “Feature parity with web” and `docs/IOS-PARITY-MAP.md` for coverage.
+5. **Surface QA:** `npm run test:ios:surfaces` completes and the generated screenshots do not show blank, clipped, or obviously broken screens.
+6. **Device validations:** Validate Apple Health permissions/sync on a physical iPhone and validate Spotify playback controls with a linked account and active playback device.
+7. **Secrets:** No real keys committed; `ios/AskKodaAI/Config/Generated.xcconfig` is in `.gitignore`.
+8. **HTTPS:** Production builds use HTTPS for API and Supabase URLs.
+9. **Feature parity:** See “Feature parity with web” and `docs/IOS-PARITY-MAP.md` for coverage.
 
 ## Feature parity with web
 
@@ -126,19 +135,19 @@ The iOS app matches the web app for core flows:
 - **Progress:** List entries, add entry, **body comp scan** (3 photos → API → save).
 - **Check-in:** Daily energy, sleep, soreness, adherence.
 - **Community:** Friends, requests, accountability partner, challenges (join).
-- **Settings:** Profile, **Vitals** (readiness insight), **Integrations** (Apple Health sync, Whoop link), export, onboarding link, pricing/Stripe, sign out.
+- **Settings:** Profile, **Vitals** (readiness insight), **Integrations** (Apple Health sync, Spotify controls, Whoop link), export, onboarding link, pricing/Stripe, sign out.
 - **Onboarding:** Multi-step gate (name, age, sex, height, weight, goals, injuries, diet) → profile + onboarding.
-- **Integrations:** **Apple Health** (HealthKit): read weight/sleep/steps, sync last 90 days to progress and check-ins; Whoop (open web connect).
+- **Integrations:** **Apple Health** (HealthKit): read weight/sleep/steps, sync last 90 days to progress, check-ins, and wearable signals; **Spotify** native playback controls via linked account token; Whoop (open web connect).
 - **Telemetry:** `Telemetry.track(_:props:)` for product events.
 
-Robustness: retry-friendly API client, loading/error/empty states, Supabase direct access, HealthKit sync.
+Robustness: retry-friendly API client, loading/error/empty states, Supabase direct access, HealthKit sync, simulator surface smoke coverage.
 
 ## Unit tests and AI review
 
 - **Test target:** Add a **Unit Testing Bundle** target (e.g. `AskKodaAITests`) in Xcode: **File → New → Target → Unit Testing Bundle**. Add the `ios/KodaAITests` folder to that target and set **AskKodaAI** as the target to test (so `@testable import AskKodaAI` works). Ensure the **AskKodaAI** scheme’s Test action runs this test target.
 - **Run from terminal:** From repo root, `npm run test:ios` finds any `.xcodeproj` under `ios/` (e.g. `ios/AskKodaAI/AskKodaAI.xcodeproj`) and runs `xcodebuild test` with the matching scheme (e.g. **AskKodaAI**).
 - **AI review:** `npm run test:ai-review:ios` discovers iOS test files, runs tests if a project exists, then sends the output to an LLM (OpenRouter) for gap analysis, suggested tests, and **production readiness**. Report: `docs/reports/ai-test-review-ios-<timestamp>.md`. Set `OPENROUTER_API_KEY` for the AI step. Use `--fail-if-not-ready` to exit 1 when the app is not deemed production ready.
-- **Production gate:** `npm run test:ios:ready` runs tests then AI review with `--fail-if-not-ready`. If tests pass and the AI reports production ready (all checklist items satisfied), exit 0; otherwise exit 1. Use before release or in CI. **When the gate passes, the app is considered production ready** (critical decoding, data models, and flows are tested; no P0 gaps; no critical assertion risks).
+- **Production gate:** `npm run test:ios:ready` runs tests then AI review with `--fail-if-not-ready`. If tests pass and the AI reports production ready (all checklist items satisfied), exit 0; otherwise exit 1. Use before release or in CI, but still treat HealthKit and Spotify as device/account validations that require manual confirmation.
 
 ## Project layout
 

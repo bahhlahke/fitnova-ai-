@@ -27,7 +27,7 @@ struct CommunityView: View {
     @State private var pulseMessage = ""
 
     private var api: KodaAPIService {
-        KodaAPIService(getAccessToken: { await auth.accessToken })
+        KodaAPIService(getAccessToken: { auth.accessToken })
     }
 
     enum CommunityTab { case squad, friends }
@@ -326,7 +326,7 @@ struct CommunityView: View {
     private func setupPulseSubscription() async {
         guard let myId = auth.currentUserId else { return }
         let channel = auth.supabaseClient.channel("synapse_pulses_\(myId)")
-        await channel.subscribe()
+        try? await channel.subscribeWithError()
         
         Task {
             for await message in channel.broadcastStream(event: "pulse") {
@@ -352,7 +352,7 @@ struct CommunityView: View {
             "type": .string("pulse")
         ])
         let channel = auth.supabaseClient.channel("synapse_pulses_\(userId)")
-        await channel.subscribe()
+        try? await channel.subscribeWithError()
         try? await channel.broadcast(event: "pulse", message: payload)
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
     }

@@ -28,7 +28,6 @@ struct GuidedWorkoutView: View {
     @State private var saved = false
     @State private var postWorkoutInsight: String?
     @State private var insightLoading = false
-    @State private var hasSpotify = false
 
     // Neural Mastery State (Phase 5)
     @State private var neuralRestMode = true
@@ -60,7 +59,7 @@ struct GuidedWorkoutView: View {
     @State private var pulseOpacity = 0.0
 
     private let restSeconds = 90
-    private var api: KodaAPIService { KodaAPIService(getAccessToken: { await auth.accessToken }) }
+    private var api: KodaAPIService { KodaAPIService(getAccessToken: { auth.accessToken }) }
     private var dataService: KodaDataService? {
         guard let uid = auth.currentUserId else { return nil }
         return KodaDataService(client: auth.supabaseClient, userId: uid)
@@ -96,7 +95,6 @@ struct GuidedWorkoutView: View {
                 exercises = initialExercises
             }
             await loadPlan()
-            hasSpotify = (try? await api.spotifyToken()) != nil
             await setupPulseSubscription()
             startNeuralMastery()
         }
@@ -207,9 +205,8 @@ struct GuidedWorkoutView: View {
                             .foregroundStyle(.white.opacity(0.6))
                     }
                     Spacer()
-                    SpotifyPlayerView()
-                        .frame(width: 150, height: 40)
-                        .clipShape(Capsule())
+                    SpotifyPlayerView(compact: true)
+                        .frame(width: 220)
                 }
                 .padding(.horizontal)
                 .padding(.top, 10)
@@ -970,7 +967,7 @@ struct GuidedWorkoutView: View {
         guard let myId = auth.currentUserId else { return }
         
         let channel = auth.supabaseClient.channel("synapse_pulses_\(myId)")
-        await channel.subscribe()
+        try? await channel.subscribeWithError()
         
         Task {
             for await message in channel.broadcastStream(event: "pulse") {

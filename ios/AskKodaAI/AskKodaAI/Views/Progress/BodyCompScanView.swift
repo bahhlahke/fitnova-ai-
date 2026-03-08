@@ -19,7 +19,7 @@ struct BodyCompScanView: View {
     @State private var selectedItems: [PhotosPickerItem] = []
 
     private var api: KodaAPIService {
-        KodaAPIService(getAccessToken: { await auth.accessToken })
+        KodaAPIService(getAccessToken: { auth.accessToken })
     }
 
     private var dataService: KodaDataService? {

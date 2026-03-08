@@ -387,7 +387,7 @@
 				DEVELOPMENT_TEAM = 3HZDUX7YJF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = AskKodaAI/App-Info-Manual.plist;
+				INFOPLIST_FILE = Config/App-Info-Manual.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -416,7 +416,7 @@
 				DEVELOPMENT_TEAM = 3HZDUX7YJF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = AskKodaAI/App-Info-Manual.plist;
+				INFOPLIST_FILE = Config/App-Info-Manual.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
