@@ -17,6 +17,8 @@ export type DailyPlanTrainingExercise = {
   image_url?: string | null;
   /** Optional demo video URL for guided workout. */
   video_url?: string | null;
+  /** High-bitrate 4K premium cinema loop for Koda Elite. */
+  cinema_video_url?: string | null;
 };
 
 export type DailyPlan = {

@@ -16,6 +16,7 @@ import { emitDataRefresh } from "@/lib/ui/data-sync";
 import { useSpotify } from "@/lib/music/SpotifyProvider";
 import { SpotifyMiniPlayer } from "@/components/music/SpotifyMiniPlayer";
 import { getWorkoutsPlaylists, spotifyFetch } from "@/lib/spotify";
+import { ProBadge, type BadgeType } from "@/components/elite/ProBadge";
 
 type GuidedExercise = {
   name: string;
@@ -621,13 +622,18 @@ export default function GuidedWorkoutPage() {
     return (
       <div className="mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg pt-20 px-6 text-center">
         <div className="flex flex-col items-center justify-center flex-1">
-          <div className="relative mb-12">
+          <div className="relative mb-12 flex flex-col items-center">
             <div className="absolute inset-0 bg-fn-accent opacity-20 blur-[100px]" />
-            <div className="relative flex h-32 w-32 items-center justify-center rounded-full bg-fn-accent text-black shadow-[0_0_60px_rgba(10,217,196,0.5)] animate-in zoom-in duration-500">
-              <svg className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
+            <ProBadge
+              type={
+                planTitle.toLowerCase().includes("mobility") ? "shadow" :
+                  planTitle.toLowerCase().includes("fat-loss") ? "infinite" :
+                    planTitle.toLowerCase().includes("strength") ? "iron_core" : "architect"
+              }
+              label="Elite Attainment"
+              size="lg"
+              className="animate-in zoom-in duration-1000"
+            />
           </div>
 
           <h1 className="font-display text-5xl font-black italic tracking-tighter text-white uppercase leading-none mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
