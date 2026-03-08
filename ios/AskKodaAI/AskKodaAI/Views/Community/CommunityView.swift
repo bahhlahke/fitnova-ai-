@@ -266,12 +266,8 @@ struct CommunityView: View {
     }
 
     private func otherDisplayName(_ row: ConnectionRow) -> String? {
-<<<<<<< Updated upstream
         let myId = auth.currentUserId
         if row.user_id_1 == myId {
-=======
-        if row.user_id_1 == auth.currentUserId {
->>>>>>> Stashed changes
             return row.profile_2?.display_name
         } else {
             return row.profile_1?.display_name
@@ -279,12 +275,8 @@ struct CommunityView: View {
     }
 
     private func otherUserId(_ row: ConnectionRow) -> String? {
-<<<<<<< Updated upstream
         let myId = auth.currentUserId
         if row.user_id_1 == myId {
-=======
-        if row.user_id_1 == auth.currentUserId {
->>>>>>> Stashed changes
             return row.user_id_2
         } else {
             return row.user_id_1
