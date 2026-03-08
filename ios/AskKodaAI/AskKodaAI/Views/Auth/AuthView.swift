@@ -75,6 +75,9 @@ struct AuthView: View {
                     .foregroundColor(.primary)
                     
                     SignInWithAppleButton(.continue) { request in
+                        let rawNonce = auth.generateNonce()
+                        currentNonce = rawNonce
+                        request.nonce = auth.sha256(rawNonce)
                         request.requestedScopes = [.email, .fullName]
                     } onCompletion: { result in
                         handleAppleResult(result)
@@ -127,6 +130,8 @@ struct AuthView: View {
         }
     }
 
+    @State private var currentNonce: String?
+
     private func handleAppleResult(_ result: Result<ASAuthorization, Error>) {
         switch result {
         case .success(let authResult):
@@ -135,7 +140,7 @@ struct AuthView: View {
                let token = String(data: tokenData, encoding: .utf8) {
                 Task {
                     do {
-                        try await auth.signInWithApple(idToken: token, nonce: "")
+                        try await auth.signInWithApple(idToken: token, nonce: currentNonce)
                     } catch {
                         message = error.localizedDescription
                     }

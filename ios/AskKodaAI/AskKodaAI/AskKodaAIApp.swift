@@ -8,6 +8,7 @@ import SwiftUI
 @main
 struct AskKodaAIApp: App {
     @StateObject private var auth = SupabaseService.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -15,6 +16,11 @@ struct AskKodaAIApp: App {
                 .environmentObject(auth)
                 .onOpenURL { url in
                     Task { await auth.setSessionFrom(url: url) }
+                }
+                .onChange(of: scenePhase) { newPhase in
+                    if newPhase == .active {
+                        Task { await auth.refreshSession() }
+                    }
                 }
         }
     }

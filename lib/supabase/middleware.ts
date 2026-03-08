@@ -16,7 +16,10 @@ export async function updateSession(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options)
+          response.cookies.set(name, value, {
+            ...options,
+            maxAge: options.maxAge ?? 60 * 60 * 24 * 365, // 1 year default
+          })
         );
       },
     },

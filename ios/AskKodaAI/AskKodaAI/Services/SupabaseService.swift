@@ -35,31 +35,36 @@ final class SupabaseService: ObservableObject {
     }
 
     func refreshSession() async {
-        Task {
-            try? await Task.sleep(nanoseconds: 2_500_000_000)
-            if !isInitialized { isInitialized = true }
-        }
         do {
             let session = try await client.auth.session
             self.session = session
         } catch {
             self.session = nil
         }
-        isInitialized = true
+        if !isInitialized {
+            isInitialized = true
+        }
     }
 
     /// Magic link sign-in: pass the email; user opens link in mail to complete sign-in.
-    /// Set AUTH_REDIRECT_URL in Info.plist (e.g. kodaai://auth/callback) and add it to Supabase Redirect URLs.
-    func signInWithMagicLink(email: String, redirectTo: URL? = nil) async throws {
-        let redirect = redirectTo ?? AppConfig.authRedirectURL ?? AppConfig.apiBaseURL
+    /// Redirects to Web first (to log in there) then handshakes back to iOS via deep link.
+    func signInWithMagicLink(email: String) async throws {
+        let appRedirect = AppConfig.authRedirectURL?.absoluteString ?? "kodaai://auth/callback"
+        let webCallback = AppConfig.apiBaseURL.appendingPathComponent("auth/callback")
+        
+        var components = URLComponents(url: webCallback, resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "next", value: appRedirect)]
+        
+        guard let finalRedirect = components?.url else { return }
+        
         try await client.auth.signInWithOTP(
             email: email,
-            redirectTo: redirect
+            redirectTo: finalRedirect
         )
     }
 
     /// Sign in with Apple (required for App Store if you offer other third-party sign-in).
-    func signInWithApple(idToken: String, nonce: String) async throws {
+    func signInWithApple(idToken: String, nonce: String? = nil) async throws {
         _ = try await client.auth.signInWithIdToken(
             credentials: OpenIDConnectCredentials(
                 provider: .apple,
@@ -72,10 +77,20 @@ final class SupabaseService: ObservableObject {
     
     /// Get the URL to open for Google OAuth sign-in.
     func getGoogleSignInURL() async throws -> URL {
-        let redirect = AppConfig.authRedirectURL ?? AppConfig.apiBaseURL
+        let appRedirect = AppConfig.authRedirectURL?.absoluteString ?? "kodaai://auth/callback"
+        let webCallback = AppConfig.apiBaseURL.appendingPathComponent("auth/callback")
+        
+        var components = URLComponents(url: webCallback, resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "next", value: appRedirect)]
+        
+        guard let finalRedirect = components?.url else {
+             // Fallback to direct redirect if components fail
+             return try client.auth.getOAuthSignInURL(provider: .google, redirectTo: appRedirect)
+        }
+        
         return try client.auth.getOAuthSignInURL(
             provider: .google,
-            redirectTo: redirect
+            redirectTo: finalRedirect
         )
     }
 
@@ -109,4 +124,25 @@ final class SupabaseService: ObservableObject {
             self.session = nil
         }
     }
+    
+    /// Generates a random string for Apple Sign-In nonce.
+    func generateNonce() -> String {
+        let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        var result = ""
+        for _ in 0..<32 {
+            result.append(charset.randomElement()!)
+        }
+        return result
+    }
+    
+    /// Hashes a string using SHA256 for Apple Sign-In.
+    func sha256(_ input: String) -> String {
+        let inputData = Data(input.utf8)
+        let hashedData = _SHA256.hash(data: inputData)
+        return hashedData.compactMap { String(format: "%02x", $0) }.joined()
+    }
 }
+
+// Simple SHA256 helper if CryptoKit is available
+import CryptoKit
+typealias _SHA256 = CryptoKit.SHA256
