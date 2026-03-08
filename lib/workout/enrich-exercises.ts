@@ -70,6 +70,10 @@ export const CINEMA_ASSET_MAP: Record<string, string> = {
     "dumbbell press": "https://videos.pexels.com/video-files/5320015/5320015-hd_1080_1920_25fps.mp4",
     "chest-supported row": "https://videos.pexels.com/video-files/4010375/4010375-hd_1920_1080_25fps.mp4",
     "dips": "https://videos.pexels.com/video-files/5267149/5267149-hd_1080_1920_24fps.mp4",
+    "mountain climbers": "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4",
+    "sled push": "https://videos.pexels.com/video-files/5267151/5267151-hd_1920_1080_24fps.mp4",
+    "sled pull": "https://videos.pexels.com/video-files/5267151/5267151-hd_1920_1080_24fps.mp4",
+    "neural core": "https://videos.pexels.com/video-files/3129957/3129957-uhd_2560_1440_30fps.mp4",
 };
 
 export function enrichExercise(name: string) {
