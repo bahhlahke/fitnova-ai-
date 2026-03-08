@@ -74,6 +74,38 @@ export const CINEMA_ASSET_MAP: Record<string, string> = {
     "sled push": "https://videos.pexels.com/video-files/5267151/5267151-hd_1920_1080_24fps.mp4",
     "sled pull": "https://videos.pexels.com/video-files/5267151/5267151-hd_1920_1080_24fps.mp4",
     "neural core": "https://videos.pexels.com/video-files/3129957/3129957-uhd_2560_1440_30fps.mp4",
+    // Accessories
+    "db lateral raise": "https://videos.pexels.com/video-files/5320015/5320015-hd_1080_1920_25fps.mp4",
+    "bicep curl": "https://videos.pexels.com/video-files/4010375/4010375-hd_1920_1080_25fps.mp4",
+    "tricep rope pushdown": "https://videos.pexels.com/video-files/5267149/5267149-hd_1080_1920_24fps.mp4",
+    "hammer curl": "https://videos.pexels.com/video-files/4010375/4010375-hd_1920_1080_25fps.mp4",
+    "overhead tricep ext": "https://videos.pexels.com/video-files/5267149/5267149-hd_1080_1920_24fps.mp4",
+    "leg extension": "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4",
+    "leg curl": "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4",
+    "calf raise": "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
+    // Mobility
+    "pigeon stretch": "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4",
+    "90/90 hip switches": "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4",
+    "cat-cow": "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4",
+    "thoracic rotations": "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4",
+    "scorpion stretch": "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4",
+    "child's pose": "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4",
+    "deep squat hold": "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
+    "hip flexor stretch": "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4",
+    // Advanced / Functional
+    "devil press": "https://videos.pexels.com/video-files/5320015/5320015-hd_1080_1920_25fps.mp4",
+    "russian twists": "https://videos.pexels.com/video-files/5320015/5320015-hd_1080_1920_25fps.mp4",
+    "bear crawls": "https://videos.pexels.com/video-files/5319451/5319451-hd_1080_1920_25fps.mp4",
+    "hollow body hold": "https://videos.pexels.com/video-files/5319451/5319451-hd_1080_1920_25fps.mp4",
+    "muscle-up": "https://videos.pexels.com/video-files/4366620/4366620-hd_1080_1920_25fps.mp4",
+    "l-sit": "https://videos.pexels.com/video-files/4366620/4366620-hd_1080_1920_25fps.mp4",
+    "pistol squat": "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
+    "wall walk": "https://videos.pexels.com/video-files/5319451/5319451-hd_1080_1920_25fps.mp4",
+    "shadow boxing": "https://videos.pexels.com/video-files/5319451/5319451-hd_1080_1920_25fps.mp4",
+    "sled drag": "https://videos.pexels.com/video-files/5267151/5267151-hd_1920_1080_24fps.mp4",
+    "box squat": "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
+    "romanian deadlift": "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4",
+    "chin-up": "https://videos.pexels.com/video-files/4366620/4366620-hd_1080_1920_25fps.mp4",
 };
 
 export function enrichExercise(name: string) {

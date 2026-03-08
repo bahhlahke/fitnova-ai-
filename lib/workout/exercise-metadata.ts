@@ -233,6 +233,63 @@ export const EXERCISE_METADATA: Record<string, ExerciseExpertCues> = {
         breathing: "Exhale on takeoff",
         intent: "Land softly like a cat, full hip extension at top.",
         rationale: "Plyometric power and neurological recruitment."
+    },
+    // Accessories
+    "db lateral raise": {
+        tempo: "2-0-1-2",
+        breathing: "Exhale as you lift",
+        intent: "Lead with the elbows, not the wrists.",
+        rationale: "Shoulder cap development and V-taper aesthetics."
+    },
+    "bicep curl": {
+        tempo: "3-0-1-0",
+        breathing: "Exhale on the squeeze",
+        intent: "Keep elbows pinned to ribs, full extension at bottom.",
+        rationale: "Peak contraction and muscular hypertrophy."
+    },
+    "tricep rope pushdown": {
+        tempo: "2-0-1-2",
+        breathing: "Exhale on extension",
+        intent: "Pull the rope apart at the bottom for maximal squeeze.",
+        rationale: "Isolation of the triceps brachii."
+    },
+    "hammer curl": {
+        tempo: "3-0-1-0",
+        breathing: "Exhale on lift",
+        intent: "Neutral grip, target the brachialis.",
+        rationale: "Increases arm thickness and grip strength."
+    },
+    // Mobility
+    "pigeon stretch": {
+        tempo: "Static Hold",
+        breathing: "Deep diaphragmatic breaths",
+        intent: "Square hips to the floor, sink deeper with each exhale.",
+        rationale: "Deep glute and piriformis release."
+    },
+    "90/90 hip switches": {
+        tempo: "Fluid Control",
+        breathing: "Rhythmic",
+        intent: "Rotate through the hips, keep torso as upright as possible.",
+        rationale: "Improved internal and external hip rotation."
+    },
+    "cat-cow": {
+        tempo: "2-2-2-2",
+        breathing: "Inhale on cow, exhale on cat",
+        intent: "Segmental spinal articulation.",
+        rationale: "Restores spinal fluidity and neural decompression."
+    },
+    // Advanced
+    "muscle-up": {
+        tempo: "Explosive-Transitional",
+        breathing: "Hard exhale at the transition",
+        intent: "Aggressive sit-up over the bar.",
+        rationale: "Ultimate upper body power and coordination."
+    },
+    "pistol squat": {
+        tempo: "3-1-X-1",
+        breathing: "Breathe into the belly, hold through the hole",
+        intent: "Keep heel glued, descend with control.",
+        rationale: "Unmatched single-leg strength and stability."
     }
 };
 
