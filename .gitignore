@@ -48,3 +48,5 @@ test-results-final.log
 
 # iOS build
 /ios/AskKodaAI/build/
+
+ios/build/
