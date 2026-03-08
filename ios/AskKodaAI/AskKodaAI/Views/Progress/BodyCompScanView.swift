@@ -126,6 +126,7 @@ struct BodyCompScanView: View {
     private func slotButton(_ label: String, image: String?) -> some View {
         Button {
             activeSlot = label
+            selectedItems = []  // Reset so onChange fires even if same photo is picked again
             showPhotoPicker = true
         } label: {
             VStack(spacing: 8) {

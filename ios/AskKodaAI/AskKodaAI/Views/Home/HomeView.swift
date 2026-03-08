@@ -25,11 +25,12 @@ struct HomeView: View {
     @State private var todayCheckIn: CheckIn?
     @State private var errorMessage: String?
 
-    /// Readiness score derived from today's check-in energy/sleep scores (0–1).
+    /// Readiness score derived from today's check-in (0–1).
+    /// Both energy_score and adherence_score are stored on a 1–10 scale.
     private var readinessScore: Double {
         guard let checkIn = todayCheckIn else { return 0.0 }
-        let energy = Double(checkIn.energy_score ?? 3) / 5.0
-        let adherence = Double(checkIn.adherence_score ?? 50) / 100.0
+        let energy = Double(checkIn.energy_score ?? 5) / 10.0
+        let adherence = Double(checkIn.adherence_score ?? 5) / 10.0
         return min(1.0, max(0.0, (energy * 0.7) + (adherence * 0.3)))
     }
     @State private var showingVisionModal = false
