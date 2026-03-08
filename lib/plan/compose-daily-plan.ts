@@ -31,14 +31,18 @@ function parsePreferredTrainingDays(profile: Record<string, unknown>): number[] 
 }
 
 /** Exercise pools per movement slot; [0] is preferred when not recently done. */
-const SQUAT_POOL_GYM = ["Back Squat", "Goblet Squat", "Leg Press", "Front Squat"];
-const SQUAT_POOL_HOME = ["Goblet Squat", "Bodyweight Squat"];
-const PUSH_POOL_GYM = ["Bench Press", "Incline Dumbbell Press", "Push-up"];
-const PUSH_POOL_HOME = ["Push-up", "Incline Push-up", "Dumbbell Press"];
-const HINGE_POOL_GYM = ["Romanian Deadlift", "Dumbbell RDL", "Deadlift"];
+const SQUAT_POOL_GYM = ["Back Squat", "Goblet Squat", "Leg Press", "Front Squat", "Bulgarian Split Squat", "Box Squat"];
+const SQUAT_POOL_HOME = ["Goblet Squat", "Bodyweight Squat", "Pistol Squat"];
+const PUSH_POOL_GYM = ["Bench Press", "Incline Dumbbell Press", "Push-up", "Overhead Press", "Dips", "Close-Grip Bench"];
+const PUSH_POOL_HOME = ["Push-up", "Incline Push-up", "Dumbbell Press", "Dips"];
+const HINGE_POOL_GYM = ["Romanian Deadlift", "Dumbbell RDL", "Deadlift", "Deficit RDL", "Block Pull", "Kettlebell Swing"];
 const HINGE_POOL_HOME = ["Dumbbell RDL", "Romanian Deadlift", "Kettlebell Swing"];
-const PULL_POOL_GYM = ["Seated Row", "Dumbbell Row", "Lat Pulldown", "Barbell Row"];
-const PULL_POOL_HOME = ["Single-arm Row", "Dumbbell Row", "Inverted Row"];
+const PULL_POOL_GYM = ["Seated Row", "Dumbbell Row", "Lat Pulldown", "Barbell Row", "Chest-Supported Row", "Face Pulls", "Pull-up"];
+const PULL_POOL_HOME = ["Single-arm Row", "Dumbbell Row", "Inverted Row", "Chin-up"];
+
+const HIIT_POOL = ["Burpees", "Mountain Climbers", "Battle Ropes", "Sled Push", "Box Jumps", "Thrusters", "Wall Balls", "Devil Press"];
+const MOBILITY_POOL = ["World's Greatest Stretch", "Pigeon Stretch", "90/90 Hip Switches", "Cat-Cow", "Thoracic Rotations", "Scorpion Stretch", "Couch Stretch"];
+const ACCESSORY_POOL = ["DB Lateral Raise", "Bicep Curl", "Tricep Rope Pushdown", "Hammer Curl", "Overhead Tricep Ext", "Leg Extension", "Leg Curl", "Calf Raise"];
 
 
 function pickFromPool(pool: string[], recentNormalized: Set<string>): string {
@@ -240,23 +244,50 @@ export async function composeDailyPlan(
   const exercises: DailyPlanTrainingExercise[] =
     focus.includes("Mobility")
       ? [
-        { name: "World's Greatest Stretch", sets: 2, reps: "6/side", intensity: "Controlled", notes: "Move slowly." },
-        { name: "Couch Stretch", sets: 2, reps: "45s/side", intensity: "Moderate" },
-        { name: "Goblet Squat", sets: 3, reps: "10", intensity: baseRPE },
-        { name: "Dead Bug", sets: 3, reps: "8/side", intensity: "Controlled" },
+        { name: pickFromPool(MOBILITY_POOL, recentExerciseNames), sets: 2, reps: "10", intensity: "Controlled" },
+        { name: pickFromPool(MOBILITY_POOL.slice(1), recentExerciseNames), sets: 2, reps: "45s", intensity: "Moderate" },
+        { name: "90/90 Hip Switches", sets: 2, reps: "8/side", intensity: "Controlled" },
+        { name: "Cat-Cow", sets: 3, reps: "10", intensity: "Fluid" },
       ]
       : [
         { name: squatSelection.name, sets: mainSets, reps: mainReps, intensity: baseRPE, notes: squatSelection.notes },
         { name: pushSelection.name, sets: mainSets, reps: mainReps, intensity: baseRPE, notes: pushSelection.notes },
         { name: hingeSelection.name, sets: secondarySets, reps: secondaryReps, intensity: baseRPE, notes: hingeSelection.notes },
         { name: pullSelection.name, sets: secondarySets, reps: secondaryReps, intensity: baseRPE, notes: pullSelection.notes },
-        {
-          name: "Zone 2 Finisher",
-          sets: 1,
-          reps: `${Math.max(8, Math.floor(minutesAvailable * 0.25))} min`,
-          intensity: experience === "beginner" ? "Very Easy" : "Easy-moderate",
-        },
       ];
+
+  // Dynamically add accessories if time allows (> 45 min)
+  if (minutesAvailable > 45 && !focus.includes("Mobility")) {
+    exercises.push({
+      name: pickFromPool(ACCESSORY_POOL, recentExerciseNames),
+      sets: 3,
+      reps: "12-15",
+      intensity: "RPE 8"
+    });
+    exercises.push({
+      name: pickFromPool(ACCESSORY_POOL.slice(2), recentExerciseNames),
+      sets: 3,
+      reps: "12-15",
+      intensity: "RPE 8"
+    });
+  }
+
+  // Add HIIT/Finisher
+  if (focus.includes("Fat-loss") || minutesAvailable > 40) {
+    exercises.push({
+      name: pickFromPool(HIIT_POOL, recentExerciseNames),
+      sets: 4,
+      reps: "40s work / 20s rest",
+      intensity: "High"
+    });
+  } else {
+    exercises.push({
+      name: "Zone 2 Finisher",
+      sets: 1,
+      reps: `${Math.max(8, Math.floor(minutesAvailable * 0.25))} min`,
+      intensity: experience === "beginner" ? "Very Easy" : "Easy-moderate",
+    });
+  }
 
   const weightKg = Number(profile.weight) || 75;
   const energyScore = todayCheckIn?.energy_score ?? 7;
