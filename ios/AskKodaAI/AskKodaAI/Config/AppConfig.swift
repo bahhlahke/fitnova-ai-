@@ -21,9 +21,11 @@ enum AppConfig {
 
     /// Supabase project URL (https://xxx.supabase.co in production). Required; app will not launch without it.
     static var supabaseURL: URL {
-        if let urlString = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_URL") as? String,
-           let url = URL(string: urlString), !urlString.contains("placeholder") {
-            return url
+        if let rawString = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_URL") as? String {
+            let urlString = rawString.replacingOccurrences(of: "\"", with: "")
+            if let url = URL(string: urlString), !urlString.contains("placeholder") {
+                return url
+            }
         }
         if usePlaceholdersIfMissing { return URL(string: "https://placeholder.supabase.co")! }
         fatalError("Set SUPABASE_URL in Info.plist or scheme environment")
@@ -31,9 +33,11 @@ enum AppConfig {
 
     /// Supabase anon (public) key. Required; app will not launch without it.
     static var supabaseAnonKey: String {
-        if let key = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_ANON_KEY") as? String,
-           !key.isEmpty, !key.contains("placeholder") {
-            return key
+        if let rawKey = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_ANON_KEY") as? String {
+            let key = rawKey.replacingOccurrences(of: "\"", with: "")
+            if !key.isEmpty && !key.contains("placeholder") {
+                return key
+            }
         }
         if usePlaceholdersIfMissing { return "test-placeholder-anon-key" }
         fatalError("Set SUPABASE_ANON_KEY in Info.plist or scheme environment")
@@ -41,9 +45,11 @@ enum AppConfig {
 
     /// Base URL for the Koda AI Next.js API (HTTPS only in production).
     static var apiBaseURL: URL {
-        if let urlString = Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String,
-           let url = URL(string: urlString), !urlString.contains("placeholder") {
-            return url
+        if let rawString = Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String {
+            let urlString = rawString.replacingOccurrences(of: "\"", with: "")
+            if let url = URL(string: urlString), !urlString.contains("placeholder") {
+                return url
+            }
         }
         if usePlaceholdersIfMissing { return URL(string: "https://localhost:3000")! }
         fatalError("Set API_BASE_URL in Info.plist or scheme environment")
@@ -51,8 +57,8 @@ enum AppConfig {
 
     /// URL the app opens after magic link sign-in (e.g. kodaai://auth/callback). Add to Supabase Redirect URLs.
     static var authRedirectURL: URL? {
-        guard let s = Bundle.main.object(forInfoDictionaryKey: "AUTH_REDIRECT_URL") as? String,
-              let url = URL(string: s) else { return nil }
-        return url
+        guard let rawString = Bundle.main.object(forInfoDictionaryKey: "AUTH_REDIRECT_URL") as? String else { return nil }
+        let urlString = rawString.replacingOccurrences(of: "\"", with: "")
+        return URL(string: urlString)
     }
 }

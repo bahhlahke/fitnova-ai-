@@ -80,7 +80,22 @@ struct HomeView: View {
                 }
                 .padding()
             }
-            .fnBackground()
+            .background {
+                ZStack {
+                    Image("DashboardHero")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .ignoresSafeArea()
+                        .opacity(0.3)
+                    
+                    LinearGradient(
+                        colors: [.black, .black.opacity(0.8), .clear],
+                        startPoint: .bottom,
+                        endPoint: .top
+                    )
+                    .ignoresSafeArea()
+                }
+            }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.large)
             .refreshable { await loadAll() }
@@ -95,6 +110,40 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showingCoachChat) {
                 CoachView()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StartGuidedWorkoutFromCoach"))) { note in
+                if let exercises = note.userInfo?["exercises"] as? [PlanExercise] {
+                    // Update the local plan so GuidedWorkoutView sees it
+                    if dailyPlan == nil {
+                        dailyPlan = DailyPlan(
+                            date_local: DateHelpers.todayLocal,
+                            training_plan: TrainingPlan(
+                                focus: "Coach Session",
+                                duration_minutes: 45,
+                                exercises: exercises
+                            ),
+                            nutrition_plan: nil,
+                            safety_notes: nil
+                        )
+                    } else {
+                        // TrainingPlan is a struct, we need to replace it
+                        let current = dailyPlan?.training_plan
+                        dailyPlan = DailyPlan(
+                            date_local: dailyPlan?.date_local,
+                            training_plan: TrainingPlan(
+                                focus: current?.focus ?? "Coach Session",
+                                duration_minutes: current?.duration_minutes ?? 45,
+                                exercises: exercises
+                            ),
+                            nutrition_plan: dailyPlan?.nutrition_plan,
+                            safety_notes: dailyPlan?.safety_notes
+                        )
+                    }
+                    showingCoachChat = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showingGuidedWorkout = true
+                    }
+                }
             }
         }
     }
@@ -230,7 +279,8 @@ struct HomeView: View {
                 HStack(spacing: 20) {
                     statBox(label: "VOL", value: "\(p.set_volume ?? 0)")
                     statBox(label: "MIN", value: "\(p.workout_minutes ?? 0)")
-                    statBox(label: "BAL", value: p.push_pull_balance ?? "N/A")
+                    let balStr = p.push_pull_balance != nil ? String(format: "%.2f", p.push_pull_balance!) : "N/A"
+                    statBox(label: "BAL", value: balStr)
                 }
             }
         }
@@ -419,6 +469,7 @@ struct HomeView: View {
             let res = try await api.aiBriefing(localDate: DateHelpers.todayLocal)
             await MainActor.run { briefing = res }
         } catch {
+            print("Briefing decode error: \(error)")
             await MainActor.run { errorMessage = error.localizedDescription }
         }
     }
@@ -442,6 +493,7 @@ struct HomeView: View {
             let p = try await ds.fetchDailyPlan(dateLocal: DateHelpers.todayLocal)
             await MainActor.run { dailyPlan = p }
         } catch {
+            print("Plan decode error: \(error)")
             await MainActor.run { errorMessage = error.localizedDescription }
         }
     }
@@ -465,6 +517,7 @@ struct HomeView: View {
             let p = try await api.analyticsPerformance()
             await MainActor.run { performance = p }
         } catch {
+            print("Performance decode error: \(error)")
             await MainActor.run { errorMessage = error.localizedDescription }
         }
     }
@@ -495,6 +548,7 @@ struct HomeView: View {
             let res = try await api.planDaily(todayConstraints: nil)
             await MainActor.run { dailyPlan = res.plan }
         } catch {
+            print("Generate Plan decode error: \(error)")
             await MainActor.run { errorMessage = error.localizedDescription }
         }
     }

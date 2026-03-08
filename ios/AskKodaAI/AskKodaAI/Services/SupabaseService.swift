@@ -77,21 +77,12 @@ final class SupabaseService: ObservableObject {
     
     /// Get the URL to open for Google OAuth sign-in.
     func getGoogleSignInURL() async throws -> URL {
-        let appRedirect = AppConfig.authRedirectURL?.absoluteString ?? "kodaai://auth/callback"
-        let webCallback = AppConfig.apiBaseURL.appendingPathComponent("auth/callback")
-        
-        var components = URLComponents(url: webCallback, resolvingAgainstBaseURL: false)
-        components?.queryItems = [URLQueryItem(name: "next", value: appRedirect)]
-        
-        guard let finalRedirect = components?.url else {
-             // Fallback to direct redirect if components fail
-             let redirectURL = URL(string: appRedirect) ?? URL(string: "kodaai://auth/callback")!
-             return try client.auth.getOAuthSignInURL(provider: .google, redirectTo: redirectURL)
-        }
-        
+        let appRedirect = AppConfig.authRedirectURL ?? URL(string: "kodaai://auth/callback")!
+        // For OAuth plugins (Google/Apple), we must return directly to the app
+        // so the native Supabase Swift client can exchange the PKCE code correctly.
         return try client.auth.getOAuthSignInURL(
             provider: .google,
-            redirectTo: finalRedirect
+            redirectTo: appRedirect
         )
     }
 
@@ -110,19 +101,26 @@ final class SupabaseService: ObservableObject {
         await refreshSession()
     }
 
-    /// Call when the app is opened via the magic link URL (e.g. kodaai://auth/callback#access_token=...).
-    /// Parse tokens from URL fragment and set session, then refresh.
+    /// Call when the app is opened via the magic link or OAuth redirect URL (e.g. kodaai://auth/callback...).
+    /// Uses the native Supabase client to parse the fragment/query and complete the session exchange.
     func setSessionFrom(url: URL) async {
-        guard let fragment = url.fragment else { return }
-        let params = URLComponents(string: "?\(fragment)")?.queryItems ?? []
-        let accessToken = params.first(where: { $0.name == "access_token" })?.value
-        let refreshToken = params.first(where: { $0.name == "refresh_token" })?.value
-        guard let access = accessToken, let refresh = refreshToken else { return }
         do {
-            try await client.auth.setSession(accessToken: access, refreshToken: refresh)
+            try await client.auth.session(from: url)
             await refreshSession()
         } catch {
-            self.session = nil
+            print("Auth session from URL error: \(error)")
+            // Fallback for custom magic link redirect parameters from the web
+            guard let fragment = url.fragment else { return }
+            let params = URLComponents(string: "?\(fragment)")?.queryItems ?? []
+            let accessToken = params.first(where: { $0.name == "access_token" })?.value
+            let refreshToken = params.first(where: { $0.name == "refresh_token" })?.value
+            guard let access = accessToken, let refresh = refreshToken else { return }
+            do {
+                try await client.auth.setSession(accessToken: access, refreshToken: refresh)
+                await refreshSession()
+            } catch {
+                self.session = nil
+            }
         }
     }
     

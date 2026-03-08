@@ -12,11 +12,13 @@ import PhotosUI
 
 struct GuidedWorkoutView: View {
     @EnvironmentObject var auth: SupabaseService
+    @Environment(\.dismiss) var dismiss
     @StateObject private var healthKit = HealthKitService.shared
+    let initialExercises: [PlanExercise]
     @State private var exercises: [PlanExercise] = []
 
     init(exercises: [PlanExercise] = []) {
-        self._exercises = State(initialValue: exercises)
+        self.initialExercises = exercises
     }
     @State private var exerciseIndex = 0
     @State private var setIndex = 0
@@ -90,6 +92,9 @@ struct GuidedWorkoutView: View {
         }
         .navigationTitle("Guided workout")
         .task {
+            if exercises.isEmpty && !initialExercises.isEmpty {
+                exercises = initialExercises
+            }
             await loadPlan()
             hasSpotify = (try? await api.spotifyToken()) != nil
             await setupPulseSubscription()
@@ -129,29 +134,48 @@ struct GuidedWorkoutView: View {
     }
 
     private var overviewView: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Today's session")
-                    .font(.headline)
-                ForEach(Array(exercises.enumerated()), id: \.offset) { i, ex in
+        ZStack {
+            Image("WorkoutBackground")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .ignoresSafeArea()
+                .opacity(0.4)
+                .blur(radius: 10)
+            
+            Color.black.opacity(0.6).ignoresSafeArea()
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
                     HStack {
-                        Text(ex.name ?? "Exercise \(i+1)")
+                        Text("Today's session")
+                            .font(.headline)
                         Spacer()
-                        Text("\(ex.sets ?? 0)×\(ex.reps ?? "-")")
-                            .foregroundStyle(.secondary)
+                        Button(action: { dismiss() }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .padding(8)
-                    .background(Color(.systemGray6))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    ForEach(Array(exercises.enumerated()), id: \.offset) { i, ex in
+                        HStack {
+                            Text(ex.name ?? "Exercise \(i+1)")
+                            Spacer()
+                            Text("\(ex.sets ?? 0)×\(ex.reps ?? "-")")
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(8)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    Button("Start workout") {
+                        phase = exercises.isEmpty ? .completed : .work
+                        setIndex = 0
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
                 }
-                Button("Start workout") {
-                    phase = exercises.isEmpty ? .completed : .work
-                    setIndex = 0
-                }
-                .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
+                .padding()
             }
-            .padding()
         }
     }
 
@@ -183,11 +207,9 @@ struct GuidedWorkoutView: View {
                             .foregroundStyle(.white.opacity(0.6))
                     }
                     Spacer()
-                    if hasSpotify {
-                        SpotifyPlayerView()
-                            .frame(width: 150, height: 40)
-                            .clipShape(Capsule())
-                    }
+                    SpotifyPlayerView()
+                        .frame(width: 150, height: 40)
+                        .clipShape(Capsule())
                 }
                 .padding(.horizontal)
                 .padding(.top, 10)
@@ -450,40 +472,66 @@ struct GuidedWorkoutView: View {
     }
 
     private var completedView: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                Text("Workout complete!")
-                    .font(.title)
-                if saved {
-                    VStack(spacing: 24) {
-                        ProBadge(
-                            type: exercises.first?.name?.lowercased().contains("squat") == true ? .iron_core : .architect,
-                            label: "Elite Attainment",
-                            size: 150
-                        )
-                        .padding(.vertical, 20)
-                        
-                        Text("Session Decoded. Protocol Logged.")
-                            .font(.system(size: 12, weight: .black, design: .monospaced))
-                            .foregroundStyle(Brand.Color.accent)
+        ZStack {
+            Image("WorkoutBackground")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .ignoresSafeArea()
+                .opacity(0.4)
+                .blur(radius: 20)
+            
+            Color.black.opacity(0.7).ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 20) {
+                    Text("Workout complete!")
+                        .font(.title)
+                        .fontWeight(.black)
+                    if saved {
+                        VStack(spacing: 24) {
+                            ProBadge(
+                                type: exercises.first?.name?.lowercased().contains("squat") == true ? .iron_core : .architect,
+                                label: "Elite Attainment",
+                                size: 150
+                            )
+                            .padding(.vertical, 20)
+                            
+                            Text("Session Decoded. Protocol Logged.")
+                                .font(.system(size: 12, weight: .black, design: .monospaced))
+                                .foregroundStyle(Brand.Color.accent)
+                        }
                     }
+                    if insightLoading {
+                        ProgressView("Getting insight…")
+                    } else if let insight = postWorkoutInsight {
+                        Text(insight)
+                            .font(.subheadline)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.accentColor.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    
+                    Button("Return Home") {
+                        dismiss()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.top, 20)
                 }
-                if insightLoading {
-                    ProgressView("Getting insight…")
-                } else if let insight = postWorkoutInsight {
-                    Text(insight)
-                        .font(.subheadline)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.accentColor.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
+                .padding()
             }
-            .padding()
         }
     }
 
     private func loadPlan() async {
+        if !exercises.isEmpty { 
+            // Already injected from HomeView
+            await MainActor.run {
+                loggedSets = Array(repeating: [], count: exercises.count)
+                phase = .overview 
+            }
+            return 
+        }
         guard let ds = dataService else { return }
         do {
             let plan = try await ds.fetchDailyPlan(dateLocal: DateHelpers.todayLocal)

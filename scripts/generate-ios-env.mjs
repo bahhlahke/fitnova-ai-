@@ -38,7 +38,9 @@ function main() {
 
   function escapeXcconfigValue(v) {
     if (v == null || v === "") return '""';
-    return `"${String(v).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+    // Replace // with /$()/ so xcconfig does not treat it as a comment
+    let str = String(v).replace(/\/\//g, "/$()/");
+    return `"${str.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
   }
 
   let env = {};

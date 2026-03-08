@@ -144,7 +144,7 @@ struct MessageBubble: View {
         VStack(alignment: message.role == "user" ? .trailing : .leading, spacing: 8) {
             HStack {
                 if message.role == "user" { Spacer(minLength: 60) }
-                Text(message.text)
+                Text(getMessageText())
                     .padding(12)
                     .background(message.role == "user" ? Brand.Color.accent : Brand.Color.surface)
                     .background {
@@ -183,6 +183,50 @@ struct MessageBubble: View {
                 .padding(.leading, 12)
                 .padding(.top, 4)
             }
+
+            if let action = message.action, action.type == "plan_daily" {
+                WorkoutSteeringButton(exercises: action.payload?.training_plan?.exercises ?? [])
+            }
+        }
+    }
+
+    private func getMessageText() -> AttributedString {
+        if message.role == "user" {
+            return AttributedString(message.text)
+        }
+        do {
+            return try AttributedString(markdown: message.text)
+        } catch {
+            return AttributedString(message.text)
+        }
+    }
+}
+
+struct WorkoutSteeringButton: View {
+    let exercises: [PlanExercise]
+    
+    var body: some View {
+        if !exercises.isEmpty {
+            Button {
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("StartGuidedWorkoutFromCoach"),
+                    object: nil,
+                    userInfo: ["exercises": exercises]
+                )
+            } label: {
+                HStack {
+                    Image(systemName: "play.fill")
+                    Text("START THIS WORKOUT")
+                }
+                .font(.system(size: 12, weight: .black))
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Brand.Color.accent)
+                .foregroundStyle(.black)
+                .clipShape(Capsule())
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 8)
         }
     }
 }
