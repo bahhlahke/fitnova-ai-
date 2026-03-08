@@ -131,25 +131,6 @@ enum ExerciseImages {
         map["90/90 hip switches"] = "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4"
         map["pigeon stretch"] = "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4"
 
-        // PRO IMAGES FALLBACKS
-        map["leg press"] = "/images/refined/leg_press_pro.png"
-        map["bodyweight squat"] = "/images/refined/bodyweight_squat_pro.png"
-        map["incline dumbbell press"] = "/images/refined/incline_db_press_pro.png"
-        map["dumbbell press"] = "/images/refined/dumbbell_press_pro.png"
-        map["dumbbell rdl"] = "/images/refined/dumbbell_rdl_pro.png"
-        map["seated row"] = "/images/refined/seated_row_pro.png"
-        map["lat pulldown"] = "/images/refined/lat_pulldown_pro.png"
-        map["barbell row"] = "/images/refined/barbell_row_pro.png"
-        map["couch stretch"] = "/images/refined/couch_stretch_pro.png"
-        map["dead bug"] = "/images/refined/dead_bug_pro.png"
-        map["pause squat"] = "/images/refined/pause_squat_pro.png"
-        map["tempo goblet squat"] = "/images/refined/tempo_goblet_squat_pro.png"
-        map["close-grip bench press"] = "/images/refined/close_grip_bench_pro.png"
-        map["decline push-up"] = "/images/refined/decline_pushup_pro.png"
-        map["deficit rdl"] = "/images/refined/deficit_rdl_pro.png"
-        map["push-up"] = "/images/refined/pushup_pro.png"
-        map["goblet squat"] = "/images/refined/goblet_squat_pro.png"
-        
         return map
     }()
 

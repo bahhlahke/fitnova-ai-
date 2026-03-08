@@ -210,19 +210,21 @@ export function AiCoachPanel({
         </p>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-3">
-        {QUICK_ACTIONS.map((action) => (
-          <button
-            key={action}
-            type="button"
-            onClick={() => void submitMessage(action)}
-            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-white transition-all hover:border-fn-accent/30 hover:bg-white/10"
-            disabled={loading}
-          >
-            {action}
-          </button>
-        ))}
-      </div>
+      {messages.length === 0 && (
+        <div className="mt-4 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {QUICK_ACTIONS.map((action) => (
+            <button
+              key={action}
+              type="button"
+              onClick={() => void submitMessage(action)}
+              className="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-left text-[10px] font-black uppercase tracking-widest text-white/70 transition-all hover:border-fn-accent/30 hover:bg-white/10 hover:text-white"
+              disabled={loading}
+            >
+              {action}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="mt-4 max-h-none flex-1 space-y-5 overflow-y-auto pr-1">
         {messages.length === 0 && (

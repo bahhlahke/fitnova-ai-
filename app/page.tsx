@@ -26,6 +26,7 @@ import type { DailyPlan } from "@/lib/plan/types";
 
 export type DailyCheckIn = {
   energy_score?: number | null;
+  adherence_score?: number | null;
   sleep_hours?: number | null;
   soreness_notes?: string | null;
 };
@@ -126,7 +127,7 @@ export default function HomePage() {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const sevenDaysAgoStr = sevenDaysAgo.toISOString().split("T")[0];
 
-      const [weekRes, last7Res, last28Res, planRes, profileRes, workoutTodayRes] =
+      const [weekRes, last7Res, last28Res, planRes, profileRes, workoutTodayRes, checkInRes] =
         await Promise.all([
           supabase
             .from("workout_logs")
@@ -167,9 +168,21 @@ export default function HomePage() {
             .eq("date", today)
             .limit(1)
             .maybeSingle(),
+          supabase
+            .from("check_ins")
+            .select("energy_score, adherence_score, sleep_hours, soreness_notes")
+            .eq("user_id", user.id)
+            .eq("date_local", today)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
         ]);
 
       setWeekCount(weekRes.count ?? 0);
+
+      if (checkInRes.data) {
+        setCheckIn(checkInRes.data as DailyCheckIn);
+      }
 
       if (last28Res.data) {
         setReadiness(calculateReadiness(last28Res.data));
@@ -726,7 +739,14 @@ export default function HomePage() {
       {/* High-Density Vitals Header */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 shrink-0">
         {[
-          { label: "Readiness", value: readiness.overall_score != null ? `${Math.round(readiness.overall_score * 100)}%` : "...", icon: "⚡", href: "/vitals" },
+          { label: "Readiness", value: (() => {
+            if (checkIn?.energy_score != null) {
+              const energy = (checkIn.energy_score / 5.0) * 0.7;
+              const adherence = ((checkIn.adherence_score ?? checkIn.energy_score) / 5.0) * 0.3;
+              return `${Math.round(Math.min(1.0, Math.max(0.0, energy + adherence)) * 100)}%`;
+            }
+            return readiness.overall_score != null ? `${Math.round(readiness.overall_score * 100)}%` : "...";
+          })(), icon: "⚡", href: "/vitals" },
           { label: "Streak", value: `${streak} Days`, icon: "🔥", href: "/progress" },
           { label: "Volume", value: `${weekCount} Szn`, icon: "📊", href: "/history" },
           { label: "Today", value: todayPlan?.calories ? `${todayPlan.calories} kcal` : "No Protocol", icon: "🧬", href: "/log/nutrition" },

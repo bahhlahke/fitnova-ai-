@@ -8,12 +8,13 @@
 import SwiftUI
 import Supabase
 import Realtime
+import PhotosUI
 
 struct GuidedWorkoutView: View {
     @EnvironmentObject var auth: SupabaseService
     @StateObject private var healthKit = HealthKitService.shared
     @State private var exercises: [PlanExercise] = []
-    
+
     init(exercises: [PlanExercise] = []) {
         self._exercises = State(initialValue: exercises)
     }
@@ -30,10 +31,12 @@ struct GuidedWorkoutView: View {
     // Neural Mastery State (Phase 5)
     @State private var neuralRestMode = true
     @State private var recoveryTarget = 110
+    @State private var heartRate = 148              // Simulated post-set HR for neural rest mode
     @State private var isFormCheckActive = false
     @State private var formCheckLoading = false
     @State private var formCheckResult: VisionAnalysisResponse?
     @State private var capturedPhotos: [String] = [] // Base64 strings for simplicity in this flow
+    @State private var selectedItems: [PhotosPickerItem] = []
 
     // AI Override State
     @State private var isSwapOptionsVisible = false
@@ -536,10 +539,10 @@ struct GuidedWorkoutView: View {
     private func startRestTimer() {
         phase = .rest
         restRemaining = restSeconds
-        
+
         if neuralRestMode {
-            heartRate = 148 // Simulate high post-set HR
-            recoveryTarget = 110 // Simulated PhD-level target
+            heartRate = 148       // Simulate high post-set HR
+            recoveryTarget = 110  // Simulated PhD-level target
         }
         
         Task {
