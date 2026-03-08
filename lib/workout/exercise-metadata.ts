@@ -203,6 +203,36 @@ export const EXERCISE_METADATA: Record<string, ExerciseExpertCues> = {
         breathing: "Brace hard to prevent rotation",
         intent: "Don't let hips tilt as you pull.",
         rationale: "Combines horizontal pulling with intense anti-rotational core work."
+    },
+    "rowing": {
+        tempo: "1-0-2-0 (Power back, control return)",
+        breathing: "Exhale on the drive",
+        intent: "Drive with legs first, then swing torso, then pull with arms.",
+        rationale: "Total body metabolic conditioning with high muscular engagement."
+    },
+    "battle ropes": {
+        tempo: "Continuous / Rapid",
+        breathing: "Short, sharp breaths",
+        intent: "Maintain wave height, stay low in a quarter squat.",
+        rationale: "High-intensity metabolic stress and upper body endurance."
+    },
+    "jump rope": {
+        tempo: "Rhythmic",
+        breathing: "Controlled nasal breathing",
+        intent: "Stay on balls of feet, minimize vertical jump height.",
+        rationale: "Aerobic efficiency and lower-limb plyometric resilience."
+    },
+    "sled push": {
+        tempo: "Power drive",
+        breathing: "Forceful exhales",
+        intent: "Drive through the mid-foot, keep arms rigid.",
+        rationale: "Concentric-only metabolic power and leg hypertrophy."
+    },
+    "box jumps": {
+        tempo: "Explosive",
+        breathing: "Exhale on takeoff",
+        intent: "Land softly like a cat, full hip extension at top.",
+        rationale: "Plyometric power and neurological recruitment."
     }
 };
 

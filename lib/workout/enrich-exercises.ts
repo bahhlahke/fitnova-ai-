@@ -42,6 +42,8 @@ export const EXERCISE_VIDEO_MAP: Record<string, string> = {
     "pull-up": "https://videos.pexels.com/video-files/4366620/4366620-hd_1080_1920_25fps.mp4",
     "overhead press": "https://videos.pexels.com/video-files/5267149/5267149-hd_1080_1920_24fps.mp4",
     "treadmill": "https://videos.pexels.com/video-files/4405105/4405105-hd_1080_1920_30fps.mp4",
+    "battle ropes": "https://videos.pexels.com/video-files/4665484/4665484-hd_1920_1080_30fps.mp4",
+    "rowing": "https://videos.pexels.com/video-files/4010375/4010375-hd_1920_1080_25fps.mp4",
 };
 
 /**
@@ -54,6 +56,20 @@ export const CINEMA_ASSET_MAP: Record<string, string> = {
     "deadlift": "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4",
     "pull-up": "https://videos.pexels.com/video-files/4366620/4366620-hd_1080_1920_25fps.mp4",
     "overhead press": "https://videos.pexels.com/video-files/5267149/5267149-hd_1080_1920_24fps.mp4",
+    "goblet squat": "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4",
+    "front squat": "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
+    "leg press": "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4",
+    "bulgarian split squat": "https://videos.pexels.com/video-files/4366623/4366623-hd_1080_1920_25fps.mp4",
+    "box jumps": "https://videos.pexels.com/video-files/4405105/4405105-hd_1080_1920_30fps.mp4",
+    "jump rope": "https://videos.pexels.com/video-files/4915605/4915605-hd_1080_1920_25fps.mp4",
+    "burpees": "https://videos.pexels.com/video-files/5319451/5319451-hd_1080_1920_25fps.mp4",
+    "kettlebell swing": "https://videos.pexels.com/video-files/4804368/4804368-hd_1080_1920_25fps.mp4",
+    "treadmill": "https://videos.pexels.com/video-files/4405105/4405105-hd_1080_1920_30fps.mp4",
+    "battle ropes": "https://videos.pexels.com/video-files/4665484/4665484-hd_1920_1080_30fps.mp4",
+    "rowing": "https://videos.pexels.com/video-files/4010375/4010375-hd_1920_1080_25fps.mp4",
+    "dumbbell press": "https://videos.pexels.com/video-files/5320015/5320015-hd_1080_1920_25fps.mp4",
+    "chest-supported row": "https://videos.pexels.com/video-files/4010375/4010375-hd_1920_1080_25fps.mp4",
+    "dips": "https://videos.pexels.com/video-files/5267149/5267149-hd_1080_1920_24fps.mp4",
 };
 
 export function enrichExercise(name: string) {
