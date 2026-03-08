@@ -156,7 +156,7 @@ struct GuidedWorkoutView: View {
     }
 
     private var workoutView: some View {
-        let ex = exercises[safe: exerciseIndex] ?? PlanExercise(name: nil, sets: nil, reps: nil, notes: nil)
+        let ex = exercises[safe: exerciseIndex] ?? PlanExercise(name: nil, sets: nil, reps: nil, intensity: nil, notes: nil, tempo: nil, breathing: nil, intent: nil, rationale: nil, target_rir: nil, target_load_kg: nil, video_url: nil, cinema_video_url: nil, image_url: nil)
         
         return ZStack {
             // Full Screen Background Video
@@ -205,7 +205,7 @@ struct GuidedWorkoutView: View {
                                 .foregroundStyle(Brand.Color.accent)
                                 VStack(spacing: 30) {
                         NeuralRestHUD(
-                            heartRate: healthKit.currentHeartRate,
+                            heartRate: heartRate,
                             timeRemaining: restRemaining,
                             recoveryScore: calculateRecoveryScore(),
                             steeringMessage: getSteeringMessage()
@@ -259,7 +259,7 @@ struct GuidedWorkoutView: View {
                     Spacer()
                     
                     Button(action: advanceRest) {
-                        let isOptimal = (healthKit.currentHeartRate ?? 0) <= recoveryTarget
+                        let isOptimal = heartRate <= recoveryTarget
                         Text(isOptimal ? "ENGAGE NEXT SET" : "RECOVERY OVERRIDE")
                             .font(.system(size: 14, weight: .black))
                             .frame(maxWidth: .infinity)
@@ -557,7 +557,7 @@ struct GuidedWorkoutView: View {
                     }
                 }
                 
-                if i == 0 || (neuralRestMode && (healthKit.currentHeartRate ?? 0) <= recoveryTarget && i < restSeconds - 10) {
+                if i == 0 || (neuralRestMode && heartRate <= recoveryTarget && i < restSeconds - 10) {
                     await MainActor.run { phase = .work }
                     break
                 }
@@ -575,7 +575,22 @@ struct GuidedWorkoutView: View {
         do {
             let res = try await api.planSwapExercise(currentExercise: name, reason: swapInput, location: "gym", sets: ex?.sets, reps: ex?.reps, intensity: nil)
             if let rep = res.replacement?.name, exerciseIndex < exercises.count {
-                let newEx = PlanExercise(name: rep, sets: res.replacement?.sets ?? ex?.sets, reps: res.replacement?.reps ?? ex?.reps, notes: res.replacement?.notes)
+                let newEx = PlanExercise(
+                    name: rep,
+                    sets: res.replacement?.sets ?? ex?.sets,
+                    reps: res.replacement?.reps ?? ex?.reps,
+                    intensity: res.replacement?.intensity ?? ex?.intensity,
+                    notes: res.replacement?.notes,
+                    tempo: ex?.tempo,
+                    breathing: ex?.breathing,
+                    intent: ex?.intent,
+                    rationale: ex?.rationale,
+                    target_rir: ex?.target_rir,
+                    target_load_kg: ex?.target_load_kg,
+                    video_url: ex?.video_url,
+                    cinema_video_url: ex?.cinema_video_url,
+                    image_url: ex?.image_url
+                )
                 
                 await MainActor.run {
                     exercises[exerciseIndex] = newEx
