@@ -79,6 +79,14 @@ struct KodaDataService {
         try await client.from("workout_logs").insert(row).execute()
     }
 
+    /// Upsert a workout log by `log_id`. Used for optimistic mid-session checkpoints.
+    func upsertWorkoutLog(_ log: WorkoutLog) async throws {
+        if isDemoMode { return }
+        var row = log
+        row.user_id = userId
+        try await client.from("workout_logs").upsert(row).execute()
+    }
+
     func updateWorkoutLog(logId: String, _ log: WorkoutLog) async throws {
         if isDemoMode { return }
         try await client.from("workout_logs")

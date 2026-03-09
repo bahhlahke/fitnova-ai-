@@ -55,6 +55,11 @@ struct GuidedWorkoutView: View {
     @State private var loggedSets: [[LoggedSet]] = []
     @State private var currentWeightInput: String = ""
     @State private var currentRepsInput: String = ""
+    // Stable log ID generated once per session — used for optimistic mid-session upserts.
+    private let sessionLogId = UUID().uuidString
+
+    // Resolved CDN demo video URL for the current exercise (nil until fetched).
+    @State private var resolvedDemoURL: URL?
 
     // Pulse state
     @State private var showingPulseAnimation = false
@@ -707,7 +712,7 @@ struct GuidedWorkoutView: View {
     }
 
     private func advanceSet() {
-        // Save current input to state
+        // 1. Update local state immediately — the UI responds at once (optimistic).
         let w = Double(currentWeightInput)
         let r = Int(currentRepsInput)
         if exerciseIndex < loggedSets.count {
@@ -715,7 +720,7 @@ struct GuidedWorkoutView: View {
         }
         currentWeightInput = ""
         currentRepsInput = ""
-        
+
         // Hide keyboard
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
 
@@ -730,6 +735,7 @@ struct GuidedWorkoutView: View {
                 exerciseIndex += 1
                 setIndex = 0
                 HapticEngine.impact(.heavy)
+                if let next = exercises[safe: exerciseIndex] { prefetchDemoURL(for: next) }
                 startRestTimer()
             }
         } else {
@@ -737,6 +743,18 @@ struct GuidedWorkoutView: View {
             HapticEngine.impact(.heavy)
             startRestTimer()
         }
+
+        // 2. Background checkpoint — persist partial log so data survives a crash.
+        Task { await persistCheckpoint() }
+    }
+
+    /// Upserts the current logged sets to the DB without blocking the UI.
+    private func persistCheckpoint() async {
+        guard let ds = dataService else { return }
+        var log = buildWorkoutLog()
+        log.log_id = sessionLogId
+        log.notes = "in_progress"
+        try? await ds.upsertWorkoutLog(log)
     }
     
     // Extracted logic to skip rest
@@ -1066,15 +1084,27 @@ struct GuidedWorkoutView: View {
     // MARK: - Helpers
     
     private func resolveAssetUrl(ex: PlanExercise) -> URL? {
+        // CDN-resolved URL takes priority (bundle or Supabase Storage).
+        if let cdn = resolvedDemoURL { return cdn }
+
         let assetStr = ex.cinema_video_url ?? ex.video_url ?? ex.image_url
         let finalStr = ExerciseImages.getExerciseImageUrl(exerciseName: ex.name ?? "", overrideUrl: assetStr)
-        
+
         if finalStr.hasPrefix("http") {
             return URL(string: finalStr)
         } else {
-            // Assume relative to web server if it starts with /
             let path = finalStr.hasPrefix("/") ? String(finalStr.dropFirst()) : finalStr
             return AppConfig.apiBaseURL.appendingPathComponent(path)
+        }
+    }
+
+    /// Kicks off an async CDN lookup for the current exercise's demo video.
+    private func prefetchDemoURL(for exercise: PlanExercise) {
+        resolvedDemoURL = nil
+        guard let name = exercise.name, !name.isEmpty else { return }
+        Task {
+            let url = await ExerciseDemoResolver.url(for: name)
+            await MainActor.run { resolvedDemoURL = url }
         }
     }
     
@@ -1278,31 +1308,36 @@ struct GuidedWorkoutView: View {
         sessionFocus ?? currentExerciseFocus
     }
 
-    private func saveAndGetInsight() async {
-        guard let ds = dataService else { return }
+    private func buildWorkoutLog() -> WorkoutLog {
         var log = WorkoutLog()
         log.date = DateHelpers.todayLocal
         log.workout_type = "Guided"
         log.duration_minutes = sessionDurationMinutes ?? 45
         log.exercises = exercises.enumerated().map { i, ex in
             let exLogs = i < loggedSets.count ? loggedSets[i] : []
-            // Use max weight among sets for DB, similar to web logic for now
             let maxWeight = exLogs.compactMap { $0.weight }.max() ?? 0.0
-            
-            // Format detailed cues string for now to preserve per-set data until jsonb DB support
             let setDetailsStr = exLogs.enumerated().map { j, setLog in
                 "Set \(j+1): \(setLog.weight ?? 0)lbs x \(setLog.reps ?? 0)"
             }.joined(separator: "; ")
-            
             let finalNotes = ex.notes != nil ? "\(ex.notes!) | Log: \(setDetailsStr)" : "Log: \(setDetailsStr)"
-
             return WorkoutExerciseEntry(name: ex.name, sets: ex.sets, reps: ex.reps, weight_kg: maxWeight > 0 ? maxWeight : nil, form_cues: finalNotes)
         }
-        try? await ds.insertWorkoutLog(log)
+        return log
+    }
+
+    private func saveAndGetInsight() async {
+        guard let ds = dataService else { return }
+        // Optimistic: mark saved immediately so the completion screen shows the badge at once.
+        await MainActor.run { saved = true }
+
+        var log = buildWorkoutLog()
+        log.log_id = sessionLogId
+        log.notes = nil // clear in-progress marker
+        try? await ds.upsertWorkoutLog(log)
         _ = try? await api.analyticsProcessPRs()
         _ = try? await api.awardsCheck()
-        await MainActor.run { saved = true }
-        insightLoading = true
+
+        await MainActor.run { insightLoading = true }
         let insight = try? await api.aiPostWorkoutInsight(dateLocal: DateHelpers.todayLocal)
         await MainActor.run {
             postWorkoutInsight = insight?.insight
@@ -1369,6 +1404,8 @@ struct GuidedWorkoutView: View {
         sessionDurationMinutes = durationMinutes
         loggedSets = Array(repeating: [], count: exercises.count)
         phase = exercises.isEmpty ? .completed : .overview
+        // Pre-fetch demo video for the first exercise.
+        if let first = exercises.first { prefetchDemoURL(for: first) }
     }
 
     private var workoutBackButton: some View {

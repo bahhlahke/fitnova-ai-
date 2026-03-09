@@ -47,6 +47,7 @@ struct HomeView: View {
     @State private var showingCoachChat = false
     @State private var generating = false
     @State private var refreshTask: Task<Void, Never>?
+    @Namespace private var workoutNamespace
 
     // MARK: - Services (resolved once, not per-render)
 
@@ -60,6 +61,7 @@ struct HomeView: View {
     }
 
     var body: some View {
+        ZStack {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
@@ -81,7 +83,8 @@ struct HomeView: View {
                     BioSyncHUD(
                         readinessScore: readinessScore,
                         activeSquad: profile?.activity_level ?? "Titanium Hypertrophy",
-                        heartRate: healthKit.currentHeartRate
+                        heartRate: healthKit.currentHeartRate,
+                        todaySteps: healthKit.todaySteps
                     )
                     
                     briefingCard
@@ -126,11 +129,6 @@ struct HomeView: View {
                 refreshTask?.cancel()
                 refreshTask = Task { await loadAll() }
             }
-            .fullScreenCover(isPresented: $showingGuidedWorkout) {
-                if let plan = dailyPlan?.training_plan {
-                    GuidedWorkoutView(trainingPlan: plan)
-                }
-            }
             .sheet(isPresented: $showingCoachChat) {
                 CoachView()
             }
@@ -153,7 +151,9 @@ struct HomeView: View {
                     }
                     showingCoachChat = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        showingGuidedWorkout = true
+                        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                            showingGuidedWorkout = true
+                        }
                     }
                 } else if let exercises = note.userInfo?["exercises"] as? [PlanExercise] {
                     if dailyPlan == nil {
@@ -182,11 +182,28 @@ struct HomeView: View {
                     }
                     showingCoachChat = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        showingGuidedWorkout = true
+                        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                            showingGuidedWorkout = true
+                        }
                     }
                 }
             }
         }
+
+        // Hero workout overlay — lives in the same ZStack so matchedGeometryEffect works.
+        if showingGuidedWorkout, let plan = dailyPlan?.training_plan {
+            NavigationStack {
+                GuidedWorkoutView(trainingPlan: plan)
+            }
+            .matchedGeometryEffect(id: "workout-hero", in: workoutNamespace)
+            .ignoresSafeArea()
+            .transition(.asymmetric(
+                insertion: .scale(scale: 0.92, anchor: .bottom).combined(with: .opacity),
+                removal: .scale(scale: 0.92, anchor: .bottom).combined(with: .opacity)
+            ))
+            .zIndex(10)
+        }
+        } // end outer ZStack
     }
 
     private func errorBanner(_ message: String) -> some View {
@@ -287,8 +304,11 @@ struct HomeView: View {
                         .foregroundStyle(.secondary)
                     
                     Button("Start Guided Session") {
-                        showingGuidedWorkout = true
+                        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                            showingGuidedWorkout = true
+                        }
                     }
+                    .matchedGeometryEffect(id: "workout-hero", in: workoutNamespace)
                     .buttonStyle(PremiumActionButtonStyle())
                     .padding(.top, 8)
                 }
@@ -447,6 +467,7 @@ struct HomeView: View {
             group.addTask { await self.loadCheckIn() }
             group.addTask { await self.loadBriefing() }
             group.addTask { await self.loadPlan() }
+            group.addTask { await self.healthKit.fetchTodaySteps() }
         }
         criticalPhaseLoading = false
 
@@ -516,12 +537,22 @@ struct HomeView: View {
     }
 
     private func loadPlan() async {
+        // Stale-while-revalidate: show cached plan instantly, then update with fresh data.
+        if let cached = PlanCache.shared.loadDailyPlan() {
+            await MainActor.run { dailyPlan = cached }
+        }
         guard let ds = dataService else { return }
         do {
-            let p = try await ds.fetchDailyPlan(dateLocal: DateHelpers.todayLocal)
-            await MainActor.run { dailyPlan = p }
+            let fresh = try await ds.fetchDailyPlan(dateLocal: DateHelpers.todayLocal)
+            if let fresh {
+                PlanCache.shared.storeDailyPlan(fresh)
+            }
+            await MainActor.run { dailyPlan = fresh }
         } catch {
-            await MainActor.run { errorMessage = error.localizedDescription }
+            // Cache already populated above; only surface error if nothing shown yet
+            if dailyPlan == nil {
+                await MainActor.run { errorMessage = error.localizedDescription }
+            }
         }
     }
 
