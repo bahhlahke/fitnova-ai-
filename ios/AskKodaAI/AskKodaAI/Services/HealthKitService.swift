@@ -21,6 +21,7 @@ final class HealthKitService: ObservableObject {
     @Published private(set) var syncError: String?
     @Published private(set) var isSyncing = false
     @Published private(set) var currentHeartRate: Int?
+    @Published private(set) var todaySteps: Int?
 
     #if canImport(HealthKit)
     private let store = HKHealthStore()
@@ -67,6 +68,28 @@ final class HealthKitService: ObservableObject {
             hrQuery = nil
         }
         currentHeartRate = nil
+        #endif
+    }
+
+    /// Fetch today's cumulative step count and publish it to `todaySteps`.
+    func fetchTodaySteps() async {
+        #if canImport(HealthKit)
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        let stepType = HKQuantityType(.stepCount)
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: Date())
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: Date(), options: .strictStartDate)
+        let steps: Int? = await withCheckedContinuation { cont in
+            let q = HKStatisticsQuery(quantityType: stepType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, stats, _ in
+                if let sum = stats?.sumQuantity() {
+                    cont.resume(returning: Int(sum.doubleValue(for: .count())))
+                } else {
+                    cont.resume(returning: nil)
+                }
+            }
+            store.execute(q)
+        }
+        await MainActor.run { self.todaySteps = steps }
         #endif
     }
     

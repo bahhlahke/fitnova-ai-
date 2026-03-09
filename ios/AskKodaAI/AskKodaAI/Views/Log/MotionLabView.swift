@@ -13,6 +13,7 @@ struct MotionLabView: View {
     @State private var imageDataUrls: [String] = []
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var showPicker = false
+    @State private var showCamera = false
     @State private var analyzing = false
     @State private var result: VisionAnalysisResponse?
     @State private var errorMessage: String?
@@ -24,23 +25,37 @@ struct MotionLabView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Add 1–3 photos of your lift. We'll analyze form and suggest corrections.")
+                Text("Capture a live photo or choose from your library. We'll analyze your form and suggest corrections.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                PhotosPicker(
-                    selection: $selectedItems,
-                    maxSelectionCount: 3,
-                    matching: .images
-                ) {
-                    HStack {
-                        Image(systemName: "photo.on.rectangle.angled")
-                        Text(imageDataUrls.isEmpty ? "Choose 1–3 photos" : "\(imageDataUrls.count) photo(s) selected")
+                // Dual-source capture
+                HStack(spacing: 12) {
+                    Button {
+                        showCamera = true
+                    } label: {
+                        Label("Live capture", systemImage: "camera.fill")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Brand.Color.accent)
+                            .foregroundStyle(.black)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                    PhotosPicker(
+                        selection: $selectedItems,
+                        maxSelectionCount: 3,
+                        matching: .images
+                    ) {
+                        Label(
+                            imageDataUrls.isEmpty ? "From library" : "\(imageDataUrls.count) photo(s)",
+                            systemImage: "photo.on.rectangle"
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
                 }
                 .onChange(of: selectedItems) { _, newItems in
                     Task {
@@ -110,6 +125,16 @@ struct MotionLabView: View {
             .padding()
         }
         .navigationTitle("Form check")
+        .sheet(isPresented: $showCamera) {
+            KodaCameraView(onCapture: { image in
+                if let data = image.jpegData(compressionQuality: 0.8) {
+                    let base64 = data.base64EncodedString()
+                    imageDataUrls.append("data:image/jpeg;base64,\(base64)")
+                    result = nil
+                }
+            })
+            .ignoresSafeArea()
+        }
     }
 
     private func analyze() {
