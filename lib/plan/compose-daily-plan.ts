@@ -10,6 +10,16 @@ function normalizeExerciseName(name: string): string {
   return name.toLowerCase().trim().replace(/\s+/g, " ");
 }
 
+function isRecoveryFocus(focus: string): boolean {
+  const normalized = focus.toLowerCase();
+  return (
+    normalized.includes("recovery") ||
+    normalized.includes("mobility") ||
+    normalized.includes("movement quality") ||
+    normalized.includes("stress-relief")
+  );
+}
+
 function getWeekStartLocal(date: Date): string {
   const day = date.getDay();
   const diff = date.getDate() - day + (day === 0 ? -6 : 1);
@@ -242,7 +252,7 @@ export async function composeDailyPlan(
   const secondarySets = experience === "beginner" ? 2 : experience === "advanced" ? 4 : 3;
 
   const exercises: DailyPlanTrainingExercise[] =
-    focus.includes("Mobility")
+    isRecoveryFocus(focus)
       ? [
         { name: pickFromPool(MOBILITY_POOL, recentExerciseNames), sets: 2, reps: "10", intensity: "Controlled" },
         { name: pickFromPool(MOBILITY_POOL.slice(1), recentExerciseNames), sets: 2, reps: "45s", intensity: "Moderate" },
@@ -257,7 +267,7 @@ export async function composeDailyPlan(
       ];
 
   // Dynamically add accessories if time allows (> 45 min)
-  if (minutesAvailable > 45 && !focus.includes("Mobility")) {
+  if (minutesAvailable > 45 && !isRecoveryFocus(focus)) {
     exercises.push({
       name: pickFromPool(ACCESSORY_POOL, recentExerciseNames),
       sets: 3,
@@ -273,7 +283,7 @@ export async function composeDailyPlan(
   }
 
   // Add HIIT/Finisher
-  if (focus.includes("Fat-loss") || minutesAvailable > 40) {
+  if (!isRecoveryFocus(focus) && (focus.includes("Fat-loss") || minutesAvailable > 40)) {
     exercises.push({
       name: pickFromPool(HIIT_POOL, recentExerciseNames),
       sets: 4,
@@ -295,7 +305,7 @@ export async function composeDailyPlan(
 
   // Metabolic Autopilot: Determine nutrition mode
   let nutritionMode: "Performance" | "Baseline" | "Recovery" = "Baseline";
-  if (energyScore < 5 || sleepHours < 6 || focus.includes("Mobility")) {
+  if (energyScore < 5 || sleepHours < 6 || isRecoveryFocus(focus)) {
     nutritionMode = "Recovery";
   } else if (energyScore >= 8 && sleepHours >= 8 && focus.includes("strength")) {
     nutritionMode = "Performance";

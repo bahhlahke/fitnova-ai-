@@ -25,11 +25,12 @@ final class SpotifyService: ObservableObject {
     @Published private(set) var currentArtist = "Connect Spotify in Integrations."
     @Published private(set) var activeDeviceName: String?
     @Published private(set) var errorMessage: String?
+    private let api = KodaAPIService(getAccessToken: { SupabaseService.shared.accessToken })
 
     private init() {}
 
     func refresh(using auth: SupabaseService) async {
-        guard let token = auth.providerAccessToken, !token.isEmpty else {
+        guard let token = await resolveSpotifyAccessToken(using: auth) else {
             applyDisconnectedState()
             return
         }
@@ -79,7 +80,7 @@ final class SpotifyService: ObservableObject {
     }
 
     private func sendCommand(using auth: SupabaseService, path: String) async {
-        guard let token = auth.providerAccessToken, !token.isEmpty else {
+        guard let token = await resolveSpotifyAccessToken(using: auth) else {
             applyDisconnectedState()
             return
         }
@@ -164,6 +165,20 @@ final class SpotifyService: ObservableObject {
         currentTrack = "Spotify not connected"
         currentArtist = "Connect Spotify in Integrations."
         errorMessage = nil
+    }
+
+    private func resolveSpotifyAccessToken(using auth: SupabaseService) async -> String? {
+        if let providerToken = auth.providerAccessToken, !providerToken.isEmpty {
+            return providerToken
+        }
+
+        do {
+            let response = try await api.spotifyToken()
+            return response.access_token
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
     }
 }
 

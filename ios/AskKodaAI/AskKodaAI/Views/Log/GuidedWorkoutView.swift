@@ -21,8 +21,9 @@ struct GuidedWorkoutView: View {
     @State private var sessionDurationMinutes: Int?
 
     init(exercises: [PlanExercise] = [], trainingPlan: TrainingPlan? = nil) {
-        self.initialExercises = trainingPlan?.exercises ?? exercises
-        self.initialTrainingPlan = trainingPlan
+        let normalized = Self.normalizedTrainingPlan(trainingPlan)
+        self.initialExercises = normalized?.exercises ?? exercises
+        self.initialTrainingPlan = normalized
     }
     @State private var exerciseIndex = 0
     @State private var setIndex = 0
@@ -67,11 +68,141 @@ struct GuidedWorkoutView: View {
     @State private var pulseScale = 0.8
     @State private var pulseOpacity = 0.0
 
+    @State private var coachAudio = CoachAudioService.shared
+
     private let restSeconds = 90
     private var api: KodaAPIService { KodaAPIService(getAccessToken: { auth.accessToken }) }
     private var dataService: KodaDataService? {
         guard let uid = auth.currentUserId else { return nil }
         return KodaDataService(client: auth.supabaseClient, userId: uid)
+    }
+
+    private static func normalizedTrainingPlan(_ plan: TrainingPlan?) -> TrainingPlan? {
+        guard let plan else { return nil }
+        guard shouldReplaceWithRecoveryPlan(plan) else { return plan }
+
+        let duration = plan.duration_minutes ?? 25
+        return TrainingPlan(
+            focus: "Recovery and movement quality",
+            duration_minutes: duration,
+            exercises: recoveryExercises(for: duration)
+        )
+    }
+
+    private static func shouldReplaceWithRecoveryPlan(_ plan: TrainingPlan) -> Bool {
+        let focus = (plan.focus ?? "").lowercased()
+        let isRecoveryFocus =
+            focus.contains("recovery") ||
+            focus.contains("mobility") ||
+            focus.contains("movement quality") ||
+            focus.contains("stress-relief")
+
+        guard isRecoveryFocus else { return false }
+
+        let exerciseText = (plan.exercises ?? [])
+            .compactMap(\.name)
+            .map { $0.lowercased() }
+            .joined(separator: " ")
+        let strengthSignals = [
+            "bench",
+            "squat",
+            "deadlift",
+            "press",
+            "row",
+            "pull",
+            "lunge",
+            "hinge",
+            "hypertrophy",
+            "strength",
+        ]
+
+        return strengthSignals.contains { exerciseText.contains($0) }
+    }
+
+    private static func recoveryExercises(for duration: Int) -> [PlanExercise] {
+        let finisherMinutes = max(6, min(12, duration / 3))
+        return [
+            PlanExercise(
+                name: "90/90 Breathing",
+                sets: 3,
+                reps: "5 breaths",
+                intensity: "Easy",
+                notes: "Feet elevated, ribs down, and full exhales on every rep.",
+                tempo: "Slow",
+                breathing: "Full nasal inhale, long controlled exhale",
+                intent: "Shift into recovery mode",
+                rationale: "Down-regulates tension and restores recovery posture.",
+                target_rir: nil,
+                target_load_kg: nil,
+                video_url: nil,
+                cinema_video_url: nil,
+                image_url: nil
+            ),
+            PlanExercise(
+                name: "Cat-Cow",
+                sets: 2,
+                reps: "8",
+                intensity: "Fluid",
+                notes: "Move segment by segment instead of rushing through the range.",
+                tempo: "Controlled",
+                breathing: "Inhale into extension, exhale into flexion",
+                intent: "Restore spinal motion",
+                rationale: "Opens the trunk without heavy axial loading.",
+                target_rir: nil,
+                target_load_kg: nil,
+                video_url: nil,
+                cinema_video_url: nil,
+                image_url: nil
+            ),
+            PlanExercise(
+                name: "90/90 Hip Switches",
+                sets: 2,
+                reps: "8/side",
+                intensity: "Controlled",
+                notes: "Stay tall and let the hips do the work.",
+                tempo: "2111",
+                breathing: "Exhale into end range",
+                intent: "Open hips and reduce stiffness",
+                rationale: "Restores hip rotation and movement quality.",
+                target_rir: nil,
+                target_load_kg: nil,
+                video_url: nil,
+                cinema_video_url: nil,
+                image_url: nil
+            ),
+            PlanExercise(
+                name: "Pigeon Stretch",
+                sets: 2,
+                reps: "45s/side",
+                intensity: "Easy-moderate",
+                notes: "Stay square through the hips and ease into the position.",
+                tempo: "Hold",
+                breathing: "Slow nasal breathing",
+                intent: "Reduce hip and glute tension",
+                rationale: "Supports low-intensity mobility and tissue recovery.",
+                target_rir: nil,
+                target_load_kg: nil,
+                video_url: nil,
+                cinema_video_url: nil,
+                image_url: nil
+            ),
+            PlanExercise(
+                name: "Zone 2 Finisher",
+                sets: 1,
+                reps: "\(finisherMinutes) min",
+                intensity: "Easy",
+                notes: "Walk, bike, or row at a conversational pace.",
+                tempo: "Steady",
+                breathing: "Nasal, conversational",
+                intent: "Facilitate recovery",
+                rationale: "Keeps the session executable while staying aligned with a recovery day.",
+                target_rir: nil,
+                target_load_kg: nil,
+                video_url: nil,
+                cinema_video_url: nil,
+                image_url: nil
+            ),
+        ]
     }
 
     enum Phase { case loading, overview, work, rest, completed }
@@ -110,6 +241,10 @@ struct GuidedWorkoutView: View {
             await loadPlan()
             await setupPulseSubscription()
             startNeuralMastery()
+            speakCoachCue(for: phase)
+        }
+        .onChange(of: phase) { _, newValue in
+            speakCoachCue(for: newValue)
         }
         .onDisappear {
             stopNeuralMastery()
@@ -211,7 +346,8 @@ struct GuidedWorkoutView: View {
                     }
 
                     Button(action: {
-                        phase = exercises.isEmpty ? .completed : .work
+                        let targetPhase: Phase = exercises.isEmpty ? .completed : .work
+                        phase = targetPhase
                         setIndex = 0
                     }) {
                         Text("Start Session")
