@@ -10,7 +10,10 @@ enum Brand {
         
         /// Web app 'fn-surface': #1C1C1E
         static let surface = SwiftUI.Color(hex: "1C1C1E")
-        
+
+        /// Raised card surface tuned for premium contrast in iOS cards.
+        static let surfaceRaised = SwiftUI.Color(hex: "171A1F")
+
         /// Web app 'fn-surface-hover': #2C2C2E
         static let surfaceHover = SwiftUI.Color(hex: "2C2C2E")
         
@@ -19,10 +22,16 @@ enum Brand {
         
         /// Web app 'fn-border': #27272A
         static let border = SwiftUI.Color(hex: "27272A")
-        
+
+        static let borderStrong = SwiftUI.Color(hex: "31343B")
+
         /// Web app 'fn-muted': #A1A1AA
         static let muted = SwiftUI.Color(hex: "A1A1AA")
-        
+
+        static let success = SwiftUI.Color(hex: "34D399")
+        static let warning = SwiftUI.Color(hex: "F59E0B")
+        static let danger = SwiftUI.Color(hex: "FB7185")
+
         static let primary = SwiftUI.Color.white
         static let secondary = SwiftUI.Color.gray
     }
@@ -58,14 +67,25 @@ extension Color {
 struct GlassCard: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .background(Brand.Color.surface.opacity(0.8))
-            .background(.ultraThinMaterial)
-            .cornerRadius(16)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Brand.Color.border, lineWidth: 1)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Brand.Color.surfaceRaised.opacity(0.92),
+                                Brand.Color.surface.opacity(0.98)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .background(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(Brand.Color.borderStrong.opacity(0.9), lineWidth: 1)
+                    )
             )
-            .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
+            .shadow(color: .black.opacity(0.35), radius: 20, x: 0, y: 14)
     }
 }
 
@@ -75,6 +95,41 @@ extension View {
     }
     
     func fnBackground() -> some View {
-        self.background(Brand.Color.background.ignoresSafeArea())
+        self.background {
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Brand.Color.background,
+                        Brand.Color.backgroundAlt.opacity(0.98),
+                        Brand.Color.background
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+
+                RadialGradient(
+                    colors: [
+                        Brand.Color.accent.opacity(0.16),
+                        Color.clear
+                    ],
+                    center: .topTrailing,
+                    startRadius: 40,
+                    endRadius: 340
+                )
+                .ignoresSafeArea()
+
+                RadialGradient(
+                    colors: [
+                        Color.white.opacity(0.08),
+                        Color.clear
+                    ],
+                    center: .bottomLeading,
+                    startRadius: 10,
+                    endRadius: 280
+                )
+                .ignoresSafeArea()
+            }
+        }
     }
 }

@@ -116,6 +116,18 @@ struct CheckIn: Codable {
     var created_at: String?
 }
 
+// MARK: - connected_signals
+
+struct ConnectedSignal: Codable {
+    var connected_signal_id: String?
+    var user_id: String?
+    var provider: String?
+    var signal_date: String?
+    var sleep_hours: Double?
+    var steps: Int?
+    var updated_at: String?
+}
+
 // MARK: - onboarding
 
 struct OnboardingRow: Codable {

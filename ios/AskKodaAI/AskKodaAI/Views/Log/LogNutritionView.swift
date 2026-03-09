@@ -31,7 +31,7 @@ struct LogNutritionView: View {
     private let hydrationGoalLiters = 2.5
 
     private var api: KodaAPIService {
-        KodaAPIService(getAccessToken: { await auth.accessToken })
+        KodaAPIService(getAccessToken: { auth.accessToken })
     }
 
     private var dataService: KodaDataService? {
@@ -354,7 +354,7 @@ struct LogNutritionView: View {
     }
 
     private func addHydration(_ amount: Double) async {
-        guard let ds = dataService else { return }
+        guard dataService != nil else { return }
         let current = nutritionLog?.hydration_liters ?? 0
         await setHydration(current + amount)
     }

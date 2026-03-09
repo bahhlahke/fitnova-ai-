@@ -22,7 +22,7 @@ struct PlanView: View {
     @State private var adaptLoading = false
 
     private var api: KodaAPIService {
-        KodaAPIService(getAccessToken: { await auth.accessToken })
+        KodaAPIService(getAccessToken: { auth.accessToken })
     }
 
     var body: some View {
@@ -34,10 +34,20 @@ struct PlanView: View {
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
+                            PremiumHeroCard(
+                                title: "Your week is already sequenced.",
+                                subtitle: "Choose the day, inspect the rationale, and compress the session only when reality changes.",
+                                eyebrow: "Plan"
+                            ) {
+                                HStack(spacing: 10) {
+                                    PremiumMetricPill(label: "Week", value: weeklyPlan?.cycle_goal ?? "Adaptive")
+                                    PremiumMetricPill(label: "Mode", value: selectedDay?.intensity ?? "Live")
+                                }
+                            }
                             if let err = errorMessage {
                                 Text(err)
                                     .font(.caption)
-                                    .foregroundStyle(.red)
+                                    .foregroundStyle(Brand.Color.danger)
                                     .padding()
                             }
                             if let plan = weeklyPlan, let days = plan.days, !days.isEmpty {
@@ -144,7 +154,7 @@ struct PlanView: View {
                 withAnimation { isAdapting.toggle() }
             }
             .font(.subheadline)
-            .buttonStyle(.bordered)
+            .buttonStyle(PremiumActionButtonStyle(filled: false))
             
             if isAdapting {
                 HStack {
@@ -155,6 +165,7 @@ struct PlanView: View {
                     Button("Adapt") {
                         Task { await adaptDay() }
                     }
+                    .buttonStyle(PremiumActionButtonStyle())
                     .disabled(adaptInput.isEmpty || adaptLoading)
                 }
                 
@@ -174,7 +185,7 @@ struct PlanView: View {
             Button("Generate weekly plan") {
                 Task { await refreshPlan() }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(PremiumActionButtonStyle())
         }
         .frame(maxWidth: .infinity)
         .padding()

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var auth: SupabaseService
+    @StateObject private var healthKit = HealthKitService.shared
     @State private var briefing: AIBriefingResponse?
     @State private var briefingLoading = false
     @State private var dailyPlan: DailyPlan?
@@ -40,7 +41,7 @@ struct HomeView: View {
     @State private var refreshTask: Task<Void, Never>?
 
     private var api: KodaAPIService {
-        KodaAPIService(getAccessToken: { await auth.accessToken })
+        KodaAPIService(getAccessToken: { auth.accessToken })
     }
 
     private var dataService: KodaDataService? {
@@ -52,14 +53,16 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    HStack {
-                        Image("KodaLogo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 32)
-                        Spacer()
+                    PremiumHeroCard(
+                        title: "Today's coaching desk is live.",
+                        subtitle: "Your next best session, recovery posture, and intervention triggers are already organized below.",
+                        eyebrow: profile?.display_name ?? "Home"
+                    ) {
+                        HStack(spacing: 10) {
+                            PremiumMetricPill(label: "Readiness", value: "\(Int(readinessScore * 100))%")
+                            PremiumMetricPill(label: "Protocol", value: profile?.activity_level ?? "Titanium")
+                        }
                     }
-                    .padding(.bottom, 8)
                     
                     if let err = errorMessage {
                         errorBanner(err)
@@ -67,7 +70,8 @@ struct HomeView: View {
                     
                     BioSyncHUD(
                         readinessScore: readinessScore,
-                        activeSquad: profile?.activity_level ?? "Titanium Hypertrophy"
+                        activeSquad: profile?.activity_level ?? "Titanium Hypertrophy",
+                        heartRate: healthKit.currentHeartRate
                     )
                     
                     briefingCard
@@ -98,22 +102,50 @@ struct HomeView: View {
             }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.large)
-            .refreshable { await loadAll() }
-            .task { await loadAll() }
+            .refreshable {
+                refreshTask?.cancel()
+                refreshTask = Task { await loadAll() }
+                await refreshTask?.value
+            }
+            .task {
+                refreshTask?.cancel()
+                refreshTask = Task { await loadAll() }
+                await refreshTask?.value
+            }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppEnteredForeground"))) { _ in
-                Task { await loadAll() }
+                refreshTask?.cancel()
+                refreshTask = Task { await loadAll() }
             }
             .fullScreenCover(isPresented: $showingGuidedWorkout) {
                 if let plan = dailyPlan?.training_plan {
-                    GuidedWorkoutView(exercises: plan.exercises ?? [])
+                    GuidedWorkoutView(trainingPlan: plan)
                 }
             }
             .sheet(isPresented: $showingCoachChat) {
                 CoachView()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StartGuidedWorkoutFromCoach"))) { note in
-                if let exercises = note.userInfo?["exercises"] as? [PlanExercise] {
-                    // Update the local plan so GuidedWorkoutView sees it
+                if let trainingPlan = note.userInfo?["trainingPlan"] as? TrainingPlan {
+                    if dailyPlan == nil {
+                        dailyPlan = DailyPlan(
+                            date_local: DateHelpers.todayLocal,
+                            training_plan: trainingPlan,
+                            nutrition_plan: nil,
+                            safety_notes: nil
+                        )
+                    } else {
+                        dailyPlan = DailyPlan(
+                            date_local: dailyPlan?.date_local,
+                            training_plan: trainingPlan,
+                            nutrition_plan: dailyPlan?.nutrition_plan,
+                            safety_notes: dailyPlan?.safety_notes
+                        )
+                    }
+                    showingCoachChat = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showingGuidedWorkout = true
+                    }
+                } else if let exercises = note.userInfo?["exercises"] as? [PlanExercise] {
                     if dailyPlan == nil {
                         dailyPlan = DailyPlan(
                             date_local: DateHelpers.todayLocal,
@@ -126,7 +158,6 @@ struct HomeView: View {
                             safety_notes: nil
                         )
                     } else {
-                        // TrainingPlan is a struct, we need to replace it
                         let current = dailyPlan?.training_plan
                         dailyPlan = DailyPlan(
                             date_local: dailyPlan?.date_local,
@@ -152,14 +183,14 @@ struct HomeView: View {
         HStack {
             Text(message)
                 .font(.caption)
-                .foregroundStyle(.red)
+                .foregroundStyle(Brand.Color.danger)
             Spacer()
             Button("Dismiss") { errorMessage = nil }
                 .font(.caption)
         }
         .padding()
-        .background(Color.red.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .background(Brand.Color.danger.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
     @ViewBuilder
@@ -210,8 +241,7 @@ struct HomeView: View {
                             Spacer()
                             if let cta = insight.cta_route {
                                 Button("Execute") { handleSteering(cta) }
-                                    .font(.caption)
-                                    .buttonStyle(.borderedProminent)
+                                    .buttonStyle(PremiumActionButtonStyle())
                             }
                         }
                         Text(insight.message)
@@ -248,7 +278,7 @@ struct HomeView: View {
                     Button("Start Guided Session") {
                         showingGuidedWorkout = true
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(PremiumActionButtonStyle())
                     .padding(.top, 8)
                 }
             } else {
@@ -259,7 +289,7 @@ struct HomeView: View {
                         Task { await generatePlan() }
                     }
                     .disabled(generating)
-                    .buttonStyle(.bordered)
+                    .buttonStyle(PremiumActionButtonStyle())
                 }
             }
         }
@@ -290,14 +320,7 @@ struct HomeView: View {
     }
 
     private func statBox(label: String, value: String) -> some View {
-        VStack(alignment: .leading) {
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.subheadline)
-                .fontWeight(.bold)
-        }
+        PremiumMetricPill(label: label, value: value)
     }
 
     @ViewBuilder

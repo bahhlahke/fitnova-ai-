@@ -14,28 +14,37 @@ struct PricingView: View {
     @State private var errorMessage: String?
 
     private var api: KodaAPIService {
-        KodaAPIService(getAccessToken: { await auth.accessToken })
+        KodaAPIService(getAccessToken: { auth.accessToken })
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
-                    Text("Choose your protocol")
-                        .font(.title2)
-                        .fontWeight(.bold)
+                VStack(alignment: .leading, spacing: 18) {
+                    PremiumHeroCard(
+                        title: "Upgrade into a real coaching operating system.",
+                        subtitle: "Structured programming, better feedback loops, and the premium accountability layer that keeps momentum high.",
+                        eyebrow: "Membership"
+                    ) {
+                        HStack(spacing: 10) {
+                            PremiumMetricPill(label: "Trial", value: "7 days")
+                            PremiumMetricPill(label: "Motion Lab", value: "Included")
+                        }
+                    }
+
                     VStack(spacing: 16) {
                         planCard(name: "Standard", price: "7-Day Trial", features: ["Full logging", "Adaptive protocols", "Performance analytics"])
                         planCard(name: "Pro", price: "$9.99/mo", features: ["Everything in Trial", "Predictive engine", "Wearable sync", "AI Motion Lab"], popular: true)
                     }
+
                     if let err = errorMessage {
-                        Text(err)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                        PremiumStateCard(title: "Checkout unavailable", detail: err, symbol: "creditcard.trianglebadge.exclamationmark")
                     }
                 }
-                .padding()
+                .padding(.horizontal, 16)
+                .padding(.vertical, 20)
             }
+            .fnBackground()
             .navigationTitle("Pricing")
         }
     }
@@ -44,27 +53,40 @@ struct PricingView: View {
         VStack(alignment: .leading, spacing: 12) {
             if popular {
                 Text("Most popular")
-                    .font(.caption2)
-                    .fontWeight(.bold)
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(Brand.Color.accent)
             }
             Text(name)
-                .font(.headline)
+                .font(.title3.weight(.black))
+                .foregroundStyle(.white)
             Text(price)
-                .font(.title3)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(popular ? Brand.Color.accent : .white)
             ForEach(features, id: \.self) { f in
-                Text("• \(f)")
-                    .font(.caption)
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(Brand.Color.accent)
+                    Text(f)
+                        .font(.subheadline)
+                        .foregroundStyle(Brand.Color.muted)
+                }
             }
             Button("Get started") {
                 Task { await checkout() }
             }
-            .buttonStyle(.borderedProminent)
-            .frame(maxWidth: .infinity)
+            .buttonStyle(PremiumActionButtonStyle(filled: popular))
             .disabled(loading)
         }
         .padding()
-        .background(popular ? Color.accentColor.opacity(0.1) : Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(popular ? Brand.Color.accent.opacity(0.12) : Brand.Color.surfaceRaised)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(popular ? Brand.Color.accent.opacity(0.35) : Brand.Color.borderStrong, lineWidth: 1)
+                )
+        )
     }
 
     private func checkout() async {

@@ -24,7 +24,7 @@ struct LogWorkoutView: View {
     }
 
     private var api: KodaAPIService {
-        KodaAPIService(getAccessToken: { await auth.accessToken })
+        KodaAPIService(getAccessToken: { auth.accessToken })
     }
 
     private static let workoutTypes = ["Strength", "Cardio", "HIIT", "Recovery", "Sports", "Other"]

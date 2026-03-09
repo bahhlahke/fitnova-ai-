@@ -23,54 +23,106 @@ struct SettingsView: View {
     }
 
     private var api: KodaAPIService {
-        KodaAPIService(getAccessToken: { await auth.accessToken })
+        KodaAPIService(getAccessToken: { auth.accessToken })
     }
 
     var body: some View {
         NavigationStack {
-            List {
-                Section("Profile") {
-                    if loading && profile == nil {
-                        HStack {
-                            ProgressView()
-                            Text("Loading…")
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    PremiumHeroCard(
+                        title: profile?.display_name ?? "Athlete settings",
+                        subtitle: "Manage account details, connected systems, exports, and premium surfaces from one command center.",
+                        eyebrow: "System"
+                    ) {
+                        HStack(spacing: 10) {
+                            PremiumMetricPill(label: "Plan", value: profile?.activity_level ?? "Titanium")
+                            PremiumMetricPill(label: "Tier", value: (profile?.subscription_status ?? "pro").capitalized)
                         }
-                    } else if let p = profile {
-                        if let n = p.display_name { row("Name", n) }
-                        if let e = p.email { row("Email", e) }
-                        if let a = p.age { row("Age", "\(a)") }
-                        if let s = p.sex { row("Sex", s) }
-                        if let h = p.height_cm { row("Height", "\(h) cm") }
-                        if let w = p.weight_kg { row("Weight", "\(w) kg") }
                     }
-                    NavigationLink("Edit profile") { EditProfileView() }
-                    NavigationLink("Badges") { BadgesView() }
-                }
-                Section("Data") {
-                    NavigationLink("Vitals") { VitalsView() }
-                    NavigationLink("Integrations") { IntegrationsView() }
-                    Button("Export my data") {
-                        Task { await export() }
+
+                    PremiumRowCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Profile")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            if loading && profile == nil {
+                                HStack {
+                                    ProgressView()
+                                    Text("Loading profile...")
+                                        .foregroundStyle(Brand.Color.muted)
+                                }
+                            } else if let p = profile {
+                                row("Email", p.email)
+                                row("Age", p.age.map(String.init))
+                                row("Height", p.height_cm.map { "\($0.formatted(.number.precision(.fractionLength(0)))) cm" })
+                                row("Weight", p.weight_kg.map { "\($0.formatted(.number.precision(.fractionLength(1)))) kg" })
+                            } else {
+                                Text("Profile data is unavailable.")
+                                    .foregroundStyle(Brand.Color.muted)
+                            }
+                        }
                     }
-                    .disabled(loading)
-                }
-                Section("Account") {
-                    NavigationLink("Complete profile (onboarding)") { OnboardingView() }
-                    NavigationLink("Pricing") { PricingView() }
-                }
-                Section {
-                    Button("Sign out", role: .destructive) {
+
+                    PremiumRowCard {
+                        VStack(spacing: 0) {
+                            navRow("Edit profile", systemImage: "person.crop.circle") { EditProfileView() }
+                            divider
+                            navRow("Badges", systemImage: "sparkles.rectangle.stack") { BadgesView() }
+                        }
+                    }
+
+                    PremiumRowCard {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("Data & devices")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .padding(.bottom, 12)
+                            navRow("Vitals", systemImage: "waveform.path.ecg") { VitalsView() }
+                            divider
+                            navRow("Integrations", systemImage: "link") { IntegrationsView() }
+                            divider
+                            Button {
+                                Task { await export() }
+                            } label: {
+                                HStack {
+                                    Label("Export my data", systemImage: "square.and.arrow.up")
+                                    Spacer()
+                                }
+                                .padding(.vertical, 14)
+                            }
+                            .disabled(loading)
+                            .foregroundStyle(.white)
+                        }
+                    }
+
+                    PremiumRowCard {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("Account")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .padding(.bottom, 12)
+                            navRow("Complete profile", systemImage: "list.clipboard") { OnboardingView() }
+                            divider
+                            navRow("Pricing", systemImage: "creditcard") { PricingView() }
+                        }
+                    }
+
+                    Button(role: .destructive) {
                         showSignOutConfirm = true
+                    } label: {
+                        Text("Sign out")
+                    }
+                    .buttonStyle(PremiumActionButtonStyle(filled: false))
+
+                    if let err = errorMessage {
+                        PremiumStateCard(title: "Something needs attention", detail: err, symbol: "exclamationmark.triangle.fill")
                     }
                 }
-                if let err = errorMessage {
-                    Section {
-                        Text(err)
-                            .foregroundStyle(.red)
-                            .font(.caption)
-                    }
-                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 20)
             }
+            .fnBackground()
             .navigationTitle("Settings")
             .refreshable { await loadProfile() }
             .task { await loadProfile() }
@@ -88,12 +140,43 @@ struct SettingsView: View {
         }
     }
 
-    private func row(_ label: String, _ value: String) -> some View {
+    private func row(_ label: String, _ value: String?) -> some View {
+        guard let value, !value.isEmpty else {
+            return AnyView(EmptyView())
+        }
+        return AnyView(
+            HStack {
+                Text(label)
+                    .foregroundStyle(Brand.Color.muted)
+                Spacer()
+                Text(value)
+                    .foregroundStyle(.white)
+            }
+            .font(.subheadline)
+        )
+    }
+
+    private func navRow<Destination: View>(_ title: String, systemImage: String, @ViewBuilder destination: () -> Destination) -> some View {
+        NavigationLink {
+            destination()
+        } label: {
+            HStack {
+                Label(title, systemImage: systemImage)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Brand.Color.muted)
+            }
+            .padding(.vertical, 14)
+            .foregroundStyle(.white)
+        }
+    }
+
+    private var divider: some View {
         HStack {
-            Text(label)
-            Spacer()
-            Text(value)
-                .foregroundStyle(.secondary)
+            Rectangle()
+                .fill(Brand.Color.border)
+                .frame(height: 1)
         }
     }
 

@@ -47,7 +47,7 @@ struct TrophyRoomView: View {
     @State private var appear = false
 
     private var api: KodaAPIService {
-        KodaAPIService(getAccessToken: { await auth.accessToken })
+        KodaAPIService(getAccessToken: { auth.accessToken })
     }
 
     var body: some View {

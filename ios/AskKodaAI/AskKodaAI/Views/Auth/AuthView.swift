@@ -17,75 +17,89 @@ struct AuthView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
-                    Text("Koda AI")
-                        .font(.largeTitle.weight(.bold))
-                    Text("AI-first fitness and nutrition coaching")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-
-                    TextField("Email", text: $email)
-                        .textContentType(.emailAddress)
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                        .textInputAutocapitalization(.never)
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                    if let msg = message {
-                        Text(msg)
-                            .font(.caption)
-                            .foregroundStyle(msg.contains("Check") ? .green : .red)
-                    }
-
-                    Button(action: sendMagicLink) {
-                        if isLoading {
-                            ProgressView()
-                                .tint(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                        } else {
-                            Text("Send magic link")
-                                .frame(maxWidth: .infinity)
-                                .padding()
+                VStack(alignment: .leading, spacing: 22) {
+                    PremiumHeroCard(
+                        title: "Precision coaching for the next session.",
+                        subtitle: "Daily programming, meal guidance, and feedback loops that feel like a real performance desk.",
+                        eyebrow: "Koda Access"
+                    ) {
+                        HStack(spacing: 10) {
+                            PremiumMetricPill(label: "Mode", value: "Pro")
+                            PremiumMetricPill(label: "Focus", value: "Adaptive plan")
                         }
                     }
-                    .disabled(isLoading || email.isEmpty)
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    
-                    Divider()
-                        .overlay(Brand.Color.border)
-                    
-                    Button(action: signInWithGoogle) {
-                        HStack {
-                            Image(systemName: "globe")
-                            Text("Continue with Google")
+
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Sign in")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+
+                        TextField("Email", text: $email)
+                            .textContentType(.emailAddress)
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                            .textInputAutocapitalization(.never)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(Brand.Color.surfaceRaised)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                            .stroke(Brand.Color.borderStrong, lineWidth: 1)
+                                    )
+                            )
+
+                        if let msg = message {
+                            Text(msg)
+                                .font(.caption)
+                                .foregroundStyle(msg.contains("Check") ? Brand.Color.success : Brand.Color.danger)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Brand.Color.surface)
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Brand.Color.border, lineWidth: 1)
-                        )
+
+                        Button(action: sendMagicLink) {
+                            if isLoading {
+                                ProgressView()
+                                    .tint(.black)
+                            } else {
+                                Text("Send magic link")
+                            }
+                        }
+                        .disabled(isLoading || email.isEmpty)
+                        .buttonStyle(PremiumActionButtonStyle())
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            authFeatureRow("Adaptive daily plan before you even ask")
+                            authFeatureRow("Nutrition and recovery context tied to training")
+                            authFeatureRow("Coach chat that can steer straight into guided workouts")
+                        }
                     }
-                    .foregroundColor(.primary)
+                    .padding(20)
+                    .premiumCard()
+
+                    VStack(spacing: 12) {
+                        Button(action: signInWithGoogle) {
+                            HStack {
+                                Image(systemName: "globe")
+                                Text("Continue with Google")
+                                Spacer()
+                            }
+                        }
+                        .buttonStyle(PremiumActionButtonStyle(filled: false))
                     
-                    SignInWithAppleButton(.continue) { request in
-                        let rawNonce = auth.generateNonce()
-                        currentNonce = rawNonce
-                        request.nonce = auth.sha256(rawNonce)
-                        request.requestedScopes = [.email, .fullName]
-                    } onCompletion: { result in
-                        handleAppleResult(result)
+                        SignInWithAppleButton(.continue) { request in
+                            let rawNonce = auth.generateNonce()
+                            currentNonce = rawNonce
+                            request.nonce = auth.sha256(rawNonce)
+                            request.requestedScopes = [.email, .fullName]
+                        } onCompletion: { result in
+                            handleAppleResult(result)
+                        }
+                        .signInWithAppleButtonStyle(.white)
+                        .frame(height: 54)
+                        .clipShape(Capsule())
                     }
-                    .signInWithAppleButtonStyle(.black)
-                    .frame(height: 50)
-                    .cornerRadius(12)
+                    .padding(20)
+                    .premiumCard()
                     
                     #if DEBUG
                     Button(action: { Task { await auth.signInWithBypass() } }) {
@@ -93,10 +107,10 @@ struct AuthView: View {
                             .font(.caption)
                             .foregroundStyle(Brand.Color.accent)
                     }
-                    .padding(.top, 8)
                     #endif
                 }
-                .padding(32)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 28)
             }
             .background {
                 ZStack {
@@ -115,6 +129,17 @@ struct AuthView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private func authFeatureRow(_ text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(Brand.Color.accent)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(Brand.Color.muted)
+            Spacer()
         }
     }
 
