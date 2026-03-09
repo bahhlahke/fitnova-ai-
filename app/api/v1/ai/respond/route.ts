@@ -9,6 +9,8 @@ import { consumeToken } from "@/lib/api/rate-limit";
 import { callModel } from "@/lib/ai/model";
 import type { AiActionResult, RefreshScope } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 const SYSTEM_PROMPT_VERSION = "v2-balanced-safety";
 const MAX_MESSAGE_CHARS = 2000;
 const RATE_LIMIT_CAPACITY = 12;

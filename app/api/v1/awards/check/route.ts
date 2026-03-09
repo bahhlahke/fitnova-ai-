@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { checkAndAwardBadges } from "@/lib/awards/engine";
 import { jsonError } from "@/lib/api/errors";
 
+export const dynamic = "force-dynamic";
+
 export async function POST() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

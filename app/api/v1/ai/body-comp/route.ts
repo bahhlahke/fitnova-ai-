@@ -3,6 +3,8 @@ import { callModel } from "@/lib/ai/model";
 import { createClient } from "@/lib/supabase/server";
 import { clampConfidence, defaultLimitations } from "@/lib/ai/reliability";
 
+export const dynamic = "force-dynamic";
+
 type BodyCompRequest = {
     images?: { front: string; side: string; back: string };
     localDate?: string;

@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { jsonError } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
 
+export const dynamic = "force-dynamic";
+
 const RATE_LIMIT_CAPACITY = 5;
 const RATE_LIMIT_REFILL_PER_SECOND = 5 / 3600;
 

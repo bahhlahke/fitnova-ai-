@@ -4,6 +4,8 @@ import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { callModel } from "@/lib/ai/model";
 import { assembleContext } from "@/lib/ai/assemble-context";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
     const requestId = makeRequestId();
 

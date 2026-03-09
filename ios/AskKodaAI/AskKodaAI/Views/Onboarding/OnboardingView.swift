@@ -2,7 +2,7 @@
 //  OnboardingView.swift
 //  Koda AI
 //
-//  Multi-step onboarding: name, age, sex, height, weight, goals, injuries, diet. Saves to profile + onboarding.
+//  Multi-step onboarding: premium card UI for steps 0-3, EliteSelectionGrid for 4-5.
 //
 
 import SwiftUI
@@ -30,149 +30,296 @@ struct OnboardingView: View {
         return KodaDataService(client: auth.supabaseClient, userId: uid)
     }
 
+    // MARK: - Body
+
     var body: some View {
         NavigationStack {
-            Form {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack {
-                        Spacer()
-                        Image("KodaLogo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 44)
-                        Spacer()
-                    }
-
-                    PremiumSectionHeader(
-                        currentStepTitle,
-                        eyebrow: "Onboarding \(step + 1)/6",
-                        subtitle: "Shape Koda around your body, goals, and training identity before the first plan is generated."
-                    )
-
-                    ProgressView(value: Double(step + 1), total: 6)
-                        .tint(Brand.Color.accent)
-                }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 12, trailing: 0))
-                
-                if step == 0 {
-                    Section("About you") {
-                        TextField("Name", text: $name)
-                        TextField("Age", text: $age)
-                            .keyboardType(.numberPad)
-                        Picker("Sex", selection: $sex) {
-                            Text("Male").tag("male")
-                            Text("Female").tag("female")
-                            Text("Other").tag("other")
-                        }
-                    }
-                }
-                if step == 1 {
-                    Section("Body") {
-                        TextField("Height (cm)", text: $heightCm)
-                            .keyboardType(.decimalPad)
-                        TextField("Weight (kg)", text: $weightKg)
-                            .keyboardType(.decimalPad)
-                    }
-                }
-                if step == 2 {
-                    Section("Goals") {
-                        Text("e.g. Build muscle, Lose fat (comma-separated)")
-                            .font(.caption)
-                        TextField("Goals", text: Binding(get: { goals.joined(separator: ", ") }, set: { goals = $0.split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) }.filter { !$0.isEmpty } }))
-                    }
-                }
-                if step == 3 {
-                    Section("Injuries / limitations") {
-                        TextField("e.g. lower back pain", text: $injuries, axis: .vertical)
-                            .lineLimit(2...4)
-                    }
-                    Section("Diet") {
-                        Picker("Preference", selection: $diet) {
-                            Text("Balanced").tag("balanced")
-                            Text("Low carb").tag("low_carb")
-                            Text("High protein").tag("high_protein")
-                            Text("Vegetarian").tag("vegetarian")
-                        }
-                    }
-                }
-                if step == 4 {
-                    VStack(alignment: .leading, spacing: 20) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("SQUAD PROTOCOL")
-                                .font(.system(size: 10, weight: .black))
-                                .foregroundStyle(Brand.Color.accent)
-                            Text("Join a global cohort to synchronize performance metrics and masterclass data.")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal)
-                        
-                        EliteSelectionGrid(items: [
-                            EliteSelectionItem(id: "hypertrophy", title: "Titanium Hypertrophy", subtitle: "Mechanical tension focus. Build absolute mass.", icon: "dumbbell.fill", imageURL: "https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"),
-                            EliteSelectionItem(id: "endurance", title: "Aero Engine", subtitle: "Metabolic conditioning & VO2 max optimization.", icon: "bolt.heart.fill", imageURL: "https://images.pexels.com/photos/1552252/pexels-photo-1552252.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"),
-                            EliteSelectionItem(id: "hybrid", title: "Rogue Hybrid", subtitle: "The ultimate athlete. Strength meets endurance.", icon: "shield.fill", imageURL: "https://images.pexels.com/photos/6456108/pexels-photo-6456108.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"),
-                            EliteSelectionItem(id: "longevity", title: "Vitality Protocol", subtitle: "Sustainable health and biomechanical preservation.", icon: "leaf.fill", imageURL: "https://images.pexels.com/photos/4056723/pexels-photo-4056723.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2")
-                        ], selection: $squad)
-                    }
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
-                }
-                if step == 5 {
-                    VStack(alignment: .leading, spacing: 20) {
-                        Text("MASTER ORIENTATION")
-                            .font(.system(size: 10, weight: .black))
-                            .foregroundStyle(Brand.Color.accent)
-                            .padding(.horizontal)
-                        
-                        EliteSelectionGrid(items: [
-                            EliteSelectionItem(id: "beginner", title: "Initiate", subtitle: "New to the protocol. Establishing base mechanics.", icon: "seedling.fill", imageURL: nil),
-                            EliteSelectionItem(id: "intermediate", title: "Specialist", subtitle: "Consistent output. Refining force production.", icon: "gauge.with.needle.fill", imageURL: nil),
-                            EliteSelectionItem(id: "advanced", title: "Elite Master", subtitle: "Peak performance. Optimizing neurological limits.", icon: "crown.fill", imageURL: nil)
-                        ], selection: $experienceLevel)
-                    }
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
-                }
-                if let err = errorMessage {
-                    Section {
-                        Text(err)
-                            .foregroundStyle(.red)
-                            .font(.caption)
-                    }
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .background {
+            ZStack {
                 Brand.Color.background.ignoresSafeArea()
-            }
-            .navigationTitle("Onboarding")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    if step > 0 {
-                        Button("Back") {
-                            HapticEngine.impact(.light)
-                            step -= 1
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        // Logo
+                        HStack {
+                            Spacer()
+                            Image("KodaLogo")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 40)
+                            Spacer()
                         }
+                        .padding(.top, 8)
+
+                        // Header
+                        VStack(alignment: .leading, spacing: 8) {
+                            PremiumSectionHeader(
+                                currentStepTitle,
+                                eyebrow: "STEP \(step + 1) OF 6",
+                                subtitle: currentStepSubtitle
+                            )
+                            ProgressView(value: Double(step + 1), total: 6)
+                                .tint(Brand.Color.accent)
+                                .animation(.spring(response: 0.5), value: step)
+                        }
+                        .padding(.horizontal, 20)
+
+                        // Step content
+                        Group {
+                            switch step {
+                            case 0: step0
+                            case 1: step1
+                            case 2: step2
+                            case 3: step3
+                            case 4: step4
+                            default: step5
+                            }
+                        }
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
+                        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: step)
+
+                        if let err = errorMessage {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(Brand.Color.danger)
+                                Text(err)
+                                    .font(.caption)
+                                    .foregroundStyle(Brand.Color.danger)
+                            }
+                            .padding(.horizontal, 20)
+                        }
+
+                        // Navigation buttons
+                        HStack(spacing: 12) {
+                            if step > 0 {
+                                Button("Back") {
+                                    HapticEngine.impact(.light)
+                                    step -= 1
+                                }
+                                .buttonStyle(PremiumActionButtonStyle(filled: false))
+                            }
+
+                            if step < 5 {
+                                Button("Continue") {
+                                    HapticEngine.impact(.light)
+                                    step += 1
+                                }
+                                .buttonStyle(PremiumActionButtonStyle(filled: true))
+                            } else {
+                                Button(saving ? "Saving…" : "Activate Protocol") {
+                                    HapticEngine.notification(.success)
+                                    Task { await save() }
+                                }
+                                .buttonStyle(PremiumActionButtonStyle(filled: true))
+                                .disabled(saving)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 40)
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    if step < 5 {
-                        Button("Next") {
-                            HapticEngine.impact(.light)
-                            step += 1
+            }
+            .navigationBarHidden(true)
+        }
+    }
+
+    // MARK: - Step 0: About you
+
+    private var step0: some View {
+        VStack(spacing: 16) {
+            premiumField(placeholder: "Full name", text: $name, icon: "person.fill")
+
+            premiumField(placeholder: "Age", text: $age, icon: "calendar", keyboard: .numberPad)
+
+            VStack(alignment: .leading, spacing: 8) {
+                fieldLabel("Biological sex")
+                HStack(spacing: 0) {
+                    ForEach([("Male", "male"), ("Female", "female"), ("Other", "other")], id: \.1) { label, tag in
+                        Button(label) {
+                            HapticEngine.selection()
+                            sex = tag
                         }
-                    } else {
-                        Button("Finish") {
-                            HapticEngine.notification(.success)
-                            Task { await save() }
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(sex == tag ? Brand.Color.accent : Brand.Color.surfaceRaised)
+                        .foregroundStyle(sex == tag ? Color.black : Color.white)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Brand.Color.borderStrong))
+            }
+        }
+        .padding(.horizontal, 20)
+    }
+
+    // MARK: - Step 1: Body metrics
+
+    private var step1: some View {
+        VStack(spacing: 16) {
+            premiumField(placeholder: "Height (cm)", text: $heightCm, icon: "ruler", keyboard: .decimalPad)
+            premiumField(placeholder: "Weight (kg)", text: $weightKg, icon: "scalemass.fill", keyboard: .decimalPad)
+        }
+        .padding(.horizontal, 20)
+    }
+
+    // MARK: - Step 2: Goals
+
+    private var step2: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                fieldLabel("Training goals")
+                Text("Select all that apply")
+                    .font(.caption)
+                    .foregroundStyle(Brand.Color.muted)
+
+                let goalOptions = ["Build muscle", "Lose fat", "Improve endurance", "Increase strength", "Longevity", "Athletic performance"]
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(goalOptions, id: \.self) { option in
+                        let selected = goals.contains(option)
+                        Button {
+                            HapticEngine.selection()
+                            if selected {
+                                goals.removeAll { $0 == option }
+                            } else {
+                                goals.append(option)
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(selected ? Brand.Color.accent : Brand.Color.muted)
+                                Text(option)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(selected ? Brand.Color.accent.opacity(0.12) : Brand.Color.surfaceRaised)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(selected ? Brand.Color.accent : Brand.Color.borderStrong, lineWidth: selected ? 1.5 : 1)
+                                    )
+                            )
                         }
-                        .disabled(saving)
+                        .buttonStyle(.plain)
                     }
                 }
             }
         }
+        .padding(.horizontal, 20)
     }
+
+    // MARK: - Step 3: Constraints
+
+    private var step3: some View {
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                fieldLabel("Injuries / limitations")
+                ZStack(alignment: .topLeading) {
+                    if injuries.isEmpty {
+                        Text("e.g. lower back pain, left knee injury")
+                            .foregroundStyle(Brand.Color.muted)
+                            .font(.subheadline)
+                            .padding(.top, 14)
+                            .padding(.leading, 4)
+                            .allowsHitTesting(false)
+                    }
+                    TextEditor(text: $injuries)
+                        .font(.subheadline)
+                        .foregroundStyle(.white)
+                        .frame(minHeight: 80)
+                        .scrollContentBackground(.hidden)
+                }
+                .padding(14)
+                .background(Brand.Color.surfaceRaised)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Brand.Color.borderStrong))
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                fieldLabel("Dietary preference")
+                let diets: [(String, String, String)] = [
+                    ("Balanced", "balanced", "fork.knife"),
+                    ("Low carb", "low_carb", "minus.circle"),
+                    ("High protein", "high_protein", "bolt.fill"),
+                    ("Vegetarian", "vegetarian", "leaf.fill"),
+                ]
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(diets, id: \.1) { label, tag, icon in
+                        Button {
+                            HapticEngine.selection()
+                            diet = tag
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: icon)
+                                    .foregroundStyle(diet == tag ? Brand.Color.accent : Brand.Color.muted)
+                                Text(label)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(diet == tag ? Brand.Color.accent.opacity(0.12) : Brand.Color.surfaceRaised)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(diet == tag ? Brand.Color.accent : Brand.Color.borderStrong, lineWidth: diet == tag ? 1.5 : 1)
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+    }
+
+    // MARK: - Step 4: Squad
+
+    private var step4: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Join a global cohort to synchronize performance metrics.")
+                .font(.caption)
+                .foregroundStyle(Brand.Color.muted)
+                .padding(.horizontal, 20)
+
+            EliteSelectionGrid(items: [
+                EliteSelectionItem(id: "hypertrophy", title: "Titanium Hypertrophy", subtitle: "Mechanical tension focus. Build absolute mass.", icon: "dumbbell.fill", imageURL: "https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"),
+                EliteSelectionItem(id: "endurance", title: "Aero Engine", subtitle: "Metabolic conditioning & VO2 max optimization.", icon: "bolt.heart.fill", imageURL: "https://images.pexels.com/photos/1552252/pexels-photo-1552252.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"),
+                EliteSelectionItem(id: "hybrid", title: "Rogue Hybrid", subtitle: "The ultimate athlete. Strength meets endurance.", icon: "shield.fill", imageURL: "https://images.pexels.com/photos/6456108/pexels-photo-6456108.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"),
+                EliteSelectionItem(id: "longevity", title: "Vitality Protocol", subtitle: "Sustainable health and biomechanical preservation.", icon: "leaf.fill", imageURL: "https://images.pexels.com/photos/4056723/pexels-photo-4056723.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2")
+            ], selection: $squad)
+        }
+    }
+
+    // MARK: - Step 5: Mastery level
+
+    private var step5: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Your current training orientation calibrates plan intensity and periodisation.")
+                .font(.caption)
+                .foregroundStyle(Brand.Color.muted)
+                .padding(.horizontal, 20)
+
+            EliteSelectionGrid(items: [
+                EliteSelectionItem(id: "beginner", title: "Initiate", subtitle: "New to the protocol. Establishing base mechanics.", icon: "seedling.fill", imageURL: nil),
+                EliteSelectionItem(id: "intermediate", title: "Specialist", subtitle: "Consistent output. Refining force production.", icon: "gauge.with.needle.fill", imageURL: nil),
+                EliteSelectionItem(id: "advanced", title: "Elite Master", subtitle: "Peak performance. Optimizing neurological limits.", icon: "crown.fill", imageURL: nil)
+            ], selection: $experienceLevel)
+        }
+    }
+
+    // MARK: - Helpers
 
     private var currentStepTitle: String {
         switch step {
@@ -184,6 +331,42 @@ struct OnboardingView: View {
         default: return "Choose your mastery level"
         }
     }
+
+    private var currentStepSubtitle: String {
+        switch step {
+        case 0: return "Koda personalises every plan to your baseline."
+        case 1: return "Precise metrics unlock accurate nutrition and load targets."
+        case 2: return "Define what winning looks like for you."
+        case 3: return "Koda protects these limits in every plan it generates."
+        case 4: return "Your squad synchronises training philosophy and benchmarks."
+        default: return "Calibrates periodisation logic and progression speed."
+        }
+    }
+
+    private func fieldLabel(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.system(size: 10, weight: .bold, design: .monospaced))
+            .tracking(0.8)
+            .foregroundStyle(Brand.Color.muted)
+    }
+
+    private func premiumField(placeholder: String, text: Binding<String>, icon: String, keyboard: UIKeyboardType = .default) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .frame(width: 20)
+                .foregroundStyle(Brand.Color.accent)
+            TextField(placeholder, text: text)
+                .keyboardType(keyboard)
+                .foregroundStyle(.white)
+                .tint(Brand.Color.accent)
+        }
+        .padding(16)
+        .background(Brand.Color.surfaceRaised)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Brand.Color.borderStrong))
+    }
+
+    // MARK: - Save
 
     private func save() async {
         guard let ds = dataService else { return }
@@ -206,7 +389,7 @@ struct OnboardingView: View {
             var onboarding = OnboardingRow()
             onboarding.completed_at = ISO8601DateFormatter().string(from: Date())
             onboarding.responses = [
-                "goals": AnyCodable(value: goals as [String]), 
+                "goals": AnyCodable(value: goals as [String]),
                 "diet": AnyCodable(value: diet),
                 "squad": AnyCodable(value: squad),
                 "experience_level": AnyCodable(value: experienceLevel),
