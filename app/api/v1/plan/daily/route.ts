@@ -6,6 +6,8 @@ import { composeDailyPlan } from "@/lib/plan/compose-daily-plan";
 import { detectPlateaus } from "@/lib/progression/plateau";
 import type { PlannerInputs } from "@/lib/plan/types";
 
+export const dynamic = "force-dynamic";
+
 const RATE_LIMIT_CAPACITY = 10;
 const RATE_LIMIT_REFILL_PER_SECOND = 10 / 60;
 

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
     if (process.env.NODE_ENV !== "development") {
         return new NextResponse("Not Found", { status: 404 });

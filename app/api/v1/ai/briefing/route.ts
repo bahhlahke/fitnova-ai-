@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { callModel } from "@/lib/ai/model";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
     const requestId = makeRequestId();
 

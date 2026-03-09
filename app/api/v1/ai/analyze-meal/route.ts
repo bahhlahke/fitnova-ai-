@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { confidenceFromBucket, defaultLimitations } from "@/lib/ai/reliability";
 
+export const dynamic = "force-dynamic";
+
 type AnalyzeMealRequest =
   | { type: "text"; description: string }
   | { type: "image"; data: string };

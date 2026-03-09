@@ -7,6 +7,8 @@ import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
 import { toLocalDateString } from "@/lib/date/local-date";
 
+export const dynamic = "force-dynamic";
+
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const RATE_LIMIT_CAPACITY = 10;
 const RATE_LIMIT_REFILL_PER_SECOND = 10 / 3600;

@@ -3,6 +3,8 @@ import { callModel } from "@/lib/ai/model";
 import { createClient } from "@/lib/supabase/server";
 import { clampConfidence, defaultLimitations } from "@/lib/ai/reliability";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
     try {
         const supabase = await createClient();

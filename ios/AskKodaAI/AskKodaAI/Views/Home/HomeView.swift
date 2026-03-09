@@ -10,35 +10,45 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject var auth: SupabaseService
     @StateObject private var healthKit = HealthKitService.shared
+
+    // MARK: - Data
+
     @State private var briefing: AIBriefingResponse?
-    @State private var briefingLoading = false
     @State private var dailyPlan: DailyPlan?
-    @State private var planLoading = false
     @State private var performance: PerformanceResponse?
-    @State private var performanceLoading = false
     @State private var nudges: [CoachNudge] = []
-    @State private var nudgesLoading = false
     @State private var projection: DashboardProjectionResponse?
     @State private var retentionRisk: RetentionRiskResponse?
     @State private var coachInsights: [CoachInsight] = []
-    @State private var coachInsightsLoading = false
     @State private var profile: UserProfile?
     @State private var todayCheckIn: CheckIn?
+
+    // MARK: - Load phase
+
+    /// Single source of truth for above-the-fold loading state.
+    /// Replaces 9 individual `xxxLoading` booleans that caused staggered layout shifts.
+    @State private var criticalPhaseLoading = false
     @State private var errorMessage: String?
 
+    // MARK: - Derived
+
     /// Readiness score derived from today's check-in (0–1).
-    /// Both energy_score and adherence_score are stored on a 1–10 scale.
     private var readinessScore: Double {
         guard let checkIn = todayCheckIn else { return 0.0 }
         let energy = Double(checkIn.energy_score ?? 5) / 10.0
         let adherence = Double(checkIn.adherence_score ?? 5) / 10.0
         return min(1.0, max(0.0, (energy * 0.7) + (adherence * 0.3)))
     }
+
+    // MARK: - UI state
+
     @State private var showingVisionModal = false
     @State private var showingGuidedWorkout = false
     @State private var showingCoachChat = false
     @State private var generating = false
     @State private var refreshTask: Task<Void, Never>?
+
+    // MARK: - Services (resolved once, not per-render)
 
     private var api: KodaAPIService {
         KodaAPIService(getAccessToken: { auth.accessToken })
@@ -195,12 +205,13 @@ struct HomeView: View {
 
     @ViewBuilder
     private var briefingCard: some View {
+        if criticalPhaseLoading && briefing == nil {
+            ShimmerCard(height: 120)
+        } else {
         VStack(alignment: .leading, spacing: 8) {
             Text("AI Performance Briefing")
                 .font(.headline)
-            if briefingLoading {
-                ProgressView()
-            } else if let b = briefing {
+            if let b = briefing {
                 Text(b.briefing ?? "No briefing content provided.")
                     .font(.subheadline)
                     .italic()
@@ -218,6 +229,7 @@ struct HomeView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .glassCard()
+        } // end criticalPhaseLoading guard
     }
 
     @ViewBuilder
@@ -225,9 +237,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Coach's Desk")
                 .font(.headline)
-            if coachInsightsLoading {
-                ProgressView()
-            } else if coachInsights.isEmpty {
+            if coachInsights.isEmpty {
                 Text("Systems nominal. No active interventions.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -261,12 +271,13 @@ struct HomeView: View {
 
     @ViewBuilder
     private var todayPlanCard: some View {
+        if criticalPhaseLoading && dailyPlan == nil {
+            ShimmerCard(height: 140)
+        } else {
         VStack(alignment: .leading, spacing: 12) {
             Text("Daily Protocol")
                 .font(.headline)
-            if planLoading {
-                ProgressView()
-            } else if let plan = dailyPlan {
+            if let plan = dailyPlan {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(plan.training_plan?.focus ?? "Recovery")
                         .font(.subheadline)
@@ -296,6 +307,7 @@ struct HomeView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .glassCard()
+        } // end criticalPhaseLoading guard
     }
 
     @ViewBuilder
@@ -303,9 +315,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Neural Performance")
                 .font(.headline)
-            if performanceLoading {
-                ProgressView()
-            } else if let p = performance {
+            if let p = performance {
                 HStack(spacing: 20) {
                     statBox(label: "VOL", value: "\(p.set_volume ?? 0)")
                     statBox(label: "MIN", value: "\(p.workout_minutes ?? 0)")
@@ -397,18 +407,13 @@ struct HomeView: View {
 
     @ViewBuilder
     private var nudgesCard: some View {
-        if nudges.isEmpty && !nudgesLoading {
+        if nudges.isEmpty {
             EmptyView()
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Coach Nudges")
                     .font(.headline)
-                if nudgesLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                } else {
-                    ForEach(Array(nudges.prefix(3).enumerated()), id: \.offset) { _, nudge in
+                ForEach(Array(nudges.prefix(3).enumerated()), id: \.offset) { _, nudge in
                         if let msg = nudge.message {
                             HStack {
                                 Text(msg)
@@ -434,17 +439,24 @@ struct HomeView: View {
 
     private func loadAll() async {
         errorMessage = nil
+
+        // Phase 1: above-the-fold critical path — show shimmers until these resolve.
+        criticalPhaseLoading = true
         await withTaskGroup(of: Void.self) { group in
-            group.addTask { await loadProfile() }
-            group.addTask { await loadCheckIn() }
-            group.addTask { await loadBriefing() }
-            group.addTask { await loadCoachDesk() }
-            group.addTask { await loadPlan() }
-            group.addTask { await loadPerformance() }
-            group.addTask { await loadProjection() }
-            group.addTask { await loadRetentionRisk() }
-            group.addTask { await loadNudges() }
+            group.addTask { await self.loadProfile() }
+            group.addTask { await self.loadCheckIn() }
+            group.addTask { await self.loadBriefing() }
+            group.addTask { await self.loadPlan() }
         }
+        criticalPhaseLoading = false
+
+        // Phase 2: below-the-fold — arrive whenever they're ready, no layout shift.
+        async let _perf: () = loadPerformance()
+        async let _nudges: () = loadNudges()
+        async let _proj: () = loadProjection()
+        async let _risk: () = loadRetentionRisk()
+        async let _desk: () = loadCoachDesk()
+        _ = await (_perf, _nudges, _proj, _risk, _desk)
     }
 
     private func loadProfile() async {
@@ -486,37 +498,29 @@ struct HomeView: View {
     }
 
     private func loadBriefing() async {
-        briefingLoading = true
-        defer { briefingLoading = false }
         do {
             let res = try await api.aiBriefing(localDate: DateHelpers.todayLocal)
             await MainActor.run { briefing = res }
         } catch {
-            print("Briefing decode error: \(error)")
             await MainActor.run { errorMessage = error.localizedDescription }
         }
     }
-    
+
     private func loadCoachDesk() async {
-        coachInsightsLoading = true
-        defer { coachInsightsLoading = false }
         do {
             let res = try await api.aiCoachDesk()
             await MainActor.run { coachInsights = res.insights ?? [] }
         } catch {
-            // Coach desk is supplementary; card shows "Systems nominal" fallback
+            // Supplementary — "Systems nominal" fallback shown when empty
         }
     }
 
     private func loadPlan() async {
-        planLoading = true
-        defer { planLoading = false }
         guard let ds = dataService else { return }
         do {
             let p = try await ds.fetchDailyPlan(dateLocal: DateHelpers.todayLocal)
             await MainActor.run { dailyPlan = p }
         } catch {
-            print("Plan decode error: \(error)")
             await MainActor.run { errorMessage = error.localizedDescription }
         }
     }
@@ -534,14 +538,11 @@ struct HomeView: View {
     }
 
     private func loadPerformance() async {
-        performanceLoading = true
-        defer { performanceLoading = false }
         do {
             let p = try await api.analyticsPerformance()
             await MainActor.run { performance = p }
         } catch {
-            print("Performance decode error: \(error)")
-            await MainActor.run { errorMessage = error.localizedDescription }
+            // Supplementary — card is hidden when nil
         }
     }
 
@@ -552,14 +553,12 @@ struct HomeView: View {
     }
 
     private func loadNudges() async {
-        nudgesLoading = true
-        defer { nudgesLoading = false }
         guard let ds = dataService else { return }
         do {
             let n = try await ds.fetchNudges(dateLocal: nil, unacknowledgedOnly: true, limit: 5)
             await MainActor.run { nudges = n }
         } catch {
-            // Nudges are supplementary; card is hidden when the list is empty
+            // Supplementary — card hidden when list is empty
         }
     }
 

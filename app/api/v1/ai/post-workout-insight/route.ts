@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
 
+export const dynamic = "force-dynamic";
+
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const RATE_LIMIT_CAPACITY = 20;
 const RATE_LIMIT_REFILL_PER_SECOND = 20 / 60;
