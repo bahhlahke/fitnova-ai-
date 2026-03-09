@@ -30,8 +30,11 @@ struct MealPlanView: View {
                 .disabled(loading)
 
                 if loading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
+                    VStack(spacing: 12) {
+                        ShimmerCard(height: 100)
+                        ShimmerCard(height: 100)
+                        ShimmerCard(height: 100)
+                    }
                 }
                 if let err = errorMessage {
                     Text(err)

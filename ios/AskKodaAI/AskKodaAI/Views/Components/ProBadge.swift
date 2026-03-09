@@ -37,7 +37,8 @@ struct ProBadge: View {
     var size: CGFloat = 80
     
     @State private var isAnimating = false
-    
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         VStack(spacing: 12) {
             ZStack {
@@ -100,6 +101,7 @@ struct ProBadge: View {
             }
         }
         .onAppear {
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
                 isAnimating = true
             }

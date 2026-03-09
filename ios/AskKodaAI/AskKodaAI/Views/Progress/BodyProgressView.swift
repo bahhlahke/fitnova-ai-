@@ -40,8 +40,7 @@ struct BodyProgressView: View {
                     List {
                         Section("AI Performance Synthesis") {
                             if progressInsightLoading {
-                                ProgressView()
-                                    .frame(maxWidth: .infinity)
+                                ShimmerCard(height: 60)
                             } else if let insight = progressInsight, !insight.isEmpty {
                                 Text(insight)
                                     .font(.subheadline)
