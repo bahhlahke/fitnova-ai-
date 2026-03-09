@@ -77,7 +77,7 @@ Current implementation covers the major user flows and API surfaces, but "produc
 - **Progress:** "AI Performance Synthesis" (POST `ai/progress-insight`); **Evolutionary Summary** (POST `ai/history-summary`).
 - **Spotify:** Native playback state and transport controls using the Supabase linked provider token, with Spotify scopes requested during account linking.
 
-**Validated on simulator:** Home, Plan, Coach, Log, Log Workout, Log Nutrition, Guided Workout, Motion Lab, Progress, Body Scan, History, Check-in, Community, Settings, Integrations, Vitals, Pricing, Badges, Coach Support, Meal Plan, Fridge Scanner, Onboarding. Use `npm run test:ios:surfaces` to rebuild this report and screenshots.
+**Validated on simulator:** Home, Plan, Coach, Log, Log Workout, Log Nutrition, Guided Workout, Motion Lab, Progress, Body Scan, History, Check-in, Community, Settings, Integrations, Vitals, Pricing, Badges, Coach Support, Meal Plan, Fridge Scanner, Onboarding. `npm run test:ios:surfaces` now launches these screens in deterministic demo mode, captures primary plus state variants where relevant, and adds a tighter layout sanity pass on `iPhone 16e`.
 
 **Still requires manual device/account validation:** Apple Health read permissions and live sample sync on physical iPhone; Spotify playback control against an active Spotify device; stable end-to-end XCTest execution in the host app.
 

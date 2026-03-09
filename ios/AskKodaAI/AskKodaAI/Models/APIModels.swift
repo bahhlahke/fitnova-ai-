@@ -188,6 +188,10 @@ struct SpotifyTokenResponse: Decodable {
         case token
     }
 
+    init(access_token: String?) {
+        self.access_token = access_token
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         access_token = try container.decodeIfPresent(String.self, forKey: .access_token)

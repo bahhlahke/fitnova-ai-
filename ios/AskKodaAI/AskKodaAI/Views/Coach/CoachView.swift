@@ -28,42 +28,72 @@ struct CoachView: View {
             VStack(spacing: 0) {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 12) {
+                        LazyVStack(alignment: .leading, spacing: 16) {
+                            PremiumHeroCard(
+                                title: "Coach",
+                                subtitle: "Clear direction, fast tradeoffs, and direct routes into execution. Ask for the decision you need.",
+                                eyebrow: "Adaptive Channel"
+                            ) {
+                                VStack(alignment: .leading, spacing: 14) {
+                                    HStack(spacing: 10) {
+                                        PremiumMetricPill(label: "Mode", value: "Adaptive")
+                                        PremiumMetricPill(label: "Focus", value: "Daily Loop")
+                                        PremiumMetricPill(label: "Response", value: isLoading ? "Live" : "Ready")
+                                    }
+
+                                    if messages.isEmpty {
+                                        coachPromptStrip
+                                    } else {
+                                        HStack(spacing: 12) {
+                                            coachStat(label: "Messages", value: "\(messages.count)")
+                                            coachStat(label: "Assistant", value: "\(messages.filter { $0.role != "user" }.count)")
+                                            coachStat(label: "Routes", value: "\(messages.filter { $0.action != nil }.count)")
+                                        }
+                                    }
+                                }
+                            }
+
                             if messages.isEmpty {
                                 emptyStateCard
                             } else {
                                 ForEach(messages) { m in
                                     MessageBubble(message: m)
+                                        .id(m.id)
                                 }
                             }
+
                             if isLoading {
-                                HStack {
-                                    ProgressView()
-                                    Text("Coach is thinking…")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                PremiumRowCard {
+                                    HStack(spacing: 12) {
+                                        ProgressView()
+                                            .tint(Brand.Color.accent)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Coach is building the answer")
+                                                .font(.subheadline.weight(.bold))
+                                                .foregroundStyle(.white)
+                                            Text("Expect a recommendation, rationale, and next step.")
+                                                .font(.caption)
+                                                .foregroundStyle(Brand.Color.muted)
+                                        }
+                                    }
                                 }
-                                .padding(.leading)
                             }
                         }
-                        .padding()
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                        .padding(.bottom, 120)
                     }
                     .scrollDismissesKeyboard(.interactively)
                     .onChange(of: messages.count) { _, _ in
-                        if let last = messages.indices.last {
-                            proxy.scrollTo(messages[last].id, anchor: .bottom)
+                        if let last = messages.last {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                proxy.scrollTo(last.id, anchor: .bottom)
+                            }
                         }
                     }
                 }
 
-                HStack(spacing: 12) {
-                    TextField("Ask your coach…", text: $input, axis: .vertical)
-                        .textFieldStyle(.roundedBorder)
-                        .lineLimit(1...4)
-                    Button("Send") { send() }
-                        .disabled(isLoading || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-                .padding()
+                coachComposer
             }
             .fnBackground()
             .navigationTitle("Coach")
@@ -85,7 +115,11 @@ struct CoachView: View {
     }
 
     private func send() {
-        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        send(text: input)
+    }
+
+    private func send(text rawText: String) {
+        let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         messages.append(MessageContent(role: "user", text: text, action: nil))
         input = ""
@@ -104,6 +138,10 @@ struct CoachView: View {
             await MainActor.run { isLoading = false }
         }
     }
+
+    private func sendSuggestion(_ suggestion: String) {
+        send(text: suggestion)
+    }
     
     private func fetchHistory() async {
         do {
@@ -119,46 +157,211 @@ struct CoachView: View {
     }
     
     private var emptyStateCard: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "sparkles")
-                .font(.largeTitle)
-                .foregroundColor(.accentColor)
-            Text("How can I help you today?")
-                .font(.headline)
-            Text("I can adapt your daily plan, analyze a meal via text, explain your muscle recovery, or guide you through a workout. Just ask!")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 14) {
+                Image(systemName: "sparkles.rectangle.stack.fill")
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundStyle(Brand.Color.accent)
+                    .frame(width: 46, height: 46)
+                    .background(
+                        Circle()
+                            .fill(Brand.Color.accent.opacity(0.14))
+                    )
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Start with a decision, not a vague prompt.")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    Text("Koda is strongest when the request is operational: adapt the session, review recovery risk, rebuild meals, or route you into a guided workout.")
+                        .font(.subheadline)
+                        .foregroundStyle(Brand.Color.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("TRY ONE")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(Brand.Color.accent)
+                coachPromptStrip
+            }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
-        .padding(.horizontal, 20)
-        .glassCard()
+        .padding(20)
+        .premiumCard()
     }
+
+    private var coachComposer: some View {
+        VStack(spacing: 12) {
+            if messages.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(coachSuggestions, id: \.self) { suggestion in
+                            Button(action: { sendSuggestion(suggestion) }) {
+                                Text(suggestion)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        Capsule()
+                                            .fill(Brand.Color.surfaceRaised)
+                                            .overlay(Capsule().stroke(Brand.Color.borderStrong, lineWidth: 1))
+                                    )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                }
+            }
+
+            HStack(alignment: .bottom, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Message coach")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(Brand.Color.accent)
+                    TextField("Ask for the exact adjustment or call you need…", text: $input, axis: .vertical)
+                        .lineLimit(1...5)
+                        .font(.body)
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Brand.Color.surfaceRaised)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                .stroke(Brand.Color.borderStrong, lineWidth: 1)
+                        )
+                )
+
+                Button(action: send) {
+                    Label("Send", systemImage: "arrow.up")
+                        .labelStyle(.iconOnly)
+                        .font(.headline.weight(.bold))
+                        .frame(width: 52, height: 52)
+                }
+                .buttonStyle(PremiumActionButtonStyle())
+                .frame(width: 52)
+                .disabled(isLoading || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
+        .background(
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea(edges: .bottom)
+        )
+    }
+
+    private var coachPromptStrip: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(coachSuggestions.prefix(3), id: \.self) { suggestion in
+                Button(action: { sendSuggestion(suggestion) }) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Brand.Color.accent)
+                        Text(suggestion)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+                        Spacer()
+                    }
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(Brand.Color.surfaceRaised.opacity(0.95))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .stroke(Brand.Color.borderStrong, lineWidth: 1)
+                            )
+                    )
+                }
+            }
+        }
+    }
+
+    private func coachStat(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(Brand.Color.muted)
+            Text(value)
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.white)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Brand.Color.surfaceRaised.opacity(0.8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Brand.Color.borderStrong, lineWidth: 1)
+                )
+        )
+    }
+
+    private let coachSuggestions = [
+        "Adapt today’s workout around shoulder discomfort.",
+        "Build tonight’s meals around my protein target.",
+        "Explain whether I should train or recover today.",
+        "Turn today’s plan into a guided workout."
+    ]
 }
 
 struct MessageBubble: View {
     let message: CoachView.MessageContent
 
     var body: some View {
-        VStack(alignment: message.role == "user" ? .trailing : .leading, spacing: 8) {
-            HStack {
-                if message.role == "user" { Spacer(minLength: 60) }
-                Text(getMessageText())
-                    .padding(12)
-                    .background(message.role == "user" ? Brand.Color.accent : Brand.Color.surface)
-                    .background {
-                        if message.role == "assistant" {
-                            Color.clear.background(.ultraThinMaterial)
+        VStack(alignment: message.role == "user" ? .trailing : .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                if message.role == "assistant" {
+                    coachAvatar(symbol: "sparkles", filled: true)
+                } else {
+                    Spacer(minLength: 0)
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
+                        Text(message.role == "user" ? "You" : "Koda Coach")
+                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                            .tracking(1.1)
+                            .foregroundStyle(message.role == "user" ? Color.black.opacity(0.72) : Brand.Color.accent)
+                        if message.action != nil && message.role != "user" {
+                            Text("ROUTABLE")
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .tracking(1.1)
+                                .foregroundStyle(Brand.Color.accent)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    Capsule()
+                                        .fill(Brand.Color.accent.opacity(0.12))
+                                )
                         }
                     }
-                    .foregroundColor(message.role == "user" ? .black : .primary)
-                    .cornerRadius(16)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(message.role == "user" ? Brand.Color.accent : Brand.Color.border, lineWidth: 1)
-                    )
-                if message.role == "assistant" { Spacer(minLength: 60) }
+
+                    CoachMarkdownText(text: message.text, isUser: message.role == "user")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .background(message.role == "user" ? Brand.Color.accent : Brand.Color.surfaceRaised)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(message.role == "user" ? Brand.Color.accent.opacity(0.24) : Brand.Color.borderStrong, lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+
+                if message.role == "user" {
+                    coachAvatar(symbol: "person.fill", filled: false)
+                } else {
+                    Spacer(minLength: 0)
+                }
             }
             
             if let action = message.action, action.type == "video_demo", let urlStr = action.payload?.video_url, let url = URL(string: urlStr) {
@@ -180,53 +383,177 @@ struct MessageBubble: View {
                                 .stroke(Brand.Color.accent.opacity(0.3), lineWidth: 1)
                         )
                 }
-                .padding(.leading, 12)
+                .padding(.leading, message.role == "assistant" ? 58 : 0)
                 .padding(.top, 4)
             }
 
             if let action = message.action, action.type == "plan_daily" {
-                WorkoutSteeringButton(exercises: action.payload?.training_plan?.exercises ?? [])
+                WorkoutSteeringButton(trainingPlan: action.payload?.training_plan)
+                    .padding(.leading, message.role == "assistant" ? 58 : 0)
             }
         }
     }
 
-    private func getMessageText() -> AttributedString {
-        if message.role == "user" {
-            return AttributedString(message.text)
-        }
-        do {
-            return try AttributedString(markdown: message.text)
-        } catch {
-            return AttributedString(message.text)
-        }
+    private func coachAvatar(symbol: String, filled: Bool) -> some View {
+        Image(systemName: symbol)
+            .font(.system(size: 14, weight: .bold))
+            .foregroundStyle(filled ? Color.black : Brand.Color.accent)
+            .frame(width: 34, height: 34)
+            .background(
+                Circle()
+                    .fill(filled ? Brand.Color.accent : Brand.Color.surfaceRaised)
+            )
+            .overlay(
+                Circle()
+                    .stroke(filled ? Brand.Color.accent.opacity(0.2) : Brand.Color.borderStrong, lineWidth: 1)
+            )
     }
 }
 
 struct WorkoutSteeringButton: View {
-    let exercises: [PlanExercise]
+    let trainingPlan: TrainingPlan?
     
     var body: some View {
-        if !exercises.isEmpty {
+        if let trainingPlan, let exercises = trainingPlan.exercises, !exercises.isEmpty {
             Button {
                 NotificationCenter.default.post(
                     name: NSNotification.Name("StartGuidedWorkoutFromCoach"),
                     object: nil,
-                    userInfo: ["exercises": exercises]
+                    userInfo: ["trainingPlan": trainingPlan, "exercises": exercises]
                 )
             } label: {
                 HStack {
                     Image(systemName: "play.fill")
-                    Text("START THIS WORKOUT")
+                    Text("Start Guided Workout")
                 }
-                .font(.system(size: 12, weight: .black))
-                .padding()
+                .font(.system(size: 13, weight: .black))
+                .padding(.horizontal, 18)
+                .padding(.vertical, 14)
                 .frame(maxWidth: .infinity)
                 .background(Brand.Color.accent)
                 .foregroundStyle(.black)
-                .clipShape(Capsule())
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 2)
             .padding(.top, 8)
         }
+    }
+}
+
+struct CoachMarkdownText: View {
+    let text: String
+    let isUser: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(Array(parsedLines.enumerated()), id: \.offset) { _, line in
+                switch line.kind {
+                case .heading:
+                    Text(line.text)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(isUser ? Color.black : .white)
+                case .bullet:
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("•")
+                            .foregroundStyle(isUser ? Color.black.opacity(0.72) : Brand.Color.accent)
+                        Text(line.text)
+                            .foregroundStyle(isUser ? Color.black : .white)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                case .body:
+                    Text(line.text)
+                        .foregroundStyle(isUser ? Color.black : .white)
+                }
+            }
+        }
+        .font(.body)
+        .multilineTextAlignment(.leading)
+        .textSelection(.enabled)
+    }
+
+    private var parsedLines: [RenderedLine] {
+        let source = normalizedMarkdown
+        let lines = source.components(separatedBy: .newlines)
+        var rendered: [RenderedLine] = []
+
+        for rawLine in lines {
+            let trimmed = rawLine.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+
+            if let headingMatch = trimmed.range(of: #"^#{1,6}\s+"#, options: .regularExpression) {
+                let value = cleanedInlineMarkdown(String(trimmed[headingMatch.upperBound...]))
+                if !value.isEmpty {
+                    rendered.append(RenderedLine(kind: .heading, text: value))
+                }
+                continue
+            }
+
+            if let bulletMatch = trimmed.range(of: #"^[-*]\s+"#, options: .regularExpression) {
+                let value = cleanedInlineMarkdown(String(trimmed[bulletMatch.upperBound...]))
+                if !value.isEmpty {
+                    rendered.append(RenderedLine(kind: .bullet, text: value))
+                }
+                continue
+            }
+
+            let numberedLine = trimmed.replacingOccurrences(
+                of: #"^(\d+)\.\s+"#,
+                with: "$1. ",
+                options: .regularExpression
+            )
+            let value = cleanedInlineMarkdown(numberedLine)
+            if !value.isEmpty {
+                rendered.append(RenderedLine(kind: .body, text: value))
+            }
+        }
+
+        return rendered.isEmpty ? [RenderedLine(kind: .body, text: cleanedInlineMarkdown(source))] : rendered
+    }
+
+    private var normalizedMarkdown: String {
+        text
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "```", with: "")
+            .replacingOccurrences(
+                of: #"(?m)^(#{1,6})(\S)"#,
+                with: "$1 $2",
+                options: .regularExpression
+            )
+    }
+
+    private func cleanedInlineMarkdown(_ value: String) -> String {
+        value
+            .replacingOccurrences(
+                of: #"\*\*(.*?)\*\*"#,
+                with: "$1",
+                options: .regularExpression
+            )
+            .replacingOccurrences(
+                of: #"__(.*?)__"#,
+                with: "$1",
+                options: .regularExpression
+            )
+            .replacingOccurrences(
+                of: #"`([^`]+)`"#,
+                with: "$1",
+                options: .regularExpression
+            )
+            .replacingOccurrences(
+                of: #"(?m)^#{1,6}\s*"#,
+                with: "",
+                options: .regularExpression
+            )
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private struct RenderedLine {
+        enum Kind {
+            case heading
+            case bullet
+            case body
+        }
+
+        let kind: Kind
+        let text: String
     }
 }

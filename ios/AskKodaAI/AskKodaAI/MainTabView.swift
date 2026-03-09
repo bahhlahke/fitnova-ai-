@@ -43,6 +43,9 @@ struct MainTabView: View {
                 .tag(7)
         }
         .fnBackground()
+        .toolbarBackground(Brand.Color.surfaceRaised.opacity(0.96), for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
+        .toolbarColorScheme(.dark, for: .tabBar)
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 // Post a notification that views can listen to for refreshing their state

@@ -33,16 +33,27 @@ struct OnboardingView: View {
     var body: some View {
         NavigationStack {
             Form {
-                HStack {
-                    Spacer()
-                    Image("KodaLogo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 48)
-                    Spacer()
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Spacer()
+                        Image("KodaLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 44)
+                        Spacer()
+                    }
+
+                    PremiumSectionHeader(
+                        currentStepTitle,
+                        eyebrow: "Onboarding \(step + 1)/6",
+                        subtitle: "Shape Koda around your body, goals, and training identity before the first plan is generated."
+                    )
+
+                    ProgressView(value: Double(step + 1), total: 6)
+                        .tint(Brand.Color.accent)
                 }
                 .listRowBackground(Color.clear)
-                .padding(.vertical, 16)
+                .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 12, trailing: 0))
                 
                 if step == 0 {
                     Section("About you") {
@@ -131,6 +142,10 @@ struct OnboardingView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background {
+                Brand.Color.background.ignoresSafeArea()
+            }
             .navigationTitle("Onboarding")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -149,6 +164,17 @@ struct OnboardingView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var currentStepTitle: String {
+        switch step {
+        case 0: return "Define the athlete profile"
+        case 1: return "Lock in your body metrics"
+        case 2: return "Set the outcome"
+        case 3: return "Protect the constraints"
+        case 4: return "Choose your squad protocol"
+        default: return "Choose your mastery level"
         }
     }
 

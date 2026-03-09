@@ -23,23 +23,23 @@ struct NeuralRestHUD: View {
             ZStack {
                 Circle()
                     .stroke(Brand.Color.accent.opacity(0.1), lineWidth: 4)
-                    .frame(width: 180, height: 180)
+                    .frame(width: ringSize, height: ringSize)
                 
                 // Pulsing biometric ring
                 Circle()
                     .stroke(Brand.Color.accent.opacity(0.5), lineWidth: 2)
-                    .frame(width: 170, height: 170)
+                    .frame(width: innerRingSize, height: innerRingSize)
                     .scaleEffect(pulseScale)
                     .opacity(2 - pulseScale)
                 
                 VStack(spacing: 4) {
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
                         Text("\(heartRate ?? 0)")
-                            .font(.system(size: 64, weight: .black, design: .monospaced))
+                            .font(.system(size: bpmFontSize, weight: .black, design: .monospaced))
                             .foregroundStyle(.white)
                         
                         Text("BPM")
-                            .font(.system(size: 14, weight: .bold, design: .monospaced))
+                            .font(.system(size: bpmLabelSize, weight: .bold, design: .monospaced))
                             .foregroundStyle(Brand.Color.accent)
                     }
                     
@@ -57,17 +57,24 @@ struct NeuralRestHUD: View {
             
             // Progress / Status
             VStack(spacing: 12) {
-                HStack {
-                    statusItem(label: "TIME REMAINING", value: "\(timeRemaining)S")
-                    Spacer()
-                    statusItem(label: "RECOVERY", value: "\(Int(recoveryScore * 100))%")
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        statusItem(label: "TIME REMAINING", value: "\(timeRemaining)S")
+                        Spacer()
+                        statusItem(label: "RECOVERY", value: "\(Int(recoveryScore * 100))%")
+                    }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        statusItem(label: "TIME REMAINING", value: "\(timeRemaining)S")
+                        statusItem(label: "RECOVERY", value: "\(Int(recoveryScore * 100))%")
+                    }
                 }
-                .padding(.horizontal, 40)
+                .padding(.horizontal, 20)
                 
                 // AI Steering Message (The "Neural Link")
                 if let msg = steeringMessage {
                     Text(msg.uppercased())
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
+                        .font(.system(size: 13, weight: .black, design: .monospaced))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.white)
                         .padding()
@@ -87,7 +94,7 @@ struct NeuralRestHUD: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(Brand.Color.accent.opacity(0.3), lineWidth: 1)
                         )
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, 8)
                         .onAppear {
                             withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
                                 scanlineOffset = 100
@@ -103,6 +110,22 @@ struct NeuralRestHUD: View {
             RoundedRectangle(cornerRadius: 32)
                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
         )
+    }
+
+    private var ringSize: CGFloat {
+        156
+    }
+
+    private var innerRingSize: CGFloat {
+        ringSize - 10
+    }
+
+    private var bpmFontSize: CGFloat {
+        52
+    }
+
+    private var bpmLabelSize: CGFloat {
+        12
     }
     
     private func statusItem(label: String, value: String) -> some View {

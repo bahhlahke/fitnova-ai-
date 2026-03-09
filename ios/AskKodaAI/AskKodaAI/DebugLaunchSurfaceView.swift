@@ -25,7 +25,7 @@ struct DebugLaunchSurfaceView: View {
         case "log-nutrition":
             NavigationStack { LogNutritionView() }
         case "guided-workout":
-            NavigationStack { GuidedWorkoutView(exercises: sampleExercises) }
+            NavigationStack { GuidedWorkoutView(exercises: DemoContent.sampleExercises) }
         case "motion-lab":
             NavigationStack { MotionLabView() }
         case "progress":
@@ -59,42 +59,5 @@ struct DebugLaunchSurfaceView: View {
         default:
             MainTabView()
         }
-    }
-
-    private var sampleExercises: [PlanExercise] {
-        [
-            PlanExercise(
-                name: "Barbell Back Squat",
-                sets: 4,
-                reps: "6",
-                intensity: "RPE 8",
-                notes: "Brace hard and drive through the floor.",
-                tempo: "31X0",
-                breathing: "Big breath before each rep",
-                intent: "Maximal force with perfect depth",
-                rationale: "Primary lower-body strength exposure.",
-                target_rir: 2,
-                target_load_kg: 100,
-                video_url: nil,
-                cinema_video_url: nil,
-                image_url: nil
-            ),
-            PlanExercise(
-                name: "Romanian Deadlift",
-                sets: 3,
-                reps: "8",
-                intensity: "RPE 7",
-                notes: "Own the eccentric.",
-                tempo: "3010",
-                breathing: "Exhale through lockout",
-                intent: "Hamstring tension",
-                rationale: "Posterior-chain hypertrophy.",
-                target_rir: 2,
-                target_load_kg: 70,
-                video_url: nil,
-                cinema_video_url: nil,
-                image_url: nil
-            )
-        ]
     }
 }

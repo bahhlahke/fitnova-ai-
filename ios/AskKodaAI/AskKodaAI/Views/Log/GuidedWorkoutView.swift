@@ -15,10 +15,14 @@ struct GuidedWorkoutView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var healthKit = HealthKitService.shared
     let initialExercises: [PlanExercise]
+    let initialTrainingPlan: TrainingPlan?
     @State private var exercises: [PlanExercise] = []
+    @State private var sessionFocus: String?
+    @State private var sessionDurationMinutes: Int?
 
-    init(exercises: [PlanExercise] = []) {
-        self.initialExercises = exercises
+    init(exercises: [PlanExercise] = [], trainingPlan: TrainingPlan? = nil) {
+        self.initialExercises = trainingPlan?.exercises ?? exercises
+        self.initialTrainingPlan = trainingPlan
     }
     @State private var exerciseIndex = 0
     @State private var setIndex = 0
@@ -91,8 +95,12 @@ struct GuidedWorkoutView: View {
         }
         .navigationTitle("Guided workout")
         .task {
-            if exercises.isEmpty && !initialExercises.isEmpty {
-                exercises = initialExercises
+            if exercises.isEmpty {
+                if let initialTrainingPlan {
+                    seedSession(from: initialTrainingPlan)
+                } else if !initialExercises.isEmpty {
+                    seedSession(exercises: initialExercises, focus: nil, durationMinutes: nil)
+                }
             }
             await loadPlan()
             await setupPulseSubscription()
@@ -143,34 +151,67 @@ struct GuidedWorkoutView: View {
             Color.black.opacity(0.6).ignoresSafeArea()
             
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack {
-                        Text("Today's session")
-                            .font(.headline)
-                        Spacer()
-                        Button(action: { dismiss() }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title2)
-                                .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 18) {
+                    PremiumHeroCard(
+                        title: "Guided Workout",
+                        subtitle: "One clear exercise at a time, with live targets, fast logging, and recovery control between efforts.",
+                        eyebrow: "Session Cockpit"
+                    ) {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                PremiumMetricPill(label: "Exercises", value: "\(exercises.count)")
+                                PremiumMetricPill(label: "Sets", value: "\(totalSetCount)")
+                                PremiumMetricPill(label: "Focus", value: sessionFocusLabel)
+                                if let sessionDurationMinutes {
+                                    PremiumMetricPill(label: "Duration", value: "\(sessionDurationMinutes)m")
+                                }
+                            }
                         }
                     }
-                    ForEach(Array(exercises.enumerated()), id: \.offset) { i, ex in
-                        HStack {
-                            Text(ex.name ?? "Exercise \(i+1)")
+
+                    PremiumRowCard {
+                        HStack(alignment: .top, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Today")
+                                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    .tracking(1.2)
+                                    .foregroundStyle(Brand.Color.accent)
+                                Text(sessionTitle)
+                                    .font(.title3.weight(.black))
+                                    .foregroundStyle(.white)
+                                Text("Lead with quality reps, then move smoothly through the remaining sequence.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Brand.Color.muted)
+                            }
                             Spacer()
-                            Text("\(ex.sets ?? 0)×\(ex.reps ?? "-")")
-                                .foregroundStyle(.secondary)
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "xmark")
+                                    .font(.headline.weight(.bold))
+                                    .foregroundStyle(.white.opacity(0.72))
+                                    .frame(width: 36, height: 36)
+                                    .background(
+                                        Circle()
+                                            .fill(Brand.Color.surfaceRaised)
+                                            .overlay(Circle().stroke(Brand.Color.borderStrong, lineWidth: 1))
+                                    )
+                            }
                         }
-                        .padding(8)
-                        .background(Color.white.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
-                    Button("Start workout") {
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        PremiumSectionHeader("Exercise Order", eyebrow: "Plan")
+                        ForEach(Array(exercises.enumerated()), id: \.offset) { i, ex in
+                            overviewExerciseRow(index: i, exercise: ex)
+                        }
+                    }
+
+                    Button(action: {
                         phase = exercises.isEmpty ? .completed : .work
                         setIndex = 0
+                    }) {
+                        Text("Start Session")
                     }
-                    .buttonStyle(.borderedProminent)
-                    .frame(maxWidth: .infinity)
+                    .buttonStyle(PremiumActionButtonStyle())
                 }
                 .padding()
             }
@@ -197,272 +238,14 @@ struct GuidedWorkoutView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Header (Progress & Exit)
-                HStack {
-                    Button(action: { phase = .overview }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.white.opacity(0.6))
-                    }
-                    Spacer()
-                    SpotifyPlayerView(compact: true)
-                        .frame(width: 220)
-                }
-                .padding(.horizontal)
-                .padding(.top, 10)
+                workoutHeader(exercise: ex)
 
                 Spacer()
-                
+
                 if phase == .rest {
-                    // Rest UI
-                    VStack(spacing: 8) {
-                        if neuralRestMode {
-                            Text("NEURAL RECOVERY ACTIVE")
-                                .font(.caption2)
-                                .fontWeight(.black)
-                                .tracking(2)
-                                .foregroundStyle(Brand.Color.accent)
-                                VStack(spacing: 30) {
-                        NeuralRestHUD(
-                            heartRate: heartRate,
-                            timeRemaining: restRemaining,
-                            recoveryScore: calculateRecoveryScore(),
-                            steeringMessage: getSteeringMessage()
-                        )
-                        .padding(.top, 40)
-                        
-                        VStack(spacing: 4) {
-                            Text("UP NEXT:")
-                                .font(.system(size: 10, weight: .black))
-                                .foregroundStyle(Brand.Color.accent.opacity(0.6))
-                            Text(ex.name?.uppercased() ?? "NEXT PROTOCOL")
-                                .font(.system(size: 24, weight: .black))
-                                .italic()
-                                .foregroundStyle(.white)
-                        }
-                    }
-                    
-                    Spacer()
-                        } else {
-                            Text("REST PHASE")
-                                .font(.caption)
-                                .fontWeight(.black)
-                                .tracking(3)
-                                .foregroundStyle(Color.accentColor)
-                            
-                            Text("\(restRemaining)")
-                                .font(.system(size: 96, weight: .black, design: .rounded))
-                                .italic()
-                                .foregroundStyle(.white)
-                                .shadow(color: .accentColor.opacity(0.5), radius: 20)
-                            
-                            Text("SECONDS")
-                                .font(.headline)
-                                .fontWeight(.bold)
-                                .foregroundStyle(Color.accentColor)
-                        }
-                        
-                        VStack(spacing: 4) {
-                            Text("UP NEXT:")
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .foregroundStyle(.white.opacity(0.5))
-                                .padding(.top, 30)
-                            Text(ex.name ?? "Next Exercise")
-                                .font(.title3)
-                                .fontWeight(.black)
-                                .foregroundStyle(.white)
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    Button(action: advanceRest) {
-                        let isOptimal = heartRate <= recoveryTarget
-                        Text(isOptimal ? "ENGAGE NEXT SET" : "RECOVERY OVERRIDE")
-                            .font(.system(size: 14, weight: .black))
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(isOptimal ? Brand.Color.accent : Color.white.opacity(0.05))
-                            .foregroundStyle(isOptimal ? .black : .white)
-                            .clipShape(Capsule())
-                    }
-                    .padding(.horizontal, 40)
-                    .padding(.bottom, 40)
-                    
+                    restCockpit(exercise: ex)
                 } else {
-                    // Work UI
-                    VStack(spacing: 20) {
-                        // Title
-                        VStack(spacing: 4) {
-                            Text("SET \(setIndex + 1) OF \(ex.sets ?? 0)")
-                                .font(.caption2)
-                                .fontWeight(.black)
-                                .tracking(2)
-                                .foregroundStyle(Color.accentColor)
-                            Text(ex.name ?? "Exercise")
-                                .font(.system(size: 44, weight: .black, design: .default))
-                                .italic()
-                                .multilineTextAlignment(.center)
-                                .foregroundStyle(.white)
-                        }
-                        
-                        // Coaching Cues Table
-                        VStack(spacing: 8) {
-                            if let tempo = ex.tempo, !tempo.isEmpty {
-                                cueRow(label: "TEMPO", value: tempo)
-                            }
-                            if let breathing = ex.breathing, !breathing.isEmpty {
-                                cueRow(label: "BREATH", value: breathing)
-                            }
-                            if let intent = ex.intent, !intent.isEmpty {
-                                cueRow(label: "INTENT", value: intent)
-                            }
-                        }
-                        .padding(.horizontal)
-                        
-                        // Targets
-                        HStack(spacing: 12) {
-                            VStack {
-                                Text("TARGET")
-                                    .font(.caption2)
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(.white.opacity(0.6))
-                                Text(ex.reps ?? "-")
-                                    .font(.title2)
-                                    .fontWeight(.black)
-                                    .foregroundStyle(.white)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.white.opacity(0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            
-                            VStack {
-                                Text("INTENSITY")
-                                    .font(.caption2)
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(.white.opacity(0.6))
-                                Text(ex.intensity ?? "Push")
-                                    .font(.title2)
-                                    .fontWeight(.black)
-                                    .foregroundStyle(Color.accentColor)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.white.opacity(0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            
-                            if let rir = ex.target_rir {
-                                VStack {
-                                    Text("RIR")
-                                        .font(.caption2)
-                                        .fontWeight(.bold)
-                                        .foregroundStyle(.white.opacity(0.6))
-                                    Text("\(rir)")
-                                        .font(.title2)
-                                        .fontWeight(.black)
-                                        .foregroundStyle(.orange)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.white.opacity(0.05))
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                            }
-                        }
-                        
-                        // Inputs
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("LOG THIS SET")
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .tracking(1)
-                                .foregroundStyle(.white.opacity(0.6))
-                            
-                            HStack(spacing: 12) {
-                                HStack {
-                                    Text("LBS")
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .foregroundStyle(.white.opacity(0.4))
-                                    TextField("0", text: $currentWeightInput)
-                                        .keyboardType(.decimalPad)
-                                        .multilineTextAlignment(.trailing)
-                                        .font(.title2.weight(.black))
-                                        .foregroundStyle(.white)
-                                }
-                                .padding()
-                                .background(Color.white.opacity(0.1))
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.2), lineWidth: 1))
-                                
-                                HStack {
-                                    Text("REPS")
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .foregroundStyle(.white.opacity(0.4))
-                                    TextField(ex.reps?.components(separatedBy: "-").first ?? "0", text: $currentRepsInput)
-                                        .keyboardType(.numberPad)
-                                        .multilineTextAlignment(.trailing)
-                                        .font(.title2.weight(.black))
-                                        .foregroundStyle(.white)
-                                }
-                                .padding()
-                                .background(Color.white.opacity(0.1))
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.2), lineWidth: 1))
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    
-                    Spacer().frame(height: 30)
-                    
-                    // Actions
-                    VStack(spacing: 12) {
-                        Button(action: { advanceSet() }) {
-                            Text("LOG SET")
-                                .font(.title3)
-                                .fontWeight(.black)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.accentColor)
-                                .foregroundStyle(.black)
-                                .clipShape(Capsule())
-                                .shadow(color: .accentColor.opacity(0.3), radius: 20, y: 10)
-                        }
-                        
-                        HStack(spacing: 12) {
-                            Button(action: { isFormCheckActive = true }) {
-                                HStack {
-                                    Image(systemName: "camera.viewfinder")
-                                    Text("NEURAL FORM CHECK")
-                                }
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
-                                .padding(.vertical, 10)
-                                .frame(maxWidth: .infinity)
-                                .background(Color.white.opacity(0.05))
-                                .foregroundStyle(Color.accentColor)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.accentColor.opacity(0.3), lineWidth: 1))
-                            }
-                            
-                            Button(action: { isSwapOptionsVisible = true }) {
-                                VStack(spacing: 4) {
-                                    Text("AI OVERRIDE")
-                                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                                        .foregroundStyle(.white.opacity(0.6))
-                                }
-                                .padding(.vertical, 10)
-                                .frame(maxWidth: .infinity)
-                                .background(Color.white.opacity(0.05))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 1))
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 30)
+                    workCockpit(exercise: ex)
                 }
             }
         }
@@ -481,9 +264,19 @@ struct GuidedWorkoutView: View {
             
             ScrollView {
                 VStack(spacing: 20) {
-                    Text("Workout complete!")
-                        .font(.title)
-                        .fontWeight(.black)
+                    PremiumHeroCard(
+                        title: "Workout Complete",
+                        subtitle: "Session logged, post-workout insight generated, and the execution trail is now on record.",
+                        eyebrow: "Session Closed"
+                    ) {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                PremiumMetricPill(label: "Exercises", value: "\(exercises.count)")
+                                PremiumMetricPill(label: "Sets Logged", value: "\(completedSetCount)")
+                                PremiumMetricPill(label: "Status", value: saved ? "Saved" : "Pending")
+                            }
+                        }
+                    }
                     if saved {
                         VStack(spacing: 24) {
                             ProBadge(
@@ -499,20 +292,26 @@ struct GuidedWorkoutView: View {
                         }
                     }
                     if insightLoading {
-                        ProgressView("Getting insight…")
+                        PremiumStateCard(title: "Generating recap", detail: "Koda is turning your logged work into a concise post-session insight.", symbol: "waveform.path.ecg")
                     } else if let insight = postWorkoutInsight {
-                        Text(insight)
-                            .font(.subheadline)
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.accentColor.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        PremiumRowCard {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Post-Workout Readout")
+                                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    .tracking(1.1)
+                                    .foregroundStyle(Brand.Color.accent)
+                                Text(insight)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.white)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
                     }
                     
                     Button("Return Home") {
                         dismiss()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(PremiumActionButtonStyle())
                     .padding(.top, 20)
                 }
                 .padding()
@@ -520,25 +319,386 @@ struct GuidedWorkoutView: View {
         }
     }
 
+    private func workoutHeader(exercise ex: PlanExercise) -> some View {
+        VStack(spacing: 16) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top) {
+                    workoutBackButton
+                    Spacer(minLength: 12)
+                    SpotifyPlayerView(compact: true)
+                        .frame(maxWidth: 180)
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        workoutBackButton
+                        Spacer()
+                    }
+                    SpotifyPlayerView(compact: true)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Text(phase == .rest ? "Recovery" : "Execution")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(Brand.Color.accent)
+                    Text("•")
+                        .foregroundStyle(.white.opacity(0.4))
+                    Text("Exercise \(exerciseIndex + 1) of \(max(exercises.count, 1))")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.72))
+                }
+
+                Text(ex.name ?? "Exercise")
+                    .font(.system(size: 34, weight: .black))
+                    .italic()
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.white.opacity(0.14))
+                        Capsule()
+                            .fill(LinearGradient(colors: [Brand.Color.accent, Color.white], startPoint: .leading, endPoint: .trailing))
+                            .frame(width: max(geometry.size.width * sessionProgress, 12))
+                    }
+                }
+                .frame(height: 8)
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) {
+                        workoutBadge(label: "Set", value: "\(min(setIndex + 1, ex.sets ?? 1))/\(ex.sets ?? 1)")
+                        workoutBadge(label: "Target", value: ex.reps ?? "-")
+                        workoutBadge(label: "Focus", value: ex.intensity ?? "Push")
+                    }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        workoutBadge(label: "Set", value: "\(min(setIndex + 1, ex.sets ?? 1))/\(ex.sets ?? 1)")
+                        workoutBadge(label: "Target", value: ex.reps ?? "-")
+                        workoutBadge(label: "Focus", value: ex.intensity ?? "Push")
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+    }
+
+    private func workCockpit(exercise ex: PlanExercise) -> some View {
+        VStack(spacing: 18) {
+            Spacer()
+
+            VStack(alignment: .leading, spacing: 16) {
+                workSummarySection(exercise: ex)
+                workTargetSection(exercise: ex)
+                workCoachingSection(exercise: ex)
+                workLoggingSection(exercise: ex)
+                loggedSetsSection
+                workActionSection
+            }
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    )
+            )
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+        }
+    }
+
+    private func workSummarySection(exercise ex: PlanExercise) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("NOW")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(Brand.Color.accent)
+                Text("Set \(setIndex + 1) of \(ex.sets ?? 1)")
+                    .font(.title2.weight(.black))
+                    .foregroundStyle(.white)
+                Text(ex.rationale ?? "Stay crisp, hit the target cleanly, and leave enough control for the next round.")
+                    .font(.subheadline)
+                    .foregroundStyle(Brand.Color.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 6) {
+                Text("Logged")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.64))
+                Text("\(currentExerciseLoggedSets.count)")
+                    .font(.system(size: 30, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+        }
+    }
+
+    private func workTargetSection(exercise ex: PlanExercise) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                targetCard(title: "Reps", value: ex.reps ?? "-", accent: .white)
+                targetCard(title: "Intensity", value: ex.intensity ?? "Push", accent: Brand.Color.accent)
+                if let rir = ex.target_rir {
+                    targetCard(title: "RIR", value: "\(rir)", accent: Brand.Color.warning)
+                }
+            }
+
+            VStack(spacing: 12) {
+                targetCard(title: "Reps", value: ex.reps ?? "-", accent: .white)
+                targetCard(title: "Intensity", value: ex.intensity ?? "Push", accent: Brand.Color.accent)
+                if let rir = ex.target_rir {
+                    targetCard(title: "RIR", value: "\(rir)", accent: Brand.Color.warning)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func workCoachingSection(exercise ex: PlanExercise) -> some View {
+        if ex.tempo != nil || ex.breathing != nil || ex.intent != nil || ex.notes != nil {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Coaching cues")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .tracking(1.1)
+                    .foregroundStyle(Brand.Color.accent)
+                VStack(spacing: 8) {
+                    if let tempo = ex.tempo, !tempo.isEmpty {
+                        cueRow(label: "TEMPO", value: tempo)
+                    }
+                    if let breathing = ex.breathing, !breathing.isEmpty {
+                        cueRow(label: "BREATH", value: breathing)
+                    }
+                    if let intent = ex.intent, !intent.isEmpty {
+                        cueRow(label: "INTENT", value: intent)
+                    }
+                    if let notes = ex.notes, !notes.isEmpty {
+                        cueRow(label: "NOTE", value: notes)
+                    }
+                }
+            }
+        }
+    }
+
+    private func workLoggingSection(exercise ex: PlanExercise) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Log this set")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .tracking(1.1)
+                .foregroundStyle(Brand.Color.accent)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    workoutEntryField(label: "Weight", unit: "LBS", placeholder: "0", text: $currentWeightInput, keyboard: .decimalPad)
+                    workoutEntryField(label: "Reps", unit: "COUNT", placeholder: ex.reps?.components(separatedBy: "-").first ?? "0", text: $currentRepsInput, keyboard: .numberPad)
+                }
+
+                VStack(spacing: 12) {
+                    workoutEntryField(label: "Weight", unit: "LBS", placeholder: "0", text: $currentWeightInput, keyboard: .decimalPad)
+                    workoutEntryField(label: "Reps", unit: "COUNT", placeholder: ex.reps?.components(separatedBy: "-").first ?? "0", text: $currentRepsInput, keyboard: .numberPad)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var loggedSetsSection: some View {
+        if !currentExerciseLoggedSets.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Logged so far")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .tracking(1.1)
+                    .foregroundStyle(Brand.Color.accent)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(currentExerciseLoggedSets.enumerated()), id: \.offset) { index, logged in
+                            loggedSetPill(index: index, logged: logged)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func loggedSetPill(index: Int, logged: LoggedSet) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("S\(index + 1)")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.white.opacity(0.64))
+            Text("\(Int(logged.weight ?? 0)) x \(logged.reps ?? 0)")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+        )
+    }
+
+    private var workActionSection: some View {
+        VStack(spacing: 12) {
+            Button(action: { advanceSet() }) {
+                Text(nextActionLabel)
+            }
+            .buttonStyle(PremiumActionButtonStyle())
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    Button(action: { isFormCheckActive = true }) {
+                        Label("Form Check", systemImage: "camera.viewfinder")
+                    }
+                    .buttonStyle(PremiumActionButtonStyle(filled: false))
+
+                    Button(action: { isSwapOptionsVisible = true }) {
+                        Label("Swap Exercise", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    .buttonStyle(PremiumActionButtonStyle(filled: false))
+                }
+
+                VStack(spacing: 12) {
+                    Button(action: { isFormCheckActive = true }) {
+                        Label("Form Check", systemImage: "camera.viewfinder")
+                    }
+                    .buttonStyle(PremiumActionButtonStyle(filled: false))
+
+                    Button(action: { isSwapOptionsVisible = true }) {
+                        Label("Swap Exercise", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    .buttonStyle(PremiumActionButtonStyle(filled: false))
+                }
+            }
+        }
+    }
+
+    private func restCockpit(exercise ex: PlanExercise) -> some View {
+        let isOptimal = heartRate <= recoveryTarget
+
+        return VStack(spacing: 20) {
+            Spacer()
+
+            VStack(spacing: 18) {
+                Text(neuralRestMode ? "Neural recovery active" : "Rest phase")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(Brand.Color.accent)
+
+                if neuralRestMode {
+                    NeuralRestHUD(
+                        heartRate: heartRate,
+                        timeRemaining: restRemaining,
+                        recoveryScore: calculateRecoveryScore(),
+                        steeringMessage: getSteeringMessage()
+                    )
+                } else {
+                    VStack(spacing: 8) {
+                        Text("\(restRemaining)")
+                            .font(.system(size: 88, weight: .black, design: .rounded))
+                            .foregroundStyle(.white)
+                        Text("SECONDS")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(Brand.Color.accent)
+                    }
+                }
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) {
+                        targetCard(title: "Heart Rate", value: "\(heartRate)", accent: .white)
+                        targetCard(title: "Target", value: "\(recoveryTarget)", accent: Brand.Color.accent)
+                        targetCard(title: "Ready", value: isOptimal ? "Yes" : "Not Yet", accent: isOptimal ? Brand.Color.success : Brand.Color.warning)
+                    }
+
+                    VStack(spacing: 12) {
+                        targetCard(title: "Heart Rate", value: "\(heartRate)", accent: .white)
+                        targetCard(title: "Target", value: "\(recoveryTarget)", accent: Brand.Color.accent)
+                        targetCard(title: "Ready", value: isOptimal ? "Yes" : "Not Yet", accent: isOptimal ? Brand.Color.success : Brand.Color.warning)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Up next")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .tracking(1.1)
+                        .foregroundStyle(Brand.Color.accent)
+                    Text(ex.name ?? "Next Exercise")
+                        .font(.title3.weight(.black))
+                        .foregroundStyle(.white)
+                    Text(isOptimal ? "Recovery threshold met. You can move into the next effort early." : "Hold position, slow breathing, and let readiness catch up before the override.")
+                        .font(.subheadline)
+                        .foregroundStyle(Brand.Color.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Button(action: advanceRest) {
+                    Text(isOptimal ? "Start Next Set" : "Override Recovery")
+                }
+                .buttonStyle(PremiumActionButtonStyle(filled: isOptimal))
+            }
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    )
+            )
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+        }
+    }
+
     private func loadPlan() async {
         if !exercises.isEmpty { 
-            // Already injected from HomeView
             await MainActor.run {
-                loggedSets = Array(repeating: [], count: exercises.count)
-                phase = .overview 
+                if loggedSets.count != exercises.count {
+                    loggedSets = Array(repeating: [], count: exercises.count)
+                }
+                if phase == .loading {
+                    phase = exercises.isEmpty ? .completed : .overview
+                }
             }
             return 
         }
-        guard let ds = dataService else { return }
         do {
-            let plan = try await ds.fetchDailyPlan(dateLocal: DateHelpers.todayLocal)
-            let list = plan?.training_plan?.exercises ?? []
+            let freshPlan = try await api.planDaily(todayConstraints: nil).plan
             await MainActor.run {
-                exercises = list
-                loggedSets = Array(repeating: [], count: list.count)
-                phase = list.isEmpty ? .completed : .overview
+                seedSession(
+                    exercises: freshPlan.training_plan?.exercises ?? [],
+                    focus: freshPlan.training_plan?.focus,
+                    durationMinutes: freshPlan.training_plan?.duration_minutes
+                )
             }
         } catch {
+            if let ds = dataService {
+                do {
+                    let storedPlan = try await ds.fetchDailyPlan(dateLocal: DateHelpers.todayLocal)
+                    await MainActor.run {
+                        seedSession(
+                            exercises: storedPlan?.training_plan?.exercises ?? [],
+                            focus: storedPlan?.training_plan?.focus,
+                            durationMinutes: storedPlan?.training_plan?.duration_minutes
+                        )
+                    }
+                    return
+                } catch {
+                    await MainActor.run {
+                        errorMessage = error.localizedDescription
+                        phase = .overview
+                    }
+                    return
+                }
+            }
             await MainActor.run {
                 errorMessage = error.localizedDescription
                 phase = .overview
@@ -931,12 +1091,196 @@ struct GuidedWorkoutView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
+    private func overviewExerciseRow(index: Int, exercise: PlanExercise) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            Text("\(index + 1)")
+                .font(.system(size: 18, weight: .black, design: .rounded))
+                .foregroundStyle(.black)
+                .frame(width: 34, height: 34)
+                .background(
+                    Circle()
+                        .fill(index == 0 ? Brand.Color.accent : Color.white.opacity(0.16))
+                )
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(exercise.name ?? "Exercise \(index + 1)")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.white)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        workoutInfoPill("\(exercise.sets ?? 0) sets")
+                        workoutInfoPill(exercise.reps ?? "- reps")
+                        if let intensity = exercise.intensity {
+                            workoutInfoPill(intensity)
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        workoutInfoPill("\(exercise.sets ?? 0) sets")
+                        workoutInfoPill(exercise.reps ?? "- reps")
+                        if let intensity = exercise.intensity {
+                            workoutInfoPill(intensity)
+                        }
+                    }
+                }
+                if let rationale = exercise.rationale, !rationale.isEmpty {
+                    Text(rationale)
+                        .font(.caption)
+                        .foregroundStyle(Brand.Color.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Spacer()
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Brand.Color.surfaceRaised.opacity(0.92))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(Brand.Color.borderStrong, lineWidth: 1)
+                )
+        )
+    }
+
+    private func workoutInfoPill(_ text: String) -> some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                Capsule()
+                    .fill(Color.white.opacity(0.08))
+                    .overlay(Capsule().stroke(Color.white.opacity(0.08), lineWidth: 1))
+            )
+    }
+
+    private func workoutBadge(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.56))
+            Text(value)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            Capsule()
+                .fill(Color.white.opacity(0.08))
+                .overlay(Capsule().stroke(Color.white.opacity(0.08), lineWidth: 1))
+        )
+    }
+
+    private func targetCard(title: String, value: String, accent: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title.uppercased())
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.56))
+            Text(value)
+                .font(.title3.weight(.black))
+                .foregroundStyle(accent)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+        )
+    }
+
+    private func workoutEntryField(label: String, unit: String, placeholder: String, text: Binding<String>, keyboard: UIKeyboardType) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.56))
+            HStack {
+                Text(unit)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.42))
+                Spacer()
+                TextField(placeholder, text: text)
+                    .keyboardType(keyboard)
+                    .multilineTextAlignment(.trailing)
+                    .font(.title2.weight(.black))
+                    .foregroundStyle(.white)
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.white.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    )
+            )
+        }
+    }
+
+    private var totalSetCount: Int {
+        exercises.reduce(0) { $0 + max($1.sets ?? 0, 0) }
+    }
+
+    private var completedSetCount: Int {
+        loggedSets.reduce(0) { $0 + $1.count }
+    }
+
+    private var currentExerciseLoggedSets: [LoggedSet] {
+        loggedSets[safe: exerciseIndex] ?? []
+    }
+
+    private var sessionProgress: CGFloat {
+        let total = max(totalSetCount, 1)
+        return min(max(CGFloat(completedSetCount) / CGFloat(total), 0.04), 1)
+    }
+
+    private var nextActionLabel: String {
+        let currentSets = currentExerciseLoggedSets.count + 1
+        let targetSets = currentExercise?.sets ?? 1
+        if exerciseIndex + 1 >= exercises.count && currentSets >= targetSets {
+            return "Finish Session"
+        }
+        if currentSets >= targetSets {
+            return "Log Set And Recover"
+        }
+        return "Log Set"
+    }
+
+    private var currentExercise: PlanExercise? {
+        exercises[safe: exerciseIndex]
+    }
+
+    private var primaryExerciseName: String {
+        exercises.first?.name ?? "Adaptive Strength Session"
+    }
+
+    private var currentExerciseFocus: String {
+        exercises.first?.intensity ?? "Strength"
+    }
+
+    private var sessionTitle: String {
+        sessionFocus ?? primaryExerciseName
+    }
+
+    private var sessionFocusLabel: String {
+        sessionFocus ?? currentExerciseFocus
+    }
+
     private func saveAndGetInsight() async {
         guard let ds = dataService else { return }
         var log = WorkoutLog()
         log.date = DateHelpers.todayLocal
         log.workout_type = "Guided"
-        log.duration_minutes = 45
+        log.duration_minutes = sessionDurationMinutes ?? 45
         log.exercises = exercises.enumerated().map { i, ex in
             let exLogs = i < loggedSets.count ? loggedSets[i] : []
             // Use max weight among sets for DB, similar to web logic for now
@@ -1003,6 +1347,38 @@ struct GuidedWorkoutView: View {
                     withAnimation { self.showingPulseAnimation = false }
                 }
             }
+        }
+    }
+
+    @MainActor
+    private func seedSession(from trainingPlan: TrainingPlan) {
+        seedSession(
+            exercises: trainingPlan.exercises ?? [],
+            focus: trainingPlan.focus,
+            durationMinutes: trainingPlan.duration_minutes
+        )
+    }
+
+    @MainActor
+    private func seedSession(exercises: [PlanExercise], focus: String?, durationMinutes: Int?) {
+        self.exercises = exercises
+        sessionFocus = focus
+        sessionDurationMinutes = durationMinutes
+        loggedSets = Array(repeating: [], count: exercises.count)
+        phase = exercises.isEmpty ? .completed : .overview
+    }
+
+    private var workoutBackButton: some View {
+        Button(action: { phase = .overview }) {
+            Image(systemName: "chevron.left")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 42, height: 42)
+                .background(
+                    Circle()
+                        .fill(Color.white.opacity(0.08))
+                        .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                )
         }
     }
 }

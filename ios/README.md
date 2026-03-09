@@ -30,7 +30,7 @@ Native iOS client for Koda AI. Uses the same Supabase backend and Next.js API as
 
 - **In Xcode:** **Product → Test** (⌘U). Ensure **AskKodaAITests** is in the scheme’s Test action.
 - **From repo root (terminal):** `npm run test:ios` (or `npm run test:ai-review:ios` / `npm run test:ios:ready` for AI review and production gate). The script uses a single simulator (iPhone 17); **run only one iOS test job at a time** on resource-limited machines.
-- **Surface smoke pass:** `npm run test:ios:surfaces` builds the app, launches each major screen one by one in the `iPhone 17` simulator, captures screenshots, and writes a report to `docs/reports/ios-surface-smoke-<timestamp>/SUMMARY.md`.
+- **Surface smoke pass:** `npm run test:ios:surfaces` builds the app, launches each major screen in deterministic **demo mode**, captures a state matrix (primary plus loading/empty/error variants where relevant) on `iPhone 17`, runs a tighter layout sanity pass on `iPhone 16e`, and writes a report to `docs/reports/ios-surface-smoke-<timestamp>/SUMMARY.md`.
 - **If tests crash before running** (e.g. “Early unexpected exit” / “signal trap”): the test host is the app; it must launch successfully. Run `node scripts/generate-ios-env.mjs` from repo root so `ios/AskKodaAI/Config/Generated.xcconfig` exists with valid values from `.env.local`, then build and run the app once (⌘R) to confirm it launches, then run tests again.
 
 ---
@@ -141,6 +141,17 @@ The iOS app matches the web app for core flows:
 - **Telemetry:** `Telemetry.track(_:props:)` for product events.
 
 Robustness: retry-friendly API client, loading/error/empty states, Supabase direct access, HealthKit sync, simulator surface smoke coverage.
+
+## Simulator QA launch contract
+
+The debug launcher and surface smoke harness use these environment variables:
+
+- `E2E_SURFACE` — screen to launch directly (`home`, `plan`, `coach`, etc.)
+- `E2E_DEMO_MODE` — enables deterministic demo data instead of live auth/backend dependencies
+- `E2E_SCENARIO` — state variant for the launched surface (`primary`, `empty`, `loading`, `error`)
+- `E2E_VARIANT` — optional extra variant channel; the smoke harness currently mirrors the scenario value here
+
+In demo mode, the app uses stable profile, plan, workout, nutrition, community, and coach fixtures so simulator QA can focus on layout and polish instead of login or backend state.
 
 ## Unit tests and AI review
 

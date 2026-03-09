@@ -11,6 +11,10 @@ struct KodaAPIService {
     let baseURL: URL
     let getAccessToken: () async -> String?
 
+    private var isDemoMode: Bool {
+        DebugUX.isDemoMode
+    }
+
     init(baseURL: URL = AppConfig.apiBaseURL, getAccessToken: @escaping () async -> String?) {
         self.baseURL = baseURL
         self.getAccessToken = getAccessToken
@@ -18,6 +22,13 @@ struct KodaAPIService {
 
     /// POST /api/v1/ai/respond — AI coach chat.
     func aiRespond(message: String, localDate: String? = nil) async throws -> AIReplyResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.aiReply(for: message),
+                empty: AIReplyResponse(reply: "Coach channel is quiet in the empty scenario.", action: nil),
+                label: "coach reply"
+            )
+        }
         let body: [String: Any] = {
             var b: [String: Any] = ["message": message]
             if let d = localDate, !d.isEmpty { b["localDate"] = d }
@@ -28,27 +39,62 @@ struct KodaAPIService {
 
     /// GET /api/v1/ai/coach-desk — Proactive mastery insights.
     func aiCoachDesk() async throws -> CoachDeskResponse {
-        try await get("api/v1/ai/coach-desk")
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.coachDesk,
+                empty: CoachDeskResponse(insights: []),
+                label: "coach desk"
+            )
+        }
+        return try await get("api/v1/ai/coach-desk")
     }
 
     /// GET /api/v1/user/trophies — Earned elite protocols.
     func getTrophies() async throws -> TrophyResponse {
-        try await get("api/v1/user/trophies")
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.trophies,
+                empty: TrophyResponse(trophies: []),
+                label: "trophies"
+            )
+        }
+        return try await get("api/v1/user/trophies")
     }
     
     /// GET /api/v1/ai/history — AI chat history.
     func aiHistory() async throws -> HistoryResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.aiHistory,
+                empty: HistoryResponse(history: []),
+                label: "coach history"
+            )
+        }
         return try await get("api/v1/ai/history")
     }
 
     /// POST /api/v1/plan/daily — Generate and save daily plan.
     func planDaily(todayConstraints: DailyConstraints? = nil) async throws -> DailyPlanResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DailyPlanResponse(plan: DemoContent.dailyPlan),
+                empty: DailyPlanResponse(plan: DailyPlan(date_local: DemoContent.today, training_plan: nil, nutrition_plan: nil, safety_notes: nil)),
+                label: "daily plan generation"
+            )
+        }
         let body = todayConstraints.map { ["todayConstraints": $0.asJSON] } ?? [:]
         return try await post("api/v1/plan/daily", body: body)
     }
 
     /// GET /api/v1/plan/weekly
     func planWeekly(refresh: Bool = false) async throws -> WeeklyPlanResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: WeeklyPlanResponse(plan: DemoContent.weeklyPlan),
+                empty: WeeklyPlanResponse(plan: WeeklyPlan(week_start_local: DemoContent.today, cycle_goal: nil, adaptation_summary: nil, days: [])),
+                label: "weekly plan"
+            )
+        }
         var path = "api/v1/plan/weekly"
         if refresh { path += "?refresh=1" }
         return try await get(path)
@@ -56,26 +102,71 @@ struct KodaAPIService {
 
     /// GET /api/v1/analytics/performance — 14-day analytics.
     func analyticsPerformance() async throws -> PerformanceResponse {
-        try await get("api/v1/analytics/performance")
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.performance,
+                empty: PerformanceResponse(workout_days: 0, workout_minutes: 0, set_volume: 0, push_pull_balance: nil, recovery_debt: nil, nutrition_compliance: nil),
+                label: "performance analytics"
+            )
+        }
+        return try await get("api/v1/analytics/performance")
     }
     
     /// GET /api/v1/community/squad/overview — Squad leaderboard and rank.
     func communitySquadOverview() async throws -> SquadOverviewResponse {
-        try await get("api/v1/community/squad/overview")
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.squadOverview,
+                empty: SquadOverviewResponse(squadId: nil, squadName: "ELITE PROTOCOL", rank: 0, leaderboard: []),
+                label: "squad overview"
+            )
+        }
+        return try await get("api/v1/community/squad/overview")
     }
     
     /// GET /api/v1/community/squad/vibes — Real-time squad activity feed.
     func communitySquadVibes() async throws -> SquadVibesResponse {
-        try await get("api/v1/community/squad/vibes")
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.squadVibes,
+                empty: SquadVibesResponse(vibes: []),
+                label: "squad vibes"
+            )
+        }
+        return try await get("api/v1/community/squad/vibes")
     }
 
     /// GET /api/v1/ai/weekly-insight
     func aiWeeklyInsight() async throws -> WeeklyInsightResponse {
-        try await get("api/v1/ai/weekly-insight")
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: WeeklyInsightResponse(insight: "Prioritize the opening lower-body session, then manage fatigue with a lighter recovery mid-week."),
+                empty: WeeklyInsightResponse(insight: nil),
+                label: "weekly insight"
+            )
+        }
+        return try await get("api/v1/ai/weekly-insight")
     }
 
     /// POST /api/v1/plan/adapt-day
     func planAdaptDay(minutesAvailable: Int?, location: String?, soreness: String?, intensity: String?, equipmentContext: String?) async throws -> DailyPlanResponse {
+        if isDemoMode {
+            let adaptedPlan = DailyPlan(
+                date_local: DemoContent.today,
+                training_plan: TrainingPlan(
+                    focus: "Condensed Lower Strength",
+                    duration_minutes: 34,
+                    exercises: Array(DemoContent.sampleExercises.prefix(2))
+                ),
+                nutrition_plan: DemoContent.dailyPlan.nutrition_plan,
+                safety_notes: ["Session adapted for tighter time window."]
+            )
+            return try await DebugUX.resolve(
+                primary: DailyPlanResponse(plan: adaptedPlan),
+                empty: DailyPlanResponse(plan: DailyPlan(date_local: DemoContent.today, training_plan: nil, nutrition_plan: nil, safety_notes: nil)),
+                label: "adapted plan"
+            )
+        }
         var body: [String: Any] = [:]
         if let m = minutesAvailable { body["minutesAvailable"] = m }
         if let l = location { body["location"] = l }
@@ -87,6 +178,13 @@ struct KodaAPIService {
 
     /// POST /api/v1/stripe/checkout
     func stripeCheckout(priceId: String?, successUrl: String?, cancelUrl: String?) async throws -> StripeCheckoutResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.stripeCheckout,
+                empty: StripeCheckoutResponse(url: nil, sessionId: "demo-empty"),
+                label: "checkout"
+            )
+        }
         var body: [String: Any] = [:]
         if let p = priceId { body["priceId"] = p }
         if let s = successUrl { body["successUrl"] = s }
@@ -96,6 +194,13 @@ struct KodaAPIService {
 
     /// POST /api/v1/ai/body-comp
     func aiBodyComp(images: (String, String, String), localDate: String) async throws -> BodyCompResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.bodyComp,
+                empty: BodyCompResponse(body_fat_percent: nil, analysis: nil, confidence: nil),
+                label: "body composition analysis"
+            )
+        }
         let body: [String: Any] = [
             "images": [images.0, images.1, images.2],
             "localDate": localDate
@@ -105,29 +210,56 @@ struct KodaAPIService {
 
     /// GET /api/v1/ai/projection
     func aiProjection(today: String) async throws -> DashboardProjectionResponse {
-        try await get("api/v1/ai/projection?today=\(today)")
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.projection,
+                empty: DashboardProjectionResponse(current: nil, projected_4w: nil, projected_12w: nil, rate: nil, confidence: nil),
+                label: "projection"
+            )
+        }
+        return try await get("api/v1/ai/projection?today=\(today)")
     }
 
     /// POST /api/v1/ai/retention-risk
     func aiRetentionRisk(localDate: String) async throws -> RetentionRiskResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.retentionRisk,
+                empty: RetentionRiskResponse(risk_score: nil, risk_level: nil, reasons: [], recommended_action: nil, rationale: nil),
+                label: "retention risk"
+            )
+        }
         let body = ["localDate": localDate]
         return try await post("api/v1/ai/retention-risk", body: body)
     }
 
     /// POST /api/v1/ai/briefing
     func aiBriefing(localDate: String) async throws -> AIBriefingResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.briefing,
+                empty: AIBriefingResponse(briefing: nil, rationale: nil, inputs: []),
+                label: "briefing"
+            )
+        }
         let body = ["localDate": localDate]
         return try await post("api/v1/ai/briefing", body: body)
     }
 
     /// POST /api/v1/ai/coach-nudge/ack
     func coachNudgeAck(nudgeId: String) async throws -> [String: AnyCodable] {
+        if isDemoMode {
+            return try await DebugUX.resolve(primary: [:], empty: [:], label: "nudge acknowledgement")
+        }
         let body = ["nudgeId": nudgeId]
         return try await post("api/v1/ai/coach-nudge/ack", body: body)
     }
 
     /// GET /api/v1/user/export
     func exportData(format: String) async throws -> Data {
+        if isDemoMode {
+            return try await DebugUX.resolve(primary: DemoContent.exportData, empty: DemoContent.exportData, label: "export")
+        }
         let path = "api/v1/user/export?format=\(format)"
         let url: URL
         if let u = URL(string: path, relativeTo: baseURL)?.absoluteURL {
@@ -146,36 +278,81 @@ struct KodaAPIService {
 
     /// POST /api/v1/ai/readiness-insight
     func aiReadinessInsight(localDate: String) async throws -> ReadinessInsightResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.readiness,
+                empty: ReadinessInsightResponse(insight: nil),
+                label: "readiness insight"
+            )
+        }
         return try await post("api/v1/ai/readiness-insight", body: ["localDate": localDate])
     }
 
     /// POST /api/v1/ai/post-workout-insight
     func aiPostWorkoutInsight(dateLocal: String) async throws -> PostWorkoutInsightResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: PostWorkoutInsightResponse(insight: "Clean output today. Reload carbs, walk 10 minutes tonight, and leave the next hinge session heavy."),
+                empty: PostWorkoutInsightResponse(insight: nil),
+                label: "post-workout insight"
+            )
+        }
         return try await post("api/v1/ai/post-workout-insight", body: ["dateLocal": dateLocal])
     }
 
     /// POST /api/v1/user/awards/check
     func awardsCheck() async throws -> AwardsCheckResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(primary: DemoContent.awards, empty: AwardsCheckResponse(awarded: []), label: "awards")
+        }
         return try await post("api/v1/user/awards/check", body: [:])
     }
 
     /// POST /api/v1/analytics/process-prs
     func analyticsProcessPRs() async throws -> [String: AnyCodable] {
+        if isDemoMode {
+            return try await DebugUX.resolve(primary: [:], empty: [:], label: "pr processing")
+        }
         return try await post("api/v1/analytics/process-prs", body: [:])
     }
 
     /// GET /api/v1/spotify/token
     func spotifyToken() async throws -> SpotifyTokenResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: SpotifyTokenResponse(access_token: "demo-spotify-token"),
+                empty: SpotifyTokenResponse(access_token: nil),
+                label: "spotify token"
+            )
+        }
         return try await get("api/v1/spotify/token")
     }
 
     /// POST /api/v1/ai/vision
     func aiVision(images: [String]) async throws -> VisionAnalysisResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.vision,
+                empty: VisionAnalysisResponse(score: nil, critique: nil, correction: nil),
+                label: "vision analysis"
+            )
+        }
         return try await post("api/v1/ai/vision", body: ["images": images])
     }
 
     /// POST /api/v1/plan/swap-exercise
     func planSwapExercise(currentExercise: String, reason: String, location: String?, sets: Int?, reps: String?, intensity: String?) async throws -> PlanSwapResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: PlanSwapResponse(
+                    replacement: PlanExercise(name: "Safety Bar Squat", sets: sets, reps: reps, intensity: intensity ?? "RPE 7", notes: "Front-loaded variation to spare shoulders.", tempo: "31X0", breathing: "Brace and exhale on the way up", intent: "Keep intensity high with less shoulder demand", rationale: "Swap selected due to shoulder management.", target_rir: 2, target_load_kg: 132.5, video_url: nil, cinema_video_url: nil, image_url: nil),
+                    rationale: "Reduced shoulder stress while keeping lower-body force production intact.",
+                    reliability: ReliabilityInfo(confidence_score: 0.86)
+                ),
+                empty: PlanSwapResponse(replacement: nil, rationale: nil, reliability: ReliabilityInfo(confidence_score: nil)),
+                label: "exercise swap"
+            )
+        }
         var body: [String: Any] = ["currentExercise": currentExercise, "reason": reason]
         if let l = location { body["location"] = l }
         if let s = sets { body["sets"] = s }
@@ -186,21 +363,48 @@ struct KodaAPIService {
 
     /// GET /api/v1/ai/progress-insight
     func aiProgressInsight() async throws -> ProgressInsightResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.progressInsight,
+                empty: ProgressInsightResponse(insight: nil),
+                label: "progress insight"
+            )
+        }
         return try await get("api/v1/ai/progress-insight")
     }
 
     /// POST /api/v1/nutrition/fridge-scanner
     func nutritionFridgeScanner(media: String, type: String, localDate: String) async throws -> FridgeScannerResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: FridgeScannerResponse(recipes: [
+                    FridgeRecipe(name: "High-Protein Skillet", calories: 540, protein: 46, carbs: 32, fat: 22, ingredients: ["chicken", "peppers", "rice"], instructions: "Saute protein, add vegetables, finish with cooked rice."),
+                    FridgeRecipe(name: "Egg Fried Rice Reload", calories: 620, protein: 34, carbs: 74, fat: 18, ingredients: ["eggs", "rice", "soy", "greens"], instructions: "Scramble eggs, stir-fry rice, finish with greens.")
+                ]),
+                empty: FridgeScannerResponse(recipes: []),
+                label: "fridge scanner"
+            )
+        }
         return try await post("api/v1/nutrition/fridge-scanner", body: ["media": media, "type": type, "localDate": localDate])
     }
 
     /// POST /api/v1/ai/recipe-gen
     func aiRecipeGen(startDate: String, durationDays: Int) async throws -> RecipeGenResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.recipePlan,
+                empty: RecipeGenResponse(plan_id: nil, days: [], grocery_list: []),
+                label: "recipe generation"
+            )
+        }
         return try await post("api/v1/ai/recipe-gen", body: ["startDate": startDate, "durationDays": durationDays])
     }
 
     /// POST /api/v1/telemetry/event
     func telemetryEvent(eventName: String, eventProps: [String: Any]?) async throws -> [String: AnyCodable] {
+        if isDemoMode {
+            return try await DebugUX.resolve(primary: [:], empty: [:], label: "telemetry")
+        }
         var body: [String: Any] = ["eventName": eventName]
         if let p = eventProps { body["eventProps"] = p }
         return try await post("api/v1/telemetry/event", body: body)
@@ -208,11 +412,25 @@ struct KodaAPIService {
 
     /// GET /api/v1/coach/escalate/list
     func coachEscalateList() async throws -> EscalationListResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.escalationList,
+                empty: EscalationListResponse(escalations: []),
+                label: "escalation list"
+            )
+        }
         return try await get("api/v1/coach/escalate/list")
     }
 
     /// POST /api/v1/coach/escalate/create
     func coachEscalateCreate(topic: String, urgency: String, details: String?, preferredChannel: String?) async throws -> ActiveEscalationResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.activeEscalation,
+                empty: ActiveEscalationResponse(escalation: nil),
+                label: "escalation create"
+            )
+        }
         var body: [String: Any] = ["topic": topic, "urgency": urgency]
         if let d = details { body["details"] = d }
         if let p = preferredChannel { body["preferredChannel"] = p }
@@ -221,57 +439,130 @@ struct KodaAPIService {
 
     /// GET /api/v1/coach/escalate/messages
     func coachEscalateMessages(escalationId: String) async throws -> EscalationMessagesResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.escalationMessages,
+                empty: EscalationMessagesResponse(messages: []),
+                label: "escalation messages"
+            )
+        }
         return try await get("api/v1/coach/escalate/messages?escalationId=\(escalationId)")
     }
 
     /// POST /api/v1/coach/escalate/send
     func coachEscalateSendMessage(escalationId: String, body: String) async throws -> EscalationMessagesResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.escalationMessages,
+                empty: EscalationMessagesResponse(messages: []),
+                label: "escalation send"
+            )
+        }
         return try await post("api/v1/coach/escalate/send", body: ["escalationId": escalationId, "body": body])
     }
 
     /// GET /api/v1/social/friends
     func socialFriends() async throws -> [ConnectionRow] {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.friends.friends ?? [],
+                empty: [],
+                label: "friends"
+            )
+        }
         return try await get("api/v1/social/friends")
     }
 
     /// GET /api/v1/social/accountability
     func socialAccountability() async throws -> SocialAccountabilityResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.accountability,
+                empty: SocialAccountabilityResponse(partner: nil),
+                label: "accountability"
+            )
+        }
         return try await get("api/v1/social/accountability")
     }
 
     /// GET /api/v1/community/challenges
     func communityChallenges() async throws -> CommunityChallengesResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.challenges,
+                empty: CommunityChallengesResponse(challenges: []),
+                label: "challenges"
+            )
+        }
         return try await get("api/v1/community/challenges")
     }
 
     /// POST /api/v1/community/challenges/join
     func communityChallengesPost(challengeId: String) async throws -> [String: AnyCodable] {
+        if isDemoMode {
+            return try await DebugUX.resolve(primary: [:], empty: [:], label: "challenge join")
+        }
         return try await post("api/v1/community/challenges/join", body: ["challengeId": challengeId])
     }
 
 
     /// GET /api/v1/nutrition/targets
     func nutritionTargetsGet() async throws -> NutritionTargetResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: NutritionTargetResponse(target: DemoContent.nutritionTarget),
+                empty: NutritionTargetResponse(target: nil),
+                label: "nutrition targets"
+            )
+        }
         return try await get("api/v1/nutrition/targets")
     }
 
     /// GET /api/v1/ai/nutrition-insight
     func aiNutritionInsight(dateLocal: String) async throws -> NutritionInsightResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.nutritionInsight,
+                empty: NutritionInsightResponse(insight: nil),
+                label: "nutrition insight"
+            )
+        }
         return try await get("api/v1/ai/nutrition-insight?dateLocal=\(dateLocal)")
     }
 
     /// GET /api/v1/ai/meal-suggestions
     func aiMealSuggestions() async throws -> MealSuggestionsResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.mealSuggestions,
+                empty: MealSuggestionsResponse(suggestions: []),
+                label: "meal suggestions"
+            )
+        }
         return try await get("api/v1/ai/meal-suggestions")
     }
 
     /// GET /api/v1/nutrition/barcode/:code
     func nutritionBarcode(barcode: String) async throws -> BarcodeResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.barcode,
+                empty: BarcodeResponse(nutrition: nil),
+                label: "barcode lookup"
+            )
+        }
         return try await get("api/v1/nutrition/barcode/\(barcode)")
     }
 
     /// POST /api/v1/ai/analyze-meal
     func aiAnalyzeMeal(text: String?, imageBase64: String?) async throws -> AnalyzeMealResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.analyzedMeal(text: text),
+                empty: AnalyzeMealResponse(name: nil, calories: nil, protein_g: nil, carbs_g: nil, fat_g: nil, confidence: nil),
+                label: "meal analysis"
+            )
+        }
         var body: [String: Any] = [:]
         if let t = text { body["text"] = t }
         if let i = imageBase64 { body["imageBase64"] = i }
@@ -417,6 +708,41 @@ struct PerformanceResponse: Decodable {
     let push_pull_balance: Double?
     let recovery_debt: Double?
     let nutrition_compliance: Double?
+
+    init(
+        workout_days: Int?,
+        workout_minutes: Int?,
+        set_volume: Int?,
+        push_pull_balance: Double?,
+        recovery_debt: Double?,
+        nutrition_compliance: Double?
+    ) {
+        self.workout_days = workout_days
+        self.workout_minutes = workout_minutes
+        self.set_volume = set_volume
+        self.push_pull_balance = push_pull_balance
+        self.recovery_debt = recovery_debt
+        self.nutrition_compliance = nutrition_compliance
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case workout_days
+        case workout_minutes
+        case set_volume
+        case push_pull_balance
+        case recovery_debt
+        case nutrition_compliance
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        workout_days = try container.decodeIfPresent(Int.self, forKey: .workout_days)
+        workout_minutes = try container.decodeIfPresent(Int.self, forKey: .workout_minutes)
+        set_volume = try container.decodeIfPresent(Int.self, forKey: .set_volume)
+        push_pull_balance = try container.decodeFlexibleDoubleIfPresent(forKey: .push_pull_balance)
+        recovery_debt = try container.decodeFlexibleDoubleIfPresent(forKey: .recovery_debt)
+        nutrition_compliance = try container.decodeFlexibleDoubleIfPresent(forKey: .nutrition_compliance)
+    }
 }
 
 struct DailyConstraints {
@@ -519,6 +845,21 @@ struct SquadVibe: Decodable, Identifiable {
 // Phase 5: Coach Desk Types
 struct CoachDeskResponse: Decodable {
     let insights: [CoachInsight]?
+}
+
+private extension KeyedDecodingContainer {
+    func decodeFlexibleDoubleIfPresent(forKey key: Key) throws -> Double? {
+        if let value = try? decodeIfPresent(Double.self, forKey: key) {
+            return value
+        }
+        if let intValue = try? decodeIfPresent(Int.self, forKey: key) {
+            return Double(intValue)
+        }
+        if let stringValue = try? decodeIfPresent(String.self, forKey: key) {
+            return Double(stringValue)
+        }
+        return nil
+    }
 }
 
 struct CoachInsight: Decodable, Identifiable {

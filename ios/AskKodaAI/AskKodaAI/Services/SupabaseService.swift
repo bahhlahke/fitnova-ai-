@@ -18,10 +18,10 @@ final class SupabaseService: ObservableObject {
     @Published private(set) var session: Session?
     @Published private(set) var isInitialized = false
 
-    var isSignedIn: Bool { session != nil }
-    var accessToken: String? { session?.accessToken as String? }
-    var providerAccessToken: String? { session?.providerToken }
-    var currentUserId: String? { session?.user.id.uuidString }
+    var isSignedIn: Bool { session != nil || DebugUX.isDemoMode }
+    var accessToken: String? { session?.accessToken as String? ?? (DebugUX.isDemoMode ? "demo-access-token" : nil) }
+    var providerAccessToken: String? { session?.providerToken ?? (DebugUX.isDemoMode ? "demo-provider-token" : nil) }
+    var currentUserId: String? { session?.user.id.uuidString ?? (DebugUX.isDemoMode ? DebugUX.demoUserId : nil) }
 
     /// Exposed for Supabase table access (profile, logs, plans, etc.). Use only when session is non-nil.
     var supabaseClient: SupabaseClient { client }
@@ -33,7 +33,7 @@ final class SupabaseService: ObservableObject {
             supabaseURL: AppConfig.supabaseURL,
             supabaseKey: AppConfig.supabaseAnonKey
         )
-        if Self.isRunningTests {
+        if Self.isRunningTests || DebugUX.isDemoMode {
             isInitialized = true
             return
         }
@@ -41,7 +41,7 @@ final class SupabaseService: ObservableObject {
     }
 
     func refreshSession() async {
-        if Self.isRunningTests {
+        if Self.isRunningTests || DebugUX.isDemoMode {
             session = nil
             isInitialized = true
             return

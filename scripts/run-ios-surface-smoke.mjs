@@ -8,31 +8,39 @@ const cwd = process.cwd();
 const project = path.join(cwd, "ios/AskKodaAI/AskKodaAI.xcodeproj");
 const scheme = "AskKodaAI";
 const simulatorName = process.env.IOS_SIMULATOR_NAME || "iPhone 17";
+const layoutSanitySimulatorName = process.env.IOS_LAYOUT_SANITY_SIMULATOR_NAME || "iPhone 16e";
 const bundleId = "Main.AskKodaAI";
-const surfaces = [
-  "home",
-  "plan",
-  "coach",
-  "log",
-  "log-workout",
-  "log-nutrition",
-  "guided-workout",
-  "motion-lab",
-  "progress",
-  "body-scan",
-  "history",
-  "check-in",
-  "community",
-  "settings",
-  "integrations",
-  "vitals",
-  "pricing",
-  "badges",
-  "coach-support",
-  "meal-plan",
-  "fridge-scanner",
-  "onboarding",
+const surfaceMatrix = [
+  { surface: "home", scenarios: ["primary", "empty", "error"] },
+  { surface: "plan", scenarios: ["primary", "empty", "loading", "error"] },
+  { surface: "coach", scenarios: ["primary", "empty", "loading"] },
+  { surface: "log", scenarios: ["primary"] },
+  { surface: "log-workout", scenarios: ["primary", "empty"] },
+  { surface: "log-nutrition", scenarios: ["primary", "empty"] },
+  { surface: "guided-workout", scenarios: ["primary"] },
+  { surface: "motion-lab", scenarios: ["primary"] },
+  { surface: "progress", scenarios: ["primary", "empty"] },
+  { surface: "body-scan", scenarios: ["primary"] },
+  { surface: "history", scenarios: ["primary", "empty"] },
+  { surface: "check-in", scenarios: ["primary"] },
+  { surface: "community", scenarios: ["primary", "empty"] },
+  { surface: "settings", scenarios: ["primary"] },
+  { surface: "integrations", scenarios: ["primary"] },
+  { surface: "vitals", scenarios: ["primary", "empty"] },
+  { surface: "pricing", scenarios: ["primary"] },
+  { surface: "badges", scenarios: ["primary"] },
+  { surface: "coach-support", scenarios: ["primary", "empty"] },
+  { surface: "meal-plan", scenarios: ["primary"] },
+  { surface: "fridge-scanner", scenarios: ["primary"] },
+  { surface: "onboarding", scenarios: ["primary"] },
 ];
+
+const waitByScenario = {
+  primary: 2600,
+  empty: 2200,
+  loading: 1200,
+  error: 2200,
+};
 
 function run(cmd, args, options = {}) {
   const output = execFileSync(cmd, args, {
@@ -46,6 +54,10 @@ function run(cmd, args, options = {}) {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function safeName(value) {
+  return value.replace(/\s+/g, "-").toLowerCase();
 }
 
 function ensureBuildSettings() {
@@ -91,42 +103,81 @@ async function main() {
   console.log(`Installing ${appPath}...`);
   run("xcrun", ["simctl", "install", simulatorName, appPath], { stdio: "inherit" });
 
+  const simulators = [
+    { name: simulatorName, mode: "full" },
+    { name: layoutSanitySimulatorName, mode: "sanity" },
+  ];
+
   const results = [];
-  for (const surface of surfaces) {
-    console.log(`Launching surface: ${surface}`);
-    try {
-      run("xcrun", ["simctl", "terminate", simulatorName, bundleId]);
-    } catch {
-      // App may not be running.
+  for (const simulator of simulators) {
+    const simulatorDir = path.join(reportDir, safeName(simulator.name));
+    fs.mkdirSync(simulatorDir, { recursive: true });
+
+    if (simulator.name !== simulatorName) {
+      console.log(`Booting ${simulator.name}...`);
+      try {
+        run("xcrun", ["simctl", "boot", simulator.name]);
+      } catch {
+        // Already booted.
+      }
+      run("xcrun", ["simctl", "bootstatus", simulator.name, "-b"], { stdio: "inherit" });
+      run("xcrun", ["simctl", "install", simulator.name, appPath], { stdio: "inherit" });
     }
 
-    const launchOutput = run(
-      "xcrun",
-      ["simctl", "launch", simulatorName, bundleId],
-      {
-        env: {
-          ...process.env,
-          SIMCTL_CHILD_E2E_AUTO_LOGIN: "true",
-          SIMCTL_CHILD_E2E_SURFACE: surface,
-        },
-      }
-    );
+    for (const entry of surfaceMatrix) {
+      const scenarios = simulator.mode === "sanity" ? ["primary"] : entry.scenarios;
+      for (const scenario of scenarios) {
+        console.log(`Launching ${entry.surface} [${scenario}] on ${simulator.name}`);
+        try {
+          run("xcrun", ["simctl", "terminate", simulator.name, bundleId]);
+        } catch {
+          // App may not be running.
+        }
 
-    await sleep(2500);
-    const screenshotPath = path.join(reportDir, `${surface}.png`);
-    run("xcrun", ["simctl", "io", simulatorName, "screenshot", screenshotPath], { stdio: "pipe" });
-    results.push({ surface, launchOutput, screenshotPath });
+        const launchOutput = run(
+          "xcrun",
+          ["simctl", "launch", simulator.name, bundleId],
+          {
+            env: {
+              ...process.env,
+              SIMCTL_CHILD_E2E_AUTO_LOGIN: "true",
+              SIMCTL_CHILD_E2E_DEMO_MODE: "true",
+              SIMCTL_CHILD_E2E_SURFACE: entry.surface,
+              SIMCTL_CHILD_E2E_SCENARIO: scenario,
+              SIMCTL_CHILD_E2E_VARIANT: scenario,
+            },
+          }
+        );
+
+        await sleep(waitByScenario[scenario] ?? 2400);
+        const screenshotPath = path.join(simulatorDir, `${entry.surface}--${scenario}.png`);
+        run("xcrun", ["simctl", "io", simulator.name, "screenshot", screenshotPath], { stdio: "pipe" });
+        results.push({
+          simulator: simulator.name,
+          mode: simulator.mode,
+          surface: entry.surface,
+          scenario,
+          launchOutput,
+          screenshotPath,
+        });
+      }
+    }
   }
 
   const reportPath = path.join(reportDir, "SUMMARY.md");
   const summary = [
     "# iOS Surface Smoke Report",
     "",
-    `Simulator: ${simulatorName}`,
+    `Primary simulator: ${simulatorName}`,
+    `Layout sanity simulator: ${layoutSanitySimulatorName}`,
     `Bundle ID: ${bundleId}`,
     "",
-    "## Surfaces",
-    ...results.map(result => `- ${result.surface}: launched successfully, screenshot at \`${path.relative(cwd, result.screenshotPath)}\``),
+    "## Coverage",
+    `- Full state matrix captured on \`${simulatorName}\``,
+    `- Primary-state layout sanity captured on \`${layoutSanitySimulatorName}\``,
+    "",
+    "## Results",
+    ...results.map(result => `- PASS \`${result.simulator}\` ${result.surface} [${result.scenario}] -> \`${path.relative(cwd, result.screenshotPath)}\``),
     "",
   ].join("\n");
   fs.writeFileSync(reportPath, summary);
