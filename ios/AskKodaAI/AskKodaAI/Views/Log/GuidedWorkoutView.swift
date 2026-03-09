@@ -51,7 +51,7 @@ struct GuidedWorkoutView: View {
     @State private var swapFeedback: String?
 
     // Logging State
-    struct LoggedSet { var weight: Double?; var reps: Int? }
+    struct LoggedSet: Codable { var weight: Double?; var reps: Int? }
     // Array of sets per exercise index
     @State private var loggedSets: [[LoggedSet]] = []
     @State private var currentWeightInput: String = ""
@@ -1446,6 +1446,7 @@ struct GuidedWorkoutView: View {
 
     private func buildWorkoutLog() -> WorkoutLog {
         var log = WorkoutLog()
+        log.user_id = auth.currentUserId
         log.date = DateHelpers.todayLocal
         log.workout_type = "Guided"
         log.duration_minutes = sessionDurationMinutes ?? 45
@@ -1455,8 +1456,8 @@ struct GuidedWorkoutView: View {
             let setDetailsStr = exLogs.enumerated().map { j, setLog in
                 "Set \(j+1): \(setLog.weight ?? 0)lbs x \(setLog.reps ?? 0)"
             }.joined(separator: "; ")
-            let finalNotes = ex.notes != nil ? "\(ex.notes!) | Log: \(setDetailsStr)" : "Log: \(setDetailsStr)"
-            return WorkoutExerciseEntry(name: ex.name, sets: ex.sets, reps: ex.reps, weight_kg: maxWeight > 0 ? maxWeight : nil, form_cues: finalNotes)
+            let finalNotes = (ex.notes != nil && !ex.notes!.isEmpty) ? "\(ex.notes!) | Log: \(setDetailsStr)" : "Log: \(setDetailsStr)"
+            return WorkoutExerciseEntry(name: ex.name, sets: ex.sets, reps: ex.reps, weight_kg: maxWeight > 0 ? maxWeight : nil, rpe: nil, form_cues: finalNotes)
         }
         return log
     }
@@ -1478,6 +1479,25 @@ struct GuidedWorkoutView: View {
         await MainActor.run {
             postWorkoutInsight = insight?.insight
             insightLoading = false
+        }
+    }
+
+    private func speakCoachCue(for phase: Phase) {
+        guard coachAudio.isEnabled else { return }
+        
+        switch phase {
+        case .overview:
+            coachAudio.playCue(.startWorkout, fallbackText: "Your protocol is ready. Review the execution order and let's get to work.")
+        case .work:
+            if let name = currentExercise?.name {
+                coachAudio.playCue(.startSet, details: ["exercise": name], fallbackText: "Next set: \(name). Focus on quality reps.")
+            }
+        case .rest:
+            coachAudio.playCue(.finishSet, fallbackText: "Set complete. Recover and reset.")
+        case .completed:
+            coachAudio.playCue(.finishWorkout, fallbackText: "Session closed. Insight analysis incoming.")
+        case .loading:
+            break
         }
     }
 

@@ -8,6 +8,7 @@
 
 import AVFoundation
 import UIKit
+import Combine
 
 enum CameraError: LocalizedError {
     case notAvailable

@@ -11,6 +11,8 @@
 //
 
 import Foundation
+import Supabase
+import Storage
 
 enum ExerciseDemoResolver {
     /// Returns a playable URL for the given exercise name, or nil if no asset is available.

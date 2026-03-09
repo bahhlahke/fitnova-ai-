@@ -63,147 +63,147 @@ struct HomeView: View {
 
     var body: some View {
         ZStack {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    PremiumHeroCard(
-                        title: "Today's coaching desk is live.",
-                        subtitle: "Your next best session, recovery posture, and intervention triggers are already organized below.",
-                        eyebrow: profile?.display_name ?? "Home"
-                    ) {
-                        HStack(spacing: 10) {
-                            PremiumMetricPill(label: "Readiness", value: "\(Int(readinessScore * 100))%")
-                            PremiumMetricPill(label: "Protocol", value: profile?.activity_level ?? "Titanium")
-                        }
-                    }
-                    
-                    if let err = errorMessage {
-                        errorBanner(err)
-                    }
-                    
-                    BioSyncHUD(
-                        readinessScore: readinessScore,
-                        activeSquad: profile?.activity_level ?? "Titanium Hypertrophy",
-                        heartRate: healthKit.currentHeartRate,
-                        todaySteps: healthKit.todaySteps
-                    )
-                    
-                    briefingCard
-                    coachDeskCard
-                    todayPlanCard
-                    performanceCard
-                    projectionCard
-                    retentionRiskCard
-                    nudgesCard
-                }
-                .padding()
-            }
-            .background {
-                ZStack {
-                    Image("DashboardHero")
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .ignoresSafeArea()
-                        .opacity(0.3)
-                    
-                    LinearGradient(
-                        colors: [.black, .black.opacity(0.8), .clear],
-                        startPoint: .bottom,
-                        endPoint: .top
-                    )
-                    .ignoresSafeArea()
-                }
-            }
-            .navigationTitle("Home")
-            .navigationBarTitleDisplayMode(.large)
-            .refreshable {
-                refreshTask?.cancel()
-                refreshTask = Task { await loadAll() }
-                await refreshTask?.value
-            }
-            .task {
-                refreshTask?.cancel()
-                refreshTask = Task { await loadAll() }
-                await refreshTask?.value
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppEnteredForeground"))) { _ in
-                refreshTask?.cancel()
-                refreshTask = Task { await loadAll() }
-            }
-            .sheet(isPresented: $showingCoachChat) {
-                CoachView()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StartGuidedWorkoutFromCoach"))) { note in
-                if let trainingPlan = note.userInfo?["trainingPlan"] as? TrainingPlan {
-                    if dailyPlan == nil {
-                        dailyPlan = DailyPlan(
-                            date_local: DateHelpers.todayLocal,
-                            training_plan: trainingPlan,
-                            nutrition_plan: nil,
-                            safety_notes: nil
-                        )
-                    } else {
-                        dailyPlan = DailyPlan(
-                            date_local: dailyPlan?.date_local,
-                            training_plan: trainingPlan,
-                            nutrition_plan: dailyPlan?.nutrition_plan,
-                            safety_notes: dailyPlan?.safety_notes
-                        )
-                    }
-                    showingCoachChat = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                            showingGuidedWorkout = true
-                        }
-                    }
-                } else if let exercises = note.userInfo?["exercises"] as? [PlanExercise] {
-                    if dailyPlan == nil {
-                        dailyPlan = DailyPlan(
-                            date_local: DateHelpers.todayLocal,
-                            training_plan: TrainingPlan(
-                                focus: "Coach Session",
-                                duration_minutes: 45,
-                                exercises: exercises
-                            ),
-                            nutrition_plan: nil,
-                            safety_notes: nil
-                        )
-                    } else {
-                        let current = dailyPlan?.training_plan
-                        dailyPlan = DailyPlan(
-                            date_local: dailyPlan?.date_local,
-                            training_plan: TrainingPlan(
-                                focus: current?.focus ?? "Coach Session",
-                                duration_minutes: current?.duration_minutes ?? 45,
-                                exercises: exercises
-                            ),
-                            nutrition_plan: dailyPlan?.nutrition_plan,
-                            safety_notes: dailyPlan?.safety_notes
-                        )
-                    }
-                    showingCoachChat = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                            showingGuidedWorkout = true
-                        }
-                    }
-                }
-            }
-        }
-
-        // Hero workout overlay — lives in the same ZStack so matchedGeometryEffect works.
-        if showingGuidedWorkout, let plan = dailyPlan?.training_plan {
             NavigationStack {
-                GuidedWorkoutView(trainingPlan: plan)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        PremiumHeroCard(
+                            title: "Today's coaching desk is live.",
+                            subtitle: "Your next best session, recovery posture, and intervention triggers are already organized below.",
+                            eyebrow: profile?.display_name ?? "Home"
+                        ) {
+                            HStack(spacing: 10) {
+                                PremiumMetricPill(label: "Readiness", value: "\(Int(readinessScore * 100))%")
+                                PremiumMetricPill(label: "Protocol", value: profile?.activity_level ?? "Titanium")
+                            }
+                        }
+                        
+                        if let err = errorMessage {
+                            errorBanner(err)
+                        }
+                        
+                        BioSyncHUD(
+                            readinessScore: readinessScore,
+                            activeSquad: profile?.activity_level ?? "Titanium Hypertrophy",
+                            heartRate: healthKit.currentHeartRate,
+                            todaySteps: healthKit.todaySteps
+                        )
+                        
+                        briefingCard
+                        coachDeskCard
+                        todayPlanCard
+                        performanceCard
+                        projectionCard
+                        retentionRiskCard
+                        nudgesCard
+                    }
+                    .padding()
+                }
+                .background {
+                    ZStack {
+                        Image("DashboardHero")
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .ignoresSafeArea()
+                            .opacity(0.3)
+                        
+                        LinearGradient(
+                            colors: [.black, .black.opacity(0.8), .clear],
+                            startPoint: .bottom,
+                            endPoint: .top
+                        )
+                        .ignoresSafeArea()
+                    }
+                }
+                .navigationTitle("Home")
+                .navigationBarTitleDisplayMode(.large)
+                .refreshable {
+                    refreshTask?.cancel()
+                    refreshTask = Task { await loadAll() }
+                    await refreshTask?.value
+                }
+                .task {
+                    refreshTask?.cancel()
+                    refreshTask = Task { await loadAll() }
+                    await refreshTask?.value
+                }
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppEnteredForeground"))) { _ in
+                    refreshTask?.cancel()
+                    refreshTask = Task { await loadAll() }
+                }
+                .sheet(isPresented: $showingCoachChat) {
+                    CoachView()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StartGuidedWorkoutFromCoach"))) { note in
+                    if let trainingPlan = note.userInfo?["trainingPlan"] as? TrainingPlan {
+                        if dailyPlan == nil {
+                            dailyPlan = DailyPlan(
+                                date_local: DateHelpers.todayLocal,
+                                training_plan: trainingPlan,
+                                nutrition_plan: nil,
+                                safety_notes: nil
+                            )
+                        } else {
+                            dailyPlan = DailyPlan(
+                                date_local: dailyPlan?.date_local,
+                                training_plan: trainingPlan,
+                                nutrition_plan: dailyPlan?.nutrition_plan,
+                                safety_notes: dailyPlan?.safety_notes
+                            )
+                        }
+                        showingCoachChat = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                                showingGuidedWorkout = true
+                            }
+                        }
+                    } else if let exercises = note.userInfo?["exercises"] as? [PlanExercise] {
+                        if dailyPlan == nil {
+                            dailyPlan = DailyPlan(
+                                date_local: DateHelpers.todayLocal,
+                                training_plan: TrainingPlan(
+                                    focus: "Coach Session",
+                                    duration_minutes: 45,
+                                    exercises: exercises
+                                ),
+                                nutrition_plan: nil,
+                                safety_notes: nil
+                            )
+                        } else {
+                            let current = dailyPlan?.training_plan
+                            dailyPlan = DailyPlan(
+                                date_local: dailyPlan?.date_local,
+                                training_plan: TrainingPlan(
+                                    focus: current?.focus ?? "Coach Session",
+                                    duration_minutes: current?.duration_minutes ?? 45,
+                                    exercises: exercises
+                                ),
+                                nutrition_plan: dailyPlan?.nutrition_plan,
+                                safety_notes: dailyPlan?.safety_notes
+                            )
+                        }
+                        showingCoachChat = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                                showingGuidedWorkout = true
+                            }
+                        }
+                    }
+                }
             }
-            .matchedGeometryEffect(id: "workout-hero", in: workoutNamespace)
-            .ignoresSafeArea()
-            .transition(.asymmetric(
-                insertion: .scale(scale: 0.92, anchor: .bottom).combined(with: .opacity),
-                removal: .scale(scale: 0.92, anchor: .bottom).combined(with: .opacity)
-            ))
-            .zIndex(10)
-        }
+
+            // Hero workout overlay — lives in the same ZStack so matchedGeometryEffect works.
+            if showingGuidedWorkout, let plan = dailyPlan?.training_plan {
+                NavigationStack {
+                    GuidedWorkoutView(trainingPlan: plan)
+                }
+                .matchedGeometryEffect(id: "workout-hero", in: workoutNamespace)
+                .ignoresSafeArea()
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.92, anchor: .bottom).combined(with: .opacity),
+                    removal: .scale(scale: 0.92, anchor: .bottom).combined(with: .opacity)
+                ))
+                .zIndex(10)
+            }
         } // end outer ZStack
     }
 
@@ -226,27 +226,27 @@ struct HomeView: View {
         if criticalPhaseLoading && briefing == nil {
             ShimmerCard(height: 120)
         } else {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("AI Performance Briefing")
-                .font(.headline)
-            if let b = briefing {
-                Text(b.briefing ?? "No briefing content provided.")
-                    .font(.subheadline)
-                    .italic()
-                if let rat = b.rationale {
-                    Text(rat)
-                        .font(.caption)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("AI Performance Briefing")
+                    .font(.headline)
+                if let b = briefing {
+                    Text(b.briefing ?? "No briefing content provided.")
+                        .font(.subheadline)
+                        .italic()
+                    if let rat = b.rationale {
+                        Text(rat)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text("No briefing available.")
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-            } else {
-                Text("No briefing available.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
             }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .glassCard()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .glassCard()
         } // end criticalPhaseLoading guard
     }
 
@@ -292,42 +292,42 @@ struct HomeView: View {
         if criticalPhaseLoading && dailyPlan == nil {
             ShimmerCard(height: 140)
         } else {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Daily Protocol")
-                .font(.headline)
-            if let plan = dailyPlan {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(plan.training_plan?.focus ?? "Recovery")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                    Text("\(plan.training_plan?.duration_minutes ?? 0) min session")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    
-                    Button("Start Guided Session") {
-                        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                            showingGuidedWorkout = true
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Daily Protocol")
+                    .font(.headline)
+                if let plan = dailyPlan {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(plan.training_plan?.focus ?? "Recovery")
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                        Text("\(plan.training_plan?.duration_minutes ?? 0) min session")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        
+                        Button("Start Guided Session") {
+                            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                                showingGuidedWorkout = true
+                            }
                         }
+                        .matchedGeometryEffect(id: "workout-hero", in: workoutNamespace)
+                        .buttonStyle(PremiumActionButtonStyle())
+                        .padding(.top, 8)
                     }
-                    .matchedGeometryEffect(id: "workout-hero", in: workoutNamespace)
-                    .buttonStyle(PremiumActionButtonStyle())
-                    .padding(.top, 8)
-                }
-            } else {
-                VStack(spacing: 8) {
-                    Text("No protocol active.")
-                        .font(.subheadline)
-                    Button("Generate Plan") {
-                        Task { await generatePlan() }
+                } else {
+                    VStack(spacing: 8) {
+                        Text("No protocol active.")
+                            .font(.subheadline)
+                        Button("Generate Plan") {
+                            Task { await generatePlan() }
+                        }
+                        .disabled(generating)
+                        .buttonStyle(PremiumActionButtonStyle())
                     }
-                    .disabled(generating)
-                    .buttonStyle(PremiumActionButtonStyle())
                 }
             }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .glassCard()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .glassCard()
         } // end criticalPhaseLoading guard
     }
 
@@ -435,21 +435,20 @@ struct HomeView: View {
                 Text("Coach Nudges")
                     .font(.headline)
                 ForEach(Array(nudges.prefix(3).enumerated()), id: \.offset) { _, nudge in
-                        if let msg = nudge.message {
-                            HStack {
-                                Text(msg)
-                                    .font(.caption)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                Button("Dismiss") {
-                                    Task { await ackNudge(nudge) }
-                                }
-                                .font(.caption2)
+                    if let msg = nudge.message {
+                        HStack {
+                            Text(msg)
+                                .font(.caption)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Button("Dismiss") {
+                                Task { await ackNudge(nudge) }
                             }
-                            .padding(8)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.orange.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .font(.caption2)
                         }
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.orange.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                 }
             }

@@ -641,7 +641,7 @@ struct AIAction: Decodable {
     let payload: AIActionPayload?
 }
 
-struct AIActionPayload: Decodable {
+struct AIActionPayload: Codable {
     let exercise_name: String?
     let video_url: String?
     let training_plan: TrainingPlan?
@@ -660,20 +660,20 @@ struct DailyPlanResponse: Decodable {
     let plan: DailyPlan
 }
 
-struct DailyPlan: Decodable {
+struct DailyPlan: Codable {
     let date_local: String?
     let training_plan: TrainingPlan?
     let nutrition_plan: NutritionPlan?
     let safety_notes: [String]?
 }
 
-struct TrainingPlan: Decodable {
+struct TrainingPlan: Codable {
     let focus: String?
     let duration_minutes: Int?
     let exercises: [PlanExercise]?
 }
 
-struct PlanExercise: Decodable {
+struct PlanExercise: Codable {
     let name: String?
     let sets: Int?
     let reps: String?
@@ -690,7 +690,7 @@ struct PlanExercise: Decodable {
     let image_url: String?
 }
 
-struct NutritionPlan: Decodable {
+struct NutritionPlan: Codable {
     let calories_target: Int?
     let protein_g: Int?
     let carbs_g: Int?
