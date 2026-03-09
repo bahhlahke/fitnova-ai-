@@ -45,7 +45,7 @@ Native iOS client for Koda AI. Uses the same Supabase backend and Next.js API as
 ## 1. Open or create the Xcode project
 
 - **If the repo already has an AskKodaAI project:** Open `ios/AskKodaAI/AskKodaAI.xcodeproj`. The app source is in `ios/AskKodaAI/AskKodaAI/` (entry point: `AskKodaAIApp.swift` with `RootView`).
-- **If creating from scratch:** **File → New → Project** → App (iOS) → **Product Name:** `AskKodaAI`, **Interface:** SwiftUI, **Language:** Swift. Save as `ios/AskKodaAI/AskKodaAI.xcodeproj`. Then copy the app source from `ios/KodaAI/` into the new project’s app folder (or add the `KodaAI` folder to the target) and use `AskKodaAIApp.swift` as the `@main` entry.
+- **If creating from scratch:** **File → New → Project** → App (iOS) → **Product Name:** `AskKodaAI`, **Interface:** SwiftUI, **Language:** Swift. Save as `ios/AskKodaAI/AskKodaAI.xcodeproj`. Then copy the app source from the repository's `ios/AskKodaAI/AskKodaAI/` folder into your new project and use `AskKodaAIApp.swift` as the `@main` entry.
 
 ## 2. Add Supabase Swift SDK
 
@@ -178,10 +178,6 @@ ios/
 │   ├── APIModelsTests.swift
 │   ├── DataModelsTests.swift
 │   └── ProductionReadinessTests.swift
-└── KodaAI/                       # Reference app source (mirrored into AskKodaAI/AskKodaAI/)
-    ├── Config/, Core/, Models/, Services/, Views/, Components/
-    ├── RootView.swift, MainTabView.swift
-    └── (same structure as AskKodaAI/AskKodaAI/ app source)
 ```
 
 ## Running

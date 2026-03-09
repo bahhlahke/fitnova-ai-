@@ -39,6 +39,7 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 2. **Environment**
    - Copy `.env.local.example` to `.env.local`.
    - Set `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `OPENROUTER_API_KEY` (`ALLOW_DEV_ANON_AI=false` for launch). See [docs/RUNBOOK.md](docs/RUNBOOK.md#environment-variables).
+   - For iOS development, run `node scripts/generate-ios-env.mjs` to sync environment variables to the Xcode project.
 
 3. **Database**
    - Run `supabase/migrations/20250222000001_initial_schema.sql` in the Supabase SQL editor (or `supabase db push` if using Supabase CLI).
@@ -84,7 +85,7 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 
 | Path | Description |
 |------|-------------|
-| `app/` | App Router routes: `/` (adaptive home), `/start`, `/auth`, `/onboarding`, `/log`, `/log/workout`, `/log/nutrition`, `/log/workout/guided`, `/log/nutrition/fridge`, `/log/nutrition/meal-plan`, `/coach`, `/coach/escalate`, `/progress`, `/progress/add`, `/progress/scan`, `/check-in`, `/settings`, `/vitals`, `/vitals/cycle`, `/history`, `/motion`, `/pricing`, `/integrations`, `/community`, `/community/friends`. |
+| `app/` | App Router routes: `/` (adaptive home), `/start`, `/auth`, `/onboarding`, `/log`, `/log/workout`, `/log/nutrition`, `/log/workout/guided`, `/log/nutrition/fridge`, `/log/nutrition/meal-plan`, `/coach`, `/coach/escalate`, `/progress`, `/progress/add`, `/progress/scan`, `/check-in`, `/settings`, `/vitals`, `/vitals/cycle`, `/history`, `/motion`, `/pricing`, `/integrations`, `/community`, `/community/friends`, `/omni`, `/admin`, `/terms`, `/privacy`, `/habits`, `/metrics`. |
 | `app/api/v1/ai/respond/` | POST API for AI coach; see [docs/API.md](docs/API.md). |
 | `app/api/v1/plan/daily/` | POST API for personalized daily plan generation and persistence. |
 | `app/api/v1/plan/adapt-day/` | POST API for AI-driven workout adaptation based on constraints. |

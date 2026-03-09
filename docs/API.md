@@ -50,6 +50,44 @@ Chat endpoint for the AI coach. Uses OpenRouter; when the user is signed in, con
 - The request is sent to OpenRouter (`openai/gpt-4o`); reply is returned and appended to `ai_conversations`.
 - Synthesis Logic: Correlates physiological signals with training intensity for high-performance insights.
 
+## GET `/api/v1/ai/history`
+
+Fetches the latest conversation history (user messages) for the signed-in user.
+
+### Response
+
+```json
+{
+  "history": [
+    { "role": "user", "content": "..." },
+    { "role": "assistant", "content": "..." }
+  ]
+}
+```
+
+## POST `/api/v1/ai/weekly-insight`
+
+Generates a 2-3 sentence weekly recap and one recommendation based on workouts, nutrition, and progress trends.
+
+### Request
+
+- **Body:** `{ "localDate": "2026-03-09" }` (optional)
+
+### Response
+
+```json
+{
+  "insight": "...",
+  "workoutCount": 3,
+  "avgCalories": 2200,
+  "weightTrend": "stable"
+}
+```
+
+## POST `/api/v1/ai/readiness-insight`
+
+Generates a concise readiness summary based on HRV, sleep, and recent training load.
+
 ## POST `/api/v1/plan/daily`
 
 Builds and stores a personalized day plan for the signed-in user.
@@ -141,6 +179,14 @@ Returns a substitution for the current guided exercise.
 
 Computes near-term churn/adherence risk from logging cadence and plan/check-in behavior. Also seeds `coach_nudges` when risk is medium/high.
 
+## GET `/api/v1/progression/next-targets`
+
+Returns suggested weight/reps targets for a given list of exercise names based on recent performance history.
+
+## POST `/api/v1/progression/recompute`
+
+Forces a re-computation of exercise PRs and progression snapshots.
+
 ## GET `/api/v1/analytics/performance`
 
 Returns a 14-day analytics summary:
@@ -195,6 +241,23 @@ Fetches the Spotify access token from the current Supabase session (available if
 { "token": "BQA..." }
 ```
 
+## GET/POST `/api/v1/nutrition/targets`
+
+- `GET`: fetch caloric and macro targets.
+- `POST`: update targets.
+
+## POST `/api/v1/nutrition/adherence/daily`
+
+Logs daily adherence to nutrition targets.
+
+## GET `/api/v1/nutrition/barcode`
+
+Look up product info by barcode.
+
+## POST `/api/v1/nutrition/fridge-scanner`
+
+AI-driven fridge contents analysis and recipe suggestion.
+
 ## POST `/api/v1/jobs/reminders`
 
 Runs reminder/nudge dispatch job (cron endpoint).
@@ -202,6 +265,31 @@ Runs reminder/nudge dispatch job (cron endpoint).
 - Optional secret gate via `CRON_SECRET` with header:
   - `x-cron-secret: <CRON_SECRET>` or
   - `Authorization: Bearer <CRON_SECRET>`
+
+## GET/POST `/api/v1/community/challenges`
+
+- `GET`: list available or joined challenges.
+- `POST`: join or create a challenge.
+
+## GET `/api/v1/community/squad/overview`
+
+Summary of squad activity and vibes.
+
+## POST `/api/v1/stripe/checkout`
+
+Creates a Stripe Checkout session for Pro upgrades.
+
+## POST `/api/v1/stripe/webhook`
+
+Stripe webhook listener for subscription lifecycle events.
+
+## POST `/api/v1/analytics/process-prs`
+
+Backend trigger to re-examine workout logs for new Personal Records.
+
+## POST `/api/v1/telemetry/event`
+
+Generic product event tracking.
 
 ## POST `/api/v1/ai/history-summary`
 

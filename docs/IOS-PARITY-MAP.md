@@ -28,6 +28,9 @@ Concise feature and API map for building an iOS app with full parity to the web 
 | `/history` | Workout & nutrition history; filter workouts, expand details, edit workout. | Supabase: `workout_logs`, `nutrition_logs`. |
 | `/vitals` | Readiness, biometrics, recovery suggestion, AI readiness insight. | API: ai/readiness-insight; Supabase: `workout_logs`, `check_ins`, `connected_signals`. |
 | `/motion` | Motion Lab: video → frames → AI form analysis (score, critique, correction). | API: ai/vision (POST body: `images` array). |
+| `/omni` | Universal search and command bar. | API: ai/respond. |
+| `/terms`, `/privacy` | Legal documentation. | Static. |
+| `/habits`, `/metrics` | Habit tracking and deep-dive performance metrics. | Supabase: `user_habits`, `workout_logs`. |
 
 ---
 

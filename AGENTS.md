@@ -41,6 +41,8 @@ This document orients AI coding agents and human contributors to the repo: layou
 - **Tests:** `npm test` (Vitest)
 - **Validate:** `npm run validate` (lint + build + test)
 - **AI test review:** `npm run test:ai-review` (writes to `docs/reports/ai-test-review-<timestamp>.md`; needs `OPENROUTER_API_KEY` for AI section)
+- **AI coverage review:** `npm run test:ai-review:coverage` (Vitest with coverage + AI review)
+- **Workflow validation:** `npm run workflow:validate:ai` (HTTP workflow checks + AI judgment)
 
 ---
 
@@ -50,6 +52,7 @@ This document orients AI coding agents and human contributors to the repo: layou
 - **Build:** Open `ios/AskKodaAI/AskKodaAI.xcodeproj` in Xcode, select a simulator (e.g. iPhone 17), **Product → Run** (⌘R). Or from repo root:  
   `xcodebuild -project ios/AskKodaAI/AskKodaAI.xcodeproj -scheme AskKodaAI -destination 'platform=iOS Simulator,name=iPhone 17' build`
 - **Tests:** In Xcode **Product → Test** (⌘U), or from repo root: `npm run test:ios`. The script uses a **single** simulator (iPhone 17); **run only one iOS test job at a time** on resource-limited machines.
+- **Surface smoke pass:** `npm run test:ios:surfaces` (captures screen state matrix on simulator)
 - **Test host:** Unit tests run inside the app (host). If tests crash before running (e.g. “Early unexpected exit” / “signal trap”), ensure `Generated.xcconfig` exists and the app launches when run directly (⌘R); in Debug the app uses placeholder config when keys are missing so the host can start.
 - **AI review / production gate:** `npm run test:ai-review:ios`, `npm run test:ios:ready` (see [docs/RUNBOOK.md](docs/RUNBOOK.md#ios-tests-and-ai-review)).
 

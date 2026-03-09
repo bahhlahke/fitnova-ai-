@@ -74,6 +74,8 @@ For AI agents and new contributors: see [AGENTS.md](../AGENTS.md) for project la
 - **AI route:** `POST /api/v1/ai/respond` requires session and body `{ "message": "Hi" }`; returns `{ "reply": "..." }` on success.
 - **Daily plan route:** `POST /api/v1/plan/daily` requires session; returns `{ "plan": { ... } }` and persists to `daily_plans`.
 - **Weekly plan route:** `GET /api/v1/plan/weekly` requires session; returns `{ "plan": { ... } }` and persists to `weekly_plans`.
+- **Nutrition targets:** `GET /api/v1/nutrition/targets` returns user calorie/macro goals.
+- **Progression targets:** `GET /api/v1/progression/next-targets` returns suggested lift targets.
 - **Reminder job route:** `POST /api/v1/jobs/reminders` with `x-cron-secret` if `CRON_SECRET` is configured.
 
 ## Data retention (future)

@@ -17,13 +17,12 @@ The following secrets are required for API functionality. Currently, the site is
 
 ## 2. Database Migrations (Supabase)
 I have pushed several new migrations to the repository. Please ensure these are applied to your production Supabase database:
-- `20260301000006_priority_features.sql` through `20260303000014_rls_policies_fix.sql`.
+- `20260301000006_priority_features.sql` through `20260309000018_consent_and_tos.sql`.
 - These define:
-  - `weekly_plans` table
-  - `coach_nudges` table
-  - `coach_escalations` table
-  - `retention_interventions` table
-  - `progression_snapshots` table
+  - `weekly_plans`, `coach_nudges`, `coach_escalations`
+  - `retention_interventions`, `progression_snapshots`
+  - `user_habits`, `nutrition_targets`
+  - SMS consent and Terms of Service tracking
   - RLS Security Fixes (required for meal logging)
 
 ## 3. Verification
