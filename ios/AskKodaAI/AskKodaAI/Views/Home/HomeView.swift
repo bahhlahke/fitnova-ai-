@@ -76,18 +76,18 @@ struct HomeView: View {
                                 PremiumMetricPill(label: "Protocol", value: profile?.activity_level ?? "Titanium")
                             }
                         }
-                        
+
                         if let err = errorMessage {
                             errorBanner(err)
                         }
-                        
+
                         BioSyncHUD(
                             readinessScore: readinessScore,
                             activeSquad: profile?.activity_level ?? "Titanium Hypertrophy",
                             heartRate: healthKit.currentHeartRate,
                             todaySteps: healthKit.todaySteps
                         )
-                        
+
                         briefingCard
                         coachDeskCard
                         todayPlanCard
@@ -105,7 +105,7 @@ struct HomeView: View {
                             .aspectRatio(contentMode: .fill)
                             .ignoresSafeArea()
                             .opacity(0.3)
-                        
+
                         LinearGradient(
                             colors: [.black, .black.opacity(0.8), .clear],
                             startPoint: .bottom,
@@ -303,7 +303,7 @@ struct HomeView: View {
                         Text("\(plan.training_plan?.duration_minutes ?? 0) min session")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        
+
                         Button("Start Guided Session") {
                             withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
                                 showingGuidedWorkout = true
