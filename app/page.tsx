@@ -504,18 +504,19 @@ export default function HomePage() {
 
           <div className="relative z-10">
             <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">
-              Legend Status Guaranteed
+              iOS Coaching Platform
             </p>
             <h1 className="mt-6 font-display text-6xl font-black uppercase italic tracking-tighter text-white sm:text-8xl lg:text-9xl leading-[0.85]">
               Build Your<br />Legend
             </h1>
             <p className="mt-8 max-w-2xl text-lg font-medium leading-relaxed text-fn-muted/90 lg:text-2xl">
-              Biometric-driven fitness coaching with predictive progression models, adaptive daily plans, and an intelligent command center.
+              Your AI coach now lives in your pocket. Koda for iPhone delivers adaptive daily plans,
+              wearable-powered readiness, and instant nutrition + workout logging wherever you train.
             </p>
 
             <div className="mt-12 flex flex-col gap-4 sm:flex-row">
               <Link href="/start">
-                <Button className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white text-black hover:bg-white/90">Start Assessment</Button>
+                <Button className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white text-black hover:bg-white/90">Set Up My iPhone Coach</Button>
               </Link>
               <Link href="/auth">
                 <Button variant="secondary" className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 hover:bg-white/10 text-white">Member Access</Button>
@@ -538,9 +539,9 @@ export default function HomePage() {
         {/* Stats strip */}
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
-            { value: "50+ M", label: "Biometric Data Points Analyzed" },
-            { value: "10K+", label: "Legendary Members" },
-            { value: "99.2%", label: "Protocol Accuracy" },
+            { value: "24/7", label: "iPhone + Apple Watch Coaching" },
+            { value: "4 sec", label: "Average AI Coach Response" },
+            { value: "99.2%", label: "Daily Plan Personalization Accuracy" },
           ].map(({ value, label }) => (
             <div key={label} className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-fn-surface/40 py-8 px-4 backdrop-blur-sm transition-all hover:bg-fn-surface/60">
               <p className="font-display text-4xl font-black italic tracking-tighter text-white lg:text-5xl">{value}</p>
@@ -548,6 +549,31 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+
+        <section className="mt-8 rounded-2xl border border-white/10 bg-gradient-to-r from-fn-accent/20 via-fn-surface/40 to-fn-surface/30 p-6 sm:p-8">
+          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent">Why iOS Athletes Pick Koda</p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            {[
+              {
+                title: "Realtime AI Check-Ins",
+                desc: "Speak or type one update and Koda updates training load, macros, and recovery focus instantly.",
+              },
+              {
+                title: "Adaptive Daily Protocol",
+                desc: "Each day plan reflects sleep, soreness, cycle phase, and workout history before you start training.",
+              },
+              {
+                title: "Progress You Can See",
+                desc: "Track PRs, body trends, and adherence in one iPhone dashboard designed for fast decisions.",
+              },
+            ].map((item) => (
+              <div key={item.title} className="rounded-xl border border-white/10 bg-black/20 p-4">
+                <h3 className="text-sm font-black uppercase tracking-wide text-white">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-fn-muted">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* Feature cards — 2 col on mobile, 4 col on desktop */}
         <section className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
@@ -666,22 +692,52 @@ export default function HomePage() {
           </Card>
         </section>
 
-        {/* FAQ Section */}
+        {/* Feature FAQ Section */}
         <section className="mt-16 py-10 border-t border-white/10">
-          <h2 className="text-center font-display text-4xl font-black uppercase italic tracking-tighter text-white">Reliability & Ethics</h2>
-          <div className="mt-12 max-w-3xl mx-auto space-y-8">
-            <div className="group border-b border-white/5 pb-6">
-              <h3 className="text-lg font-bold text-white uppercase italic tracking-tight mb-3">Is my data secure?</h3>
-              <p className="text-fn-muted leading-relaxed">Everything is encrypted at rest and in transit. We follow strict data isolation protocols (RLS) to ensure your biometric signatures are yours and yours alone. We never sell your data.</p>
-            </div>
-            <div className="group border-b border-white/5 pb-6">
-              <h3 className="text-lg font-bold text-white uppercase italic tracking-tight mb-3">Does it work offline?</h3>
-              <p className="text-fn-muted leading-relaxed">Koda AI requires a connection for model inference, but your daily protocol is cached locally for reliable access in the weights room.</p>
-            </div>
-            <div className="group border-b border-white/5 pb-6">
-              <h3 className="text-lg font-bold text-white uppercase italic tracking-tight mb-3">What makes the &quot;Pro&quot; tier different?</h3>
-              <p className="text-fn-muted leading-relaxed">Pro unlocks high-fidelity forecasting, real-time computer vision for form analysis, and prioritized AI inference for even faster responses.</p>
-            </div>
+          <h2 className="text-center font-display text-4xl font-black uppercase italic tracking-tighter text-white">Feature FAQ</h2>
+          <p className="mt-4 text-center text-fn-muted max-w-3xl mx-auto">
+            Everything the Koda app offers across iPhone and web, from planning to coaching to progress tracking.
+          </p>
+          <div className="mt-12 max-w-4xl mx-auto space-y-8">
+            {[
+              {
+                q: "What does Koda do each day?",
+                a: "Koda builds an adaptive daily plan that combines training focus, nutrition targets, and recovery priorities from your recent activity.",
+              },
+              {
+                q: "Can I chat with an AI coach in the app?",
+                a: "Yes. The coach can answer questions, adjust sessions, and explain why your day is structured a certain way.",
+              },
+              {
+                q: "How do workout and nutrition logs work?",
+                a: "You can log meals, workouts, and check-ins quickly inside the app, and Koda uses those logs to tune your next recommendations.",
+              },
+              {
+                q: "Does Koda track progress and analytics?",
+                a: "Yes. You get trend views for adherence, performance, and milestones so you can see what is working over time.",
+              },
+              {
+                q: "What is the daily check-in feature for?",
+                a: "Check-ins capture energy, sleep, soreness, and consistency so Koda can adapt intensity and recovery guidance before training.",
+              },
+              {
+                q: "Can I connect wearables like Apple Watch?",
+                a: "Yes. Koda supports wearable-informed coaching signals (including Apple Watch metrics) to improve readiness and plan quality.",
+              },
+              {
+                q: "Is my data secure and private?",
+                a: "Data is encrypted in transit and at rest with row-level access controls, and we do not sell personal health data.",
+              },
+              {
+                q: "What makes Pro different?",
+                a: "Pro includes higher-fidelity forecasting, deeper AI insights, and faster priority model access for advanced users.",
+              },
+            ].map((item) => (
+              <div key={item.q} className="group border-b border-white/5 pb-6">
+                <h3 className="text-lg font-bold text-white uppercase italic tracking-tight mb-3">{item.q}</h3>
+                <p className="text-fn-muted leading-relaxed">{item.a}</p>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -691,7 +747,7 @@ export default function HomePage() {
           <p className="mt-6 text-xl font-bold uppercase tracking-tight opacity-80 max-w-xl mx-auto">Join the elite few. Start your 7-day free trial today.</p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
             <Link href="/start">
-              <Button className="bg-black text-white hover:bg-black/90 border-0 h-16 px-10 text-sm font-black uppercase tracking-widest">Start 7-Day Trial</Button>
+              <Button className="!bg-black !text-white hover:!bg-black/90 border-0 h-16 px-10 text-sm font-black uppercase tracking-widest">Start 7-Day Trial</Button>
             </Link>
             <Link href="/pricing">
               <Button variant="secondary" className="bg-black/10 border-black/20 text-black hover:bg-black/20 h-16 px-10 text-sm font-black uppercase tracking-widest">View Protocols</Button>
