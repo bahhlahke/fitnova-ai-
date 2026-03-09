@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
-import { Button, Card, ErrorMessage } from "@/components/ui";
+import { Button, Card, ErrorMessage, Checkbox } from "@/components/ui";
+
 import { clearPreAuthDraft, readPreAuthDraft } from "@/lib/funnel/preauth";
 import {
   DEFAULT_UNIT_SYSTEM,
@@ -66,6 +67,8 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [resumedFromAssessment, setResumedFromAssessment] = useState(false);
+  const [smsConsent, setSmsConsent] = useState(false);
+
 
   const inputClass =
     "min-h-touch w-full rounded-xl border border-fn-border bg-fn-surface px-4 py-3 text-fn-ink placeholder-fn-muted focus:border-fn-accent focus:outline-none focus:ring-2 focus:ring-fn-accent/10 transition-colors";
@@ -283,6 +286,26 @@ export default function OnboardingPage() {
                   <input type="text" value={stats.name} onChange={(e) => setStats((s) => ({ ...s, name: e.target.value }))} className={inputClass} placeholder="Your name" />
                   <label className={labelClass}>Phone number (optional)</label>
                   <input type="tel" value={stats.phone} onChange={(e) => setStats((s) => ({ ...s, phone: e.target.value }))} className={inputClass} placeholder="+15551234567" />
+
+                  {stats.phone && (
+                    <div className="mt-4 space-y-4 rounded-xl bg-fn-accent/5 border border-fn-accent/10 p-4">
+                      <p className="text-[10px] font-bold text-fn-accent uppercase tracking-widest">SMS Disclosure</p>
+                      <p className="text-xs text-fn-muted leading-relaxed">
+                        By providing your phone number, you consent to receive automated coaching nudges, account alerts, and training reminders from Fitness Nova AI via SMS. Message frequency varies. Message and data rates may apply. Reply STOP to opt-out, HELP for help.
+                      </p>
+                      <Checkbox
+                        id="sms-consent"
+                        checked={smsConsent}
+                        onChange={(e) => setSmsConsent(e.target.checked)}
+                        label={
+                          <span>
+                            I agree to the <Link href="/terms" target="_blank" className="text-fn-accent hover:underline">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="text-fn-accent hover:underline">Privacy Policy</Link>.
+                          </span>
+                        }
+                      />
+                    </div>
+                  )}
+
                   <label className={labelClass}>Age</label>
                   <input type="number" value={stats.age} onChange={(e) => setStats((s) => ({ ...s, age: e.target.value }))} className={inputClass} placeholder="25" min={13} max={120} />
                   <label className={labelClass}>Sex</label>
@@ -459,9 +482,16 @@ export default function OnboardingPage() {
                     Back
                   </Button>
                 )}
-                <Button type="button" className="flex-1" onClick={handleNext} loading={saving}>
+                <Button
+                  type="button"
+                  className="flex-1"
+                  onClick={handleNext}
+                  loading={saving}
+                  disabled={steps[currentStep].id === "stats" && stats.phone.trim().length > 0 && !smsConsent}
+                >
                   {currentStep < steps.length - 1 ? "Next" : "Finish"}
                 </Button>
+
               </div>
               {saveError && <ErrorMessage className="mt-3" message={saveError} />}
             </div>

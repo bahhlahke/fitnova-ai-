@@ -15,8 +15,11 @@ import {
   Textarea,
   LoadingState,
   ErrorMessage,
+  Checkbox,
 } from "@/components/ui";
+import Link from "next/link";
 import { AuthSettings } from "@/components/auth/AuthSettings";
+
 import { BadgeCollection } from "@/components/profile/BadgeCollection";
 import type { UserProfile } from "@/types";
 import {
@@ -124,7 +127,9 @@ export default function SettingsPage() {
     workout_log: true,
     weigh_in: "weekly",
   });
+  const [smsConsent, setSmsConsent] = useState(false);
   const [trainingSchedule, setTrainingSchedule] = useState<{
+
     preferred_training_days: number[];
     preferred_training_window: string;
   }>({
@@ -590,8 +595,27 @@ export default function SettingsPage() {
               <p className="mt-1 text-xs text-fn-muted">
                 Used for SMS briefings and inbound coaching texts.
               </p>
+              {p.phone_number && (
+                <div className="mt-4 space-y-4 rounded-xl bg-fn-accent/5 border border-fn-accent/10 p-4">
+                  <p className="text-[10px] font-bold text-fn-accent uppercase tracking-widest">SMS Disclosure</p>
+                  <p className="text-xs text-fn-muted leading-relaxed">
+                    By providing your phone number, you consent to receive automated coaching nudges, account alerts, and training reminders from Fitness Nova AI via SMS. Message frequency varies. Message and data rates may apply. Reply STOP to opt-out, HELP for help.
+                  </p>
+                  <Checkbox
+                    id="sms-consent"
+                    checked={smsConsent}
+                    onChange={(e) => setSmsConsent(e.target.checked)}
+                    label={
+                      <span>
+                        I agree to the <Link href="/terms" target="_blank" className="text-fn-accent hover:underline">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="text-fn-accent hover:underline">Privacy Policy</Link>.
+                      </span>
+                    }
+                  />
+                </div>
+              )}
             </div>
           </div>
+
 
           <div className="mt-10 border-b border-white/[0.08] pb-3">
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Biometric Constants</h3>
@@ -937,7 +961,15 @@ export default function SettingsPage() {
         </Card>
 
         {error && <ErrorMessage message={error} />}
-        <Button type="submit" loading={saving} className="w-full">Save settings</Button>
+        <Button
+          type="submit"
+          loading={saving}
+          className="w-full"
+          disabled={!!p.phone_number?.trim() && !smsConsent}
+        >
+          Save settings
+        </Button>
+
       </form >
     </PageLayout >
   );
