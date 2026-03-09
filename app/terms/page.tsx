@@ -31,10 +31,10 @@ export default function TermsPage() {
                                 <strong>Carriers:</strong> Carriers are not liable for delayed or undelivered messages.
                             </p>
                             <p>
-                                <strong>Opt-out:</strong> You can cancel the SMS service at any time. Just text "STOP" to the short code/number. After you send the SMS message "STOP" to us, we will send you an SMS message to confirm that you have been unsubscribed.
+                                <strong>Opt-out:</strong> You can cancel the SMS service at any time. Just text &quot;STOP&quot; to the short code/number. After you send the SMS message &quot;STOP&quot; to us, we will send you an SMS message to confirm that you have been unsubscribed.
                             </p>
                             <p>
-                                <strong>Support:</strong> If you are experiencing issues with the messaging program you can reply with the keyword "HELP" for more assistance, or you can get help directly at support@askkodaai.com.
+                                <strong>Support:</strong> If you are experiencing issues with the messaging program you can reply with the keyword &quot;HELP&quot; for more assistance, or you can get help directly at support@askkodaai.com.
                             </p>
                         </div>
                     </section>
