@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct PremiumSectionHeader: View {
     let eyebrow: String?
@@ -101,6 +102,9 @@ struct PremiumActionButtonStyle: ButtonStyle {
             .foregroundStyle(filled ? Color.black : Color.white)
             .opacity(configuration.isPressed ? 0.88 : 1)
             .scaleEffect(configuration.isPressed ? 0.99 : 1)
+            .onChange(of: configuration.isPressed) { _, pressed in
+                if pressed { HapticEngine.impact(.medium) }
+            }
     }
 }
 
@@ -141,6 +145,32 @@ struct PremiumRowCard<Content: View>: View {
             .premiumCard(cornerRadius: 24)
     }
 }
+
+// MARK: - Skeleton / Shimmer
+
+struct ShimmerCard: View {
+    var height: CGFloat = 120
+    @State private var phase: CGFloat = -1
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(LinearGradient(
+                colors: [Brand.Color.surfaceRaised,
+                         Brand.Color.surfaceHover,
+                         Brand.Color.surfaceRaised],
+                startPoint: UnitPoint(x: phase, y: 0.5),
+                endPoint: UnitPoint(x: phase + 1, y: 0.5)
+            ))
+            .frame(height: height)
+            .onAppear {
+                withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) {
+                    phase = 1
+                }
+            }
+    }
+}
+
+// MARK: - View Extensions
 
 extension View {
     func premiumCard(cornerRadius: CGFloat = 24) -> some View {

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var auth: SupabaseService
+    @StateObject private var healthKit = HealthKitService.shared
     @State private var briefing: AIBriefingResponse?
     @State private var briefingLoading = false
     @State private var dailyPlan: DailyPlan?
@@ -69,7 +70,8 @@ struct HomeView: View {
                     
                     BioSyncHUD(
                         readinessScore: readinessScore,
-                        activeSquad: profile?.activity_level ?? "Titanium Hypertrophy"
+                        activeSquad: profile?.activity_level ?? "Titanium Hypertrophy",
+                        heartRate: healthKit.currentHeartRate
                     )
                     
                     briefingCard
@@ -100,10 +102,19 @@ struct HomeView: View {
             }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.large)
-            .refreshable { await loadAll() }
-            .task { await loadAll() }
+            .refreshable {
+                refreshTask?.cancel()
+                refreshTask = Task { await loadAll() }
+                await refreshTask?.value
+            }
+            .task {
+                refreshTask?.cancel()
+                refreshTask = Task { await loadAll() }
+                await refreshTask?.value
+            }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppEnteredForeground"))) { _ in
-                Task { await loadAll() }
+                refreshTask?.cancel()
+                refreshTask = Task { await loadAll() }
             }
             .fullScreenCover(isPresented: $showingGuidedWorkout) {
                 if let plan = dailyPlan?.training_plan {
