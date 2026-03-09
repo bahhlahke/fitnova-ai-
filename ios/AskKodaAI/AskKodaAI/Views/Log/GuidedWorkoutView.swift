@@ -389,7 +389,10 @@ struct GuidedWorkoutView: View {
                     workCockpit(exercise: ex)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
     }
 
     private var completedView: some View {
@@ -540,6 +543,7 @@ struct GuidedWorkoutView: View {
                 loggedSetsSection
                 workActionSection
             }
+            .frame(maxWidth: .infinity)
             .padding(20)
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
@@ -552,6 +556,7 @@ struct GuidedWorkoutView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 16)
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func workSummarySection(exercise ex: PlanExercise) -> some View {

@@ -2,7 +2,7 @@
 //  HomeView.swift
 //  Koda AI
 //
-//  Dashboard parity: briefing, today's plan, performance, nudges, quick actions.
+//  Simplified home screen: greeting, today's plan, coach brief, quick actions.
 //
 
 import SwiftUI
@@ -13,44 +13,25 @@ struct HomeView: View {
 
     // MARK: - Data
 
-    @State private var briefing: AIBriefingResponse?
     @State private var dailyPlan: DailyPlan?
-    @State private var performance: PerformanceResponse?
-    @State private var nudges: [CoachNudge] = []
-    @State private var projection: DashboardProjectionResponse?
-    @State private var retentionRisk: RetentionRiskResponse?
-    @State private var coachInsights: [CoachInsight] = []
     @State private var profile: UserProfile?
-    @State private var todayCheckIn: CheckIn?
+    @State private var briefing: AIBriefingResponse?
+    @State private var nudges: [CoachNudge] = []
 
     // MARK: - Load phase
 
-    /// Single source of truth for above-the-fold loading state.
-    /// Replaces 9 individual `xxxLoading` booleans that caused staggered layout shifts.
     @State private var criticalPhaseLoading = false
     @State private var errorMessage: String?
 
-    // MARK: - Derived
-
-    /// Readiness score derived from today's check-in (0–1).
-    private var readinessScore: Double {
-        guard let checkIn = todayCheckIn else { return 0.0 }
-        let energy = Double(checkIn.energy_score ?? 5) / 10.0
-        let adherence = Double(checkIn.adherence_score ?? 5) / 10.0
-        return min(1.0, max(0.0, (energy * 0.7) + (adherence * 0.3)))
-    }
-
     // MARK: - UI state
 
-    @State private var showingVisionModal = false
     @State private var showingGuidedWorkout = false
     @State private var showingCoachChat = false
     @State private var generating = false
     @State private var refreshTask: Task<Void, Never>?
-    @State private var cardsAppeared = false
     @Namespace private var workoutNamespace
 
-    // MARK: - Services (resolved once, not per-render)
+    // MARK: - Services
 
     private var api: KodaAPIService {
         KodaAPIService(getAccessToken: { auth.accessToken })
@@ -61,61 +42,61 @@ struct HomeView: View {
         return KodaDataService(client: auth.supabaseClient, userId: uid)
     }
 
+    // MARK: - Computed
+
+    private var greetingName: String {
+        if let name = profile?.display_name, !name.isEmpty {
+            return name.components(separatedBy: " ").first ?? name
+        }
+        return "Athlete"
+    }
+
+    private var greetingLine: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12: return "Good morning, \(greetingName)."
+        case 12..<17: return "Good afternoon, \(greetingName)."
+        default:      return "Good evening, \(greetingName)."
+        }
+    }
+
     var body: some View {
         ZStack {
             NavigationStack {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        PremiumHeroCard(
-                            title: "Today's coaching desk is live.",
-                            subtitle: "Your next best session, recovery posture, and intervention triggers are already organized below.",
-                            eyebrow: profile?.display_name ?? "Home"
-                        ) {
-                            HStack(spacing: 10) {
-                                PremiumMetricPill(label: "Readiness", value: "\(Int(readinessScore * 100))%")
-                                PremiumMetricPill(label: "Protocol", value: profile?.activity_level ?? "Titanium")
-                            }
+                    VStack(alignment: .leading, spacing: 24) {
+                        greetingSection
+                        todayWorkoutSection
+                        if let b = briefing, let text = b.briefing, !text.isEmpty {
+                            briefingSection(text: text)
                         }
-
-                        if let err = errorMessage {
-                            errorBanner(err)
+                        if !nudges.isEmpty {
+                            nudgesSection
                         }
-
-                        BioSyncHUD(
-                            readinessScore: readinessScore,
-                            activeSquad: profile?.activity_level ?? "Titanium Hypertrophy",
-                            heartRate: healthKit.currentHeartRate,
-                            todaySteps: healthKit.todaySteps
-                        )
-
-                        briefingCard
-                        coachDeskCard
-                        todayPlanCard
-                        performanceCard
-                        projectionCard
-                        retentionRiskCard
-                        nudgesCard
+                        quickActionsSection
                     }
-                    .padding()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 40)
                 }
                 .background {
                     ZStack {
+                        Color.black.ignoresSafeArea()
                         Image("DashboardHero")
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .ignoresSafeArea()
-                            .opacity(0.3)
-
+                            .opacity(0.18)
                         LinearGradient(
-                            colors: [.black, .black.opacity(0.8), .clear],
-                            startPoint: .bottom,
-                            endPoint: .top
+                            colors: [.black, .black.opacity(0.7), .clear],
+                            startPoint: .bottom, endPoint: .top
                         )
                         .ignoresSafeArea()
                     }
                 }
                 .navigationTitle("Home")
                 .navigationBarTitleDisplayMode(.large)
+                .toolbarColorScheme(.dark, for: .navigationBar)
                 .refreshable {
                     refreshTask?.cancel()
                     refreshTask = Task { await loadAll() }
@@ -134,64 +115,11 @@ struct HomeView: View {
                     CoachView()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StartGuidedWorkoutFromCoach"))) { note in
-                    if let trainingPlan = note.userInfo?["trainingPlan"] as? TrainingPlan {
-                        if dailyPlan == nil {
-                            dailyPlan = DailyPlan(
-                                date_local: DateHelpers.todayLocal,
-                                training_plan: trainingPlan,
-                                nutrition_plan: nil,
-                                safety_notes: nil
-                            )
-                        } else {
-                            dailyPlan = DailyPlan(
-                                date_local: dailyPlan?.date_local,
-                                training_plan: trainingPlan,
-                                nutrition_plan: dailyPlan?.nutrition_plan,
-                                safety_notes: dailyPlan?.safety_notes
-                            )
-                        }
-                        showingCoachChat = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                                showingGuidedWorkout = true
-                            }
-                        }
-                    } else if let exercises = note.userInfo?["exercises"] as? [PlanExercise] {
-                        if dailyPlan == nil {
-                            dailyPlan = DailyPlan(
-                                date_local: DateHelpers.todayLocal,
-                                training_plan: TrainingPlan(
-                                    focus: "Coach Session",
-                                    duration_minutes: 45,
-                                    exercises: exercises
-                                ),
-                                nutrition_plan: nil,
-                                safety_notes: nil
-                            )
-                        } else {
-                            let current = dailyPlan?.training_plan
-                            dailyPlan = DailyPlan(
-                                date_local: dailyPlan?.date_local,
-                                training_plan: TrainingPlan(
-                                    focus: current?.focus ?? "Coach Session",
-                                    duration_minutes: current?.duration_minutes ?? 45,
-                                    exercises: exercises
-                                ),
-                                nutrition_plan: dailyPlan?.nutrition_plan,
-                                safety_notes: dailyPlan?.safety_notes
-                            )
-                        }
-                        showingCoachChat = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                                showingGuidedWorkout = true
-                            }
-                        }
-                    }
+                    handleCoachWorkoutLaunch(note)
                 }
             }
 
-            // Hero workout overlay — lives in the same ZStack so matchedGeometryEffect works.
+            // Hero workout overlay — same ZStack so matchedGeometryEffect works.
             if showingGuidedWorkout, let plan = dailyPlan?.training_plan {
                 NavigationStack {
                     GuidedWorkoutView(trainingPlan: plan)
@@ -199,398 +127,283 @@ struct HomeView: View {
                 .matchedGeometryEffect(id: "workout-hero", in: workoutNamespace)
                 .ignoresSafeArea()
                 .transition(.asymmetric(
-                    insertion: .scale(scale: 0.92, anchor: .bottom).combined(with: .opacity),
-                    removal: .scale(scale: 0.92, anchor: .bottom).combined(with: .opacity)
+                    insertion: .scale(scale: 0.94, anchor: .bottom).combined(with: .opacity),
+                    removal:   .scale(scale: 0.94, anchor: .bottom).combined(with: .opacity)
                 ))
                 .zIndex(10)
             }
-        } // end outer ZStack
-    }
-
-    private func errorBanner(_ message: String) -> some View {
-        HStack {
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(Brand.Color.danger)
-            Spacer()
-            Button("Dismiss") { errorMessage = nil }
-                .font(.caption)
         }
-        .padding()
-        .background(Brand.Color.danger.opacity(0.12))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
-    @ViewBuilder
-    private var briefingCard: some View {
-        if criticalPhaseLoading && briefing == nil {
-            ShimmerCard(height: 120)
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("AI Performance Briefing")
-                    .font(.headline)
-                if let b = briefing {
-                    Text(b.briefing ?? "No briefing content provided.")
-                        .font(.subheadline)
-                        .italic()
-                    if let rat = b.rationale {
-                        Text(rat)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Text("No briefing available.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+    // MARK: - Sections
+
+    private var greetingSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if criticalPhaseLoading && profile == nil {
+                ShimmerCard(height: 56)
+            } else {
+                Text(greetingLine)
+                    .font(.system(size: 28, weight: .black))
+                    .foregroundStyle(.white)
+                if let level = profile?.activity_level, !level.isEmpty {
+                    Text(level.uppercased())
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .tracking(1.4)
+                        .foregroundStyle(Brand.Color.accent)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .glassCard()
-        } // end criticalPhaseLoading guard
+        }
     }
 
-    @ViewBuilder
-    private var coachDeskCard: some View {
+    private var todayWorkoutSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Coach's Desk")
-                .font(.headline)
-            if coachInsights.isEmpty {
-                Text("Systems nominal. No active interventions.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            Text("TODAY")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .tracking(1.4)
+                .foregroundStyle(Brand.Color.accent)
+
+            if criticalPhaseLoading && dailyPlan == nil {
+                ShimmerCard(height: 140)
+            } else if let plan = dailyPlan?.training_plan {
+                workoutCard(plan: plan)
             } else {
-                ForEach(coachInsights) { insight in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(insight.title)
-                                .font(.subheadline)
-                                .fontWeight(.bold)
-                            Spacer()
-                            if let cta = insight.cta_route {
-                                Button("Execute") { handleSteering(cta) }
-                                    .buttonStyle(PremiumActionButtonStyle())
-                            }
-                        }
-                        Text(insight.message)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(8)
-                    .background(Color.white.opacity(0.05))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
+                emptyWorkoutCard
             }
         }
+    }
+
+    private func workoutCard(plan: TrainingPlan) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(plan.focus ?? "Training Session")
+                        .font(.title3.weight(.black))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                    HStack(spacing: 12) {
+                        if let mins = plan.duration_minutes {
+                            Label("\(mins) min", systemImage: "clock")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Brand.Color.muted)
+                        }
+                        if let count = plan.exercises?.count, count > 0 {
+                            Label("\(count) exercises", systemImage: "list.bullet")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Brand.Color.muted)
+                        }
+                    }
+                }
+                Spacer()
+                Image(systemName: "dumbbell.fill")
+                    .font(.title2)
+                    .foregroundStyle(Brand.Color.accent.opacity(0.7))
+            }
+            Button {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                    showingGuidedWorkout = true
+                }
+            } label: {
+                Label("Start Guided Session", systemImage: "play.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .matchedGeometryEffect(id: "workout-hero", in: workoutNamespace)
+            .buttonStyle(PremiumActionButtonStyle())
+        }
+        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .glassCard()
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Brand.Color.accent.opacity(0.25), lineWidth: 1)
+                )
+        )
+    }
+
+    private var emptyWorkoutCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("No session planned yet.")
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.white)
+                    Text("Generate an adaptive plan based on your goals and history.")
+                        .font(.subheadline)
+                        .foregroundStyle(Brand.Color.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                Image(systemName: "sparkles")
+                    .font(.title2)
+                    .foregroundStyle(Brand.Color.accent.opacity(0.6))
+            }
+            Button {
+                Task { await generatePlan() }
+            } label: {
+                Label(generating ? "Generating…" : "Generate Today's Plan", systemImage: "wand.and.stars")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(PremiumActionButtonStyle())
+            .disabled(generating)
+            if let err = errorMessage {
+                Text(err)
+                    .font(.caption)
+                    .foregroundStyle(Brand.Color.danger)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Brand.Color.surfaceRaised)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Brand.Color.border, lineWidth: 1)
+                )
+        )
+    }
+
+    private func briefingSection(text: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("COACH BRIEF")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .tracking(1.4)
+                .foregroundStyle(Brand.Color.accent)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Brand.Color.surfaceRaised)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(Brand.Color.border, lineWidth: 1)
+                )
+        )
     }
 
     @ViewBuilder
-    private var todayPlanCard: some View {
-        if criticalPhaseLoading && dailyPlan == nil {
-            ShimmerCard(height: 140)
-        } else {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Daily Protocol")
-                    .font(.headline)
-                if let plan = dailyPlan {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(plan.training_plan?.focus ?? "Recovery")
+    private var nudgesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("NUDGES")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .tracking(1.4)
+                .foregroundStyle(Brand.Color.accent)
+            ForEach(Array(nudges.prefix(2).enumerated()), id: \.offset) { _, nudge in
+                if let msg = nudge.message {
+                    HStack {
+                        Image(systemName: "bell.badge.fill")
+                            .font(.caption)
+                            .foregroundStyle(Brand.Color.warning)
+                        Text(msg)
                             .font(.subheadline)
-                            .fontWeight(.bold)
-                        Text("\(plan.training_plan?.duration_minutes ?? 0) min session")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        Button("Start Guided Session") {
-                            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                                showingGuidedWorkout = true
-                            }
+                            .foregroundStyle(.white.opacity(0.85))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Button("×") {
+                            Task { await ackNudge(nudge) }
                         }
-                        .matchedGeometryEffect(id: "workout-hero", in: workoutNamespace)
-                        .buttonStyle(PremiumActionButtonStyle())
-                        .padding(.top, 8)
+                        .font(.title3)
+                        .foregroundStyle(Brand.Color.muted)
                     }
-                } else {
-                    VStack(spacing: 8) {
-                        Text("No protocol active.")
-                            .font(.subheadline)
-                        Button("Generate Plan") {
-                            Task { await generatePlan() }
-                        }
-                        .disabled(generating)
-                        .buttonStyle(PremiumActionButtonStyle())
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .glassCard()
-        } // end criticalPhaseLoading guard
-    }
-
-    @ViewBuilder
-    private var performanceCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Neural Performance")
-                .font(.headline)
-            if let p = performance {
-                HStack(spacing: 20) {
-                    statBox(label: "VOL", value: "\(p.set_volume ?? 0)")
-                    statBox(label: "MIN", value: "\(p.workout_minutes ?? 0)")
-                    let balStr = p.push_pull_balance != nil ? String(format: "%.2f", p.push_pull_balance!) : "N/A"
-                    statBox(label: "BAL", value: balStr)
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Brand.Color.warning.opacity(0.08))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(Brand.Color.warning.opacity(0.2), lineWidth: 1)
+                            )
+                    )
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .glassCard()
     }
 
-    private func statBox(label: String, value: String) -> some View {
-        PremiumMetricPill(label: label, value: value)
-    }
-
-    @ViewBuilder
-    private var projectionCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Outcome Projection")
-                .font(.headline)
-            if let p = projection {
-                if let p12 = p.projected_12w {
-                    Text(String(format: "12-week projection: %.1f kg", p12))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("Predictive models stable.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+    private var quickActionsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("QUICK ACTIONS")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .tracking(1.4)
+                .foregroundStyle(Brand.Color.accent)
+            HStack(spacing: 12) {
+                quickActionButton(title: "Ask\nCoach", icon: "message.fill") {
+                    showingCoachChat = true
                 }
-            } else {
-                Text("Data synthesis in progress.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                quickActionButton(title: "Check\nIn", icon: "checkmark.circle.fill") { }
+                quickActionButton(title: "Log\nNutrition", icon: "fork.knife") { }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .glassCard()
     }
 
-    @ViewBuilder
-    private var retentionRiskCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Retention Monitor")
-                .font(.headline)
-            if let r = retentionRisk {
-                HStack(spacing: 8) {
-                    if let level = r.risk_level, !level.isEmpty {
-                        Text("\(level) risk")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(riskColor(level))
-                            .clipShape(Capsule())
-                    }
-                    if let score = r.risk_score {
-                        Text("\(Int(score * 100))%")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                if let action = r.recommended_action, !action.isEmpty {
-                    Text(action)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            } else {
-                Text("Stable — keep up your routine.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+    private func quickActionButton(title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Brand.Color.accent)
+                    .frame(width: 52, height: 52)
+                    .background(
+                        Circle()
+                            .fill(Brand.Color.surfaceRaised)
+                            .overlay(Circle().stroke(Brand.Color.border, lineWidth: 1))
+                    )
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.8))
+                    .multilineTextAlignment(.center)
             }
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .glassCard()
+        .buttonStyle(.plain)
     }
 
-    private func riskColor(_ level: String) -> Color {
-        switch level.lowercased() {
-        case "high": return Color.red.opacity(0.2)
-        case "medium": return Color.orange.opacity(0.2)
-        default: return Color.green.opacity(0.2)
-        }
-    }
-
-    @ViewBuilder
-    private var nudgesCard: some View {
-        if nudges.isEmpty {
-            EmptyView()
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Coach Nudges")
-                    .font(.headline)
-                ForEach(Array(nudges.prefix(3).enumerated()), id: \.offset) { _, nudge in
-                    if let msg = nudge.message {
-                        HStack {
-                            Text(msg)
-                                .font(.caption)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            Button("Dismiss") {
-                                Task { await ackNudge(nudge) }
-                            }
-                            .font(.caption2)
-                        }
-                        .padding(8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.orange.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                }
-            }
-            .padding()
-            .glassCard()
-        }
-    }
+    // MARK: - Data loading
 
     private func loadAll() async {
         errorMessage = nil
-
-        // Phase 1: above-the-fold critical path — show shimmers until these resolve.
         criticalPhaseLoading = true
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadProfile() }
-            group.addTask { await self.loadCheckIn() }
-            group.addTask { await self.loadBriefing() }
             group.addTask { await self.loadPlan() }
-            group.addTask { await self.healthKit.fetchTodaySteps() }
+            group.addTask { await self.loadBriefing() }
         }
         criticalPhaseLoading = false
-
-        // Phase 2: below-the-fold — arrive whenever they're ready, no layout shift.
-        async let _perf: () = loadPerformance()
         async let _nudges: () = loadNudges()
-        async let _proj: () = loadProjection()
-        async let _risk: () = loadRetentionRisk()
-        async let _desk: () = loadCoachDesk()
-        _ = await (_perf, _nudges, _proj, _risk, _desk)
+        _ = await (_nudges)
     }
 
     private func loadProfile() async {
         guard let ds = dataService else { return }
-        do {
-            let p = try await ds.fetchProfile()
-            await MainActor.run { self.profile = p }
-        } catch {
-            // Profile is non-critical; suppress error so other cards still render
-        }
-    }
-
-    private func loadCheckIn() async {
-        guard let ds = dataService else { return }
-        do {
-            let checkIn = try await ds.fetchCheckIn(dateLocal: DateHelpers.todayLocal)
-            await MainActor.run { todayCheckIn = checkIn }
-        } catch {
-            // Check-in absence is normal; readinessScore falls back to 0
-        }
-    }
-
-    private func loadProjection() async {
-        do {
-            let p = try await api.aiProjection(today: DateHelpers.todayLocal)
-            await MainActor.run { projection = p }
-        } catch {
-            // Projection is supplementary; card shows a safe fallback message
-        }
-    }
-
-    private func loadRetentionRisk() async {
-        do {
-            let r = try await api.aiRetentionRisk(localDate: DateHelpers.todayLocal)
-            await MainActor.run { retentionRisk = r }
-        } catch {
-            // Retention risk is supplementary; card shows a safe fallback message
-        }
+        let p = try? await ds.fetchProfile()
+        await MainActor.run { self.profile = p }
     }
 
     private func loadBriefing() async {
-        do {
-            let res = try await api.aiBriefing(localDate: DateHelpers.todayLocal)
-            await MainActor.run { briefing = res }
-        } catch {
-            await MainActor.run { errorMessage = error.localizedDescription }
-        }
-    }
-
-    private func loadCoachDesk() async {
-        do {
-            let res = try await api.aiCoachDesk()
-            await MainActor.run { coachInsights = res.insights ?? [] }
-        } catch {
-            // Supplementary — "Systems nominal" fallback shown when empty
-        }
+        let res = try? await api.aiBriefing(localDate: DateHelpers.todayLocal)
+        await MainActor.run { briefing = res }
     }
 
     private func loadPlan() async {
-        // Stale-while-revalidate: show cached plan instantly, then update with fresh data.
         if let cached = PlanCache.shared.loadDailyPlan() {
             await MainActor.run { dailyPlan = cached }
         }
         guard let ds = dataService else { return }
-        do {
-            let fresh = try await ds.fetchDailyPlan(dateLocal: DateHelpers.todayLocal)
-            if let fresh {
-                PlanCache.shared.storeDailyPlan(fresh)
-            }
-            await MainActor.run { dailyPlan = fresh }
-        } catch {
-            // Cache already populated above; only surface error if nothing shown yet
-            if dailyPlan == nil {
-                await MainActor.run { errorMessage = error.localizedDescription }
-            }
+        let fresh = try? await ds.fetchDailyPlan(dateLocal: DateHelpers.todayLocal)
+        if let plan = fresh {
+            PlanCache.shared.storeDailyPlan(plan)
         }
-    }
-
-    private func handleSteering(_ route: String?) {
-        guard let route = route else { return }
-        switch route {
-        case "/log/workout":
-            showingGuidedWorkout = true
-        case "/coach":
-            showingCoachChat = true
-        default:
-            break
-        }
-    }
-
-    private func loadPerformance() async {
-        do {
-            let p = try await api.analyticsPerformance()
-            await MainActor.run { performance = p }
-        } catch {
-            // Supplementary — card is hidden when nil
-        }
-    }
-
-    private func ackNudge(_ nudge: CoachNudge) async {
-        guard let id = nudge.nudge_id, !id.isEmpty else { return }
-        _ = try? await api.coachNudgeAck(nudgeId: id)
-        await loadNudges()
+        await MainActor.run { dailyPlan = fresh ?? dailyPlan }
     }
 
     private func loadNudges() async {
         guard let ds = dataService else { return }
-        do {
-            let n = try await ds.fetchNudges(dateLocal: nil, unacknowledgedOnly: true, limit: 5)
-            await MainActor.run { nudges = n }
-        } catch {
-            // Supplementary — card hidden when list is empty
-        }
+        let n = try? await ds.fetchNudges(dateLocal: nil, unacknowledgedOnly: true, limit: 2)
+        await MainActor.run { nudges = n ?? [] }
     }
 
     private func generatePlan() async {
@@ -601,8 +414,43 @@ struct HomeView: View {
             let res = try await api.planDaily(todayConstraints: nil)
             await MainActor.run { dailyPlan = res.plan }
         } catch {
-            print("Generate Plan decode error: \(error)")
-            await MainActor.run { errorMessage = error.localizedDescription }
+            await MainActor.run { errorMessage = "Could not generate plan. Try again." }
+        }
+    }
+
+    private func ackNudge(_ nudge: CoachNudge) async {
+        guard let id = nudge.nudge_id, !id.isEmpty else { return }
+        _ = try? await api.coachNudgeAck(nudgeId: id)
+        await loadNudges()
+    }
+
+    private func handleCoachWorkoutLaunch(_ note: NotificationCenter.Publisher.Output) {
+        if let trainingPlan = note.userInfo?["trainingPlan"] as? TrainingPlan {
+            dailyPlan = DailyPlan(
+                date_local: DateHelpers.todayLocal,
+                training_plan: trainingPlan,
+                nutrition_plan: nil,
+                safety_notes: nil
+            )
+            showingCoachChat = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                    showingGuidedWorkout = true
+                }
+            }
+        } else if let exercises = note.userInfo?["exercises"] as? [PlanExercise], !exercises.isEmpty {
+            dailyPlan = DailyPlan(
+                date_local: DateHelpers.todayLocal,
+                training_plan: TrainingPlan(focus: "Coach Session", duration_minutes: 45, exercises: exercises),
+                nutrition_plan: nil,
+                safety_notes: nil
+            )
+            showingCoachChat = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                    showingGuidedWorkout = true
+                }
+            }
         }
     }
 }
