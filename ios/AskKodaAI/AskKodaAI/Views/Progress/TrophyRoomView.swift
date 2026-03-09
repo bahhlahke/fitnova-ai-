@@ -63,9 +63,12 @@ struct TrophyRoomView: View {
             .padding(.horizontal)
             
             if loading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 40)
+                VStack(spacing: 12) {
+                    ShimmerCard(height: 88)
+                    ShimmerCard(height: 88)
+                    ShimmerCard(height: 88)
+                }
+                .padding(.horizontal)
             } else if trophies.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "lock.shield")

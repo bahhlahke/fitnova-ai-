@@ -151,18 +151,21 @@ struct PremiumRowCard<Content: View>: View {
 struct ShimmerCard: View {
     var height: CGFloat = 120
     @State private var phase: CGFloat = -1
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .fill(LinearGradient(
-                colors: [Brand.Color.surfaceRaised,
-                         Brand.Color.surfaceHover,
-                         Brand.Color.surfaceRaised],
-                startPoint: UnitPoint(x: phase, y: 0.5),
-                endPoint: UnitPoint(x: phase + 1, y: 0.5)
-            ))
+            .fill(reduceMotion
+                ? LinearGradient(colors: [Brand.Color.surfaceRaised, Brand.Color.surfaceRaised], startPoint: .leading, endPoint: .trailing)
+                : LinearGradient(
+                    colors: [Brand.Color.surfaceRaised, Brand.Color.surfaceHover, Brand.Color.surfaceRaised],
+                    startPoint: UnitPoint(x: phase, y: 0.5),
+                    endPoint: UnitPoint(x: phase + 1, y: 0.5)
+                )
+            )
             .frame(height: height)
             .onAppear {
+                guard !reduceMotion else { return }
                 withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) {
                     phase = 1
                 }

@@ -194,9 +194,8 @@ struct PlanView: View {
     @ViewBuilder
     private var weeklyInsightCard: some View {
         if insightLoading {
-            ProgressView()
-                .frame(maxWidth: .infinity)
-                .padding()
+            ShimmerCard(height: 80)
+                .padding(.horizontal)
         } else if let insight = weeklyInsight, !insight.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Weekly Insight")

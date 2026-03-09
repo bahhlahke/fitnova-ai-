@@ -47,6 +47,7 @@ struct HomeView: View {
     @State private var showingCoachChat = false
     @State private var generating = false
     @State private var refreshTask: Task<Void, Never>?
+    @State private var cardsAppeared = false
     @Namespace private var workoutNamespace
 
     // MARK: - Services (resolved once, not per-render)

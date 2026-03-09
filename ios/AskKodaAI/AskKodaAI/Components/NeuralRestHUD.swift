@@ -16,6 +16,7 @@ struct NeuralRestHUD: View {
     
     @State private var pulseScale: CGFloat = 1.0
     @State private var scanlineOffset: CGFloat = -100
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 24) {
@@ -50,6 +51,7 @@ struct NeuralRestHUD: View {
                 }
             }
             .onAppear {
+                guard !reduceMotion else { return }
                 withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
                     pulseScale = 1.2
                 }
@@ -96,6 +98,7 @@ struct NeuralRestHUD: View {
                         )
                         .padding(.horizontal, 8)
                         .onAppear {
+                            guard !reduceMotion else { return }
                             withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
                                 scanlineOffset = 100
                             }
