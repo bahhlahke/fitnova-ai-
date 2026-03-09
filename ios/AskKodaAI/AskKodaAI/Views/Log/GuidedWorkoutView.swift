@@ -724,14 +724,17 @@ struct GuidedWorkoutView: View {
         if setIndex + 1 >= sets {
             if exerciseIndex + 1 >= exercises.count {
                 phase = .completed
+                HapticEngine.notification(.success)
                 Task { await saveAndGetInsight() }
             } else {
                 exerciseIndex += 1
                 setIndex = 0
+                HapticEngine.impact(.heavy)
                 startRestTimer()
             }
         } else {
             setIndex += 1
+            HapticEngine.impact(.heavy)
             startRestTimer()
         }
     }

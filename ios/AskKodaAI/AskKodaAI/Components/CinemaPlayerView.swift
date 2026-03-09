@@ -53,16 +53,25 @@ class CinemaPlayerUIView: UIView {
 
     func updateVideo(url: URL) {
         self.currentURL = url
+        // Tear down existing player before replacing to prevent resource leaks.
+        playerLooper?.disableLooping()
+        playerLooper = nil
         queuePlayer?.pause()
-        
+        queuePlayer = nil
+
         let playerItem = AVPlayerItem(url: url)
         let newQueuePlayer = AVQueuePlayer(items: [playerItem])
         newQueuePlayer.isMuted = true
-        
+        newQueuePlayer.preventsDisplaySleepDuringVideoPlayback = false
         self.queuePlayer = newQueuePlayer
         playerLayer.player = newQueuePlayer
         playerLooper = AVPlayerLooper(player: newQueuePlayer, templateItem: playerItem)
         newQueuePlayer.play()
+    }
+
+    deinit {
+        playerLooper?.disableLooping()
+        queuePlayer?.pause()
     }
 
     override func layoutSubviews() {

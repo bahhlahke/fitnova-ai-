@@ -150,14 +150,21 @@ struct OnboardingView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if step > 0 {
-                        Button("Back") { step -= 1 }
+                        Button("Back") {
+                            HapticEngine.impact(.light)
+                            step -= 1
+                        }
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if step < 5 {
-                        Button("Next") { step += 1 }
+                        Button("Next") {
+                            HapticEngine.impact(.light)
+                            step += 1
+                        }
                     } else {
                         Button("Finish") {
+                            HapticEngine.notification(.success)
                             Task { await save() }
                         }
                         .disabled(saving)

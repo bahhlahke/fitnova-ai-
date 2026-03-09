@@ -14,9 +14,19 @@ struct RootView: View {
             if let e2eSurface, !e2eSurface.isEmpty {
                 DebugLaunchSurfaceView(surface: e2eSurface)
             } else if !auth.isInitialized {
-                ProgressView("Loading…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .fnBackground()
+                ZStack {
+                    Brand.Color.background.ignoresSafeArea()
+                    VStack(spacing: 24) {
+                        Image("KodaLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 56)
+                        ProgressView()
+                            .tint(Brand.Color.accent)
+                            .scaleEffect(1.2)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if auth.isSignedIn || ProcessInfo.processInfo.environment["E2E_AUTO_LOGIN"] == "true" {
                 OnboardingCheckView()
             } else {

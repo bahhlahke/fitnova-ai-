@@ -19,9 +19,11 @@ struct OnboardingCheckView: View {
 
     var body: some View {
         Group {
-            if !checked {
-                ProgressView("Loading…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if auth.currentUserId == nil {
+                // Auth initialised but no valid session — route back to sign-in.
+                AuthView()
+            } else if !checked {
+                brandedLoadingView
             } else if needsOnboarding {
                 OnboardingView(onComplete: {
                     needsOnboarding = false
@@ -30,7 +32,7 @@ struct OnboardingCheckView: View {
                 MainTabView()
             }
         }
-        .task { 
+        .task {
             if ProcessInfo.processInfo.environment["E2E_AUTO_LOGIN"] == "true" {
                 checked = true
                 needsOnboarding = false
@@ -40,7 +42,24 @@ struct OnboardingCheckView: View {
         }
     }
 
+    private var brandedLoadingView: some View {
+        ZStack {
+            Brand.Color.background.ignoresSafeArea()
+            VStack(spacing: 24) {
+                Image("KodaLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 56)
+                ProgressView()
+                    .tint(Brand.Color.accent)
+                    .scaleEffect(1.2)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private func check() async {
+        // Guard: if userId is still nil at this point, auth hasn't settled — bail gracefully.
         guard let ds = dataService else {
             await MainActor.run { checked = true; needsOnboarding = false }
             return
