@@ -62,6 +62,9 @@ struct GuidedWorkoutView: View {
     // Resolved CDN demo video URL for the current exercise (nil until fetched).
     @State private var resolvedDemoURL: URL?
 
+    // Exercise intro: set when transitioning to a new exercise after rest
+    @State private var isNewExerciseAfterRest = false
+
     // Pulse state
     @State private var showingPulseAnimation = false
     @State private var pulseMessage = ""
@@ -205,7 +208,7 @@ struct GuidedWorkoutView: View {
         ]
     }
 
-    enum Phase { case loading, overview, work, rest, completed }
+    enum Phase { case loading, overview, exerciseIntro, work, rest, completed }
 
     var body: some View {
         Group {
@@ -215,6 +218,8 @@ struct GuidedWorkoutView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .overview:
                 overviewView
+            case .exerciseIntro:
+                exerciseIntroPhaseView
             case .work, .rest:
                 workoutView
             case .completed:
@@ -346,9 +351,11 @@ struct GuidedWorkoutView: View {
                     }
 
                     Button(action: {
-                        let targetPhase: Phase = exercises.isEmpty ? .completed : .work
-                        phase = targetPhase
+                        guard !exercises.isEmpty else { phase = .completed; return }
                         setIndex = 0
+                        exerciseIndex = 0
+                        isNewExerciseAfterRest = false
+                        phase = .exerciseIntro
                     }) {
                         Text("Start Session")
                     }
@@ -356,6 +363,26 @@ struct GuidedWorkoutView: View {
                 }
                 .padding()
             }
+        }
+    }
+
+    /// Full-screen coached intro view shown before each exercise (session start + new-exercise transitions).
+    @ViewBuilder
+    private var exerciseIntroPhaseView: some View {
+        if let ex = exercises[safe: exerciseIndex] {
+            ExerciseIntroView(
+                exercise: ex,
+                exerciseIndex: exerciseIndex,
+                totalExercises: exercises.count,
+                onReady: {
+                    HapticEngine.impact(.medium)
+                    phase = .work
+                }
+            )
+        } else {
+            // Fallback — shouldn't happen but avoids a blank screen
+            Color.black.ignoresSafeArea()
+                .overlay(ProgressView().tint(Brand.Color.accent))
         }
     }
 
@@ -389,7 +416,10 @@ struct GuidedWorkoutView: View {
                     workCockpit(exercise: ex)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
     }
 
     private var completedView: some View {
@@ -540,6 +570,7 @@ struct GuidedWorkoutView: View {
                 loggedSetsSection
                 workActionSection
             }
+            .frame(maxWidth: .infinity)
             .padding(20)
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
@@ -552,6 +583,7 @@ struct GuidedWorkoutView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 16)
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func workSummarySection(exercise ex: PlanExercise) -> some View {
@@ -766,19 +798,7 @@ struct GuidedWorkoutView: View {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Up next")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .tracking(1.1)
-                        .foregroundStyle(Brand.Color.accent)
-                    Text(ex.name ?? "Next Exercise")
-                        .font(.title3.weight(.black))
-                        .foregroundStyle(.white)
-                    Text(isOptimal ? "Recovery threshold met. You can move into the next effort early." : "Hold position, slow breathing, and let readiness catch up before the override.")
-                        .font(.subheadline)
-                        .foregroundStyle(Brand.Color.muted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                restUpNextCard(exercise: ex, isOptimal: isOptimal)
 
                 Button(action: advanceRest) {
                     Text(isOptimal ? "Start Next Set" : "Override Recovery")
@@ -796,6 +816,58 @@ struct GuidedWorkoutView: View {
             )
             .padding(.horizontal, 16)
             .padding(.bottom, 16)
+        }
+    }
+
+    /// "Up next" card shown during rest — previews the upcoming exercise with catalog cues.
+    private func restUpNextCard(exercise ex: PlanExercise, isOptimal: Bool) -> some View {
+        let nextCatalog = ExerciseCatalog.entry(for: ex.name ?? "")
+        let isNewExercise = isNewExerciseAfterRest
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(isNewExercise ? "NEXT EXERCISE" : "CONTINUING")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .tracking(1.1)
+                        .foregroundStyle(Brand.Color.accent)
+                    Text(ex.name ?? "Next Exercise")
+                        .font(.title3.weight(.black))
+                        .foregroundStyle(.white)
+                }
+                Spacer()
+                if let muscles = nextCatalog?.muscles {
+                    VStack(alignment: .trailing, spacing: 3) {
+                        ForEach(muscles.prefix(2), id: \.self) { m in
+                            Text(m)
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(Capsule().fill(Color.white.opacity(0.07)))
+                        }
+                    }
+                }
+            }
+
+            if isNewExercise, let firstCue = nextCatalog?.formCues.first {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: firstCue.icon)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Brand.Color.accent)
+                    Text(firstCue.cue)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.75))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Text(isOptimal
+                 ? "Recovery threshold met. Intro will play when you're ready."
+                 : "Keep breathing, let your heart rate settle before advancing.")
+                .font(.caption)
+                .foregroundStyle(Brand.Color.muted)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -870,12 +942,14 @@ struct GuidedWorkoutView: View {
             } else {
                 exerciseIndex += 1
                 setIndex = 0
+                isNewExerciseAfterRest = true   // flag: show exercise intro after rest
                 HapticEngine.impact(.heavy)
                 if let next = exercises[safe: exerciseIndex] { prefetchDemoURL(for: next) }
                 startRestTimer()
             }
         } else {
             setIndex += 1
+            isNewExerciseAfterRest = false
             HapticEngine.impact(.heavy)
             startRestTimer()
         }
@@ -920,7 +994,14 @@ struct GuidedWorkoutView: View {
                 }
                 
                 if i == 0 || (neuralRestMode && heartRate <= recoveryTarget && i < restSeconds - 10) {
-                    await MainActor.run { phase = .work }
+                    await MainActor.run {
+                        if isNewExerciseAfterRest {
+                            isNewExerciseAfterRest = false
+                            phase = .exerciseIntro
+                        } else {
+                            phase = .work
+                        }
+                    }
                     break
                 }
             }

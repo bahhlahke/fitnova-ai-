@@ -11,6 +11,8 @@ struct CoachView: View {
     @State private var messages: [MessageContent] = []
     @State private var isLoading = false
     @State private var hasLoadedHistory = false
+    @State private var launchTrainingPlan: TrainingPlan?
+    @State private var showingGuidedWorkout = false
 
     struct MessageContent: Identifiable {
         let id = UUID()
@@ -110,6 +112,23 @@ struct CoachView: View {
             if !hasLoadedHistory {
                 hasLoadedHistory = true
                 await fetchHistory()
+            }
+        }
+        .fullScreenCover(isPresented: $showingGuidedWorkout) {
+            if let plan = launchTrainingPlan {
+                NavigationStack {
+                    GuidedWorkoutView(trainingPlan: plan)
+                }
+                .ignoresSafeArea()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StartGuidedWorkoutFromCoach"))) { note in
+            if let trainingPlan = note.userInfo?["trainingPlan"] as? TrainingPlan {
+                launchTrainingPlan = trainingPlan
+                showingGuidedWorkout = true
+            } else if let exercises = note.userInfo?["exercises"] as? [PlanExercise], !exercises.isEmpty {
+                launchTrainingPlan = TrainingPlan(focus: "Coach Session", duration_minutes: 45, exercises: exercises)
+                showingGuidedWorkout = true
             }
         }
     }

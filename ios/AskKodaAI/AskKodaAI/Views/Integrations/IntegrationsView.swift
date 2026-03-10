@@ -113,93 +113,156 @@ struct IntegrationsView: View {
     }
 
     private var liveView: some View {
-        List {
-            Section("Music") {
-                HStack {
-                    Label("Spotify", systemImage: "music.note")
-                    Spacer()
-                    if spotify.isLoading {
-                        ProgressView()
-                    } else if spotify.isConnected {
-                        Text("Connected")
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    } else {
-                        Button("Connect Spotify") {
-                            Task { await connectSpotify() }
-                        }
-                        .font(.caption)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                PremiumHeroCard(
+                    title: "Connected signals power smarter coaching.",
+                    subtitle: "Link Spotify for in-workout music control and Apple Health for weight, sleep, and step data.",
+                    eyebrow: "Integrations"
+                ) {
+                    HStack(spacing: 10) {
+                        PremiumMetricPill(label: "Spotify", value: spotify.isConnected ? "Connected" : "Not linked")
+                        PremiumMetricPill(label: "Health", value: healthKit.lastSyncDate != nil ? "Synced" : "Not synced")
                     }
                 }
-                if let err = spotifyConnectError {
-                    Text(err)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-                SpotifyPlayerView()
-                Text("Koda can read playback state and send play, pause, next, and previous commands to your active Spotify device.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Section("Apple Health") {
-                if !healthKit.isAvailable {
-                    Text("Health data is not available on this device.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    HStack {
-                        Label("Apple Health / Apple Watch", systemImage: "heart.fill")
-                        Spacer()
-                        if healthKit.isSyncing {
-                            ProgressView()
+
+                // Spotify
+                PremiumRowCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            Label("Spotify", systemImage: "music.note")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            Spacer()
+                            if spotify.isLoading {
+                                ProgressView().tint(Brand.Color.accent)
+                            } else if spotify.isConnected {
+                                Label("Connected", systemImage: "checkmark.circle.fill")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(Brand.Color.success)
+                            }
+                        }
+
+                        if spotify.isConnected {
+                            SpotifyPlayerView(compact: false)
+                                .frame(height: 80)
                         } else {
-                            Button("Sync") {
+                            Text("Connect your Spotify account to enable play, pause, and skip controls during guided workouts.")
+                                .font(.subheadline)
+                                .foregroundStyle(Brand.Color.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            if let err = spotifyConnectError {
+                                Label(err, systemImage: "exclamationmark.triangle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(Brand.Color.danger)
+                            }
+
+                            Button("Connect Spotify") {
+                                Task { await connectSpotify() }
+                            }
+                            .buttonStyle(PremiumActionButtonStyle())
+                        }
+                    }
+                }
+
+                // Apple Health
+                PremiumRowCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            Label("Apple Health", systemImage: "heart.fill")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            Spacer()
+                            if healthKit.isSyncing {
+                                ProgressView().tint(Brand.Color.accent)
+                            } else if healthKit.lastSyncDate != nil {
+                                Label("Synced", systemImage: "checkmark.circle.fill")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(Brand.Color.success)
+                            }
+                        }
+
+                        if !healthKit.isAvailable {
+                            Text("Health data is not available on this device.")
+                                .font(.subheadline)
+                                .foregroundStyle(Brand.Color.muted)
+                        } else {
+                            if let summary = healthKit.lastSyncSummary {
+                                Text(summary)
+                                    .font(.subheadline)
+                                    .foregroundStyle(Brand.Color.muted)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            } else {
+                                Text("Sync weight, sleep, and step data from the last 90 days into your coaching timeline.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Brand.Color.muted)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+
+                            if let d = healthKit.lastSyncDate {
+                                Text("Last sync: \(d.formatted(date: .abbreviated, time: .shortened))")
+                                    .font(.caption)
+                                    .foregroundStyle(Brand.Color.muted)
+                            }
+
+                            if let err = healthKit.syncError {
+                                Label(err, systemImage: "exclamationmark.triangle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(Brand.Color.danger)
+                            }
+
+                            Button(healthKit.isSyncing ? "Syncing…" : "Sync Apple Health") {
                                 Task { await requestAuthAndSync() }
                             }
+                            .buttonStyle(PremiumActionButtonStyle())
                             .disabled(healthKit.isSyncing)
                         }
                     }
-                    if let err = healthKit.syncError {
-                        Text(err)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
-                    if let summary = healthKit.lastSyncSummary {
-                        Text(summary)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    if let d = healthKit.lastSyncDate {
-                        Text("Last sync: \(d.formatted(date: .abbreviated, time: .shortened))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Text("Syncs weight to Progress, sleep to Check-in, and sleep plus steps to wearable signals for the last 90 days.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
-            }
-            Section("Wearables") {
+
+                // WHOOP
                 if let url = whoopConnectURL {
-                    Link(destination: url) {
-                        HStack {
+                    PremiumRowCard {
+                        VStack(alignment: .leading, spacing: 14) {
                             Label("WHOOP", systemImage: "bolt.fill")
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            Text("Connect your WHOOP strap to sync recovery, strain, and sleep stage data.")
+                                .font(.subheadline)
+                                .foregroundStyle(Brand.Color.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Link(destination: url) {
+                                HStack {
+                                    Text("Connect WHOOP")
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right")
+                                }
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(Brand.Color.accent)
+                                .padding(.vertical, 14)
+                                .padding(.horizontal, 18)
+                                .frame(maxWidth: .infinity)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .stroke(Brand.Color.accent.opacity(0.5), lineWidth: 1.5)
+                                )
+                            }
                         }
                     }
-                    Text("Opens in browser to connect your WHOOP account.")
+                }
+
+                if let err = errorMessage {
+                    Label(err, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Brand.Color.danger)
+                        .padding(.horizontal, 4)
                 }
             }
-            if let err = errorMessage {
-                Section {
-                    Text(err)
-                        .foregroundStyle(.red)
-                        .font(.caption)
-                }
-            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 20)
         }
+        .fnBackground()
     }
 
     private func refreshIntegrations() async {
@@ -224,10 +287,14 @@ struct IntegrationsView: View {
             await auth.refreshSession()
             await checkSpotifyConnection()
         } catch {
-            await MainActor.run {
-                spotifyConnectError = error.localizedDescription
-                if let url = integrationsWebURL {
-                    UIApplication.shared.open(url)
+            // linkIdentity throws when the OAuth sheet is closed without completing (normal flow).
+            // Refresh session in case the user completed auth in the browser.
+            await auth.refreshSession()
+            await checkSpotifyConnection()
+            // Only surface an error if Spotify is still not connected after refresh.
+            if !spotify.isConnected {
+                await MainActor.run {
+                    spotifyConnectError = "Could not connect Spotify. Make sure you approved the request in the browser."
                 }
             }
         }
