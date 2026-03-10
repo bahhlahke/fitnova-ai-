@@ -142,6 +142,11 @@ The iOS app matches the web app for core flows:
 
 Robustness: retry-friendly API client, loading/error/empty states, Supabase direct access, HealthKit sync, simulator surface smoke coverage.
 
+Additional iOS notes:
+
+- Guided workout voice cues now announce the next exercise during the intro step so coached sessions stay continuous between cards and set execution.
+- Recipe generation response models decode `meal_type` so breakfast/lunch/dinner labels coming from the API are preserved in native UI fixtures and production payloads.
+
 ## Simulator QA launch contract
 
 The debug launcher and surface smoke harness use these environment variables:
