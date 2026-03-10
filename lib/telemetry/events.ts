@@ -5,7 +5,13 @@ export type ProductEventName =
   | "escalation_created"
   | "escalation_replied"
   | "nudge_acknowledged"
-  | "ai_feedback_submitted";
+  | "ai_feedback_submitted"
+  | "readiness_snapshot_created"
+  | "plan_mutation_applied"
+  | "prescription_blocked"
+  | "substitution_policy_triggered"
+  | "cv_cue_emitted"
+  | "cv_occlusion_suppressed";
 
 export async function trackProductEvent(
   eventName: ProductEventName,

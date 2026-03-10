@@ -303,6 +303,7 @@ struct RecipeGenDay: Decodable {
 
 struct RecipeGenMeal: Decodable {
     let name: String?
+    let meal_type: String?
     let calories: Int?
     let protein: Int?
     let carbs: Int?

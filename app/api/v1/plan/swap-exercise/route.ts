@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
-
 import { enrichExercise } from "@/lib/workout/enrich-exercises";
+import { ensureSitArtifacts, loadPhysicalHistoryEvents, persistPhysicalHistoryEvent } from "@/lib/sit/persistence";
+import { detectSymptomIntent, selectDeterministicSubstitution } from "@/lib/sit/substitutions";
+import { insertProductEvent } from "@/lib/telemetry/events";
 
 export const dynamic = "force-dynamic";
 
@@ -128,9 +130,60 @@ export async function POST(request: Request) {
     let replacement = fallbackReplacement;
     let confidence = 0.77;
     let explanation = "Rule-based substitution using movement pattern and user reason.";
+    let policyDetails:
+      | {
+          policy_version: string;
+          symptom_tags: string[];
+          contraindications: string[];
+          reused_history: boolean;
+        }
+      | undefined;
+
+    await ensureSitArtifacts(supabase);
+    const symptomIntent = detectSymptomIntent(body.reason ?? "");
+    if (symptomIntent.triggered) {
+      const history = await loadPhysicalHistoryEvents(supabase, user.id, symptomIntent.symptom_tags);
+      const deterministic = selectDeterministicSubstitution({
+        currentExercise,
+        reason: body.reason ?? "",
+        location: body.location,
+        sets: body.sets,
+        reps: body.reps,
+        intensity: body.intensity,
+        history,
+      });
+
+      replacement = deterministic.replacement as Replacement;
+      confidence = deterministic.reused_history ? 0.96 : 0.92;
+      explanation = deterministic.rationale;
+      policyDetails = {
+        policy_version: deterministic.policy_version,
+        symptom_tags: deterministic.symptom_tags,
+        contraindications: deterministic.contraindications,
+        reused_history: deterministic.reused_history,
+      };
+
+      await persistPhysicalHistoryEvent(supabase, user.id, {
+        event_type: "substitution_recommended",
+        symptom_tags: deterministic.symptom_tags,
+        current_exercise: currentExercise,
+        replacement_exercise: deterministic.replacement.name,
+        metadata: {
+          reason: body.reason ?? "",
+          policy_version: deterministic.policy_version,
+          contraindications: deterministic.contraindications,
+        },
+      });
+      await insertProductEvent(supabase, user.id, "substitution_policy_triggered", {
+        current_exercise: currentExercise,
+        replacement_exercise: deterministic.replacement.name,
+        symptom_tags: deterministic.symptom_tags,
+        policy_version: deterministic.policy_version,
+      });
+    }
 
     // Try OpenRouter AI for a smarter swap
-    if (process.env.OPENROUTER_API_KEY) {
+    if (!policyDetails && process.env.OPENROUTER_API_KEY) {
       try {
         const prompt = `You are an elite strength and conditioning coach.
 The user is currently scheduled to perform:
@@ -209,6 +262,7 @@ Return ONLY a valid JSON object with this exact structure (no markdown formattin
           "Adjust load downward if readiness is low today.",
         ],
       },
+      policy: policyDetails,
     });
   } catch (error) {
     console.error("swap_exercise_unhandled", {

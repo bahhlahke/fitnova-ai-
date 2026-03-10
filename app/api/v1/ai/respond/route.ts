@@ -7,6 +7,17 @@ import { assembleContext } from "@/lib/ai/assemble-context";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
 import { callModel } from "@/lib/ai/model";
+import {
+  ensureSitArtifacts,
+  loadPhysicalHistoryEvents,
+  persistPhysicalHistoryEvent,
+} from "@/lib/sit/persistence";
+import {
+  detectSymptomIntent,
+  getExerciseOntologySeed,
+  selectDeterministicSubstitution,
+} from "@/lib/sit/substitutions";
+import { insertProductEvent } from "@/lib/telemetry/events";
 import type { AiActionResult, RefreshScope } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +65,19 @@ function resolveLogDate(localDate: string | undefined): string {
 
 function toKgFromLbs(lbs: number): number {
   return Math.round(lbs * 0.45359237 * 10) / 10;
+}
+
+function detectExerciseMention(
+  message: string,
+  plannedExercises: Array<{ name?: string }>
+): string | null {
+  const lower = message.toLowerCase();
+  const fromPlan = plannedExercises.find((exercise) => exercise.name && lower.includes(exercise.name.toLowerCase()));
+  if (fromPlan?.name) return fromPlan.name;
+  const ontologyMatch = getExerciseOntologySeed().find((entry) =>
+    entry.aliases.some((alias) => lower.includes(alias))
+  );
+  return ontologyMatch?.canonical_name ?? null;
 }
 
 export async function POST(request: Request) {
@@ -119,6 +143,80 @@ export async function POST(request: Request) {
           headers: { "Retry-After": String(limiter.retryAfterSeconds) },
         }
       );
+    }
+
+    if (user?.id) {
+      const symptomIntent = detectSymptomIntent(message);
+      if (symptomIntent.triggered) {
+        await ensureSitArtifacts(supabase);
+        const todayPlanRes = await supabase
+          .from("daily_plans")
+          .select("plan_json")
+          .eq("user_id", user.id)
+          .eq("date_local", logDate)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const currentPlanExercises =
+          ((todayPlanRes.data?.plan_json as any)?.training_plan?.exercises as Array<{ name?: string }>) ?? [];
+        const currentExercise = detectExerciseMention(message, currentPlanExercises) ?? currentPlanExercises[0]?.name;
+
+        if (currentExercise) {
+          const history = await loadPhysicalHistoryEvents(supabase, user.id, symptomIntent.symptom_tags);
+          const deterministic = selectDeterministicSubstitution({
+            currentExercise,
+            reason: message,
+            location: ((todayPlanRes.data?.plan_json as any)?.training_plan?.location_option ?? "gym") as
+              | "gym"
+              | "home",
+            history,
+          });
+
+          await Promise.allSettled([
+            persistPhysicalHistoryEvent(supabase, user.id, {
+              event_type: "symptom_reported",
+              symptom_tags: deterministic.symptom_tags,
+              current_exercise: currentExercise,
+              metadata: { source: "ai_respond", message },
+            }),
+            persistPhysicalHistoryEvent(supabase, user.id, {
+              event_type: "substitution_recommended",
+              symptom_tags: deterministic.symptom_tags,
+              current_exercise: currentExercise,
+              replacement_exercise: deterministic.replacement.name,
+              metadata: {
+                source: "ai_respond",
+                policy_version: deterministic.policy_version,
+                rationale: deterministic.rationale,
+              },
+            }),
+            insertProductEvent(supabase, user.id, "substitution_policy_triggered", {
+              source: "ai_respond",
+              current_exercise: currentExercise,
+              replacement_exercise: deterministic.replacement.name,
+              symptom_tags: deterministic.symptom_tags,
+              policy_version: deterministic.policy_version,
+            }),
+          ]);
+
+          const deterministicReply = [
+            `Pain/symptom trigger detected for ${currentExercise}.`,
+            `Swap it for ${deterministic.replacement.name} at ${deterministic.replacement.sets} x ${deterministic.replacement.reps} around ${deterministic.replacement.intensity}.`,
+            deterministic.rationale,
+            "If pain is sharp, radiating, or worsening, stop and seek licensed medical care.",
+          ].join(" ");
+
+          return NextResponse.json({
+            reply: deterministicReply,
+            policy: {
+              version: deterministic.policy_version,
+              symptom_tags: deterministic.symptom_tags,
+              replacement: deterministic.replacement,
+            },
+            refreshScopes: ["plan"],
+          });
+        }
+      }
     }
 
     let systemPrompt =

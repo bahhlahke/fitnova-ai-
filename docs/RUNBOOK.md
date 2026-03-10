@@ -42,6 +42,8 @@ For AI agents and new contributors: see [AGENTS.md](../AGENTS.md) for project la
 - `npm run lint` — ESLint.
 - `npm test` — Vitest (unit/integration tests); run after changes to `lib/`, `app/api/`, or pages.
 - `npm run validate` — lint + build + test (CI-style).
+- `npm run sit:backtest` — trigger SIT timeline replay/backtesting summary job.
+- `npm run integrations:reconcile` — process wearable replay queue and record reconciliation run summary.
 
 ### Automated tests with AI review
 
@@ -77,6 +79,8 @@ For AI agents and new contributors: see [AGENTS.md](../AGENTS.md) for project la
 - **Nutrition targets:** `GET /api/v1/nutrition/targets` returns user calorie/macro goals.
 - **Progression targets:** `GET /api/v1/progression/next-targets` returns suggested lift targets.
 - **Reminder job route:** `POST /api/v1/jobs/reminders` with `x-cron-secret` if `CRON_SECRET` is configured.
+- **SIT backtest job route:** `POST /api/v1/jobs/sit/backtest` with `x-cron-key` if `CRON_SECRET` is configured.
+- **Integrations reconciliation job route:** `POST /api/v1/jobs/integrations/reconcile` with `x-cron-key` if `CRON_SECRET` is configured.
 
 ## Data retention (future)
 

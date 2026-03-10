@@ -80,6 +80,8 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 | `npm run validate` | Lint, build, and test. |
 | `npm run workflow:validate:ai` | Run AI-assisted workflow validator and write report to `docs/reports/`. |
 | `npm run reminders:dispatch` | Trigger reminder/nudge dispatch job (uses service role + optional Twilio creds). |
+| `npm run sit:backtest` | Trigger SIT backtesting job endpoint and print summary JSON. |
+| `npm run integrations:reconcile` | Trigger integrations reconciliation/replay processing job endpoint. |
 
 ## Project structure
 

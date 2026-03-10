@@ -9,6 +9,16 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(),
 }));
 
+vi.mock("@/lib/sit/persistence", () => ({
+  ensureSitArtifacts: vi.fn(async () => undefined),
+  loadPhysicalHistoryEvents: vi.fn(async () => []),
+  persistPhysicalHistoryEvent: vi.fn(async () => undefined),
+}));
+
+vi.mock("@/lib/telemetry/events", () => ({
+  insertProductEvent: vi.fn(async () => undefined),
+}));
+
 describe("swap-exercise route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,5 +57,6 @@ describe("swap-exercise route", () => {
     const body = await res.json();
     expect(body.replacement?.name).toBeTruthy();
     expect(body.reliability?.confidence_score).toBeGreaterThan(0);
+    expect(body.policy?.policy_version).toBe("exercise-ontology-v1");
   });
 });

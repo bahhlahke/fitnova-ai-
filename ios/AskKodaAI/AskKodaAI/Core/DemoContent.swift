@@ -360,8 +360,8 @@ enum DemoContent {
                 RecipeGenDay(
                     date: today,
                     meals: [
-                        RecipeGenMeal(name: "High-Protein Overnight Oats", calories: 510, protein: 42, carbs: 58, fat: 12, recipe: "Mix oats, whey, chia, berries, and Greek yogurt.", ingredients: ["oats", "whey", "berries", "Greek yogurt"]),
-                        RecipeGenMeal(name: "Chicken Burrito Bowl", calories: 720, protein: 58, carbs: 71, fat: 18, recipe: "Roast chicken, steam rice, build bowl with salsa and avocado.", ingredients: ["chicken", "rice", "avocado", "salsa"])
+                        RecipeGenMeal(name: "High-Protein Overnight Oats", meal_type: "breakfast", calories: 510, protein: 42, carbs: 58, fat: 12, recipe: "Mix oats, whey, chia, berries, and Greek yogurt.", ingredients: ["oats", "whey", "berries", "Greek yogurt"]),
+                        RecipeGenMeal(name: "Chicken Burrito Bowl", meal_type: "lunch", calories: 720, protein: 58, carbs: 71, fat: 18, recipe: "Roast chicken, steam rice, build bowl with salsa and avocado.", ingredients: ["chicken", "rice", "avocado", "salsa"])
                     ]
                 )
             ],

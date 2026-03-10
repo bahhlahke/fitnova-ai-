@@ -63,11 +63,22 @@ export default function HistoryPage() {
         return;
       }
 
-      setAiSummaryLoading(true);
-      fetch("/api/v1/ai/history-summary", { method: "POST" })
-        .then(r => r.json())
-        .then(body => { if (body.summary) setAiSummary(body.summary); })
-        .finally(() => setAiSummaryLoading(false));
+      const summaryUrl =
+        typeof window !== "undefined"
+          ? new URL("/api/v1/ai/history-summary", window.location.origin).toString()
+          : null;
+      if (summaryUrl) {
+        setAiSummaryLoading(true);
+        fetch(summaryUrl, { method: "POST" })
+          .then((r) => r.json())
+          .then((body) => {
+            if (body.summary) setAiSummary(body.summary);
+          })
+          .catch(() => {
+            // Non-blocking enhancement; keep history usable when summary generation is unavailable.
+          })
+          .finally(() => setAiSummaryLoading(false));
+      }
 
       Promise.all([
         supabase
