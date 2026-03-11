@@ -14,6 +14,7 @@ struct MotionLabView: View {
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var showPicker = false
     @State private var showCamera = false
+    @State private var showRealtimeScanner = false
     @State private var analyzing = false
     @State private var result: VisionAnalysisResponse?
     @State private var errorMessage: String?
@@ -53,6 +54,27 @@ struct MotionLabView: View {
                 .padding()
                 .background(Color(.systemGray6))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Realtime Motion Lab")
+                        .font(.headline)
+
+                    Text("Run continuous pose tracking, rep counting, and live cues directly on device.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        showRealtimeScanner = true
+                    } label: {
+                        Label("Start realtime scan", systemImage: "figure.strengthtraining.traditional")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(analysisCapability.supportsRealtime ? Brand.Color.accent : Color(.systemGray5))
+                            .foregroundStyle(analysisCapability.supportsRealtime ? .black : .secondary)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .disabled(!analysisCapability.supportsRealtime)
+                }
 
                 // Dual-source capture
                 HStack(spacing: 12) {
@@ -181,6 +203,18 @@ struct MotionLabView: View {
             })
             .ignoresSafeArea()
         }
+        .sheet(isPresented: $showRealtimeScanner) {
+            RealtimeMotionLabSessionView(
+                capability: analysisCapability,
+                onComplete: { summary in
+                    result = summary.response
+                    Task {
+                        await Telemetry.track("ios_cv_realtime_session_completed", props: realtimeTelemetry(for: summary))
+                    }
+                }
+            )
+            .ignoresSafeArea()
+        }
     }
 
     private func analyze() {
@@ -226,6 +260,16 @@ struct MotionLabView: View {
         if let frames = response.frames_analyzed { props["frames_analyzed"] = frames }
         if let confidence = response.pose_confidence { props["pose_confidence"] = confidence }
         if let fallback = response.fallback_reason, !fallback.isEmpty { props["fallback_reason"] = fallback }
+        return props
+    }
+
+    private func realtimeTelemetry(for summary: RealtimeMotionSessionSummary) -> [String: Any] {
+        var props = analysisTelemetry(for: summary.response)
+        props["average_fps"] = summary.benchmark.averageFPS
+        props["latency_p50_ms"] = summary.benchmark.p50LatencyMs
+        props["latency_p95_ms"] = summary.benchmark.p95LatencyMs
+        props["processed_frames"] = summary.benchmark.processedFrames
+        props["dropped_frames"] = summary.benchmark.droppedFrames
         return props
     }
 

@@ -27,7 +27,7 @@ Concise feature and API map for building an iOS app with full parity to the web 
 | `/pricing` | Pricing; Stripe checkout for Pro. | API: stripe/checkout. |
 | `/history` | Workout & nutrition history; filter workouts, expand details, edit workout. | Supabase: `workout_logs`, `nutrition_logs`. |
 | `/vitals` | Readiness, biometrics, recovery suggestion, AI readiness insight. | API: ai/readiness-insight; Supabase: `workout_logs`, `check_ins`, `connected_signals`. |
-| `/motion` | Motion Lab: local-first photo pose analysis (score, critique, correction) with automatic server fallback. | iOS local Vision pose analysis; fallback API: ai/vision (POST body: `images` array). |
+| `/motion` | Motion Lab: realtime on-device pose tracking with live cues plus local-first photo pose analysis and automatic server fallback. | iOS local Vision pose runtime for live and photo analysis; fallback API: ai/vision (POST body: `images` array). |
 | `/omni` | Universal search and command bar. | API: ai/respond. |
 | `/terms`, `/privacy` | Legal documentation. | Static. |
 | `/habits`, `/metrics` | Habit tracking and deep-dive performance metrics. | Supabase: `user_habits`, `workout_logs`. |
@@ -67,7 +67,7 @@ Auth → Onboarding → Dashboard (plan, briefing, quick actions) → Plan (week
 
 Current implementation covers the major user flows and API surfaces, but "production ready" still depends on passing XCTest reliably and validating device-bound integrations on hardware.
 
-**Core:** Auth (magic link, deep link), Dashboard (briefing, plan, performance, **projection card**, **retention risk card**, nudges with **Dismiss/ack**), Plan (weekly, day detail, weekly insight), Coach (chat, escalate list/create/messages), Log workout (list, quick log, **swipe-to-delete**, **process-prs + awards after save**), Guided workout (**process-prs + awards after save**), Log nutrition (meals, targets, **hydration** +0.5 L / reset, **barcode lookup**, **analyze meal** + append, **edit/delete meal**, **nutrition insight**, **meal suggestions**, **awards after add**), Progress (list, add, body comp scan, **AI performance synthesis / progress insight**, **projection**), Check-in, History (workouts + nutrition tabs, expand, edit workout), Vitals (readiness insight), Motion Lab (Form check, 1–3 photos → on-device pose analysis when supported, otherwise server fallback), Settings (profile, **Edit profile**, **Badges**, Vitals, Integrations, export, onboarding, Pricing, sign out), Integrations (Apple Health, Whoop, **Spotify playback controls**), Community/friends, Pricing/Stripe, Onboarding, telemetry.
+**Core:** Auth (magic link, deep link), Dashboard (briefing, plan, performance, **projection card**, **retention risk card**, nudges with **Dismiss/ack**), Plan (weekly, day detail, weekly insight), Coach (chat, escalate list/create/messages), Log workout (list, quick log, **swipe-to-delete**, **process-prs + awards after save**), Guided workout (**process-prs + awards after save** plus realtime form check sheet), Log nutrition (meals, targets, **hydration** +0.5 L / reset, **barcode lookup**, **analyze meal** + append, **edit/delete meal**, **nutrition insight**, **meal suggestions**, **awards after add**), Progress (list, add, body comp scan, **AI performance synthesis / progress insight**, **projection**), Check-in, History (workouts + nutrition tabs, expand, edit workout), Vitals (readiness insight), Motion Lab (Realtime form check with skeleton overlay, squat rep counting, live cues, and photo fallback), Settings (profile, **Edit profile**, **Badges**, Vitals, Integrations, export, onboarding, Pricing, sign out), Integrations (Apple Health, Whoop, **Spotify playback controls**), Community/friends, Pricing/Stripe, Onboarding, telemetry.
 
 **Parity details:**  
 - **Dashboard:** Projection card; Retention Monitor card; **AI Briefing Terminal** (interactive shell with causal rationale).
@@ -79,7 +79,8 @@ Current implementation covers the major user flows and API surfaces, but "produc
 
 - **Progress:** "AI Performance Synthesis" (POST `ai/progress-insight`); **Evolutionary Summary** (POST `ai/history-summary`).
 - **Spotify:** Native playback state and transport controls using the Supabase linked provider token, with Spotify scopes requested during account linking.
-- **Motion Lab:** Photo-based Vision pose analysis now runs locally first and records source/latency/confidence metadata. Real-time pose overlay, rep segmentation, and VBT are still not shipped.
+- **Motion Lab:** Realtime Vision pose analysis now supports skeleton overlay, squat rep segmentation, live cueing, and benchmark capture. Photo-based analysis still runs locally first and records source/latency/confidence metadata.
+- **Remaining CV gaps:** Live runtime is currently squat-oriented only and does not yet ship multi-lift rule packs, calibrated velocity/VBT, or benchmark artifacts checked into `docs/reports/ios-cv-benchmarks/`.
 
 **Validated on simulator:** Home, Plan, Coach, Log, Log Workout, Log Nutrition, Guided Workout, Motion Lab, Progress, Body Scan, History, Check-in, Community, Settings, Integrations, Vitals, Pricing, Badges, Coach Support, Meal Plan, Fridge Scanner, Onboarding. `npm run test:ios:surfaces` now launches these screens in deterministic demo mode, captures primary plus state variants where relevant, and adds a tighter layout sanity pass on `iPhone 16e`.
 

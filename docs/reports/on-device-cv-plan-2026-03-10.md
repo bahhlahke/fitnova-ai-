@@ -22,16 +22,18 @@ Shipped in this branch:
 - automatic fallback to the existing `/api/v1/ai/vision` path
 - response metadata for source, analysis mode, latency, frames analyzed, and pose confidence
 - telemetry hooks for local vs fallback analysis runs
+- real-time camera-frame pose loop for Motion Lab and Guided Workout on supported devices
+- local skeleton overlay rendering
+- squat-focused rep segmentation/state machine with live cues
+- benchmark capture for average FPS, p50/p95 latency, processed frames, and dropped frames
 
 Still not shipped:
 
-- real-time camera-frame pose loop
-- skeleton overlay rendering
-- rep segmentation/state machine
-- cue scheduler
-- velocity/VBT estimation
+- multi-lift rule packs beyond the current squat-oriented runtime
+- checked-in benchmark report artifacts under `docs/reports/ios-cv-benchmarks/`
+- calibrated velocity/VBT estimation
 
-This means the branch now covers Phase 0 and part of Phase 1 for photo-based analysis, but it is not yet the real-time CV runtime described below.
+This means the branch now covers Phase 0, Phase 1, and part of Phases 2-3. It is a usable realtime CV runtime, but not the full multi-lift VBT stack described below.
 
 ## Current baseline
 

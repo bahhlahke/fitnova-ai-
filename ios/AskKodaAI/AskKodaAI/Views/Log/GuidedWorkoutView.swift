@@ -42,6 +42,7 @@ struct GuidedWorkoutView: View {
     /// Active rest timer task — stored so it can be cancelled on manual skip.
     @State private var restTimerTask: Task<Void, Never>?
     @State private var isFormCheckActive = false
+    @State private var showRealtimeFormCheck = false
     @State private var formCheckLoading = false
     @State private var formCheckResult: VisionAnalysisResponse?
     @State private var capturedPhotos: [String] = [] // Base64 strings for simplicity in this flow
@@ -257,6 +258,19 @@ struct GuidedWorkoutView: View {
         }
         .onDisappear {
             stopNeuralMastery()
+        }
+        .sheet(isPresented: $showRealtimeFormCheck) {
+            RealtimeMotionLabSessionView(
+                capability: motionAnalysis.capability,
+                title: "Realtime Form Check",
+                subtitle: "Run live rep counting and technique cues without leaving your workout."
+            ) { summary in
+                formCheckResult = summary.response
+                Task {
+                    await Telemetry.track("ios_guided_form_check_realtime_completed", props: realtimeFormCheckTelemetry(for: summary))
+                }
+            }
+            .ignoresSafeArea()
         }
         .overlay {
             if showingPulseAnimation {
@@ -1251,6 +1265,20 @@ struct GuidedWorkoutView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
+
+                        if motionAnalysis.capability.supportsRealtime {
+                            Button {
+                                showRealtimeFormCheck = true
+                            } label: {
+                                Text("START REALTIME SCAN")
+                                    .font(.system(size: 12, weight: .black))
+                                    .padding()
+                                    .frame(maxWidth: .infinity)
+                                    .background(Brand.Color.accent.opacity(0.14))
+                                    .foregroundStyle(Brand.Color.accent)
+                                    .clipShape(Capsule())
+                            }
+                        }
                         
                         PhotosPicker(selection: $selectedItems, maxSelectionCount: 1, matching: .images) {
                             Text("CHOOSE PHOTO")
@@ -1338,6 +1366,16 @@ struct GuidedWorkoutView: View {
         if let frames = response.frames_analyzed { props["frames_analyzed"] = frames }
         if let confidence = response.pose_confidence { props["pose_confidence"] = confidence }
         if let fallback = response.fallback_reason, !fallback.isEmpty { props["fallback_reason"] = fallback }
+        return props
+    }
+
+    private func realtimeFormCheckTelemetry(for summary: RealtimeMotionSessionSummary) -> [String: Any] {
+        var props = formCheckTelemetry(for: summary.response)
+        props["average_fps"] = summary.benchmark.averageFPS
+        props["latency_p50_ms"] = summary.benchmark.p50LatencyMs
+        props["latency_p95_ms"] = summary.benchmark.p95LatencyMs
+        props["processed_frames"] = summary.benchmark.processedFrames
+        props["dropped_frames"] = summary.benchmark.droppedFrames
         return props
     }
     

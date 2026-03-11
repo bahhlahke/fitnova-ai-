@@ -6,9 +6,10 @@
 //  Manages camera lifecycle, permissions, and photo capture.
 //
 
-import AVFoundation
+@preconcurrency import AVFoundation
 import UIKit
 import Combine
+import CoreVideo
 
 enum CameraError: LocalizedError {
     case notAvailable
@@ -35,20 +36,25 @@ final class CameraCaptureSession: NSObject, ObservableObject {
 
     private let session = AVCaptureSession()
     private let output = AVCapturePhotoOutput()
+    private let videoOutput = AVCaptureVideoDataOutput()
+    private let sessionQueue = DispatchQueue(label: "ai.koda.camera.session")
+    private let videoOutputQueue = DispatchQueue(label: "ai.koda.camera.video-output")
+    private let videoProxy = CameraVideoFrameProxy()
     private(set) var previewLayer: AVCaptureVideoPreviewLayer?
     private var continuation: CheckedContinuation<UIImage, Error>?
 
     // MARK: - Lifecycle
 
-    func startSession(position: AVCaptureDevice.Position = .back) async {
+    func startSession(position: AVCaptureDevice.Position = .back, enableVideoFrames: Bool = false) async {
         await requestPermissionIfNeeded()
         guard !permissionDenied else { return }
 
         session.beginConfiguration()
-        session.sessionPreset = .photo
+        session.sessionPreset = enableVideoFrames ? .high : .photo
 
         // Remove existing inputs
         session.inputs.forEach { session.removeInput($0) }
+        session.outputs.forEach { session.removeOutput($0) }
 
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera,
                                                     for: .video,
@@ -63,23 +69,55 @@ final class CameraCaptureSession: NSObject, ObservableObject {
         if session.canAddOutput(output) { session.addOutput(output) }
         output.maxPhotoQualityPrioritization = .quality
 
+        if enableVideoFrames {
+            if session.canAddOutput(videoOutput) {
+                session.addOutput(videoOutput)
+                videoOutput.alwaysDiscardsLateVideoFrames = true
+                videoOutput.videoSettings = [
+                    kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA),
+                ]
+                videoOutput.setSampleBufferDelegate(videoProxy, queue: videoOutputQueue)
+            }
+
+            if let videoConnection = videoOutput.connection(with: .video) {
+                if #available(iOS 17.0, *) {
+                    if videoConnection.isVideoRotationAngleSupported(90) {
+                        videoConnection.videoRotationAngle = 90
+                    }
+                } else if videoConnection.isVideoOrientationSupported {
+                    videoConnection.videoOrientation = .portrait
+                }
+            }
+        } else {
+            videoOutput.setSampleBufferDelegate(nil, queue: nil)
+        }
+
         session.commitConfiguration()
 
         let layer = AVCaptureVideoPreviewLayer(session: session)
         layer.videoGravity = .resizeAspectFill
         previewLayer = layer
 
-        Task.detached(priority: .userInitiated) { [weak self] in
-            self?.session.startRunning()
-            await MainActor.run { self?.isRunning = true }
+        sessionQueue.async { [session] in
+            session.startRunning()
+            DispatchQueue.main.async {
+                self.isRunning = true
+            }
         }
     }
 
     func stopSession() {
-        Task.detached(priority: .background) { [weak self] in
-            self?.session.stopRunning()
-            await MainActor.run { self?.isRunning = false }
+        videoProxy.onFrame = nil
+        sessionQueue.async { [session] in
+            session.stopRunning()
+            DispatchQueue.main.async {
+                self.isRunning = false
+            }
         }
+    }
+
+    func setVideoFrameHandler(_ handler: ((CMSampleBuffer) -> Void)?) {
+        videoProxy.onFrame = handler
     }
 
     // MARK: - Capture
@@ -88,10 +126,15 @@ final class CameraCaptureSession: NSObject, ObservableObject {
     func capturePhoto() async throws -> UIImage {
         guard isRunning else { throw CameraError.notAvailable }
         return try await withCheckedThrowingContinuation { [weak self] cont in
-            self?.continuation = cont
+            guard let self else {
+                cont.resume(throwing: CameraError.notAvailable)
+                return
+            }
+
+            self.continuation = cont
             let settings = AVCapturePhotoSettings()
             settings.flashMode = .auto
-            self?.output.capturePhoto(with: settings, delegate: self ?? EmptyDelegate())
+            self.output.capturePhoto(with: settings, delegate: self)
         }
     }
 
@@ -137,5 +180,10 @@ extension CameraCaptureSession: AVCapturePhotoCaptureDelegate {
     }
 }
 
-/// Fallback delegate used when self is deallocated before capture completes.
-private final class EmptyDelegate: NSObject, AVCapturePhotoCaptureDelegate {}
+private final class CameraVideoFrameProxy: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+    var onFrame: ((CMSampleBuffer) -> Void)?
+
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        onFrame?(sampleBuffer)
+    }
+}

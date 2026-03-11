@@ -119,7 +119,7 @@ Before release or CI “production ready” gate:
 3. **Run:** App launches in simulator or device; auth screen or main UI appears (no white screen); magic link or Sign in with Apple works.
 4. **Tests:** Unit tests (DateHelpers, APIModels, DataModels, ProductionReadiness) pass. If the test host crashes, ensure `Generated.xcconfig` exists and the app launches when run directly.
 5. **Surface QA:** `npm run test:ios:surfaces` completes and the generated screenshots do not show blank, clipped, or obviously broken screens.
-6. **Device validations:** Validate Apple Health permissions/sync on a physical iPhone, validate Spotify playback controls with a linked account and active playback device, and verify Motion Lab local pose analysis on supported hardware with Low Power Mode off.
+6. **Device validations:** Validate Apple Health permissions/sync on a physical iPhone, validate Spotify playback controls with a linked account and active playback device, and verify Motion Lab realtime local pose analysis on supported hardware with Low Power Mode off.
 7. **Secrets:** No real keys committed; `ios/AskKodaAI/Config/Generated.xcconfig` is in `.gitignore`.
 8. **HTTPS:** Production builds use HTTPS for API and Supabase URLs.
 9. **Feature parity:** See “Feature parity with web” and `docs/IOS-PARITY-MAP.md` for coverage.
@@ -131,7 +131,7 @@ The iOS app matches the web app for core flows:
 - **Dashboard (Home):** Briefing, today's plan, 14-day performance, coach nudges, generate plan.
 - **Plan:** Weekly plan, day selector, adapt day, weekly AI insight.
 - **Coach:** AI chat; Support (escalate) with list/create/messages.
-- **Log:** Workouts (list, quick log, **guided workout**, **Form check (Motion Lab)** with local-first pose analysis and server fallback); Nutrition (meals, targets, analyze meal, fridge scanner, meal plan/recipe gen); **History** (workouts & nutrition tabs, expand, edit workout).
+- **Log:** Workouts (list, quick log, **guided workout**, **Form check (Motion Lab)** with realtime on-device pose tracking, photo analysis, and server fallback); Nutrition (meals, targets, analyze meal, fridge scanner, meal plan/recipe gen); **History** (workouts & nutrition tabs, expand, edit workout).
 - **Progress:** List entries, add entry, **body comp scan** (3 photos → API → save).
 - **Check-in:** Daily energy, sleep, soreness, adherence.
 - **Community:** Friends, requests, accountability partner, challenges (join).
@@ -146,7 +146,8 @@ Additional iOS notes:
 
 - Guided workout voice cues now announce the next exercise during the intro step so coached sessions stay continuous between cards and set execution.
 - Recipe generation response models decode `meal_type` so breakfast/lunch/dinner labels coming from the API are preserved in native UI fixtures and production payloads.
-- Motion Lab now prefers on-device pose analysis for photo checks on supported devices and automatically falls back to the server vision API when thermal state, Low Power Mode, or pose-tracking quality makes the local path unreliable.
+- Motion Lab now offers a reusable realtime session sheet with on-device pose tracking, skeleton overlay, squat rep counting, live cueing, and benchmark capture for Motion Lab and Guided Workout form checks.
+- Photo-based Motion Lab checks still prefer on-device pose analysis on supported devices and automatically fall back to the server vision API when thermal state, Low Power Mode, or pose-tracking quality makes the local path unreliable.
 
 ## Simulator QA launch contract
 
