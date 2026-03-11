@@ -37,11 +37,6 @@ export async function GET(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const tokens = await exchangeOuraCode(code);
-    const expiresAt = tokens.expires_in
-      ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
-      : null;
-
     const accountRes = await supabaseAdmin
       .from("connected_accounts")
       .select("metadata")
@@ -55,9 +50,14 @@ export async function GET(request: Request) {
 
     const existingMetadata = (accountRes.data as { metadata?: Record<string, unknown> } | null)?.metadata ?? {};
     const expectedState = typeof existingMetadata.oauth_state === "string" ? existingMetadata.oauth_state : "";
-    if (expectedState && expectedState !== `${state.userId}:${state.nonce}`) {
+    if (!expectedState || expectedState !== `${state.userId}:${state.nonce}`) {
       return NextResponse.redirect(`${appBase}/settings?oura=error`);
     }
+
+    const tokens = await exchangeOuraCode(code);
+    const expiresAt = tokens.expires_in
+      ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
+      : null;
 
     const upsertRes = await supabaseAdmin.from("connected_accounts").upsert(
       {

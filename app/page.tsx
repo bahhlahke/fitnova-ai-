@@ -680,7 +680,7 @@ export default function HomePage() {
             </div>
             <div className="group border-b border-white/5 pb-6">
               <h3 className="text-lg font-bold text-white uppercase italic tracking-tight mb-3">What makes the &quot;Pro&quot; tier different?</h3>
-              <p className="text-fn-muted leading-relaxed">Pro unlocks high-fidelity forecasting, real-time computer vision for form analysis, and prioritized AI inference for even faster responses.</p>
+              <p className="text-fn-muted leading-relaxed">Pro unlocks high-fidelity forecasting, AI-assisted motion analysis, and prioritized AI inference for even faster responses.</p>
             </div>
           </div>
         </section>

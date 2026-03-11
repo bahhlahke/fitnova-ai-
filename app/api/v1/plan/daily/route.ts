@@ -129,7 +129,7 @@ export async function POST(request: Request) {
       await persistSafetyLedger(supabase, user.id, plan.date_local, finalPlan, validation);
     }
 
-    if (validation.status === "blocked" && sitFlags.safetyValidatorEnforce) {
+    if (validation.status === "blocked") {
       await insertProductEvent(supabase, user.id, "prescription_blocked", {
         reason_codes: validation.issues.map((issue) => issue.code),
         policy_version: validation.policy_version,

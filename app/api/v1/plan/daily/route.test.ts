@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./route";
 import { createClient } from "@/lib/supabase/server";
+import { validatePrescription } from "@/lib/sit/safety";
 
 const mockInsert = vi.fn().mockResolvedValue({ error: null });
 const mockSupabase = {
@@ -173,5 +174,42 @@ describe("POST /api/v1/plan/daily", () => {
     expect(Array.isArray(data.plan.safety_notes)).toBe(true);
     expect(data.readiness_snapshot?.pathway).toBe("amber");
     expect(data.mutation_trace?.policy_version).toBe("readiness-orchestrator-v1");
+  });
+
+  it("blocks unsafe plans even when flags are not explicitly enforcing", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    vi.mocked(validatePrescription).mockReturnValueOnce({
+      status: "blocked",
+      plan: {
+        date_local: "2026-02-24",
+        training_plan: {
+          focus: "Blocked",
+          duration_minutes: 45,
+          location_option: "gym",
+          exercises: [{ name: "Back Squat", sets: 4, reps: "6-8", intensity: "RPE 9" }],
+          alternatives: [],
+        },
+        nutrition_plan: {
+          calorie_target: 2100,
+          macros: { protein_g: 160, carbs_g: 190, fat_g: 70 },
+          meal_structure: ["Meal 1"],
+          hydration_goal_liters: 2.5,
+        },
+        safety_notes: ["Not medical advice."],
+      } as any,
+      issues: [{ code: "pain_guardrail", message: "Pain flags require a lower-intensity prescription.", severity: "block" }],
+      policy_version: "safety-validator-v1",
+    });
+
+    const res = await POST(
+      new Request("http://localhost/api/v1/plan/daily", {
+        method: "POST",
+        body: JSON.stringify({ todayConstraints: { minutesAvailable: 35 } }),
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    expect(res.status).toBe(409);
+    expect(mockInsert).not.toHaveBeenCalled();
   });
 });

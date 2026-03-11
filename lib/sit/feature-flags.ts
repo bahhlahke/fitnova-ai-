@@ -19,7 +19,7 @@ export function getFeatureMode(name: string, fallback: SitFeatureMode = "off"): 
 
 export function getSitFeatureFlags() {
   return {
-    safetyValidatorEnforce: parseBoolean(process.env.FF_SAFETY_VALIDATOR_ENFORCE, false),
+    safetyValidatorEnforce: parseBoolean(process.env.FF_SAFETY_VALIDATOR_ENFORCE, true),
     readinessOrchestratorMode: getFeatureMode("FF_READINESS_ORCHESTRATOR", "shadow"),
     autoMutationTrace: parseBoolean(process.env.FF_AUTO_MUTATION_TRACE, true),
     voiceDuplexStreaming: parseBoolean(process.env.FF_VOICE_DUPLEX_STREAMING, false),

@@ -53,4 +53,30 @@ describe("GET /api/v1/integrations/oura/callback", () => {
     expect(exchangeOuraCode).toHaveBeenCalledWith("abc");
     expect(upsert).toHaveBeenCalledTimes(1);
   });
+
+  it("rejects callbacks when stored oauth state is missing", async () => {
+    maybeSingle.mockResolvedValue({ data: { metadata: {} }, error: null });
+
+    const res = await GET(
+      new Request("http://localhost:3000/api/v1/integrations/oura/callback?code=abc&state=u1:nonce")
+    );
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("/settings?oura=error");
+    expect(exchangeOuraCode).not.toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it("rejects callbacks when stored oauth state does not match", async () => {
+    maybeSingle.mockResolvedValue({ data: { metadata: { oauth_state: "u1:different" } }, error: null });
+
+    const res = await GET(
+      new Request("http://localhost:3000/api/v1/integrations/oura/callback?code=abc&state=u1:nonce")
+    );
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("/settings?oura=error");
+    expect(exchangeOuraCode).not.toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
+  });
 });

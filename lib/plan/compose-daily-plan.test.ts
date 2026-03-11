@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { composeDailyPlan } from "./compose-daily-plan";
+import { toLocalDateString } from "@/lib/date/local-date";
 
 function makeSupabaseMock() {
   return {
@@ -134,7 +135,7 @@ describe("composeDailyPlan", () => {
                 plan_json: {
                   days: [
                     {
-                      date_local: new Date().toISOString().slice(0, 10),
+                      date_local: toLocalDateString(),
                       focus: "Recovery and movement quality",
                       intensity: "low",
                       target_duration_minutes: 30,

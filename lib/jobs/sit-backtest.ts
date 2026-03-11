@@ -1,4 +1,4 @@
-import { createClient as createSupabaseClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { buildCanonicalReadinessVector, evaluateReadinessVector } from "@/lib/sit/readiness";
 
 export type SitBacktestSummary = {
@@ -11,7 +11,7 @@ export type SitBacktestSummary = {
 };
 
 export async function runSitBacktest(limitUsers = 25): Promise<SitBacktestSummary> {
-  const supabase = await createSupabaseClient();
+  const supabase = createAdminClient();
 
   const usersRes = await supabase.from("user_profile").select("user_id").limit(limitUsers);
   const userIds = (usersRes.data ?? []).map((row: any) => row.user_id).filter(Boolean);

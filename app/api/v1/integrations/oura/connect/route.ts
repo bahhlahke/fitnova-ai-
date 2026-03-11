@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { buildOuraAuthorizeUrl } from "@/lib/integrations/oura-client";
@@ -6,7 +7,7 @@ import { buildOuraAuthorizeUrl } from "@/lib/integrations/oura-client";
 export const dynamic = "force-dynamic";
 
 function makeState(userId: string): string {
-  const nonce = Math.random().toString(36).slice(2, 12);
+  const nonce = crypto.randomBytes(16).toString("hex");
   return `${userId}:${nonce}`;
 }
 
@@ -26,7 +27,7 @@ export async function GET() {
     const state = makeState(user.id);
     const authorizeUrl = buildOuraAuthorizeUrl(state);
 
-    await supabase.from("connected_accounts").upsert(
+    const upsertRes = await supabase.from("connected_accounts").upsert(
       {
         user_id: user.id,
         provider: "oura",
@@ -35,6 +36,10 @@ export async function GET() {
       },
       { onConflict: "user_id,provider" }
     );
+
+    if (upsertRes.error) {
+      return jsonError(500, "INTERNAL_ERROR", "Failed to persist Oura OAuth state.");
+    }
 
     return NextResponse.json({
       connect_url: authorizeUrl,
