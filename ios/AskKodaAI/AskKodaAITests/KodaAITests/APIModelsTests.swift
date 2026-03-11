@@ -118,13 +118,18 @@ final class APIModelsTests: XCTestCase {
 
     func testVisionAnalysisResponseDecoding() throws {
         let json = """
-        {"score":0.88,"critique":"Good depth.","correction":"Drive through heels."}
+        {"score":0.88,"critique":"Good depth.","correction":"Drive through heels.","analysis_source":"on_device","analysis_mode":"on_device_pose_photo","benchmark_ms":128,"frames_analyzed":3,"pose_confidence":0.81}
         """
         let data = Data(json.utf8)
         let decoded = try decoder.decode(VisionAnalysisResponse.self, from: data)
         XCTAssertEqual(decoded.score, 0.88)
         XCTAssertNotNil(decoded.critique)
         XCTAssertNotNil(decoded.correction)
+        XCTAssertEqual(decoded.analysis_source, "on_device")
+        XCTAssertEqual(decoded.analysis_mode, "on_device_pose_photo")
+        XCTAssertEqual(decoded.benchmark_ms, 128)
+        XCTAssertEqual(decoded.frames_analyzed, 3)
+        XCTAssertEqual(decoded.pose_confidence, 0.81)
     }
 
     func testBodyCompResponseDecoding() throws {

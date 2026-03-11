@@ -347,9 +347,15 @@ enum DemoContent {
 
     static var vision: VisionAnalysisResponse {
         VisionAnalysisResponse(
-            score: 8.9,
+            score: 89,
             critique: "Good bracing and hip drive. The only clear miss is a slightly early chest drop out of the hole.",
-            correction: "Keep rib cage stacked and lead the ascent with the traps for the first third of the rep."
+            correction: "Keep rib cage stacked and lead the ascent with the traps for the first third of the rep.",
+            analysis_source: "server",
+            analysis_mode: "demo_remote_vision",
+            benchmark_ms: 142,
+            frames_analyzed: 3,
+            pose_confidence: 0.84,
+            fallback_reason: nil
         )
     }
 

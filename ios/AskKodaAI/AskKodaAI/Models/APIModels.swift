@@ -213,6 +213,12 @@ struct VisionAnalysisResponse: Decodable {
     let score: Double?
     let critique: String?
     let correction: String?
+    let analysis_source: String?
+    let analysis_mode: String?
+    let benchmark_ms: Int?
+    let frames_analyzed: Int?
+    let pose_confidence: Double?
+    let fallback_reason: String?
 }
 
 // MARK: - Coach escalate

@@ -78,6 +78,7 @@ struct GuidedWorkoutView: View {
 
     private let restSeconds = 90
     private var api: KodaAPIService { KodaAPIService(getAccessToken: { auth.accessToken }) }
+    private var motionAnalysis: MotionAnalysisService { MotionAnalysisService(api: api) }
     private var dataService: KodaDataService? {
         guard let uid = auth.currentUserId else { return nil }
         return KodaDataService(client: auth.supabaseClient, userId: uid)
@@ -1193,12 +1194,27 @@ struct GuidedWorkoutView: View {
                 
                 if let result = formCheckResult {
                     VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Label(
+                                result.analysis_source == "on_device" ? "ON DEVICE" : "SERVER",
+                                systemImage: result.analysis_source == "on_device" ? "cpu" : "network"
+                            )
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(result.analysis_source == "on_device" ? Brand.Color.accent : .orange)
+
+                            if let benchmark = result.benchmark_ms {
+                                Text("\(benchmark) MS")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
                         HStack {
                             Text("BIOMECHANICAL SCORE:")
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundStyle(.secondary)
                             Spacer()
-                            Text("\(Int(result.score ?? 0))")
+                            Text("\(normalizedVisionScore(result.score))")
                                 .font(.system(size: 24, weight: .black, design: .rounded))
                                 .foregroundStyle(Brand.Color.accent)
                         }
@@ -1214,6 +1230,12 @@ struct GuidedWorkoutView: View {
                                 .padding(8)
                                 .background(Brand.Color.accent.opacity(0.1))
                                 .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+
+                        if let fallback = result.fallback_reason, !fallback.isEmpty {
+                            Text(fallback)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                     .padding()
@@ -1272,12 +1294,17 @@ struct GuidedWorkoutView: View {
         formCheckResult = nil
         Task {
             do {
-                let res = try await api.aiVision(images: capturedPhotos)
+                let res = try await motionAnalysis.analyze(images: capturedPhotos)
+                await Telemetry.track("ios_guided_form_check_completed", props: formCheckTelemetry(for: res))
                 await MainActor.run {
                     formCheckResult = res
                     formCheckLoading = false
                 }
             } catch {
+                await Telemetry.track("ios_guided_form_check_failed", props: [
+                    "requested_frames": capturedPhotos.count,
+                    "error": (error as? LocalizedError)?.errorDescription ?? error.localizedDescription,
+                ])
                 await MainActor.run { formCheckLoading = false }
             }
         }
@@ -1291,6 +1318,27 @@ struct GuidedWorkoutView: View {
         restTimerTask?.cancel()
         restTimerTask = nil
         healthKit.stopHeartRateStreaming()
+    }
+
+    private func normalizedVisionScore(_ score: Double?) -> Int {
+        guard let score else { return 0 }
+        if score <= 1 {
+            return Int((score * 100).rounded())
+        }
+        return Int(score.rounded())
+    }
+
+    private func formCheckTelemetry(for response: VisionAnalysisResponse) -> [String: Any] {
+        var props: [String: Any] = [
+            "requested_frames": capturedPhotos.count,
+            "source": response.analysis_source ?? "unknown",
+            "mode": response.analysis_mode ?? "unknown",
+        ]
+        if let benchmark = response.benchmark_ms { props["benchmark_ms"] = benchmark }
+        if let frames = response.frames_analyzed { props["frames_analyzed"] = frames }
+        if let confidence = response.pose_confidence { props["pose_confidence"] = confidence }
+        if let fallback = response.fallback_reason, !fallback.isEmpty { props["fallback_reason"] = fallback }
+        return props
     }
     
     private func calculateRecoveryScore() -> Double {

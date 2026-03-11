@@ -333,7 +333,17 @@ struct KodaAPIService {
         if isDemoMode {
             return try await DebugUX.resolve(
                 primary: DemoContent.vision,
-                empty: VisionAnalysisResponse(score: nil, critique: nil, correction: nil),
+                empty: VisionAnalysisResponse(
+                    score: nil,
+                    critique: nil,
+                    correction: nil,
+                    analysis_source: nil,
+                    analysis_mode: nil,
+                    benchmark_ms: nil,
+                    frames_analyzed: nil,
+                    pose_confidence: nil,
+                    fallback_reason: nil
+                ),
                 label: "vision analysis"
             )
         }

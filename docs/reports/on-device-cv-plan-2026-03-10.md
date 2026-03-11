@@ -13,6 +13,26 @@ Replace the current server-mediated Motion Lab flow with an iOS-first on-device 
 - supports rep segmentation and occlusion-aware confidence handling,
 - preserves the current server API as a fallback and offline-safe audit sink.
 
+## Current implementation status on `codex/sit-feature-complete`
+
+Shipped in this branch:
+
+- local-first photo pose analysis in iOS Motion Lab and Guided Workout form check
+- capability gating for Low Power Mode and thermal pressure
+- automatic fallback to the existing `/api/v1/ai/vision` path
+- response metadata for source, analysis mode, latency, frames analyzed, and pose confidence
+- telemetry hooks for local vs fallback analysis runs
+
+Still not shipped:
+
+- real-time camera-frame pose loop
+- skeleton overlay rendering
+- rep segmentation/state machine
+- cue scheduler
+- velocity/VBT estimation
+
+This means the branch now covers Phase 0 and part of Phase 1 for photo-based analysis, but it is not yet the real-time CV runtime described below.
+
 ## Current baseline
 
 Today Motion Lab is not on-device CV:

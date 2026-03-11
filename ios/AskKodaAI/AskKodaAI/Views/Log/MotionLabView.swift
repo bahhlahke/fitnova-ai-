@@ -22,12 +22,37 @@ struct MotionLabView: View {
         KodaAPIService(getAccessToken: { auth.accessToken })
     }
 
+    private var motionAnalysis: MotionAnalysisService {
+        MotionAnalysisService(api: api)
+    }
+
+    private var analysisCapability: MotionAnalysisCapability {
+        motionAnalysis.capability
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 Text("Capture a live photo or choose from your library. We'll analyze your form and suggest corrections.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: analysisCapability.isOnDeviceAvailable ? "iphone.gen3.radiowaves.left.and.right" : "icloud.and.arrow.up")
+                            .foregroundStyle(analysisCapability.isOnDeviceAvailable ? Brand.Color.accent : .orange)
+                        Text(analysisCapability.isOnDeviceAvailable ? "On-device pose analysis enabled" : "Server fallback mode")
+                            .font(.subheadline.weight(.semibold))
+                    }
+
+                    Text(analysisCapability.detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .background(Color(.systemGray6))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 // Dual-source capture
                 HStack(spacing: 12) {
@@ -81,8 +106,23 @@ struct MotionLabView: View {
 
                 if let r = result {
                     VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            analysisBadge(
+                                title: r.analysis_source == "on_device" ? "On device" : "Server",
+                                systemImage: r.analysis_source == "on_device" ? "cpu" : "network"
+                            )
+
+                            if let frames = r.frames_analyzed {
+                                analysisBadge(title: "\(frames) frame\(frames == 1 ? "" : "s")", systemImage: "square.stack.3d.down.right")
+                            }
+
+                            if let benchmark = r.benchmark_ms {
+                                analysisBadge(title: "\(benchmark) ms", systemImage: "speedometer")
+                            }
+                        }
+
                         if let score = r.score {
-                            Text("Form score: \(Int(score))/100")
+                            Text("Form score: \(normalizedScore(score))/100")
                                 .font(.headline)
                         }
                         if let c = r.critique, !c.isEmpty {
@@ -99,6 +139,12 @@ struct MotionLabView: View {
                             Text(corr)
                                 .font(.subheadline)
                                 .italic()
+                        }
+
+                        if let fallback = r.fallback_reason, !fallback.isEmpty {
+                            Text(fallback)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -144,17 +190,52 @@ struct MotionLabView: View {
         analyzing = true
         Task {
             do {
-                let res = try await api.aiVision(images: imageDataUrls)
+                let res = try await motionAnalysis.analyze(images: imageDataUrls)
+                await Telemetry.track("ios_cv_analysis_completed", props: analysisTelemetry(for: res))
                 await MainActor.run {
                     result = res
                     analyzing = false
                 }
             } catch {
+                await Telemetry.track("ios_cv_analysis_failed", props: [
+                    "requested_frames": imageDataUrls.count,
+                    "error": (error as? LocalizedError)?.errorDescription ?? error.localizedDescription,
+                ])
                 await MainActor.run {
                     errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                     analyzing = false
                 }
             }
         }
+    }
+
+    private func normalizedScore(_ score: Double) -> Int {
+        if score <= 1 {
+            return Int((score * 100).rounded())
+        }
+        return Int(score.rounded())
+    }
+
+    private func analysisTelemetry(for response: VisionAnalysisResponse) -> [String: Any] {
+        var props: [String: Any] = [
+            "requested_frames": imageDataUrls.count,
+            "source": response.analysis_source ?? "unknown",
+            "mode": response.analysis_mode ?? "unknown",
+        ]
+        if let benchmark = response.benchmark_ms { props["benchmark_ms"] = benchmark }
+        if let frames = response.frames_analyzed { props["frames_analyzed"] = frames }
+        if let confidence = response.pose_confidence { props["pose_confidence"] = confidence }
+        if let fallback = response.fallback_reason, !fallback.isEmpty { props["fallback_reason"] = fallback }
+        return props
+    }
+
+    @ViewBuilder
+    private func analysisBadge(title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(.caption.weight(.medium))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.black.opacity(0.06))
+            .clipShape(Capsule())
     }
 }
