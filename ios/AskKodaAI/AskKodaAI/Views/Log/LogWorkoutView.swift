@@ -2,7 +2,7 @@
 //  LogWorkoutView.swift
 //  Koda AI
 //
-//  Workout history list + quick log sheet. Premium card UI.
+//  List workouts, quick log (duration/type/notes), parity with web /log/workout.
 //
 
 import SwiftUI
@@ -29,32 +29,48 @@ struct LogWorkoutView: View {
 
     private static let workoutTypes = ["Strength", "Cardio", "HIIT", "Recovery", "Sports", "Other"]
 
+    // MARK: - Body
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 20) {
                 if loading && logs.isEmpty {
-                    VStack(spacing: 12) {
-                        ShimmerCard(height: 88)
-                        ShimmerCard(height: 88)
-                        ShimmerCard(height: 88)
-                    }
+                    ShimmerCard(height: 80)
+                    ShimmerCard(height: 80)
+                    ShimmerCard(height: 80)
                 } else if logs.isEmpty {
-                    PremiumStateCard(
-                        title: "No workouts logged yet.",
-                        detail: "Tap + to log your first session.",
-                        symbol: "dumbbell"
-                    )
+                    PremiumRowCard {
+                        VStack(spacing: 8) {
+                            Image(systemName: "figure.strengthtraining.traditional")
+                                .font(.title)
+                                .foregroundStyle(Brand.Color.muted)
+                            Text("No workouts logged yet.")
+                                .font(.subheadline)
+                                .foregroundStyle(Brand.Color.muted)
+                            Text("Tap + to log your first session.")
+                                .font(.caption)
+                                .foregroundStyle(Brand.Color.muted)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                    }
                 } else {
-                    ForEach(Array(logs.enumerated()), id: \.offset) { index, log in
-                        workoutRow(log, index: index)
+                    ForEach(logs.indices, id: \.self) { i in
+                        workoutCard(logs[i])
                     }
                 }
 
                 if let err = errorMessage {
-                    Label(err, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundStyle(Brand.Color.danger)
-                        .padding(.horizontal, 4)
+                    HStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(Brand.Color.danger)
+                        Text(err)
+                            .font(.caption)
+                            .foregroundStyle(Brand.Color.danger)
+                    }
+                    .padding(14)
+                    .background(Brand.Color.danger.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
             }
             .padding(.horizontal, 16)
@@ -62,198 +78,240 @@ struct LogWorkoutView: View {
         }
         .fnBackground()
         .navigationTitle("Workouts")
-        .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await load() }
+        .task { await load() }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     showQuickLog = true
                 } label: {
                     Image(systemName: "plus")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(Brand.Color.accent)
+                        .fontWeight(.bold)
                 }
             }
         }
-        .refreshable { await load() }
-        .task { await load() }
         .sheet(isPresented: $showQuickLog) {
             quickLogSheet
         }
     }
 
-    private func workoutRow(_ log: WorkoutLog, index: Int) -> some View {
-        HStack(spacing: 14) {
-            Image(systemName: iconFor(type: log.workout_type))
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Brand.Color.accent)
-                .frame(width: 44, height: 44)
-                .background(
-                    Circle()
-                        .fill(Brand.Color.surfaceRaised)
-                        .overlay(Circle().stroke(Brand.Color.border, lineWidth: 1))
-                )
+    // MARK: - Workout Card
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(log.workout_type ?? "Workout")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                HStack(spacing: 10) {
-                    if let d = log.duration_minutes {
-                        Label("\(d) min", systemImage: "clock")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Brand.Color.muted)
+    private func workoutCard(_ log: WorkoutLog) -> some View {
+        PremiumRowCard {
+            HStack(alignment: .top, spacing: 12) {
+                // Type badge
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Brand.Color.accent.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: workoutIcon(log.workout_type))
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(Brand.Color.accent)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(log.workout_type ?? "Workout")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    HStack(spacing: 8) {
+                        if let d = log.duration_minutes {
+                            Label("\(d) min", systemImage: "clock")
+                                .font(.caption)
+                                .foregroundStyle(Brand.Color.muted)
+                        }
+                        if let date = log.date {
+                            Text(formattedDate(date))
+                                .font(.caption)
+                                .foregroundStyle(Brand.Color.muted)
+                        }
                     }
-                    if let date = log.date {
-                        Text(formattedDate(date))
+                    if let n = log.notes, !n.isEmpty {
+                        Text(n)
                             .font(.caption)
                             .foregroundStyle(Brand.Color.muted)
+                            .lineLimit(2)
+                            .padding(.top, 2)
                     }
                 }
-                if let n = log.notes, !n.isEmpty {
-                    Text(n)
-                        .font(.caption)
-                        .foregroundStyle(Brand.Color.muted)
-                        .lineLimit(1)
-                }
-            }
-            Spacer()
-
-            Button {
-                Task { await deleteLog(at: index) }
-            } label: {
-                Image(systemName: "trash")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Brand.Color.muted)
-                    .padding(8)
+                Spacer()
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Brand.Color.surfaceRaised)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(Brand.Color.border, lineWidth: 1)
-                )
-        )
     }
+
+    private func workoutIcon(_ type: String?) -> String {
+        switch type?.lowercased() {
+        case "strength": return "dumbbell.fill"
+        case "cardio": return "heart.circle.fill"
+        case "hiit": return "bolt.fill"
+        case "recovery": return "leaf.fill"
+        case "sports": return "sportscourt.fill"
+        default: return "figure.run"
+        }
+    }
+
+    private func formattedDate(_ s: String) -> String {
+        let parser = DateFormatter()
+        parser.dateFormat = "yyyy-MM-dd"
+        parser.timeZone = TimeZone(identifier: "UTC")
+        guard let d = parser.date(from: s) else { return s }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: d)
+    }
+
+    // MARK: - Quick Log Sheet
 
     private var quickLogSheet: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Duration
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("DURATION (MIN)")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .tracking(1.2)
-                            .foregroundStyle(Brand.Color.accent)
-                        TextField("30", text: $quickDuration)
-                            .keyboardType(.numberPad)
-                            .font(.title2.weight(.bold))
-                            .foregroundStyle(.white)
-                            .padding(14)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(Brand.Color.surfaceRaised)
-                                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(Brand.Color.border, lineWidth: 1))
-                            )
-                    }
+                    PremiumHeroCard(
+                        title: "Log Workout",
+                        subtitle: "Record today's session to keep your protocol and analytics in sync.",
+                        eyebrow: "Quick Log"
+                    ) { EmptyView() }
 
-                    // Type
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("TYPE")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .tracking(1.2)
-                            .foregroundStyle(Brand.Color.accent)
-                        LazyVGrid(columns: Array(repeating: .init(.flexible()), count: 3), spacing: 10) {
-                            ForEach(Self.workoutTypes, id: \.self) { type in
-                                Button {
-                                    quickType = type
-                                    HapticEngine.selection()
-                                } label: {
-                                    Text(type)
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(quickType == type ? .black : .white)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 12)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                                .fill(quickType == type ? Brand.Color.accent : Brand.Color.surfaceRaised)
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                                        .stroke(quickType == type ? Brand.Color.accent : Brand.Color.border, lineWidth: 1)
+                    PremiumRowCard {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("WORKOUT TYPE")
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .tracking(1.2)
+                                .foregroundStyle(Brand.Color.accent)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 10) {
+                                    ForEach(Self.workoutTypes, id: \.self) { t in
+                                        Button {
+                                            quickType = t
+                                            HapticEngine.impact(.light)
+                                        } label: {
+                                            Text(t)
+                                                .font(.caption.weight(.semibold))
+                                                .foregroundStyle(quickType == t ? .black : .white)
+                                                .padding(.horizontal, 14)
+                                                .padding(.vertical, 10)
+                                                .background(
+                                                    Capsule()
+                                                        .fill(quickType == t ? Brand.Color.accent : Brand.Color.surfaceRaised)
+                                                        .overlay(Capsule().stroke(Brand.Color.borderStrong, lineWidth: 1))
                                                 )
-                                        )
+                                        }
+                                    }
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
                     }
 
-                    // Notes
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("NOTES (OPTIONAL)")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .tracking(1.2)
-                            .foregroundStyle(Brand.Color.accent)
-                        TextField("How did it feel?", text: $quickNotes, axis: .vertical)
-                            .lineLimit(3...5)
-                            .font(.body)
-                            .foregroundStyle(.white)
+                    PremiumRowCard {
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Text("DURATION")
+                                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                                    .tracking(1.2)
+                                    .foregroundStyle(Brand.Color.accent)
+                                Spacer()
+                                if let mins = Int(quickDuration) {
+                                    Text("\(mins) min")
+                                        .font(.system(size: 28, weight: .black, design: .rounded))
+                                        .foregroundStyle(.white)
+                                }
+                            }
+
+                            HStack(spacing: 10) {
+                                Image(systemName: "clock.fill")
+                                    .foregroundStyle(Brand.Color.accent)
+                                TextField("Duration in minutes", text: $quickDuration)
+                                    .keyboardType(.numberPad)
+                                    .font(.body)
+                                    .foregroundStyle(.white)
+                            }
                             .padding(14)
                             .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                RoundedRectangle(cornerRadius: 14)
                                     .fill(Brand.Color.surfaceRaised)
-                                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(Brand.Color.border, lineWidth: 1))
+                                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Brand.Color.borderStrong, lineWidth: 1))
                             )
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(["20", "30", "45", "60", "75", "90"], id: \.self) { preset in
+                                        Button {
+                                            quickDuration = preset
+                                            HapticEngine.impact(.light)
+                                        } label: {
+                                            Text("\(preset)m")
+                                                .font(.caption.weight(.semibold))
+                                                .foregroundStyle(quickDuration == preset ? .black : .white)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 8)
+                                                .background(
+                                                    Capsule()
+                                                        .fill(quickDuration == preset ? Brand.Color.accent : Brand.Color.surfaceRaised)
+                                                        .overlay(Capsule().stroke(Brand.Color.borderStrong, lineWidth: 1))
+                                                )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    PremiumRowCard {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("NOTES (OPTIONAL)")
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .tracking(1.2)
+                                .foregroundStyle(Brand.Color.accent)
+                            TextField("How did it feel? Any PRs or notable moments…", text: $quickNotes, axis: .vertical)
+                                .lineLimit(2...4)
+                                .font(.body)
+                                .foregroundStyle(.white)
+                                .padding(14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(Brand.Color.surfaceRaised)
+                                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Brand.Color.borderStrong, lineWidth: 1))
+                                )
+                        }
                     }
 
                     Button {
                         Task { await saveQuickLog() }
                     } label: {
-                        Label(saving ? "Saving…" : "Save Workout", systemImage: "checkmark.circle.fill")
-                            .frame(maxWidth: .infinity)
+                        if saving {
+                            HStack(spacing: 10) {
+                                ProgressView().tint(.black).scaleEffect(0.85)
+                                Text("Saving…")
+                            }
+                        } else {
+                            Text("Save Workout")
+                        }
                     }
                     .buttonStyle(PremiumActionButtonStyle())
                     .disabled(saving || Int(quickDuration) == nil)
                 }
-                .padding(20)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 20)
             }
             .fnBackground()
-            .navigationTitle("Quick Log")
+            .navigationTitle("Log Workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showQuickLog = false }
-                        .foregroundStyle(Brand.Color.muted)
+                    Button("Cancel") {
+                        showQuickLog = false
+                        quickDuration = "30"
+                        quickType = "Strength"
+                        quickNotes = ""
+                    }
                 }
             }
         }
-        .presentationDetents([.large])
     }
 
-    private func iconFor(type: String?) -> String {
-        switch type?.lowercased() {
-        case "cardio":   return "figure.run"
-        case "hiit":     return "bolt.fill"
-        case "recovery": return "heart.fill"
-        case "sports":   return "sportscourt.fill"
-        default:         return "dumbbell.fill"
-        }
-    }
-
-    private func formattedDate(_ iso: String) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        guard let d = f.date(from: iso) else { return iso }
-        f.dateStyle = .medium
-        f.timeStyle = .none
-        return f.string(from: d)
-    }
+    // MARK: - Data
 
     private func load() async {
         guard let ds = dataService else { return }
@@ -287,16 +345,10 @@ struct LogWorkoutView: View {
                 quickType = "Strength"
                 quickNotes = ""
             }
+            HapticEngine.notification(.success)
             await load()
         } catch {
             await MainActor.run { errorMessage = error.localizedDescription }
         }
-    }
-
-    private func deleteLog(at index: Int) async {
-        guard let ds = dataService, index < logs.count,
-              let logId = logs[index].log_id, !logId.isEmpty else { return }
-        try? await ds.deleteWorkoutLog(logId: logId)
-        await load()
     }
 }

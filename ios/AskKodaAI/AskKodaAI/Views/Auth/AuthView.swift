@@ -56,6 +56,12 @@ struct AuthView: View {
                                 .foregroundStyle(msg.contains("Check") ? Brand.Color.success : Brand.Color.danger)
                         }
 
+                        if !email.isEmpty && !isValidEmail {
+                            Text("Enter a valid email address.")
+                                .font(.caption)
+                                .foregroundStyle(Brand.Color.danger)
+                        }
+
                         Button(action: sendMagicLink) {
                             if isLoading {
                                 ProgressView()
@@ -64,7 +70,7 @@ struct AuthView: View {
                                 Text("Send magic link")
                             }
                         }
-                        .disabled(isLoading || email.isEmpty)
+                        .disabled(isLoading || !isValidEmail)
                         .buttonStyle(PremiumActionButtonStyle())
 
                         VStack(alignment: .leading, spacing: 10) {
@@ -130,6 +136,11 @@ struct AuthView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
+    }
+
+    private var isValidEmail: Bool {
+        let pattern = #"[A-Z0-9a-z._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}"#
+        return email.range(of: pattern, options: .regularExpression) != nil
     }
 
     private func authFeatureRow(_ text: String) -> some View {

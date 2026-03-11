@@ -21,6 +21,10 @@ struct PlanView: View {
     @State private var adaptInput = ""
     @State private var adaptLoading = false
 
+    // Guided workout launch
+    @State private var showingGuidedWorkout = false
+    @State private var workoutPlan: TrainingPlan?
+
     private var api: KodaAPIService {
         KodaAPIService(getAccessToken: { auth.accessToken })
     }
@@ -72,6 +76,13 @@ struct PlanView: View {
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppEnteredForeground"))) { _ in
                 Task { await loadPlan() }
             }
+            .fullScreenCover(isPresented: $showingGuidedWorkout) {
+                if let plan = workoutPlan {
+                    NavigationStack {
+                        GuidedWorkoutView(trainingPlan: plan)
+                    }
+                }
+            }
         }
     }
 
@@ -106,11 +117,15 @@ struct PlanView: View {
     }
 
     private func dayLabel(_ dateLocal: String?) -> String {
-        guard let s = dateLocal, let d = ISO8601DateFormatter().date(from: s + "T00:00:00Z") else { return "—" }
-        let f = DateFormatter()
-        f.dateFormat = "EEE"
-        f.timeZone = TimeZone.current
-        return f.string(from: d)
+        guard let s = dateLocal else { return "—" }
+        let parser = DateFormatter()
+        parser.dateFormat = "yyyy-MM-dd"
+        parser.timeZone = TimeZone(identifier: "UTC")
+        guard let d = parser.date(from: s) else { return "—" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE"
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        return formatter.string(from: d)
     }
 
     @ViewBuilder
@@ -140,11 +155,37 @@ struct PlanView: View {
                     }
                     .font(.subheadline)
                 }
+
+                Button {
+                    workoutPlan = trainingPlanForDay(day)
+                    showingGuidedWorkout = true
+                } label: {
+                    Label("Start Guided Workout", systemImage: "play.fill")
+                }
+                .buttonStyle(PremiumActionButtonStyle())
+                .padding(.top, 8)
             }
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard()
+    }
+
+    private func trainingPlanForDay(_ day: WeeklyPlanDay) -> TrainingPlan {
+        let planExercises = (day.exercises ?? []).map { ex in
+            PlanExercise(
+                name: ex.name, sets: ex.sets, reps: ex.reps,
+                intensity: nil, notes: ex.coaching_cue,
+                tempo: nil, breathing: nil, intent: nil,
+                rationale: nil, target_rir: nil, target_load_kg: nil,
+                video_url: nil, cinema_video_url: nil, image_url: nil
+            )
+        }
+        return TrainingPlan(
+            focus: day.focus ?? "Training",
+            duration_minutes: day.target_duration_minutes,
+            exercises: planExercises
+        )
     }
     
     @ViewBuilder

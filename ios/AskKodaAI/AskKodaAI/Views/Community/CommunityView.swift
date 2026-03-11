@@ -25,6 +25,9 @@ struct CommunityView: View {
     // Synapse Pulse State
     @State private var showingPulseAnimation = false
     @State private var pulseMessage = ""
+    @State private var pulseTask: Task<Void, Never>?
+    @State private var myDisplayName: String = ""
+    @State private var joiningChallengeId: String?
 
     private var api: KodaAPIService {
         KodaAPIService(getAccessToken: { auth.accessToken })
@@ -53,10 +56,11 @@ struct CommunityView: View {
             .navigationTitle("Community")
             .navigationBarTitleDisplayMode(.inline)
             .refreshable { await load() }
-            .task { 
-                await load() 
+            .task {
+                await load()
                 await setupPulseSubscription()
             }
+            .onDisappear { pulseTask?.cancel() }
             .overlay {
                 if showingPulseAnimation {
                     ZStack {
@@ -211,54 +215,111 @@ struct CommunityView: View {
     }
 
     private var friendsListView: some View {
-        List {
-            Section("Accountability partner") {
-                if let p = partner, let name = p.partner_profile?.display_name {
-                    Text(name)
-                        .fontWeight(.bold)
-                } else {
-                    Text("No partner set")
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Section("Friends") {
-                ForEach(Array(acceptedConnections.enumerated()), id: \.offset) { _, row in
-                    HStack {
-                        Text(otherDisplayName(row) ?? "")
-                            .fontWeight(.bold)
-                        Spacer()
-                        Button(action: {
-                            if let id = otherUserId(row) {
-                                Task { await sendPulse(to: id, name: otherDisplayName(row) ?? "Friend") }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // Accountability partner
+                VStack(alignment: .leading, spacing: 12) {
+                    PremiumSectionHeader("Accountability Partner", eyebrow: "PARTNER")
+                    PremiumRowCard {
+                        if let p = partner, let name = p.partner_profile?.display_name {
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    Circle().fill(Brand.Color.accent.opacity(0.15)).frame(width: 44, height: 44)
+                                    Image(systemName: "person.fill").foregroundStyle(Brand.Color.accent)
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(name).font(.headline).foregroundStyle(.white)
+                                    Text("Accountability Partner").font(.caption).foregroundStyle(Brand.Color.muted)
+                                }
+                                Spacer()
                             }
-                        }) {
-                            Image(systemName: "bolt.fill")
-                                .foregroundStyle(Brand.Color.accent)
-                                .padding(8)
-                                .background(Brand.Color.accent.opacity(0.2))
-                                .clipShape(Circle())
+                        } else {
+                            HStack(spacing: 10) {
+                                Image(systemName: "person.badge.plus").foregroundStyle(Brand.Color.muted)
+                                Text("No accountability partner set").font(.subheadline).foregroundStyle(Brand.Color.muted)
+                            }
+                        }
+                    }
+                }
+
+                // Friends
+                if !acceptedConnections.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        PremiumSectionHeader("Friends", eyebrow: "\(acceptedConnections.count) connections")
+                        ForEach(Array(acceptedConnections.enumerated()), id: \.offset) { _, row in
+                            PremiumRowCard {
+                                HStack(spacing: 12) {
+                                    ZStack {
+                                        Circle().fill(Brand.Color.surfaceRaised).frame(width: 44, height: 44)
+                                        Image(systemName: "person.fill").foregroundStyle(Brand.Color.muted)
+                                    }
+                                    Text(otherDisplayName(row) ?? "Friend")
+                                        .font(.headline).foregroundStyle(.white)
+                                    Spacer()
+                                    Button {
+                                        if let id = otherUserId(row) {
+                                            Task { await sendPulse(to: id, name: otherDisplayName(row) ?? "Friend") }
+                                        }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "bolt.fill")
+                                            Text("PULSE")
+                                        }
+                                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                                        .foregroundStyle(Brand.Color.accent)
+                                        .padding(.horizontal, 10).padding(.vertical, 6)
+                                        .background(Brand.Color.accent.opacity(0.15))
+                                        .clipShape(Capsule())
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Challenges
+                if !challenges.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        PremiumSectionHeader("Challenges", eyebrow: "\(challenges.count) available")
+                        ForEach(challenges, id: \.challenge_id) { c in
+                            PremiumRowCard {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(c.name ?? "Challenge")
+                                            .font(.headline).foregroundStyle(.white)
+                                    }
+                                    Spacer()
+                                    let cid = c.challenge_id ?? ""
+                                    Button {
+                                        guard !cid.isEmpty else { return }
+                                        joiningChallengeId = cid
+                                        Task {
+                                            try? await api.communityChallengesPost(challengeId: cid)
+                                            await load()
+                                            await MainActor.run { joiningChallengeId = nil }
+                                        }
+                                    } label: {
+                                        if joiningChallengeId == cid {
+                                            ProgressView().scaleEffect(0.75).tint(Brand.Color.accent)
+                                        } else {
+                                            Text("JOIN")
+                                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                                .foregroundStyle(Brand.Color.accent)
+                                                .padding(.horizontal, 12).padding(.vertical, 6)
+                                                .background(Brand.Color.accent.opacity(0.15))
+                                                .clipShape(Capsule())
+                                        }
+                                    }
+                                    .disabled(joiningChallengeId != nil)
+                                }
+                            }
                         }
                     }
                 }
             }
-            Section("Challenges") {
-                ForEach(challenges, id: \.challenge_id) { c in
-                    HStack {
-                        Text(c.name ?? "")
-                        Spacer()
-                        Button("Join") {
-                            if let id = c.challenge_id {
-                                Task { try? await api.communityChallengesPost(challengeId: id); await load() }
-                            }
-                        }
-                        .font(.caption.bold())
-                        .foregroundStyle(Brand.Color.accent)
-                    }
-                }
-            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 20)
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
     }
 
     private var acceptedConnections: [ConnectionRow] {
@@ -288,6 +349,14 @@ struct CommunityView: View {
         defer { loading = false }
         // Load social and squad data concurrently; squad is non-critical and fails gracefully.
         await withTaskGroup(of: Void.self) { group in
+            group.addTask {
+                guard let uid = self.auth.currentUserId else { return }
+                let ds = KodaDataService(client: self.auth.supabaseClient, userId: uid)
+                if let profile = try? await ds.fetchProfile(),
+                   let name = profile.display_name, !name.isEmpty {
+                    await MainActor.run { self.myDisplayName = name }
+                }
+            }
             group.addTask {
                 do {
                     let conns = try await self.api.socialFriends()
@@ -327,9 +396,10 @@ struct CommunityView: View {
         guard let myId = auth.currentUserId else { return }
         let channel = auth.supabaseClient.channel("synapse_pulses_\(myId)")
         try? await channel.subscribeWithError()
-        
-        Task {
+
+        pulseTask = Task {
             for await message in channel.broadcastStream(event: "pulse") {
+                if Task.isCancelled { break }
                 guard let senderName = message["sender_name"]?.stringValue else { continue }
                 await MainActor.run {
                     self.pulseMessage = "\(senderName.uppercased()) SENT A PULSE!"
@@ -341,19 +411,22 @@ struct CommunityView: View {
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
                 await MainActor.run { withAnimation { self.showingPulseAnimation = false } }
             }
+            try? await channel.unsubscribe()
         }
     }
     
     private func sendPulse(to userId: String, name: String) async {
         guard let myId = auth.currentUserId else { return }
+        let senderName = myDisplayName.isEmpty ? "Koda Member" : myDisplayName
         let payload: AnyJSON = .object([
             "sender_id": .string(myId),
-            "sender_name": .string("A Friend"),
+            "sender_name": .string(senderName),
             "type": .string("pulse")
         ])
-        let channel = auth.supabaseClient.channel("synapse_pulses_\(userId)")
+        let channel = auth.supabaseClient.channel("synapse_pulse_out_\(myId)_\(userId)")
         try? await channel.subscribeWithError()
         try? await channel.broadcast(event: "pulse", message: payload)
+        try? await channel.unsubscribe()
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
     }
 }

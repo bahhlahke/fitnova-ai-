@@ -2,7 +2,7 @@
 //  MealPlanView.swift
 //  Koda AI
 //
-//  Generate multi-day meal plan + grocery list via API. Premium card UI.
+//  Generate meal plan + grocery list via API. Parity with web /nutrition/meal-plan.
 //
 
 import SwiftUI
@@ -14,186 +14,125 @@ struct MealPlanView: View {
     @State private var groceryList: [GroceryItem] = []
     @State private var durationDays = 7
     @State private var errorMessage: String?
-    @State private var showGroceryList = false
+    @State private var expandedDayIndex: Int? = nil
 
-    private var api: KodaAPIService { KodaAPIService(getAccessToken: { auth.accessToken }) }
+    private var api: KodaAPIService {
+        KodaAPIService(getAccessToken: { auth.accessToken })
+    }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                // Config card
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("PLAN LENGTH")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .tracking(1.4)
-                        .foregroundStyle(Brand.Color.accent)
+            VStack(alignment: .leading, spacing: 16) {
+                PremiumHeroCard(
+                    title: "AI Meal Plan",
+                    subtitle: "Generate a personalised meal schedule and grocery list tailored to your nutrition targets.",
+                    eyebrow: "Nutrition"
+                ) {
+                    HStack(spacing: 10) {
+                        PremiumMetricPill(label: "Days", value: "\(durationDays)")
+                        PremiumMetricPill(label: "Meals", value: "\(days.reduce(0) { $0 + ($1.meals?.count ?? 0) })")
+                    }
+                }
 
-                    HStack {
-                        Text("\(durationDays) days")
-                            .font(.title2.weight(.black))
+                // Duration picker
+                PremiumRowCard {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Plan duration")
+                            .font(.headline)
                             .foregroundStyle(.white)
-                        Spacer()
                         HStack(spacing: 10) {
-                            Button {
-                                if durationDays > 3 { durationDays -= 1; HapticEngine.selection() }
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(durationDays > 3 ? Brand.Color.accent : Brand.Color.muted)
-                            }
-                            Button {
-                                if durationDays < 14 { durationDays += 1; HapticEngine.selection() }
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(durationDays < 14 ? Brand.Color.accent : Brand.Color.muted)
+                            ForEach([3, 5, 7, 10, 14], id: \.self) { d in
+                                Button {
+                                    durationDays = d
+                                } label: {
+                                    Text("\(d)d")
+                                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                        .foregroundStyle(durationDays == d ? .black : Brand.Color.muted)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(
+                                            Capsule().fill(durationDays == d ? Brand.Color.accent : Brand.Color.surfaceRaised)
+                                        )
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                     }
-
-                    Button {
-                        Task { await generate() }
-                    } label: {
-                        Label(loading ? "Generating…" : "Generate \(durationDays)-Day Meal Plan", systemImage: "wand.and.stars")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(PremiumActionButtonStyle())
-                    .disabled(loading)
                 }
-                .padding(18)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(Brand.Color.surfaceRaised)
-                        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Brand.Color.border, lineWidth: 1))
-                )
+
+                Button {
+                    Task { await generate() }
+                } label: {
+                    HStack {
+                        if loading {
+                            ProgressView().tint(.black)
+                        } else {
+                            Image(systemName: "sparkles")
+                            Text("Generate meal plan")
+                        }
+                        Spacer()
+                    }
+                }
+                .buttonStyle(PremiumActionButtonStyle())
+                .disabled(loading)
+
+                if loading && days.isEmpty {
+                    ShimmerCard(height: 120)
+                    ShimmerCard(height: 120)
+                    ShimmerCard(height: 80)
+                }
 
                 if let err = errorMessage {
-                    Label(err, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption).foregroundStyle(Brand.Color.danger).padding(.horizontal, 4)
+                    HStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(Brand.Color.danger)
+                        Text(err)
+                            .font(.caption)
+                            .foregroundStyle(Brand.Color.danger)
+                    }
+                    .padding(14)
+                    .background(Brand.Color.danger.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
 
-                if loading {
-                    VStack(spacing: 12) {
-                        ShimmerCard(height: 120)
-                        ShimmerCard(height: 120)
-                        ShimmerCard(height: 120)
-                    }
-                } else if !days.isEmpty {
-                    // Grocery list toggle button
-                    if !groceryList.isEmpty {
-                        Button {
-                            withAnimation { showGroceryList.toggle() }
-                        } label: {
-                            HStack {
-                                Label("Grocery List (\(groceryList.count) items)", systemImage: "cart.fill")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.white)
-                                Spacer()
-                                Image(systemName: showGroceryList ? "chevron.up" : "chevron.down")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(Brand.Color.muted)
-                            }
-                            .padding(16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(Brand.Color.surfaceRaised)
-                                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Brand.Color.accent.opacity(0.3), lineWidth: 1))
-                            )
-                        }
-                        .buttonStyle(.plain)
+                // Meal plan days
+                if !days.isEmpty {
+                    PremiumSectionHeader("Meal plan")
 
-                        if showGroceryList {
-                            VStack(spacing: 6) {
-                                ForEach(Array(groceryList.enumerated()), id: \.offset) { _, g in
+                    ForEach(Array(days.enumerated()), id: \.offset) { idx, day in
+                        dayCard(day, index: idx)
+                    }
+                }
+
+                // Grocery list
+                if !groceryList.isEmpty {
+                    PremiumSectionHeader("Grocery list")
+
+                    let grouped = groupedGroceries()
+                    ForEach(grouped.keys.sorted(), id: \.self) { category in
+                        PremiumRowCard {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(category.capitalized)
+                                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                                    .foregroundStyle(Brand.Color.accent)
+                                    .tracking(1.2)
+
+                                ForEach(grouped[category] ?? [], id: \.item) { g in
                                     HStack {
                                         Image(systemName: "checkmark.circle")
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundStyle(Brand.Color.accent)
+                                            .font(.caption)
+                                            .foregroundStyle(Brand.Color.muted)
                                         Text(g.item ?? "")
                                             .font(.subheadline)
                                             .foregroundStyle(.white)
                                         Spacer()
-                                        if let q = g.quantity, !q.isEmpty {
-                                            Text(q)
-                                                .font(.caption.weight(.semibold))
-                                                .foregroundStyle(Brand.Color.muted)
-                                        }
-                                    }
-                                    .padding(.horizontal, 4)
-                                }
-                            }
-                            .padding(16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(Brand.Color.surfaceRaised.opacity(0.6))
-                                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Brand.Color.border, lineWidth: 1))
-                            )
-                        }
-                    }
-
-                    // Day-by-day plan
-                    Text("MEAL PLAN")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .tracking(1.4)
-                        .foregroundStyle(Brand.Color.accent)
-
-                    VStack(spacing: 12) {
-                        ForEach(Array(days.enumerated()), id: \.offset) { _, day in
-                            if let date = day.date, let meals = day.meals, !meals.isEmpty {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Text(formattedDate(date))
-                                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                                        .tracking(1.2)
-                                        .foregroundStyle(Brand.Color.accent)
-
-                                    VStack(spacing: 6) {
-                                        ForEach(Array(meals.enumerated()), id: \.offset) { _, m in
-                                            HStack {
-                                                VStack(alignment: .leading, spacing: 2) {
-                                                    Text(m.name ?? "Meal")
-                                                        .font(.subheadline.weight(.semibold))
-                                                        .foregroundStyle(.white)
-                                                    if let type = m.meal_type {
-                                                        Text(type.capitalized)
-                                                            .font(.caption)
-                                                            .foregroundStyle(Brand.Color.muted)
-                                                    }
-                                                }
-                                                Spacer()
-                                                if let cal = m.calories {
-                                                    Text("\(cal) cal")
-                                                        .font(.caption.weight(.bold))
-                                                        .foregroundStyle(Brand.Color.muted)
-                                                }
-                                            }
-                                            .padding(10)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                                    .fill(Color.white.opacity(0.05))
-                                                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Brand.Color.border, lineWidth: 1))
-                                            )
-                                        }
-                                    }
-
-                                    // Day calorie total
-                                    let dayTotal = meals.compactMap(\.calories).reduce(0, +)
-                                    if dayTotal > 0 {
-                                        HStack {
-                                            Spacer()
-                                            Text("Day total: \(dayTotal) cal")
-                                                .font(.caption.weight(.bold))
+                                        if let qty = g.quantity, !qty.isEmpty {
+                                            Text(qty)
+                                                .font(.caption)
                                                 .foregroundStyle(Brand.Color.muted)
                                         }
                                     }
                                 }
-                                .padding(16)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .fill(Brand.Color.surfaceRaised)
-                                        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Brand.Color.border, lineWidth: 1))
-                                )
                             }
                         }
                     }
@@ -203,30 +142,163 @@ struct MealPlanView: View {
             .padding(.vertical, 20)
         }
         .fnBackground()
-        .navigationTitle("Meal Plan")
+        .navigationTitle("Meal plan")
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func formattedDate(_ iso: String) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        guard let d = f.date(from: iso) else { return iso }
-        f.dateFormat = "EEEE, MMM d"
-        return f.string(from: d).uppercased()
+    // MARK: - Day Card
+
+    private func dayCard(_ day: RecipeGenDay, index: Int) -> some View {
+        let isExpanded = expandedDayIndex == index
+        let meals = day.meals ?? []
+        let totalCal = meals.compactMap(\.calories).reduce(0, +)
+
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                expandedDayIndex = isExpanded ? nil : index
+            }
+        } label: {
+            PremiumRowCard {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Brand.Color.accent.opacity(0.15))
+                                .frame(width: 44, height: 44)
+                            Text("\(index + 1)")
+                                .font(.system(size: 16, weight: .black, design: .monospaced))
+                                .foregroundStyle(Brand.Color.accent)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(formattedDate(day.date))
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            HStack(spacing: 6) {
+                                Text("\(meals.count) meals")
+                                    .font(.caption)
+                                    .foregroundStyle(Brand.Color.muted)
+                                if totalCal > 0 {
+                                    Text("·")
+                                        .foregroundStyle(Brand.Color.muted)
+                                    Text("\(totalCal) cal")
+                                        .font(.caption)
+                                        .foregroundStyle(Brand.Color.muted)
+                                }
+                            }
+                        }
+                        Spacer()
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Brand.Color.muted)
+                    }
+
+                    if isExpanded && !meals.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Rectangle()
+                                .fill(Brand.Color.border)
+                                .frame(height: 1)
+                                .padding(.vertical, 10)
+
+                            ForEach(Array(meals.enumerated()), id: \.offset) { _, meal in
+                                mealRow(meal)
+                                    .padding(.bottom, 6)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
+
+    private func mealRow(_ meal: RecipeGenMeal) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(meal.name ?? "Meal")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                Spacer()
+                if let cal = meal.calories {
+                    Text("\(cal) cal")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Brand.Color.accent)
+                }
+            }
+            HStack(spacing: 8) {
+                if let p = meal.protein {
+                    macroPill("P", "\(p)g", .green)
+                }
+                if let c = meal.carbs {
+                    macroPill("C", "\(c)g", .yellow)
+                }
+                if let f = meal.fat {
+                    macroPill("F", "\(f)g", .orange)
+                }
+            }
+            if let recipe = meal.recipe, !recipe.isEmpty {
+                Text(recipe)
+                    .font(.caption)
+                    .foregroundStyle(Brand.Color.muted)
+                    .lineLimit(3)
+            }
+        }
+    }
+
+    private func macroPill(_ label: String, _ value: String, _ color: Color) -> some View {
+        HStack(spacing: 3) {
+            Text(label)
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(color.opacity(0.8))
+            Text(value)
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundStyle(color)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(color.opacity(0.12))
+        .clipShape(Capsule())
+    }
+
+    // MARK: - Helpers
+
+    private func formattedDate(_ iso: String?) -> String {
+        guard let iso else { return "Day" }
+        let p = DateFormatter()
+        p.dateFormat = "yyyy-MM-dd"
+        guard let d = p.date(from: iso) else { return iso }
+        let f = DateFormatter()
+        f.dateFormat = "EEE, MMM d"
+        return f.string(from: d)
+    }
+
+    private func groupedGroceries() -> [String: [GroceryItem]] {
+        var result: [String: [GroceryItem]] = [:]
+        for g in groceryList {
+            let cat = g.category ?? "Other"
+            result[cat, default: []].append(g)
+        }
+        return result
+    }
+
+    // MARK: - Data
 
     private func generate() async {
         loading = true
         days = []
         groceryList = []
         errorMessage = nil
+        expandedDayIndex = nil
         defer { loading = false }
         do {
-            let start = ISO8601DateFormatter().string(from: Date()).prefix(10)
-            let res = try await api.aiRecipeGen(startDate: String(start), durationDays: durationDays)
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            let start = formatter.string(from: Date())
+            let res = try await api.aiRecipeGen(startDate: start, durationDays: durationDays)
             await MainActor.run {
                 days = res.days ?? []
                 groceryList = res.grocery_list ?? []
+                HapticEngine.notification(.success)
             }
         } catch {
             await MainActor.run { errorMessage = error.localizedDescription }
