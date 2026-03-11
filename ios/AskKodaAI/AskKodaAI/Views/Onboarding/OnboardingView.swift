@@ -107,6 +107,7 @@ struct OnboardingView: View {
                                     step += 1
                                 }
                                 .buttonStyle(PremiumActionButtonStyle(filled: true))
+                                .disabled(continueDisabled)
                             } else {
                                 Button(saving ? "Saving…" : "Activate Protocol") {
                                     HapticEngine.notification(.success)
@@ -280,6 +281,44 @@ struct OnboardingView: View {
                     }
                 }
             }
+
+            VStack(alignment: .leading, spacing: 8) {
+                fieldLabel("What drives you")
+                let drivers: [(String, String, String)] = [
+                    ("Health & longevity", "health", "heart.fill"),
+                    ("Peak performance", "performance", "flame.fill"),
+                    ("Aesthetics", "aesthetics", "sparkles"),
+                    ("Competition", "competition", "trophy.fill"),
+                ]
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(drivers, id: \.1) { label, tag, icon in
+                        Button {
+                            HapticEngine.selection()
+                            motivationalDriver = tag
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: icon)
+                                    .foregroundStyle(motivationalDriver == tag ? Brand.Color.accent : Brand.Color.muted)
+                                Text(label)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(motivationalDriver == tag ? Brand.Color.accent.opacity(0.12) : Brand.Color.surfaceRaised)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(motivationalDriver == tag ? Brand.Color.accent : Brand.Color.borderStrong, lineWidth: motivationalDriver == tag ? 1.5 : 1)
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
         }
         .padding(.horizontal, 20)
     }
@@ -320,6 +359,18 @@ struct OnboardingView: View {
     }
 
     // MARK: - Helpers
+
+    private var continueDisabled: Bool {
+        switch step {
+        case 0:
+            let ageVal = Int(age) ?? 0
+            return name.trimmingCharacters(in: .whitespaces).isEmpty || ageVal <= 0 || ageVal > 120
+        case 1:
+            let h = Double(heightCm) ?? 0, w = Double(weightKg) ?? 0
+            return h <= 0 || w <= 0
+        default: return false
+        }
+    }
 
     private var currentStepTitle: String {
         switch step {
@@ -383,6 +434,7 @@ struct OnboardingView: View {
         profile.injuries_limitations = injuries.isEmpty ? nil : injuries
         profile.dietary_preferences = [diet]
         profile.experience_level = experienceLevel
+        profile.activity_level = squad
         profile.motivational_driver = motivationalDriver
         do {
             try await ds.upsertProfile(profile)

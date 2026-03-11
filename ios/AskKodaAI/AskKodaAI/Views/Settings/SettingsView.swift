@@ -82,6 +82,19 @@ struct SettingsView: View {
                             divider
                             navRow("Integrations", systemImage: "link") { IntegrationsView() }
                             divider
+                            HStack {
+                                Label("Export format", systemImage: "doc.text")
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                Picker("Format", selection: $exportFormat) {
+                                    Text("JSON").tag("json")
+                                    Text("CSV").tag("csv")
+                                }
+                                .pickerStyle(.segmented)
+                                .frame(width: 110)
+                            }
+                            .padding(.vertical, 10)
+                            divider
                             Button {
                                 Task { await export() }
                             } label: {

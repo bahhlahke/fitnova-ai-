@@ -30,58 +30,140 @@ struct BodyProgressView: View {
         KodaAPIService(getAccessToken: { auth.accessToken })
     }
 
+    // MARK: - Derived stats
+    private var latestWeight: Double? { entries.first?.weight_kg }
+    private var latestBodyFat: Double? { entries.first?.body_fat_percent }
+    private var weightChange: Double? {
+        guard entries.count >= 2, let latest = entries.first?.weight_kg, let prev = entries[1].weight_kg else { return nil }
+        return latest - prev
+    }
+
     var body: some View {
         NavigationStack {
-            Group {
-                if loading && entries.isEmpty {
-                    ProgressView("Loading progress…")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List {
-                        Section("AI Performance Synthesis") {
-                            if progressInsightLoading {
-                                ShimmerCard(height: 60)
-                            } else if let insight = progressInsight, !insight.isEmpty {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    PremiumHeroCard(
+                        title: "Body Composition",
+                        subtitle: "Track weight, body fat, and measurements to visualize your physique transformation over time.",
+                        eyebrow: "Progress"
+                    ) {
+                        HStack(spacing: 10) {
+                            if let w = latestWeight {
+                                PremiumMetricPill(label: "Weight", value: String(format: "%.1f kg", w))
+                            }
+                            if let bf = latestBodyFat {
+                                PremiumMetricPill(label: "Body Fat", value: String(format: "%.1f%%", bf))
+                            }
+                            if let delta = weightChange {
+                                let sign = delta >= 0 ? "+" : ""
+                                PremiumMetricPill(label: "Δ", value: "\(sign)\(String(format: "%.1f", delta)) kg")
+                            }
+                        }
+                    }
+
+                    // AI insight
+                    if progressInsightLoading {
+                        ShimmerCard(height: 80)
+                    } else if let insight = progressInsight, !insight.isEmpty {
+                        PremiumRowCard {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("AI TREND ANALYSIS")
+                                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                                    .tracking(1.2)
+                                    .foregroundStyle(Brand.Color.accent)
                                 Text(insight)
                                     .font(.subheadline)
+                                    .foregroundStyle(.white)
                                     .italic()
-                            } else {
-                                Text("Log weight entries to unlock AI trend insight.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
                             }
                         }
-                        if let p = projection, let proj12 = p.projected_12w {
-                            Section("Projection") {
-                                HStack {
-                                    Text("12-week projection")
-                                    Spacer()
-                                    Text(String(format: "%.1f kg", proj12))
-                                        .fontWeight(.semibold)
-                                }
-                                .font(.subheadline)
-                            }
-                        }
-                        Section {
-                            NavigationLink("Body comp scan") { BodyCompScanView() }
-                        }
-                        
-                        // Gamification Section
-                        TrophyRoomView()
-                            .padding(.vertical, 8)
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
+                    }
 
-                        Section("History") {
+                    // 12-week projection
+                    if let p = projection, let proj12 = p.projected_12w {
+                        PremiumRowCard {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("12-WEEK PROJECTION")
+                                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                                        .tracking(1.2)
+                                        .foregroundStyle(Brand.Color.accent)
+                                    Text("Based on current trajectory")
+                                        .font(.caption)
+                                        .foregroundStyle(Brand.Color.muted)
+                                }
+                                Spacer()
+                                Text(String(format: "%.1f kg", proj12))
+                                    .font(.system(size: 28, weight: .black, design: .rounded))
+                                    .foregroundStyle(Brand.Color.success)
+                            }
+                        }
+                    }
+
+                    // Body comp scan + trophy room
+                    PremiumRowCard {
+                        NavigationLink {
+                            BodyCompScanView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "camera.viewfinder")
+                                    .font(.title3)
+                                    .foregroundStyle(Brand.Color.accent)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Body Comp Scan")
+                                        .font(.headline)
+                                        .foregroundStyle(.white)
+                                    Text("AI-powered visual body composition analysis")
+                                        .font(.caption)
+                                        .foregroundStyle(Brand.Color.muted)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(Brand.Color.muted)
+                            }
+                        }
+                    }
+
+                    TrophyRoomView()
+
+                    // History
+                    if loading && entries.isEmpty {
+                        ShimmerCard(height: 80)
+                        ShimmerCard(height: 80)
+                        ShimmerCard(height: 80)
+                    } else if entries.isEmpty {
+                        PremiumRowCard {
+                            VStack(spacing: 8) {
+                                Image(systemName: "chart.line.uptrend.xyaxis")
+                                    .font(.title)
+                                    .foregroundStyle(Brand.Color.muted)
+                                Text("No progress entries yet.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Brand.Color.muted)
+                                Text("Add your first weight entry to start tracking trends.")
+                                    .font(.caption)
+                                    .foregroundStyle(Brand.Color.muted)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: 12) {
+                            PremiumSectionHeader("History", eyebrow: "\(entries.count) entries")
                             ForEach(entries, id: \.track_id) { e in
-                                progressRow(e)
+                                progressEntryCard(e)
                             }
                         }
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 20)
             }
+            .fnBackground()
             .navigationTitle("Progress")
+            .navigationBarTitleDisplayMode(.inline)
             .refreshable {
                 await load()
                 await loadInsightAndProjection()
@@ -92,7 +174,12 @@ struct BodyProgressView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Add") { showAdd = true }
+                    Button {
+                        showAdd = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .fontWeight(.bold)
+                    }
                 }
             }
             .sheet(isPresented: $showAdd) {
@@ -101,36 +188,151 @@ struct BodyProgressView: View {
         }
     }
 
-    private func progressRow(_ e: ProgressEntry) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(e.date ?? "")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            HStack(spacing: 12) {
-                if let w = e.weight_kg { Text("\(w) kg") }
-                if let b = e.body_fat_percent { Text("\(b)% BF") }
-            }
-            .font(.subheadline)
-            if let n = e.notes, !n.isEmpty {
-                Text(n)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    // MARK: - Entry Card
+
+    private func progressEntryCard(_ e: ProgressEntry) -> some View {
+        PremiumRowCard {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(formattedDate(e.date))
+                        .font(.caption)
+                        .foregroundStyle(Brand.Color.muted)
+                    if let w = e.weight_kg {
+                        Text(String(format: "%.1f kg", w))
+                            .font(.system(size: 22, weight: .black, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+                    if let n = e.notes, !n.isEmpty {
+                        Text(n)
+                            .font(.caption)
+                            .foregroundStyle(Brand.Color.muted)
+                    }
+                }
+                Spacer()
+                if let bf = e.body_fat_percent {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("BODY FAT")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .tracking(1)
+                            .foregroundStyle(Brand.Color.muted)
+                        Text(String(format: "%.1f%%", bf))
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(Brand.Color.accent)
+                    }
+                }
             }
         }
-        .padding(.vertical, 4)
     }
+
+    private func formattedDate(_ s: String?) -> String {
+        guard let s else { return "" }
+        let parser = DateFormatter()
+        parser.dateFormat = "yyyy-MM-dd"
+        parser.timeZone = TimeZone(identifier: "UTC")
+        guard let d = parser.date(from: s) else { return s }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: d)
+    }
+
+    // MARK: - Add Sheet
 
     private var addEntrySheet: some View {
         NavigationStack {
-            Form {
-                TextField("Weight (kg)", text: $addWeight)
-                    .keyboardType(.decimalPad)
-                TextField("Body fat %", text: $addBodyFat)
-                    .keyboardType(.decimalPad)
-                TextField("Notes", text: $addNotes, axis: .vertical)
-                    .lineLimit(2...4)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    PremiumHeroCard(
+                        title: "Log Progress Entry",
+                        subtitle: "Track your weight and body composition over time.",
+                        eyebrow: "New Entry"
+                    ) { EmptyView() }
+
+                    PremiumRowCard {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("WEIGHT")
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .tracking(1.2)
+                                .foregroundStyle(Brand.Color.accent)
+                            HStack(spacing: 10) {
+                                Image(systemName: "scalemass.fill")
+                                    .foregroundStyle(Brand.Color.accent)
+                                TextField("Weight in kg (e.g. 82.5)", text: $addWeight)
+                                    .keyboardType(.decimalPad)
+                                    .font(.body)
+                                    .foregroundStyle(.white)
+                            }
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Brand.Color.surfaceRaised)
+                                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Brand.Color.borderStrong, lineWidth: 1))
+                            )
+                        }
+                    }
+
+                    PremiumRowCard {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("BODY FAT % (OPTIONAL)")
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .tracking(1.2)
+                                .foregroundStyle(Brand.Color.accent)
+                            HStack(spacing: 10) {
+                                Image(systemName: "percent")
+                                    .foregroundStyle(Brand.Color.accent)
+                                TextField("Body fat percentage (e.g. 18.0)", text: $addBodyFat)
+                                    .keyboardType(.decimalPad)
+                                    .font(.body)
+                                    .foregroundStyle(.white)
+                            }
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Brand.Color.surfaceRaised)
+                                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Brand.Color.borderStrong, lineWidth: 1))
+                            )
+                        }
+                    }
+
+                    PremiumRowCard {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("NOTES (OPTIONAL)")
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .tracking(1.2)
+                                .foregroundStyle(Brand.Color.accent)
+                            TextField("e.g. Post morning weigh-in, well rested…", text: $addNotes, axis: .vertical)
+                                .lineLimit(2...4)
+                                .font(.body)
+                                .foregroundStyle(.white)
+                                .padding(14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(Brand.Color.surfaceRaised)
+                                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Brand.Color.borderStrong, lineWidth: 1))
+                                )
+                        }
+                    }
+
+                    Button {
+                        Task { await saveEntry() }
+                    } label: {
+                        if saving {
+                            HStack(spacing: 10) {
+                                ProgressView().tint(.black).scaleEffect(0.85)
+                                Text("Saving…")
+                            }
+                        } else {
+                            Text("Save Entry")
+                        }
+                    }
+                    .buttonStyle(PremiumActionButtonStyle())
+                    .disabled(saving || addWeight.isEmpty)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 20)
             }
-            .navigationTitle("Add entry")
+            .fnBackground()
+            .navigationTitle("Add Entry")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -141,15 +343,11 @@ struct BodyProgressView: View {
                         addNotes = ""
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        Task { await saveEntry() }
-                    }
-                    .disabled(saving || addWeight.isEmpty)
-                }
             }
         }
     }
+
+    // MARK: - Data
 
     private func load() async {
         guard let ds = dataService else { return }

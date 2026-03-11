@@ -37,7 +37,10 @@ struct GuidedWorkoutView: View {
     // Neural Mastery State (Phase 5)
     @State private var neuralRestMode = true
     @State private var recoveryTarget = 110
-    @State private var heartRate = 148              // Simulated post-set HR for neural rest mode
+    /// Simulated HR used only when HealthKit streaming is unavailable.
+    @State private var simulatedHeartRate = 148
+    /// Active rest timer task — stored so it can be cancelled on manual skip.
+    @State private var restTimerTask: Task<Void, Never>?
     @State private var isFormCheckActive = false
     @State private var formCheckLoading = false
     @State private var formCheckResult: VisionAnalysisResponse?
@@ -755,7 +758,8 @@ struct GuidedWorkoutView: View {
     }
 
     private func restCockpit(exercise ex: PlanExercise) -> some View {
-        let isOptimal = heartRate <= recoveryTarget
+        let displayHR = healthKit.currentHeartRate ?? simulatedHeartRate
+        let isOptimal = displayHR <= recoveryTarget
 
         return VStack(spacing: 20) {
             Spacer()
@@ -768,7 +772,7 @@ struct GuidedWorkoutView: View {
 
                 if neuralRestMode {
                     NeuralRestHUD(
-                        heartRate: heartRate,
+                        heartRate: displayHR,
                         timeRemaining: restRemaining,
                         recoveryScore: calculateRecoveryScore(),
                         steeringMessage: getSteeringMessage()
@@ -786,13 +790,13 @@ struct GuidedWorkoutView: View {
 
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 12) {
-                        targetCard(title: "Heart Rate", value: "\(heartRate)", accent: .white)
+                        targetCard(title: "Heart Rate", value: "\(displayHR)", accent: .white)
                         targetCard(title: "Target", value: "\(recoveryTarget)", accent: Brand.Color.accent)
                         targetCard(title: "Ready", value: isOptimal ? "Yes" : "Not Yet", accent: isOptimal ? Brand.Color.success : Brand.Color.warning)
                     }
 
                     VStack(spacing: 12) {
-                        targetCard(title: "Heart Rate", value: "\(heartRate)", accent: .white)
+                        targetCard(title: "Heart Rate", value: "\(displayHR)", accent: .white)
                         targetCard(title: "Target", value: "\(recoveryTarget)", accent: Brand.Color.accent)
                         targetCard(title: "Ready", value: isOptimal ? "Yes" : "Not Yet", accent: isOptimal ? Brand.Color.success : Brand.Color.warning)
                     }
@@ -967,9 +971,11 @@ struct GuidedWorkoutView: View {
         try? await ds.upsertWorkoutLog(log)
     }
     
-    // Extracted logic to skip rest
+    // Skip the rest countdown and advance immediately.
     private func advanceRest() {
-        restRemaining = 0 // Causes loop to exit
+        restTimerTask?.cancel()
+        restTimerTask = nil
+        phase = .work
     }
 
     private func startRestTimer() {
@@ -977,23 +983,32 @@ struct GuidedWorkoutView: View {
         restRemaining = restSeconds
 
         if neuralRestMode {
-            heartRate = 148       // Simulate high post-set HR
-            recoveryTarget = 110  // Simulated PhD-level target
+            // Seed simulation only when HealthKit HR is unavailable.
+            if healthKit.currentHeartRate == nil {
+                simulatedHeartRate = 148
+            }
+            recoveryTarget = 110
         }
-        
-        Task {
+
+        restTimerTask?.cancel()
+        restTimerTask = Task {
             for i in (0..<restSeconds).reversed() {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
-                await MainActor.run { 
-                    restRemaining = i 
-                    if neuralRestMode && heartRate > recoveryTarget {
-                        // Simulate HR drop by 1-3 bpm per second
-                        heartRate -= Int.random(in: 1...3)
-                        if heartRate < recoveryTarget { heartRate = recoveryTarget }
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    restRemaining = i
+                    if neuralRestMode {
+                        // When HealthKit is unavailable, simulate HR drop
+                        if healthKit.currentHeartRate == nil {
+                            simulatedHeartRate -= Int.random(in: 1...3)
+                            if simulatedHeartRate < recoveryTarget { simulatedHeartRate = recoveryTarget }
+                        }
                     }
                 }
-                
-                if i == 0 || (neuralRestMode && heartRate <= recoveryTarget && i < restSeconds - 10) {
+                guard !Task.isCancelled else { return }
+
+                let effectiveHR = healthKit.currentHeartRate ?? simulatedHeartRate
+                if i == 0 || (neuralRestMode && effectiveHR <= recoveryTarget && i < restSeconds - 10) {
                     await MainActor.run {
                         if isNewExerciseAfterRest {
                             isNewExerciseAfterRest = false
@@ -1273,22 +1288,23 @@ struct GuidedWorkoutView: View {
     }
     
     private func stopNeuralMastery() {
+        restTimerTask?.cancel()
+        restTimerTask = nil
         healthKit.stopHeartRateStreaming()
     }
     
     private func calculateRecoveryScore() -> Double {
-        guard let hr = healthKit.currentHeartRate else { return 0.5 }
+        let hr = Double(healthKit.currentHeartRate ?? simulatedHeartRate)
         let spread = 160.0 - Double(recoveryTarget)
-        let progress = 1.0 - (Double(hr - recoveryTarget) / spread)
+        let progress = 1.0 - ((hr - Double(recoveryTarget)) / spread)
         return max(0, min(1, progress))
     }
-    
+
     private func getSteeringMessage() -> String? {
-        guard let hr = healthKit.currentHeartRate else { return "Waiting for Synapse data..." }
-        
-        if hr <= recoveryTarget {
+        let hr = Double(healthKit.currentHeartRate ?? simulatedHeartRate)
+        if hr <= Double(recoveryTarget) {
             return "Metabolic Reset Complete. Readiness Optimal."
-        } else if restRemaining < 20 && hr > recoveryTarget + 20 {
+        } else if restRemaining < 20 && hr > Double(recoveryTarget) + 20 {
             return "Recovery Lag Detected. Suggest Neural Override."
         } else if hr > 150 {
             return "High Intensity Signal. Focus on Deep Respiration."
@@ -1577,6 +1593,10 @@ struct GuidedWorkoutView: View {
             coachAudio.playCue(.finishSet, fallbackText: "Set complete. Recover and reset.")
         case .completed:
             coachAudio.playCue(.finishWorkout, fallbackText: "Session closed. Insight analysis incoming.")
+        case .exerciseIntro:
+            if let name = currentExercise?.name {
+                coachAudio.playCue(.startSet, details: ["exercise": name], fallbackText: "Next up: \(name). Here's your execution guide.")
+            }
         case .loading:
             break
         }

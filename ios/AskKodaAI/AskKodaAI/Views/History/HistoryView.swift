@@ -13,246 +13,465 @@ struct HistoryView: View {
     @State private var workouts: [WorkoutLog] = []
     @State private var nutritionLogs: [NutritionLog] = []
     @State private var loading = false
-    @State private var expandedWorkoutId: String?
-    @State private var expandedNutritionDate: String?
-    @State private var editingWorkoutId: String?
-    @State private var editWorkoutData: (type: String, duration: String, notes: String) = ("strength", "", "")
-    @State private var workoutSaveStatus: SaveStatus = .idle
     @State private var errorMessage: String?
+
+    // Workout editing (separate @State vars to avoid tuple mutation issues)
+    @State private var expandedWorkoutId: String?
+    @State private var editingWorkoutId: String?
+    @State private var editType = "Strength"
+    @State private var editDuration = ""
+    @State private var editNotes = ""
+    @State private var workoutSaving = false
+
+    // Nutrition editing
+    @State private var expandedNutritionDate: String?
+    @State private var editingNutritionDate: String?
+    @State private var editCalories = ""
+    @State private var editProtein = ""
+    @State private var editCarbs = ""
+    @State private var editFat = ""
+    @State private var nutritionSaving = false
 
     private var dataService: KodaDataService? {
         guard let uid = auth.currentUserId else { return nil }
         return KodaDataService(client: auth.supabaseClient, userId: uid)
     }
 
-    private static let workoutTypes = ["strength", "cardio", "mobility", "other"]
+    private static let workoutTypes = ["Strength", "Cardio", "HIIT", "Recovery", "Sports", "Other"]
 
     enum HistoryTab: String, CaseIterable {
         case workouts = "Workouts"
         case nutrition = "Nutrition"
     }
 
-    enum SaveStatus {
-        case idle, saving, error
-    }
+    // MARK: - Body
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Picker("History", selection: $tab) {
-                ForEach(HistoryTab.allCases, id: \.self) { t in
-                    Text(t.rawValue).tag(t)
-                }
+        VStack(spacing: 0) {
+            // Custom tab picker
+            HStack(spacing: 20) {
+                HistoryTabButton(title: "Workouts", isActive: tab == .workouts) { tab = .workouts }
+                HistoryTabButton(title: "Nutrition", isActive: tab == .nutrition) { tab = .nutrition }
             }
-            .pickerStyle(.segmented)
-
-            if let err = errorMessage {
-                Text(err)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .padding(8)
-            }
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
 
             if loading && workouts.isEmpty && nutritionLogs.isEmpty {
-                ProgressView("Loading…")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 40)
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ShimmerCard(height: 80)
+                        ShimmerCard(height: 80)
+                        ShimmerCard(height: 80)
+                    }
+                    .padding(16)
+                }
             } else if tab == .workouts {
-                workoutsList
+                workoutsTab
             } else {
-                nutritionList
+                nutritionTab
             }
         }
-        .padding()
+        .fnBackground()
         .navigationTitle("History")
         .refreshable { await load() }
         .task { await load() }
     }
 
-    private var workoutsList: some View {
-        Group {
-            if workouts.isEmpty {
-                Text("No workouts yet. Log a session from the Log tab.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-            } else {
-                List {
-                    ForEach(Array(workouts.enumerated()), id: \.offset) { _, w in
-                        workoutRow(w)
+    // MARK: - Workouts Tab
+
+    private var workoutsTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                if let err = errorMessage {
+                    errorBanner(err)
+                }
+
+                if workouts.isEmpty && !loading {
+                    PremiumRowCard {
+                        VStack(spacing: 8) {
+                            Image(systemName: "figure.strengthtraining.traditional")
+                                .font(.title).foregroundStyle(Brand.Color.muted)
+                            Text("No workouts logged yet.")
+                                .font(.subheadline).foregroundStyle(Brand.Color.muted)
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                    }
+                } else {
+                    ForEach(workouts.indices, id: \.self) { i in
+                        workoutCard(workouts[i])
                     }
                 }
-                .listStyle(.plain)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
         }
     }
 
-    private func workoutRow(_ w: WorkoutLog) -> some View {
+    private func workoutCard(_ w: WorkoutLog) -> some View {
         let logId = w.log_id ?? ""
         let isExpanded = expandedWorkoutId == logId
         let isEditing = editingWorkoutId == logId
-        return VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    expandedWorkoutId = isExpanded ? nil : logId
-                }
-            } label: {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(w.date ?? "")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(w.workout_type ?? "Workout")
-                            .font(.headline)
-                        if let d = w.duration_minutes {
-                            Text("\(d) min")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer()
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 8)
-            }
-            .buttonStyle(.plain)
 
-            if isExpanded {
-                if isEditing {
-                    editWorkoutForm(log: w)
-                } else {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(Array((w.exercises ?? []).enumerated()), id: \.offset) { _, e in
-                            HStack {
-                                Text(e.name ?? "Exercise")
-                                    .font(.subheadline)
-                                Spacer()
-                                Text("\(e.sets ?? 0) x \(e.reps ?? "?")")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+        return PremiumRowCard {
+            VStack(alignment: .leading, spacing: 0) {
+                // Header row — tap to expand
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        expandedWorkoutId = isExpanded ? nil : logId
+                        if isEditing { editingWorkoutId = nil }
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Brand.Color.accent.opacity(0.15))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: workoutIcon(w.workout_type))
+                                .font(.body.weight(.bold))
+                                .foregroundStyle(Brand.Color.accent)
+                        }
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(w.workout_type ?? "Workout")
+                                .font(.headline).foregroundStyle(.white)
+                            HStack(spacing: 8) {
+                                if let d = w.duration_minutes {
+                                    Label("\(d) min", systemImage: "clock")
+                                        .font(.caption).foregroundStyle(Brand.Color.muted)
+                                }
+                                if let date = w.date {
+                                    Text(formattedDate(date))
+                                        .font(.caption).foregroundStyle(Brand.Color.muted)
+                                }
                             }
                         }
-                        if let n = w.notes, !n.isEmpty {
-                            Text(n)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Button("Edit") {
-                            editingWorkoutId = logId
-                            editWorkoutData = (
-                                w.workout_type ?? "strength",
-                                w.duration_minutes.map { String($0) } ?? "",
-                                w.notes ?? ""
-                            )
-                        }
-                        .font(.caption)
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.leading, 8)
-                }
-            }
-        }
-    }
-
-    private func editWorkoutForm(log: WorkoutLog) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Picker("Type", selection: $editWorkoutData.type) {
-                ForEach(Self.workoutTypes, id: \.self) { t in
-                    Text(t).tag(t)
-                }
-            }
-            .pickerStyle(.menu)
-            TextField("Duration (min)", text: $editWorkoutData.duration)
-                .keyboardType(.numberPad)
-            TextField("Notes", text: $editWorkoutData.notes, axis: .vertical)
-                .lineLimit(2...4)
-            HStack(spacing: 12) {
-                Button("Update") {
-                    Task { await saveWorkoutEdit(logId: log.log_id ?? "") }
-                }
-                .disabled(workoutSaveStatus == .saving)
-                Button("Cancel") {
-                    editingWorkoutId = nil
-                }
-            }
-            if workoutSaveStatus == .error {
-                Text("Update failed.")
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-        }
-        .padding()
-    }
-
-    private var nutritionList: some View {
-        Group {
-            if nutritionLogs.isEmpty {
-                Text("No nutrition logged yet.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-            } else {
-                List {
-                    ForEach(Array(nutritionLogs.enumerated()), id: \.offset) { _, log in
-                        nutritionRow(log)
+                        Spacer()
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Brand.Color.muted)
                     }
                 }
-                .listStyle(.plain)
+                .buttonStyle(.plain)
+
+                // Expanded detail
+                if isExpanded {
+                    Divider().background(Brand.Color.border).padding(.vertical, 10)
+
+                    if isEditing {
+                        editWorkoutForm(logId: logId)
+                    } else {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(Array((w.exercises ?? []).enumerated()), id: \.offset) { _, e in
+                                HStack {
+                                    Text(e.name ?? "Exercise")
+                                        .font(.subheadline).foregroundStyle(.white)
+                                    Spacer()
+                                    Text("\(e.sets ?? 0)×\(e.reps ?? "?")")
+                                        .font(.caption).foregroundStyle(Brand.Color.muted)
+                                }
+                            }
+                            if let n = w.notes, !n.isEmpty {
+                                Text(n).font(.caption).foregroundStyle(Brand.Color.muted)
+                                    .padding(.top, 2)
+                            }
+                            Button {
+                                editType = w.workout_type.map { capitalize($0) } ?? "Strength"
+                                editDuration = w.duration_minutes.map { String($0) } ?? ""
+                                editNotes = w.notes ?? ""
+                                editingWorkoutId = logId
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "pencil")
+                                    Text("Edit")
+                                }
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Brand.Color.accent)
+                            }
+                            .padding(.top, 4)
+                        }
+                    }
+                }
             }
         }
     }
 
-    private func nutritionRow(_ log: NutritionLog) -> some View {
+    private func editWorkoutForm(logId: String) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("EDIT WORKOUT")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .tracking(1).foregroundStyle(Brand.Color.accent)
+
+            // Type picker
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Self.workoutTypes, id: \.self) { t in
+                        Button { editType = t; HapticEngine.selection() } label: {
+                            Text(t)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(editType == t ? .black : .white)
+                                .padding(.horizontal, 12).padding(.vertical, 8)
+                                .background(
+                                    Capsule().fill(editType == t ? Brand.Color.accent : Brand.Color.surfaceRaised)
+                                        .overlay(Capsule().stroke(Brand.Color.borderStrong, lineWidth: 1))
+                                )
+                        }
+                    }
+                }
+            }
+
+            // Duration
+            HStack(spacing: 10) {
+                Image(systemName: "clock.fill").foregroundStyle(Brand.Color.accent)
+                TextField("Duration (min)", text: $editDuration).keyboardType(.numberPad)
+                    .font(.body).foregroundStyle(.white)
+            }
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Brand.Color.surfaceRaised)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.Color.borderStrong, lineWidth: 1)))
+
+            // Notes
+            TextField("Notes…", text: $editNotes, axis: .vertical).lineLimit(2...3)
+                .font(.body).foregroundStyle(.white)
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Brand.Color.surfaceRaised)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.Color.borderStrong, lineWidth: 1)))
+
+            HStack(spacing: 10) {
+                Button {
+                    Task { await saveWorkoutEdit(logId: logId) }
+                } label: {
+                    HStack(spacing: 6) {
+                        if workoutSaving { ProgressView().scaleEffect(0.7).tint(.black) }
+                        Text(workoutSaving ? "Saving…" : "Update")
+                    }
+                }
+                .buttonStyle(PremiumActionButtonStyle(filled: true))
+                .disabled(workoutSaving)
+
+                Button("Cancel") { editingWorkoutId = nil }
+                    .buttonStyle(PremiumActionButtonStyle(filled: false))
+            }
+        }
+    }
+
+    // MARK: - Nutrition Tab
+
+    private var nutritionTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                if let err = errorMessage {
+                    errorBanner(err)
+                }
+
+                if nutritionLogs.isEmpty && !loading {
+                    PremiumRowCard {
+                        VStack(spacing: 8) {
+                            Image(systemName: "fork.knife")
+                                .font(.title).foregroundStyle(Brand.Color.muted)
+                            Text("No nutrition logged yet.")
+                                .font(.subheadline).foregroundStyle(Brand.Color.muted)
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                    }
+                } else {
+                    ForEach(nutritionLogs.indices, id: \.self) { i in
+                        nutritionCard(nutritionLogs[i])
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
+        }
+    }
+
+    private func nutritionCard(_ log: NutritionLog) -> some View {
         let date = log.date ?? ""
         let isExpanded = expandedNutritionDate == date
-        return VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    expandedNutritionDate = isExpanded ? nil : date
-                }
-            } label: {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(date)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        if let cal = log.total_calories {
-                            Text("\(cal) cal")
-                                .font(.headline)
-                        }
-                    }
-                    Spacer()
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 8)
-            }
-            .buttonStyle(.plain)
+        let isEditing = editingNutritionDate == date
 
-            if isExpanded {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(Array((log.meals ?? []).enumerated()), id: \.offset) { _, m in
-                        HStack {
-                            Text(m.name ?? "Meal")
-                                .font(.subheadline)
-                            Spacer()
-                            if let c = m.calories {
-                                Text("\(c) cal")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+        return PremiumRowCard {
+            VStack(alignment: .leading, spacing: 0) {
+                // Header
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        expandedNutritionDate = isExpanded ? nil : date
+                        if isEditing { editingNutritionDate = nil }
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Brand.Color.success.opacity(0.15))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "fork.knife")
+                                .font(.body.weight(.bold))
+                                .foregroundStyle(Brand.Color.success)
+                        }
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(formattedDate(date))
+                                .font(.headline).foregroundStyle(.white)
+                            if let cal = log.total_calories {
+                                Text("\(cal) kcal")
+                                    .font(.caption).foregroundStyle(Brand.Color.muted)
                             }
                         }
+                        Spacer()
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Brand.Color.muted)
                     }
                 }
-                .padding(.vertical, 8)
-                .padding(.leading, 8)
+                .buttonStyle(.plain)
+
+                // Expanded
+                if isExpanded {
+                    Divider().background(Brand.Color.border).padding(.vertical, 10)
+
+                    if isEditing {
+                        editNutritionForm(date: date, log: log)
+                    } else {
+                        VStack(alignment: .leading, spacing: 8) {
+                            // Macro pills
+                            HStack(spacing: 8) {
+                                if let p = log.protein_g {
+                                    macroPill(label: "Protein", value: "\(p)g", color: .blue)
+                                }
+                                if let c = log.carbs_g {
+                                    macroPill(label: "Carbs", value: "\(c)g", color: .orange)
+                                }
+                                if let f = log.fat_g {
+                                    macroPill(label: "Fat", value: "\(f)g", color: .yellow)
+                                }
+                            }
+
+                            // Meals
+                            ForEach(Array((log.meals ?? []).enumerated()), id: \.offset) { _, m in
+                                HStack {
+                                    Text(m.name ?? "Meal")
+                                        .font(.subheadline).foregroundStyle(.white)
+                                    Spacer()
+                                    if let c = m.calories {
+                                        Text("\(c) kcal")
+                                            .font(.caption).foregroundStyle(Brand.Color.muted)
+                                    }
+                                }
+                            }
+
+                            Button {
+                                editCalories = log.total_calories.map { String($0) } ?? ""
+                                editProtein = log.protein_g.map { String(Int($0)) } ?? ""
+                                editCarbs = log.carbs_g.map { String(Int($0)) } ?? ""
+                                editFat = log.fat_g.map { String(Int($0)) } ?? ""
+                                editingNutritionDate = date
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "pencil")
+                                    Text("Edit macros")
+                                }
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Brand.Color.accent)
+                            }
+                            .padding(.top, 4)
+                        }
+                    }
+                }
             }
         }
     }
+
+    private func editNutritionForm(date: String, log: NutritionLog) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("EDIT MACROS")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .tracking(1).foregroundStyle(Brand.Color.accent)
+
+            let fields: [(String, String, Binding<String>)] = [
+                ("Calories", "kcal", $editCalories),
+                ("Protein", "g", $editProtein),
+                ("Carbs", "g", $editCarbs),
+                ("Fat", "g", $editFat),
+            ]
+            ForEach(Array(fields.enumerated()), id: \.offset) { _, field in
+                let (label, unit, binding) = field
+                HStack(spacing: 10) {
+                    Text(label)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 70, alignment: .leading)
+                    TextField("0", text: binding).keyboardType(.numberPad)
+                        .font(.body).foregroundStyle(.white)
+                    Text(unit).font(.caption).foregroundStyle(Brand.Color.muted)
+                }
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Brand.Color.surfaceRaised)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.Color.borderStrong, lineWidth: 1)))
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    Task { await saveNutritionEdit(date: date, log: log) }
+                } label: {
+                    HStack(spacing: 6) {
+                        if nutritionSaving { ProgressView().scaleEffect(0.7).tint(.black) }
+                        Text(nutritionSaving ? "Saving…" : "Update")
+                    }
+                }
+                .buttonStyle(PremiumActionButtonStyle(filled: true))
+                .disabled(nutritionSaving)
+
+                Button("Cancel") { editingNutritionDate = nil }
+                    .buttonStyle(PremiumActionButtonStyle(filled: false))
+            }
+        }
+    }
+
+    // MARK: - Helper Views
+
+    private func macroPill(label: String, value: String, color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(value).font(.caption.weight(.black)).foregroundStyle(color)
+            Text(label).font(.system(size: 9)).foregroundStyle(Brand.Color.muted)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .background(color.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func errorBanner(_ err: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Brand.Color.danger)
+            Text(err).font(.caption).foregroundStyle(Brand.Color.danger)
+        }
+        .padding(14)
+        .background(Brand.Color.danger.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func workoutIcon(_ type: String?) -> String {
+        switch type?.lowercased() {
+        case "strength": return "dumbbell.fill"
+        case "cardio": return "heart.circle.fill"
+        case "hiit": return "bolt.fill"
+        case "recovery": return "leaf.fill"
+        case "sports": return "sportscourt.fill"
+        default: return "figure.run"
+        }
+    }
+
+    private func formattedDate(_ s: String?) -> String {
+        guard let s else { return "" }
+        let p = DateFormatter(); p.dateFormat = "yyyy-MM-dd"; p.timeZone = TimeZone(identifier: "UTC")
+        guard let d = p.date(from: s) else { return s }
+        let f = DateFormatter(); f.dateStyle = .medium; f.timeStyle = .none
+        return f.string(from: d)
+    }
+
+    private func capitalize(_ s: String) -> String {
+        s.prefix(1).uppercased() + s.dropFirst()
+    }
+
+    // MARK: - Data
 
     private func load() async {
         guard let ds = dataService else { return }
@@ -261,10 +480,10 @@ struct HistoryView: View {
         do {
             async let w: [WorkoutLog] = ds.fetchWorkoutLogs(limit: 100)
             async let n: [NutritionLog] = ds.fetchNutritionLogs(limit: 100)
-            let (workoutsList, nutritionList) = try await (w, n)
+            let (wList, nList) = try await (w, n)
             await MainActor.run {
-                workouts = workoutsList
-                nutritionLogs = nutritionList
+                workouts = wList
+                nutritionLogs = nList
                 errorMessage = nil
             }
         } catch {
@@ -274,13 +493,13 @@ struct HistoryView: View {
 
     private func saveWorkoutEdit(logId: String) async {
         guard let ds = dataService, !logId.isEmpty else { return }
-        workoutSaveStatus = .saving
-        defer { workoutSaveStatus = .idle }
+        workoutSaving = true
+        defer { workoutSaving = false }
         do {
             var log = workouts.first(where: { $0.log_id == logId }) ?? WorkoutLog()
-            log.workout_type = editWorkoutData.type
-            log.duration_minutes = Int(editWorkoutData.duration)
-            log.notes = editWorkoutData.notes.isEmpty ? nil : editWorkoutData.notes
+            log.workout_type = editType
+            log.duration_minutes = Int(editDuration)
+            log.notes = editNotes.isEmpty ? nil : editNotes
             try await ds.updateWorkoutLog(logId: logId, log)
             await MainActor.run {
                 if let i = workouts.firstIndex(where: { $0.log_id == logId }) {
@@ -291,7 +510,48 @@ struct HistoryView: View {
                 editingWorkoutId = nil
             }
         } catch {
-            await MainActor.run { workoutSaveStatus = .error }
+            await MainActor.run { errorMessage = error.localizedDescription }
+        }
+    }
+
+    private func saveNutritionEdit(date: String, log: NutritionLog) async {
+        guard let ds = dataService, !date.isEmpty else { return }
+        nutritionSaving = true
+        defer { nutritionSaving = false }
+        do {
+            var updated = log
+            updated.total_calories = Int(editCalories)
+            updated.protein_g = Int(editProtein)
+            updated.carbs_g = Int(editCarbs)
+            updated.fat_g = Int(editFat)
+            try await ds.upsertNutritionLog(updated)
+            await MainActor.run {
+                if let i = nutritionLogs.firstIndex(where: { $0.date == date }) {
+                    nutritionLogs[i] = updated
+                }
+                editingNutritionDate = nil
+            }
+        } catch {
+            await MainActor.run { errorMessage = error.localizedDescription }
+        }
+    }
+}
+
+private struct HistoryTabButton: View {
+    let title: String
+    let isActive: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Text(title)
+                    .font(.system(size: 13, weight: .black))
+                    .foregroundStyle(isActive ? .white : .white.opacity(0.4))
+                Rectangle()
+                    .fill(isActive ? Brand.Color.accent : Color.clear)
+                    .frame(height: 2)
+            }
         }
     }
 }

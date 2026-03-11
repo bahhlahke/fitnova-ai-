@@ -19,6 +19,7 @@ struct CoachView: View {
         let role: String
         let text: String
         let action: AIAction?
+        let timestamp = Date()
     }
 
     private var api: KodaAPIService {
@@ -67,18 +68,22 @@ struct CoachView: View {
                             if isLoading {
                                 PremiumRowCard {
                                     HStack(spacing: 12) {
-                                        ProgressView()
-                                            .tint(Brand.Color.accent)
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("Coach is building the answer")
-                                                .font(.subheadline.weight(.bold))
-                                                .foregroundStyle(.white)
-                                            Text("Expect a recommendation, rationale, and next step.")
-                                                .font(.caption)
-                                                .foregroundStyle(Brand.Color.muted)
+                                        Image(systemName: "sparkles")
+                                            .font(.system(size: 14, weight: .bold))
+                                            .foregroundStyle(Color.black)
+                                            .frame(width: 34, height: 34)
+                                            .background(Circle().fill(Brand.Color.accent))
+                                            .overlay(Circle().stroke(Brand.Color.accent.opacity(0.2), lineWidth: 1))
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            Text("KODA COACH")
+                                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                                .tracking(1.1)
+                                                .foregroundStyle(Brand.Color.accent)
+                                            TypingIndicatorView()
                                         }
                                     }
                                 }
+                                .id("typing-indicator")
                             }
                         }
                         .padding(.horizontal, 16)
@@ -93,6 +98,13 @@ struct CoachView: View {
                             }
                         }
                     }
+                    .onChange(of: isLoading) { _, loading in
+                        if loading {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                proxy.scrollTo("typing-indicator", anchor: .bottom)
+                            }
+                        }
+                    }
                 }
 
                 coachComposer
@@ -101,6 +113,16 @@ struct CoachView: View {
             .navigationTitle("Coach")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                if !messages.isEmpty {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button {
+                            withAnimation { messages = [] }
+                        } label: {
+                            Label("Clear", systemImage: "trash")
+                                .foregroundStyle(Brand.Color.muted)
+                        }
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     NavigationLink("Support") {
                         CoachEscalateView()
@@ -410,6 +432,13 @@ struct MessageBubble: View {
                 WorkoutSteeringButton(trainingPlan: action.payload?.training_plan)
                     .padding(.leading, message.role == "assistant" ? 58 : 0)
             }
+
+            Text(message.timestamp, style: .time)
+                .font(.system(size: 10))
+                .foregroundStyle(Brand.Color.muted)
+                .padding(.leading, message.role == "assistant" ? 58 : 0)
+                .padding(.trailing, message.role == "user" ? 58 : 0)
+                .frame(maxWidth: .infinity, alignment: message.role == "user" ? .trailing : .leading)
         }
     }
 
@@ -574,5 +603,28 @@ struct CoachMarkdownText: View {
 
         let kind: Kind
         let text: String
+    }
+}
+
+struct TypingIndicatorView: View {
+    @State private var animating = false
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<3, id: \.self) { i in
+                Circle()
+                    .fill(Brand.Color.accent)
+                    .frame(width: 7, height: 7)
+                    .opacity(animating ? 1.0 : 0.3)
+                    .scaleEffect(animating ? 1.0 : 0.55)
+                    .animation(
+                        .easeInOut(duration: 0.5)
+                            .repeatForever(autoreverses: true)
+                            .delay(Double(i) * 0.17),
+                        value: animating
+                    )
+            }
+        }
+        .onAppear { animating = true }
     }
 }
