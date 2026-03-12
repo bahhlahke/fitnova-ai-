@@ -118,7 +118,7 @@ final class APIModelsTests: XCTestCase {
 
     func testVisionAnalysisResponseDecoding() throws {
         let json = """
-        {"score":0.88,"critique":"Good depth.","correction":"Drive through heels.","analysis_source":"on_device","analysis_mode":"on_device_pose_photo","benchmark_ms":128,"frames_analyzed":3,"pose_confidence":0.81}
+        {"score":0.88,"critique":"Good depth.","correction":"Drive through heels.","analysis_source":"on_device","analysis_mode":"on_device_pose_photo","benchmark_ms":128,"frames_analyzed":3,"pose_confidence":0.81,"movement_pattern":"squat","rep_count":4,"peak_velocity_mps":0.72,"mean_velocity_mps":0.61,"velocity_dropoff_percent":12.5,"benchmark_report_path":"/tmp/report.json"}
         """
         let data = Data(json.utf8)
         let decoded = try decoder.decode(VisionAnalysisResponse.self, from: data)
@@ -130,6 +130,12 @@ final class APIModelsTests: XCTestCase {
         XCTAssertEqual(decoded.benchmark_ms, 128)
         XCTAssertEqual(decoded.frames_analyzed, 3)
         XCTAssertEqual(decoded.pose_confidence, 0.81)
+        XCTAssertEqual(decoded.movement_pattern, "squat")
+        XCTAssertEqual(decoded.rep_count, 4)
+        XCTAssertEqual(decoded.peak_velocity_mps, 0.72)
+        XCTAssertEqual(decoded.mean_velocity_mps, 0.61)
+        XCTAssertEqual(decoded.velocity_dropoff_percent, 12.5)
+        XCTAssertEqual(decoded.benchmark_report_path, "/tmp/report.json")
     }
 
     func testBodyCompResponseDecoding() throws {

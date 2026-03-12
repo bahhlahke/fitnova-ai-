@@ -12,6 +12,7 @@ import CoreMedia
 
 struct RealtimeMotionLabSessionView: View {
     let capability: MotionAnalysisCapability
+    let configuration: MotionSessionConfiguration
     let title: String
     let subtitle: String
     let onComplete: (RealtimeMotionSessionSummary) -> Void
@@ -22,11 +23,13 @@ struct RealtimeMotionLabSessionView: View {
 
     init(
         capability: MotionAnalysisCapability,
+        configuration: MotionSessionConfiguration = .default,
         title: String = "Realtime Motion Lab",
         subtitle: String = "Continuous on-device pose tracking, rep counting, and live technique cues.",
         onComplete: @escaping (RealtimeMotionSessionSummary) -> Void
     ) {
         self.capability = capability
+        self.configuration = configuration
         self.title = title
         self.subtitle = subtitle
         self.onComplete = onComplete
@@ -90,7 +93,7 @@ struct RealtimeMotionLabSessionView: View {
                         liveMetric(title: "REPS", value: "\(controller.snapshot.repCount)")
                         liveMetric(title: "PHASE", value: controller.snapshot.phase.label.uppercased())
                         liveMetric(title: "FPS", value: "\(Int(controller.snapshot.fps.rounded()))")
-                        liveMetric(title: "LAT", value: "\(controller.snapshot.latencyMs)MS")
+                        liveMetric(title: "VEL", value: String(format: "%.2f", controller.snapshot.currentVelocityMps))
                     }
                     .padding(.horizontal, 20)
 
@@ -113,8 +116,9 @@ struct RealtimeMotionLabSessionView: View {
 
                         HStack(spacing: 14) {
                             Text("Confidence \(Int((controller.snapshot.poseConfidence * 100).rounded()))%")
-                            Text("Knee \(Int(controller.snapshot.kneeAngle.rounded()))°")
+                            Text("\(controller.snapshot.pattern.label) \(Int(controller.snapshot.primaryMetric.rounded()))")
                             Text("Torso \(Int(controller.snapshot.torsoLeanDegrees.rounded()))°")
+                            Text("Peak \(String(format: "%.2f", controller.snapshot.peakVelocityMps)) m/s")
                         }
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -157,7 +161,7 @@ struct RealtimeMotionLabSessionView: View {
         }
         .task {
             guard capability.supportsRealtime else { return }
-            controller.attach(to: cameraSession)
+            controller.attach(to: cameraSession, configuration: configuration)
             await cameraSession.startSession(enableVideoFrames: true)
         }
         .onDisappear {
@@ -185,6 +189,7 @@ struct RealtimeMotionLabSessionView: View {
 @MainActor
 final class RealtimeMotionLabController: ObservableObject {
     @Published var snapshot = LiveMotionSnapshot(
+        pattern: .squat,
         repCount: 0,
         phase: .setup,
         cue: "Brace, stay side-on to the camera, and start the rep.",
@@ -193,14 +198,18 @@ final class RealtimeMotionLabController: ObservableObject {
         latencyMs: 0,
         poseConfidence: 0,
         torsoLeanDegrees: 0,
-        kneeAngle: 0,
+        primaryMetric: 0,
+        currentVelocityMps: 0,
+        peakVelocityMps: 0,
+        meanVelocityMps: 0,
         segments: [],
         trackingStatus: "Waiting for pose"
     )
 
-    private let analyzerBox = RealtimeAnalyzerBox()
+    private var analyzerBox = RealtimeAnalyzerBox(configuration: .default)
 
-    func attach(to cameraSession: CameraCaptureSession) {
+    func attach(to cameraSession: CameraCaptureSession, configuration: MotionSessionConfiguration) {
+        analyzerBox = RealtimeAnalyzerBox(configuration: configuration)
         cameraSession.setVideoFrameHandler { [weak self] sampleBuffer in
             guard let self, let update = analyzerBox.process(sampleBuffer: sampleBuffer) else { return }
             DispatchQueue.main.async {
@@ -216,7 +225,11 @@ final class RealtimeMotionLabController: ObservableObject {
 
 private final class RealtimeAnalyzerBox {
     private let lock = NSLock()
-    private let analyzer = LivePoseStreamAnalyzer()
+    private let analyzer: LivePoseStreamAnalyzer
+
+    init(configuration: MotionSessionConfiguration) {
+        analyzer = LivePoseStreamAnalyzer(configuration: configuration)
+    }
 
     func process(sampleBuffer: CMSampleBuffer) -> LiveMotionSnapshot? {
         lock.lock()

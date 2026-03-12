@@ -342,7 +342,13 @@ struct KodaAPIService {
                     benchmark_ms: nil,
                     frames_analyzed: nil,
                     pose_confidence: nil,
-                    fallback_reason: nil
+                    fallback_reason: nil,
+                    movement_pattern: nil,
+                    rep_count: nil,
+                    peak_velocity_mps: nil,
+                    mean_velocity_mps: nil,
+                    velocity_dropoff_percent: nil,
+                    benchmark_report_path: nil
                 ),
                 label: "vision analysis"
             )

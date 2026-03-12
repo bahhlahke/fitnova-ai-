@@ -355,7 +355,13 @@ enum DemoContent {
             benchmark_ms: 142,
             frames_analyzed: 3,
             pose_confidence: 0.84,
-            fallback_reason: nil
+            fallback_reason: nil,
+            movement_pattern: "squat",
+            rep_count: 4,
+            peak_velocity_mps: 0.72,
+            mean_velocity_mps: 0.61,
+            velocity_dropoff_percent: 12.5,
+            benchmark_report_path: nil
         )
     }
 

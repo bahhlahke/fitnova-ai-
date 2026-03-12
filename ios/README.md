@@ -146,8 +146,9 @@ Additional iOS notes:
 
 - Guided workout voice cues now announce the next exercise during the intro step so coached sessions stay continuous between cards and set execution.
 - Recipe generation response models decode `meal_type` so breakfast/lunch/dinner labels coming from the API are preserved in native UI fixtures and production payloads.
-- Motion Lab now offers a reusable realtime session sheet with on-device pose tracking, skeleton overlay, squat rep counting, live cueing, and benchmark capture for Motion Lab and Guided Workout form checks.
+- Motion Lab now offers a reusable realtime session sheet with on-device pose tracking, skeleton overlay, squat/hinge/press/pull rep segmentation, live cueing, camera-derived velocity summaries, and benchmark report capture for Motion Lab and Guided Workout form checks.
 - Photo-based Motion Lab checks still prefer on-device pose analysis on supported devices and automatically fall back to the server vision API when thermal state, Low Power Mode, or pose-tracking quality makes the local path unreliable.
+- Realtime sessions persist benchmark JSON artifacts under the app documents directory (`MotionLabReports/<pattern>/...json`) and surface the saved filename in the native result cards so operators can collect evidence after device runs.
 
 ## Simulator QA launch contract
 

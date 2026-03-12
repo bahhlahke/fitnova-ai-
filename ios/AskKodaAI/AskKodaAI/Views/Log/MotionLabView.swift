@@ -18,6 +18,7 @@ struct MotionLabView: View {
     @State private var analyzing = false
     @State private var result: VisionAnalysisResponse?
     @State private var errorMessage: String?
+    @State private var selectedPattern: MotionMovementPattern = .squat
 
     private var api: KodaAPIService {
         KodaAPIService(getAccessToken: { auth.accessToken })
@@ -56,10 +57,17 @@ struct MotionLabView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 12) {
+                    Picker("Movement", selection: $selectedPattern) {
+                        ForEach(MotionMovementPattern.allCases) { pattern in
+                            Text(pattern.label).tag(pattern)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
                     Text("Realtime Motion Lab")
                         .font(.headline)
 
-                    Text("Run continuous pose tracking, rep counting, and live cues directly on device.")
+                    Text("Run continuous pose tracking, rep counting, live cues, and camera-derived velocity estimates directly on device.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
@@ -141,6 +149,10 @@ struct MotionLabView: View {
                             if let benchmark = r.benchmark_ms {
                                 analysisBadge(title: "\(benchmark) ms", systemImage: "speedometer")
                             }
+
+                            if let pattern = r.movement_pattern {
+                                analysisBadge(title: pattern.replacingOccurrences(of: "_", with: " ").capitalized, systemImage: "figure.strengthtraining.traditional")
+                            }
                         }
 
                         if let score = r.score {
@@ -161,6 +173,29 @@ struct MotionLabView: View {
                             Text(corr)
                                 .font(.subheadline)
                                 .italic()
+                        }
+
+                        if let reps = r.rep_count, reps > 0 || r.peak_velocity_mps != nil {
+                            HStack(spacing: 12) {
+                                if reps > 0 {
+                                    analysisBadge(title: "\(reps) reps", systemImage: "repeat")
+                                }
+                                if let peak = r.peak_velocity_mps {
+                                    analysisBadge(title: String(format: "Peak %.2f m/s", peak), systemImage: "gauge.with.dots.needle.33percent")
+                                }
+                                if let mean = r.mean_velocity_mps {
+                                    analysisBadge(title: String(format: "Mean %.2f m/s", mean), systemImage: "speedometer")
+                                }
+                                if let dropoff = r.velocity_dropoff_percent, dropoff > 0 {
+                                    analysisBadge(title: String(format: "Dropoff %.0f%%", dropoff), systemImage: "chart.line.downtrend.xyaxis")
+                                }
+                            }
+                        }
+
+                        if let reportPath = r.benchmark_report_path, !reportPath.isEmpty {
+                            Text("Benchmark report saved: \(benchmarkReportLabel(for: reportPath))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
 
                         if let fallback = r.fallback_reason, !fallback.isEmpty {
@@ -206,6 +241,7 @@ struct MotionLabView: View {
         .sheet(isPresented: $showRealtimeScanner) {
             RealtimeMotionLabSessionView(
                 capability: analysisCapability,
+                configuration: MotionSessionConfiguration(pattern: selectedPattern),
                 onComplete: { summary in
                     result = summary.response
                     Task {
@@ -224,7 +260,7 @@ struct MotionLabView: View {
         analyzing = true
         Task {
             do {
-                let res = try await motionAnalysis.analyze(images: imageDataUrls)
+                let res = try await motionAnalysis.analyze(images: imageDataUrls, configuration: MotionSessionConfiguration(pattern: selectedPattern))
                 await Telemetry.track("ios_cv_analysis_completed", props: analysisTelemetry(for: res))
                 await MainActor.run {
                     result = res
@@ -260,6 +296,12 @@ struct MotionLabView: View {
         if let frames = response.frames_analyzed { props["frames_analyzed"] = frames }
         if let confidence = response.pose_confidence { props["pose_confidence"] = confidence }
         if let fallback = response.fallback_reason, !fallback.isEmpty { props["fallback_reason"] = fallback }
+        if let pattern = response.movement_pattern { props["movement_pattern"] = pattern }
+        if let reps = response.rep_count { props["rep_count"] = reps }
+        if let peak = response.peak_velocity_mps { props["peak_velocity_mps"] = peak }
+        if let mean = response.mean_velocity_mps { props["mean_velocity_mps"] = mean }
+        if let dropoff = response.velocity_dropoff_percent { props["velocity_dropoff_percent"] = dropoff }
+        if let reportPath = response.benchmark_report_path { props["benchmark_report_path"] = reportPath }
         return props
     }
 
@@ -281,5 +323,9 @@ struct MotionLabView: View {
             .padding(.vertical, 6)
             .background(Color.black.opacity(0.06))
             .clipShape(Capsule())
+    }
+
+    private func benchmarkReportLabel(for path: String) -> String {
+        URL(fileURLWithPath: path).lastPathComponent
     }
 }

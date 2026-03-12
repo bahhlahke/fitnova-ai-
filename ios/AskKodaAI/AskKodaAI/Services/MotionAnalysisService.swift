@@ -53,6 +53,53 @@ struct VisionPoseEstimator: PoseEstimating {
     }
 }
 
+enum MotionMovementPattern: String, Codable, CaseIterable, Identifiable {
+    case squat
+    case hinge
+    case press
+    case pull
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .squat: return "Squat"
+        case .hinge: return "Hinge"
+        case .press: return "Press"
+        case .pull: return "Pull"
+        }
+    }
+
+    var summaryLabel: String {
+        switch self {
+        case .squat: return "squat pattern"
+        case .hinge: return "hinge pattern"
+        case .press: return "press pattern"
+        case .pull: return "pull pattern"
+        }
+    }
+
+    static func infer(from exerciseName: String?) -> MotionMovementPattern {
+        let name = (exerciseName ?? "").lowercased()
+        if name.contains("deadlift") || name.contains("rdl") || name.contains("hinge") || name.contains("good morning") || name.contains("swing") {
+            return .hinge
+        }
+        if name.contains("pull") || name.contains("row") || name.contains("chin") || name.contains("lat pulldown") {
+            return .pull
+        }
+        if name.contains("press") || name.contains("bench") || name.contains("push-up") || name.contains("pushup") {
+            return .press
+        }
+        return .squat
+    }
+}
+
+struct MotionSessionConfiguration {
+    let pattern: MotionMovementPattern
+
+    static let `default` = MotionSessionConfiguration(pattern: .squat)
+}
+
 struct MotionAnalysisCapability {
     let isOnDeviceAvailable: Bool
     let detail: String
@@ -132,28 +179,30 @@ struct MotionAnalysisService {
         onDeviceAnalyzer.capability
     }
 
-    func analyze(images: [String]) async throws -> VisionAnalysisResponse {
+    func analyze(images: [String], configuration: MotionSessionConfiguration = MotionSessionConfiguration(pattern: .squat)) async throws -> VisionAnalysisResponse {
         let capability = onDeviceAnalyzer.capability
         guard capability.isOnDeviceAvailable else {
             return try await fallbackResponse(
                 images: images,
+                configuration: configuration,
                 mode: "remote_vision_fallback",
                 fallbackReason: capability.detail
             )
         }
 
         do {
-            return try await onDeviceAnalyzer.analyze(dataURLs: images)
+            return try await onDeviceAnalyzer.analyze(dataURLs: images, configuration: configuration)
         } catch {
             return try await fallbackResponse(
                 images: images,
+                configuration: configuration,
                 mode: "remote_vision_fallback",
                 fallbackReason: (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             )
         }
     }
 
-    private func fallbackResponse(images: [String], mode: String, fallbackReason: String?) async throws -> VisionAnalysisResponse {
+    private func fallbackResponse(images: [String], configuration: MotionSessionConfiguration, mode: String, fallbackReason: String?) async throws -> VisionAnalysisResponse {
         let response = try await api.aiVision(images: images)
         return VisionAnalysisResponse(
             score: response.score,
@@ -164,7 +213,13 @@ struct MotionAnalysisService {
             benchmark_ms: response.benchmark_ms,
             frames_analyzed: response.frames_analyzed ?? images.count,
             pose_confidence: response.pose_confidence,
-            fallback_reason: fallbackReason ?? response.fallback_reason
+            fallback_reason: fallbackReason ?? response.fallback_reason,
+            movement_pattern: configuration.pattern.rawValue,
+            rep_count: response.rep_count,
+            peak_velocity_mps: response.peak_velocity_mps,
+            mean_velocity_mps: response.mean_velocity_mps,
+            velocity_dropoff_percent: response.velocity_dropoff_percent,
+            benchmark_report_path: response.benchmark_report_path
         )
     }
 }
@@ -178,7 +233,7 @@ struct OnDeviceMotionAnalyzer {
         self.estimator = estimator
     }
 
-    func analyze(dataURLs: [String]) async throws -> VisionAnalysisResponse {
+    func analyze(dataURLs: [String], configuration: MotionSessionConfiguration) async throws -> VisionAnalysisResponse {
         let start = Date()
         let decodedImages = dataURLs.compactMap(Self.decodeImage(from:))
 
@@ -191,7 +246,7 @@ struct OnDeviceMotionAnalyzer {
             throw MotionAnalysisError.poseNotDetected
         }
 
-        let summary = OnDeviceMotionAnalyzer.summarize(frames: frames)
+        let summary = OnDeviceMotionAnalyzer.summarize(frames: frames, pattern: configuration.pattern)
         let elapsedMs = max(1, Int(Date().timeIntervalSince(start) * 1000))
 
         return VisionAnalysisResponse(
@@ -203,7 +258,13 @@ struct OnDeviceMotionAnalyzer {
             benchmark_ms: elapsedMs,
             frames_analyzed: frames.count,
             pose_confidence: summary.poseConfidence,
-            fallback_reason: nil
+            fallback_reason: nil,
+            movement_pattern: configuration.pattern.rawValue,
+            rep_count: nil,
+            peak_velocity_mps: nil,
+            mean_velocity_mps: nil,
+            velocity_dropoff_percent: nil,
+            benchmark_report_path: nil
         )
     }
 
@@ -211,10 +272,11 @@ struct OnDeviceMotionAnalyzer {
         try estimator.estimatePose(in: image)
     }
 
-    static func summarize(frames: [PoseFrame]) -> PoseSummary {
+    static func summarize(frames: [PoseFrame], pattern: MotionMovementPattern = .squat) -> PoseSummary {
         let poseConfidence = frames.map(\.poseConfidence).average ?? 0
         let avgKneeAngle = frames.compactMap(\.averageKneeAngle).average ?? 150
         let avgHipAngle = frames.compactMap(\.averageHipAngle).average ?? 95
+        let avgElbowAngle = frames.compactMap(\.averageElbowAngle).average ?? 145
         let avgTorsoLean = frames.compactMap(\.torsoLeanDegrees).average ?? 35
         let avgShoulderTilt = frames.compactMap(\.shoulderTilt).average ?? 0
         let avgHipTilt = frames.compactMap(\.hipTilt).average ?? 0
@@ -235,12 +297,39 @@ struct OnDeviceMotionAnalyzer {
             score -= 14
         }
 
-        if avgDepthDelta <= 0.08 || avgKneeAngle <= 115 {
-            positives.append("depth looked consistent through the available frames")
-            score += 4
-        } else if avgDepthDelta > 0.16 || avgKneeAngle > 145 {
-            corrections.append("sit slightly deeper before driving back up")
-            score -= 12
+        switch pattern {
+        case .squat:
+            if avgDepthDelta <= 0.08 || avgKneeAngle <= 115 {
+                positives.append("depth looked consistent through the available frames")
+                score += 4
+            } else if avgDepthDelta > 0.16 || avgKneeAngle > 145 {
+                corrections.append("sit slightly deeper before driving back up")
+                score -= 12
+            }
+        case .hinge:
+            if avgHipAngle <= 92 {
+                positives.append("the hinge stayed loaded through the hip pocket")
+                score += 4
+            } else if avgHipAngle > 120 {
+                corrections.append("push the hips back farther before returning to lockout")
+                score -= 12
+            }
+        case .press:
+            if avgElbowAngle >= 148 {
+                positives.append("press lockout looked clean and decisive")
+                score += 4
+            } else {
+                corrections.append("finish the press with a harder elbow lockout")
+                score -= 10
+            }
+        case .pull:
+            if avgElbowAngle <= 92 {
+                positives.append("top-end contraction looked strong")
+                score += 4
+            } else {
+                corrections.append("pull higher before lowering back to the start")
+                score -= 10
+            }
         }
 
         if avgTorsoLean <= 28 {
@@ -259,7 +348,7 @@ struct OnDeviceMotionAnalyzer {
             score -= 8
         }
 
-        if avgHipAngle < 58 {
+        if pattern == .squat && avgHipAngle < 58 {
             corrections.append("brace harder through the bottom so the hips do not collapse")
             score -= 6
         }
@@ -267,7 +356,7 @@ struct OnDeviceMotionAnalyzer {
         score -= consistencyPenalty
         let boundedScore = min(96, max(48, score))
 
-        let critiqueLead = positives.isEmpty ? "On-device pose analysis completed." : "On-device pose analysis found that " + positives.joined(separator: ", ") + "."
+        let critiqueLead = positives.isEmpty ? "On-device \(pattern.summaryLabel) analysis completed." : "On-device \(pattern.summaryLabel) analysis found that " + positives.joined(separator: ", ") + "."
         let correctionLead = corrections.isEmpty
             ? "Keep the same setup and repeat from a side angle when you want a tighter local read."
             : corrections.uniqued().joined(separator: " ")
@@ -307,6 +396,7 @@ struct PoseFrame {
     let poseConfidence: Double
     let averageKneeAngle: Double?
     let averageHipAngle: Double?
+    let averageElbowAngle: Double?
     let torsoLeanDegrees: Double?
     let shoulderTilt: Double?
     let hipTilt: Double?
@@ -330,11 +420,14 @@ struct PoseFrame {
             knee: landmarks.rightKnee,
             ankle: landmarks.rightAnkle
         )
+        let leftElbowAngle = PoseSideMetrics.angle(a: landmarks.leftShoulder, vertex: landmarks.leftElbow, c: landmarks.leftWrist)
+        let rightElbowAngle = PoseSideMetrics.angle(a: landmarks.rightShoulder, vertex: landmarks.rightElbow, c: landmarks.rightWrist)
 
         let trackedPoints = landmarks.allPoints
         poseConfidence = trackedPoints.map(\.confidence).average ?? 0
         averageKneeAngle = [leftSide.kneeAngle, rightSide.kneeAngle].compactMap { $0 }.average
         averageHipAngle = [leftSide.hipAngle, rightSide.hipAngle].compactMap { $0 }.average
+        averageElbowAngle = [leftElbowAngle, rightElbowAngle].compactMap { $0 }.average
         torsoLeanDegrees = [leftSide.torsoLeanDegrees, rightSide.torsoLeanDegrees].compactMap { $0 }.average
 
         if let leftShoulder = landmarks.leftShoulder, let rightShoulder = landmarks.rightShoulder {
@@ -375,6 +468,7 @@ struct PoseSegment: Hashable, Identifiable {
 }
 
 struct LiveMotionSnapshot {
+    let pattern: MotionMovementPattern
     let repCount: Int
     let phase: MotionPhase
     let cue: String
@@ -383,7 +477,10 @@ struct LiveMotionSnapshot {
     let latencyMs: Int
     let poseConfidence: Double
     let torsoLeanDegrees: Double
-    let kneeAngle: Double
+    let primaryMetric: Double
+    let currentVelocityMps: Double
+    let peakVelocityMps: Double
+    let meanVelocityMps: Double
     let segments: [PoseSegment]
     let trackingStatus: String
 }
@@ -394,6 +491,15 @@ struct MotionBenchmarkReport {
     let p95LatencyMs: Int
     let processedFrames: Int
     let droppedFrames: Int
+    let reportPath: String?
+}
+
+struct MotionVelocitySummary {
+    let peakVelocityMps: Double
+    let meanVelocityMps: Double
+    let velocityDropoffPercent: Double
+    let fastestRepMps: Double
+    let slowestRepMps: Double
 }
 
 struct RealtimeMotionSessionSummary {
@@ -401,18 +507,209 @@ struct RealtimeMotionSessionSummary {
     let benchmark: MotionBenchmarkReport
 }
 
+private enum MotionMetricOrientation {
+    case highAtTop
+    case lowAtTop
+}
+
+private struct MotionPatternProfile {
+    let pattern: MotionMovementPattern
+    let orientation: MotionMetricOrientation
+    let topThreshold: Double
+    let bottomThreshold: Double
+
+    func primaryMetric(for frame: PoseFrame) -> Double? {
+        switch pattern {
+        case .squat:
+            return frame.averageKneeAngle
+        case .hinge:
+            return frame.averageHipAngle
+        case .press, .pull:
+            return frame.averageElbowAngle
+        }
+    }
+
+    func anchorY(for frame: PoseFrame) -> Double? {
+        switch pattern {
+        case .squat, .hinge:
+            return frame.landmarks.shoulderMidpoint.map { Double($0.y) }
+        case .press, .pull:
+            return frame.landmarks.wristMidpoint.map { Double($0.y) }
+        }
+    }
+
+    func isAtTop(_ metric: Double) -> Bool {
+        switch orientation {
+        case .highAtTop:
+            return metric >= topThreshold
+        case .lowAtTop:
+            return metric <= topThreshold
+        }
+    }
+
+    func isAtBottom(_ metric: Double) -> Bool {
+        switch orientation {
+        case .highAtTop:
+            return metric <= bottomThreshold
+        case .lowAtTop:
+            return metric >= bottomThreshold
+        }
+    }
+
+    func movingTowardTop(delta: Double) -> Bool {
+        switch orientation {
+        case .highAtTop:
+            return delta > 2
+        case .lowAtTop:
+            return delta < -2
+        }
+    }
+
+    func movingTowardBottom(delta: Double) -> Bool {
+        switch orientation {
+        case .highAtTop:
+            return delta < -2
+        case .lowAtTop:
+            return delta > 2
+        }
+    }
+
+    func passiveCue(for phase: MotionPhase, poseConfidence: Double) -> String {
+        switch phase {
+        case .setup:
+            switch pattern {
+            case .squat:
+                return "Brace, stay side-on to the camera, and start the rep."
+            case .hinge:
+                return "Set the lats, soften the knees, and hinge from the hips."
+            case .press:
+                return "Stack the ribs, keep wrists over elbows, and press cleanly."
+            case .pull:
+                return "Start from a long hang and pull the elbows toward the ribs."
+            }
+        case .eccentric:
+            switch pattern {
+            case .squat:
+                return "Control the descent and keep pressure through mid-foot."
+            case .hinge:
+                return "Push the hips back and keep the bar path close."
+            case .press:
+                return "Lower with control and keep the forearms vertical."
+            case .pull:
+                return "Descend under control without losing upper-back tension."
+            }
+        case .bottom:
+            switch pattern {
+            case .squat:
+                return "Hold shape at the bottom, then drive straight up."
+            case .hinge:
+                return "Stay loaded in the hamstrings, then drive the hips through."
+            case .press:
+                return "Stay stacked at the rack position, then punch overhead."
+            case .pull:
+                return "Hit the top hard, then own the position before lowering."
+            }
+        case .concentric:
+            switch pattern {
+            case .squat:
+                return "Lead with the chest and finish the rep tall."
+            case .hinge:
+                return "Drive the floor away and snap to a tall finish."
+            case .press:
+                return "Press fast and finish with the biceps by the ears."
+            case .pull:
+                return "Pull the elbows down and keep the chest proud."
+            }
+        case .lockout:
+            return poseConfidence >= 0.72 ? "Tracking stable. Keep the same camera angle." : "Stay centered in frame for a cleaner read."
+        }
+    }
+
+    func activeCue(for frame: PoseFrame, phase: MotionPhase) -> String? {
+        if let torsoLean = frame.torsoLeanDegrees, torsoLean > 42, pattern != .pull {
+            switch pattern {
+            case .squat:
+                return "Chest up. Keep the rib cage stacked over the hips."
+            case .hinge:
+                return "Keep the spine neutral and hinge from the hips, not the low back."
+            case .press:
+                return "Stay stacked. Do not lean back to finish the press."
+            case .pull:
+                return nil
+            }
+        }
+
+        if let shoulderTilt = frame.shoulderTilt, let hipTilt = frame.hipTilt,
+           shoulderTilt > 0.05 || hipTilt > 0.05 {
+            return "Square the shoulders and hips before the next rep."
+        }
+
+        switch pattern {
+        case .squat:
+            if phase == .bottom, let kneeAngle = frame.averageKneeAngle, kneeAngle > 135 {
+                return "Sit deeper before driving up."
+            }
+        case .hinge:
+            if phase == .bottom, let hipAngle = frame.averageHipAngle, hipAngle > 108 {
+                return "Reach the hips back farther before standing tall."
+            }
+        case .press:
+            if let elbowAngle = frame.averageElbowAngle, elbowAngle < 148, phase == .lockout {
+                return "Finish taller and lock the elbows overhead."
+            }
+        case .pull:
+            if let elbowAngle = frame.averageElbowAngle, elbowAngle > 92, phase == .bottom {
+                return "Pull higher and finish with the elbows down."
+            }
+        }
+
+        return nil
+    }
+
+    static func forPattern(_ pattern: MotionMovementPattern) -> MotionPatternProfile {
+        switch pattern {
+        case .squat:
+            return MotionPatternProfile(pattern: .squat, orientation: .highAtTop, topThreshold: 162, bottomThreshold: 118)
+        case .hinge:
+            return MotionPatternProfile(pattern: .hinge, orientation: .highAtTop, topThreshold: 154, bottomThreshold: 88)
+        case .press:
+            return MotionPatternProfile(pattern: .press, orientation: .highAtTop, topThreshold: 156, bottomThreshold: 92)
+        case .pull:
+            return MotionPatternProfile(pattern: .pull, orientation: .lowAtTop, topThreshold: 78, bottomThreshold: 148)
+        }
+    }
+}
+
 final class RealtimeMotionSessionEngine {
+    private let configuration: MotionSessionConfiguration
+    private let profile: MotionPatternProfile
     private var currentPhase: MotionPhase = .setup
     private var repCount = 0
-    private var lastKneeAngle: Double?
+    private var lastPrimaryMetric: Double?
+    private var visitedBottom = false
+    private var countedCurrentTop = false
     private var sessionStart: TimeInterval?
     private var processedFrames = 0
     private var lastCueTimestamp: TimeInterval = 0
     private var recentFrames: [PoseFrame] = []
+    private var lastAnchorY: Double?
+    private var lastAnchorTimestamp: TimeInterval?
+    private var currentVelocityMps = 0.0
+    private var allConcentricVelocitySamples: [Double] = []
+    private var currentRepVelocitySamples: [Double] = []
+    private var repPeakVelocities: [Double] = []
     private let cueCooldown: TimeInterval = 0.9
     private let maxRecentFrames = 45
-    private let squatBottomThreshold = 118.0
-    private let lockoutThreshold = 162.0
+    private let benchmarkWriter: MotionBenchmarkReportWriter
+
+    init(
+        configuration: MotionSessionConfiguration = MotionSessionConfiguration(pattern: .squat),
+        benchmarkWriter: MotionBenchmarkReportWriter = MotionBenchmarkReportWriter()
+    ) {
+        self.configuration = configuration
+        self.profile = MotionPatternProfile.forPattern(configuration.pattern)
+        self.benchmarkWriter = benchmarkWriter
+    }
 
     func process(frame: PoseFrame, timestamp: TimeInterval, latencyMs: Int) -> LiveMotionSnapshot {
         if sessionStart == nil {
@@ -425,35 +722,47 @@ final class RealtimeMotionSessionEngine {
             recentFrames.removeFirst(recentFrames.count - maxRecentFrames)
         }
 
-        let kneeAngle = frame.averageKneeAngle ?? 180
+        let primaryMetric = profile.primaryMetric(for: frame) ?? 0
         let torsoLean = frame.torsoLeanDegrees ?? 0
-        let previousKnee = lastKneeAngle ?? kneeAngle
-        let delta = kneeAngle - previousKnee
-        lastKneeAngle = kneeAngle
+        let previousMetric = lastPrimaryMetric ?? primaryMetric
+        let delta = primaryMetric - previousMetric
+        lastPrimaryMetric = primaryMetric
 
-        switch currentPhase {
-        case .setup, .lockout:
-            if kneeAngle < lockoutThreshold && delta < -2 {
-                currentPhase = .eccentric
-            }
-        case .eccentric:
-            if kneeAngle <= squatBottomThreshold {
-                currentPhase = .bottom
-            } else if kneeAngle >= lockoutThreshold {
-                currentPhase = .lockout
-            }
-        case .bottom:
-            if delta > 2 {
-                currentPhase = .concentric
-            }
-        case .concentric:
-            if kneeAngle >= lockoutThreshold {
-                currentPhase = .lockout
+        if let anchorY = profile.anchorY(for: frame) {
+            currentVelocityMps = updateVelocity(anchorY: anchorY, frame: frame, timestamp: timestamp)
+        } else {
+            currentVelocityMps = 0
+        }
+
+        if profile.isAtBottom(primaryMetric) {
+            currentPhase = .bottom
+            visitedBottom = true
+            countedCurrentTop = false
+        } else if profile.isAtTop(primaryMetric) {
+            currentPhase = .lockout
+            if visitedBottom && !countedCurrentTop {
                 repCount += 1
+                countedCurrentTop = true
+                visitedBottom = false
+                finalizeRepVelocity()
+            }
+        } else if profile.movingTowardTop(delta: delta) {
+            currentPhase = .concentric
+            countedCurrentTop = false
+        } else if profile.movingTowardBottom(delta: delta) {
+            currentPhase = .eccentric
+            if currentPhase == .eccentric {
+                currentRepVelocitySamples.removeAll(keepingCapacity: true)
             }
         }
 
-        let summary = OnDeviceMotionAnalyzer.summarize(frames: recentFrames)
+        if currentPhase == .concentric, currentVelocityMps > 0 {
+            currentRepVelocitySamples.append(currentVelocityMps)
+            allConcentricVelocitySamples.append(currentVelocityMps)
+        }
+
+        let velocitySummary = currentVelocitySummary()
+        let summary = OnDeviceMotionAnalyzer.summarize(frames: recentFrames, pattern: configuration.pattern)
         let fps: Double = {
             guard let sessionStart else { return 0 }
             let elapsed = max(0.001, timestamp - sessionStart)
@@ -462,6 +771,7 @@ final class RealtimeMotionSessionEngine {
 
         let cue = nextCue(frame: frame, timestamp: timestamp)
         return LiveMotionSnapshot(
+            pattern: configuration.pattern,
             repCount: repCount,
             phase: currentPhase,
             cue: cue,
@@ -470,25 +780,35 @@ final class RealtimeMotionSessionEngine {
             latencyMs: latencyMs,
             poseConfidence: frame.poseConfidence,
             torsoLeanDegrees: torsoLean,
-            kneeAngle: kneeAngle,
+            primaryMetric: primaryMetric,
+            currentVelocityMps: currentVelocityMps,
+            peakVelocityMps: velocitySummary.peakVelocityMps,
+            meanVelocityMps: velocitySummary.meanVelocityMps,
             segments: frame.landmarks.segments,
             trackingStatus: trackingStatus(for: frame)
         )
     }
 
-    func currentSummaryResponse(benchmarkMs: Int?) -> VisionAnalysisResponse? {
+    func currentSummaryResponse(benchmark: MotionBenchmarkReport?) -> VisionAnalysisResponse? {
         guard !recentFrames.isEmpty else { return nil }
-        let summary = OnDeviceMotionAnalyzer.summarize(frames: recentFrames)
+        let summary = OnDeviceMotionAnalyzer.summarize(frames: recentFrames, pattern: configuration.pattern)
+        let velocitySummary = currentVelocitySummary()
         return VisionAnalysisResponse(
             score: summary.score,
             critique: summary.critique,
             correction: summary.correction,
             analysis_source: "on_device",
             analysis_mode: "on_device_pose_realtime",
-            benchmark_ms: benchmarkMs,
+            benchmark_ms: benchmark?.p95LatencyMs,
             frames_analyzed: recentFrames.count,
             pose_confidence: summary.poseConfidence,
-            fallback_reason: nil
+            fallback_reason: nil,
+            movement_pattern: configuration.pattern.rawValue,
+            rep_count: repCount,
+            peak_velocity_mps: velocitySummary.peakVelocityMps,
+            mean_velocity_mps: velocitySummary.meanVelocityMps,
+            velocity_dropoff_percent: velocitySummary.velocityDropoffPercent,
+            benchmark_report_path: benchmark?.reportPath
         )
     }
 
@@ -507,62 +827,88 @@ final class RealtimeMotionSessionEngine {
             return "Tracking lost. Reset the camera to a clearer side angle."
         }
 
+        if currentPhase == .lockout && repCount > 0 && countedCurrentTop {
+            lastCueTimestamp = timestamp
+            return "Rep \(repCount) counted. Reset and attack the next \(configuration.pattern.label.lowercased()) rep."
+        }
+
         if timestamp - lastCueTimestamp < cueCooldown {
-            return passiveCue(for: frame)
+            return profile.passiveCue(for: currentPhase, poseConfidence: frame.poseConfidence)
         }
 
-        if let torsoLean = frame.torsoLeanDegrees, torsoLean > 42 {
+        if let cue = profile.activeCue(for: frame, phase: currentPhase) {
             lastCueTimestamp = timestamp
-            return "Chest up. Keep the rib cage stacked over the hips."
+            return cue
         }
 
-        if let shoulderTilt = frame.shoulderTilt, let hipTilt = frame.hipTilt,
-           shoulderTilt > 0.05 || hipTilt > 0.05 {
-            lastCueTimestamp = timestamp
-            return "Square the shoulders and hips before the next rep."
-        }
-
-        if currentPhase == .bottom, let kneeAngle = frame.averageKneeAngle, kneeAngle > 135 {
-            lastCueTimestamp = timestamp
-            return "Sit deeper before driving up."
-        }
-
-        if currentPhase == .lockout && repCount > 0 {
-            lastCueTimestamp = timestamp
-            return "Rep \(repCount) counted. Reset, brace, and go again."
-        }
-
-        return passiveCue(for: frame)
+        return profile.passiveCue(for: currentPhase, poseConfidence: frame.poseConfidence)
     }
 
-    private func passiveCue(for frame: PoseFrame) -> String {
-        if currentPhase == .setup {
-            return "Brace, stay side-on to the camera, and start the rep."
+    private func updateVelocity(anchorY: Double, frame: PoseFrame, timestamp: TimeInterval) -> Double {
+        defer {
+            lastAnchorY = anchorY
+            lastAnchorTimestamp = timestamp
         }
 
-        if currentPhase == .eccentric {
-            return "Control the descent and keep pressure through mid-foot."
+        guard let lastAnchorY, let lastAnchorTimestamp else {
+            return 0
         }
 
-        if currentPhase == .bottom {
-            return "Hold shape at the bottom, then drive straight up."
-        }
+        let dt = max(0.001, timestamp - lastAnchorTimestamp)
+        let normalizedDelta = anchorY - lastAnchorY
+        let scale = frame.landmarks.approximateMetersPerNormalizedUnit
+        return max(0, (normalizedDelta * scale) / dt)
+    }
 
-        if currentPhase == .concentric {
-            return "Lead with the chest and finish the rep tall."
-        }
+    private func finalizeRepVelocity() {
+        guard !currentRepVelocitySamples.isEmpty else { return }
+        repPeakVelocities.append(currentRepVelocitySamples.max() ?? 0)
+        currentRepVelocitySamples.removeAll(keepingCapacity: true)
+    }
 
-        if frame.poseConfidence >= 0.72 {
-            return "Tracking stable. Keep the same camera angle."
-        }
+    private func currentVelocitySummary() -> MotionVelocitySummary {
+        let peakVelocity = repPeakVelocities.max() ?? allConcentricVelocitySamples.max() ?? 0
+        let meanVelocity = allConcentricVelocitySamples.average ?? repPeakVelocities.average ?? 0
+        let fastestRep = repPeakVelocities.max() ?? 0
+        let slowestRep = repPeakVelocities.min() ?? 0
+        let dropoffPercent: Double = {
+            guard fastestRep > 0, slowestRep > 0 else { return 0 }
+            return max(0, ((fastestRep - slowestRep) / fastestRep) * 100)
+        }()
 
-        return "Stay centered in frame for a cleaner read."
+        return MotionVelocitySummary(
+            peakVelocityMps: peakVelocity,
+            meanVelocityMps: meanVelocity,
+            velocityDropoffPercent: dropoffPercent,
+            fastestRepMps: fastestRep,
+            slowestRepMps: slowestRep
+        )
+    }
+
+    func finalizedBenchmarkReport(_ benchmark: MotionBenchmarkReport?) -> MotionBenchmarkReport? {
+        guard let benchmark else { return nil }
+        let velocity = currentVelocitySummary()
+        let reportPath = benchmarkWriter.write(
+            pattern: configuration.pattern,
+            repCount: repCount,
+            benchmark: benchmark,
+            velocity: velocity
+        )?.path
+
+        return MotionBenchmarkReport(
+            averageFPS: benchmark.averageFPS,
+            p50LatencyMs: benchmark.p50LatencyMs,
+            p95LatencyMs: benchmark.p95LatencyMs,
+            processedFrames: benchmark.processedFrames,
+            droppedFrames: benchmark.droppedFrames,
+            reportPath: reportPath
+        )
     }
 }
 
 final class LivePoseStreamAnalyzer {
     private let capability: MotionAnalysisCapability
-    private let engine = RealtimeMotionSessionEngine()
+    private let engine: RealtimeMotionSessionEngine
     private let estimator: PoseEstimating
     private var smoother = PoseSmoother()
     private var benchmarkHarness = MotionBenchmarkHarness()
@@ -572,10 +918,12 @@ final class LivePoseStreamAnalyzer {
 
     init(
         capability: MotionAnalysisCapability = .current(),
+        configuration: MotionSessionConfiguration = MotionSessionConfiguration(pattern: .squat),
         estimator: PoseEstimating = VisionPoseEstimator(),
         videoOrientation: CGImagePropertyOrientation = .right
     ) {
         self.capability = capability
+        self.engine = RealtimeMotionSessionEngine(configuration: configuration)
         self.estimator = estimator
         self.videoOrientation = videoOrientation
     }
@@ -609,19 +957,20 @@ final class LivePoseStreamAnalyzer {
     }
 
     func currentSummaryResponse() -> RealtimeMotionSessionSummary? {
-        let report = benchmarkHarness.report()
-        guard let response = engine.currentSummaryResponse(benchmarkMs: report?.p95LatencyMs) else {
+        let finalizedBenchmark = engine.finalizedBenchmarkReport(benchmarkHarness.report())
+        guard let response = engine.currentSummaryResponse(benchmark: finalizedBenchmark) else {
             return nil
         }
 
         return RealtimeMotionSessionSummary(
             response: response,
-            benchmark: report ?? MotionBenchmarkReport(
+            benchmark: finalizedBenchmark ?? MotionBenchmarkReport(
                 averageFPS: 0,
                 p50LatencyMs: 0,
                 p95LatencyMs: 0,
                 processedFrames: 0,
-                droppedFrames: 0
+                droppedFrames: 0,
+                reportPath: nil
             )
         )
     }
@@ -696,7 +1045,8 @@ private struct MotionBenchmarkHarness {
             p50LatencyMs: percentile(0.50, values: sortedLatencies),
             p95LatencyMs: percentile(0.95, values: sortedLatencies),
             processedFrames: processedFrames,
-            droppedFrames: droppedFrames
+            droppedFrames: droppedFrames,
+            reportPath: nil
         )
     }
 
@@ -812,6 +1162,129 @@ struct PoseLandmarks {
         guard let start, let end else { return nil }
         return PoseSegment(start: start, end: end)
     }
+
+    var shoulderMidpoint: PosePoint? {
+        midpoint(leftShoulder, rightShoulder)
+    }
+
+    var wristMidpoint: PosePoint? {
+        midpoint(leftWrist, rightWrist)
+    }
+
+    var hipMidpoint: PosePoint? {
+        midpoint(leftHip, rightHip)
+    }
+
+    var averageTorsoLength: Double? {
+        let lengths = [
+            distance(from: leftShoulder, to: leftHip),
+            distance(from: rightShoulder, to: rightHip),
+        ]
+        .compactMap { $0 }
+
+        return lengths.average
+    }
+
+    var approximateMetersPerNormalizedUnit: Double {
+        guard let torsoLength = averageTorsoLength, torsoLength > 0 else { return 1.4 }
+        return 0.35 / torsoLength
+    }
+
+    private func midpoint(_ lhs: PosePoint?, _ rhs: PosePoint?) -> PosePoint? {
+        guard let lhs, let rhs else { return nil }
+        let confidence = min(lhs.confidence, rhs.confidence)
+        return PosePoint(
+            x: (lhs.x + rhs.x) / 2,
+            y: (lhs.y + rhs.y) / 2,
+            confidence: confidence
+        )
+    }
+
+    private func distance(from start: PosePoint?, to end: PosePoint?) -> Double? {
+        guard let start, let end else { return nil }
+        let dx = Double(start.x - end.x)
+        let dy = Double(start.y - end.y)
+        return sqrt((dx * dx) + (dy * dy))
+    }
+}
+
+private struct MotionBenchmarkFilePayload: Codable {
+    let pattern: String
+    let repCount: Int
+    let benchmark: MotionBenchmarkReportCodable
+    let velocity: MotionVelocitySummaryCodable
+    let createdAt: String
+}
+
+private struct MotionBenchmarkReportCodable: Codable {
+    let averageFPS: Double
+    let p50LatencyMs: Int
+    let p95LatencyMs: Int
+    let processedFrames: Int
+    let droppedFrames: Int
+}
+
+private struct MotionVelocitySummaryCodable: Codable {
+    let peakVelocityMps: Double
+    let meanVelocityMps: Double
+    let velocityDropoffPercent: Double
+    let fastestRepMps: Double
+    let slowestRepMps: Double
+}
+
+struct MotionBenchmarkReportWriter {
+    private let rootDirectoryURL: URL?
+
+    init(rootDirectoryURL: URL? = nil) {
+        self.rootDirectoryURL = rootDirectoryURL
+    }
+
+    func write(
+        pattern: MotionMovementPattern,
+        repCount: Int,
+        benchmark: MotionBenchmarkReport,
+        velocity: MotionVelocitySummary
+    ) -> URL? {
+        let fileManager = FileManager.default
+        let baseURL = rootDirectoryURL ?? fileManager.urls(for: .documentDirectory, in: .userDomainMask).first
+        guard let baseURL else { return nil }
+
+        let reportsDirectory = baseURL
+            .appendingPathComponent("MotionLabReports", isDirectory: true)
+            .appendingPathComponent(pattern.rawValue, isDirectory: true)
+
+        do {
+            try fileManager.createDirectory(at: reportsDirectory, withIntermediateDirectories: true, attributes: nil)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let payload = MotionBenchmarkFilePayload(
+                pattern: pattern.rawValue,
+                repCount: repCount,
+                benchmark: MotionBenchmarkReportCodable(
+                    averageFPS: benchmark.averageFPS,
+                    p50LatencyMs: benchmark.p50LatencyMs,
+                    p95LatencyMs: benchmark.p95LatencyMs,
+                    processedFrames: benchmark.processedFrames,
+                    droppedFrames: benchmark.droppedFrames
+                ),
+                velocity: MotionVelocitySummaryCodable(
+                    peakVelocityMps: velocity.peakVelocityMps,
+                    meanVelocityMps: velocity.meanVelocityMps,
+                    velocityDropoffPercent: velocity.velocityDropoffPercent,
+                    fastestRepMps: velocity.fastestRepMps,
+                    slowestRepMps: velocity.slowestRepMps
+                ),
+                createdAt: ISO8601DateFormatter().string(from: Date())
+            )
+
+            let filename = "motion-benchmark-\(pattern.rawValue)-\(Int(Date().timeIntervalSince1970)).json"
+            let fileURL = reportsDirectory.appendingPathComponent(filename)
+            try encoder.encode(payload).write(to: fileURL, options: .atomic)
+            return fileURL
+        } catch {
+            return nil
+        }
+    }
 }
 
 struct PosePoint: Hashable {
@@ -845,7 +1318,7 @@ private struct PoseSideMetrics {
         torsoLeanDegrees = Self.torsoLean(shoulder: shoulder, hip: hip)
     }
 
-    private static func angle(a: PosePoint?, vertex: PosePoint?, c: PosePoint?) -> Double? {
+    static func angle(a: PosePoint?, vertex: PosePoint?, c: PosePoint?) -> Double? {
         guard let a, let vertex, let c else { return nil }
 
         let first = CGVector(dx: a.x - vertex.x, dy: a.y - vertex.y)

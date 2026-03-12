@@ -262,6 +262,7 @@ struct GuidedWorkoutView: View {
         .sheet(isPresented: $showRealtimeFormCheck) {
             RealtimeMotionLabSessionView(
                 capability: motionAnalysis.capability,
+                configuration: MotionSessionConfiguration(pattern: currentMotionPattern),
                 title: "Realtime Form Check",
                 subtitle: "Run live rep counting and technique cues without leaving your workout."
             ) { summary in
@@ -1251,6 +1252,37 @@ struct GuidedWorkoutView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+
+                        if let reps = result.rep_count, reps > 0 || result.peak_velocity_mps != nil {
+                            HStack(spacing: 8) {
+                                if reps > 0 {
+                                    Text("\(reps) REPS")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.secondary)
+                                }
+                                if let peak = result.peak_velocity_mps {
+                                    Text(String(format: "PEAK %.2f M/S", peak))
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.secondary)
+                                }
+                                if let mean = result.mean_velocity_mps {
+                                    Text(String(format: "MEAN %.2f M/S", mean))
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.secondary)
+                                }
+                                if let dropoff = result.velocity_dropoff_percent, dropoff > 0 {
+                                    Text(String(format: "DROPOFF %.0f%%", dropoff))
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+
+                        if let reportPath = result.benchmark_report_path, !reportPath.isEmpty {
+                            Text("BENCHMARK: \(benchmarkReportLabel(for: reportPath))")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     .padding()
                     .background(Color.white.opacity(0.05))
@@ -1322,7 +1354,10 @@ struct GuidedWorkoutView: View {
         formCheckResult = nil
         Task {
             do {
-                let res = try await motionAnalysis.analyze(images: capturedPhotos)
+                let res = try await motionAnalysis.analyze(
+                    images: capturedPhotos,
+                    configuration: MotionSessionConfiguration(pattern: currentMotionPattern)
+                )
                 await Telemetry.track("ios_guided_form_check_completed", props: formCheckTelemetry(for: res))
                 await MainActor.run {
                     formCheckResult = res
@@ -1356,6 +1391,10 @@ struct GuidedWorkoutView: View {
         return Int(score.rounded())
     }
 
+    private func benchmarkReportLabel(for path: String) -> String {
+        URL(fileURLWithPath: path).lastPathComponent
+    }
+
     private func formCheckTelemetry(for response: VisionAnalysisResponse) -> [String: Any] {
         var props: [String: Any] = [
             "requested_frames": capturedPhotos.count,
@@ -1366,6 +1405,12 @@ struct GuidedWorkoutView: View {
         if let frames = response.frames_analyzed { props["frames_analyzed"] = frames }
         if let confidence = response.pose_confidence { props["pose_confidence"] = confidence }
         if let fallback = response.fallback_reason, !fallback.isEmpty { props["fallback_reason"] = fallback }
+        if let pattern = response.movement_pattern { props["movement_pattern"] = pattern }
+        if let reps = response.rep_count { props["rep_count"] = reps }
+        if let peak = response.peak_velocity_mps { props["peak_velocity_mps"] = peak }
+        if let mean = response.mean_velocity_mps { props["mean_velocity_mps"] = mean }
+        if let dropoff = response.velocity_dropoff_percent { props["velocity_dropoff_percent"] = dropoff }
+        if let reportPath = response.benchmark_report_path { props["benchmark_report_path"] = reportPath }
         return props
     }
 
@@ -1609,6 +1654,10 @@ struct GuidedWorkoutView: View {
 
     private var currentExercise: PlanExercise? {
         exercises[safe: exerciseIndex]
+    }
+
+    private var currentMotionPattern: MotionMovementPattern {
+        MotionMovementPattern.infer(from: currentExercise?.name)
     }
 
     private var primaryExerciseName: String {

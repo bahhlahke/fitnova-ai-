@@ -219,6 +219,12 @@ struct VisionAnalysisResponse: Decodable {
     let frames_analyzed: Int?
     let pose_confidence: Double?
     let fallback_reason: String?
+    let movement_pattern: String?
+    let rep_count: Int?
+    let peak_velocity_mps: Double?
+    let mean_velocity_mps: Double?
+    let velocity_dropoff_percent: Double?
+    let benchmark_report_path: String?
 }
 
 // MARK: - Coach escalate

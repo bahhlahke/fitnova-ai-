@@ -24,16 +24,16 @@ Shipped in this branch:
 - telemetry hooks for local vs fallback analysis runs
 - real-time camera-frame pose loop for Motion Lab and Guided Workout on supported devices
 - local skeleton overlay rendering
-- squat-focused rep segmentation/state machine with live cues
-- benchmark capture for average FPS, p50/p95 latency, processed frames, and dropped frames
+- exercise rule packs for squat, hinge, press, and pull
+- rep segmentation and live cues across supported movement patterns
+- camera-derived velocity summaries for peak, mean, and dropoff
+- benchmark capture for average FPS, p50/p95 latency, processed frames, dropped frames, and persisted JSON report artifacts
 
-Still not shipped:
+Branch status:
 
-- multi-lift rule packs beyond the current squat-oriented runtime
-- checked-in benchmark report artifacts under `docs/reports/ios-cv-benchmarks/`
-- calibrated velocity/VBT estimation
-
-This means the branch now covers Phase 0, Phase 1, and part of Phases 2-3. It is a usable realtime CV runtime, but not the full multi-lift VBT stack described below.
+- The product scope described by this plan is now implemented for the current supported movement set.
+- Velocity remains intentionally labeled as a camera-derived estimate, not exact barbell hardware telemetry.
+- The remaining work is operational: collecting hardware benchmark evidence and validating simulator/XCTest stability when CoreSimulator is healthy.
 
 ## Current baseline
 
@@ -217,6 +217,21 @@ Record:
 5. Keep server Motion Lab fallback for unsupported devices and degraded sessions.
 
 ## Immediate engineering tasks
+
+Completed on this branch:
+
+- capability-gated local runtime with server fallback
+- realtime pose loop and overlay
+- multi-lift rep segmentation
+- cue engine with cooldowns and tracking-loss suppression
+- camera-derived velocity and dropoff metrics
+- benchmark artifact persistence and UI surfacing
+
+Next operational tasks:
+
+- collect hardware benchmark reports into [`docs/reports/ios-cv-benchmarks/`](/Users/blakeaycock/code/fitnessAI/docs/reports/ios-cv-benchmarks)
+- validate sustained FPS/latency on supported physical iPhones
+- resolve the Xcode/CoreSimulator host-launch instability observed in `npm run test:ios`
 
 1. Add `MotionLabRuntime` module boundary in iOS.
 2. Create `PoseEstimator` protocol and mock implementation for tests.
