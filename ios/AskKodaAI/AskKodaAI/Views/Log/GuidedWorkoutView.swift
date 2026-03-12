@@ -278,7 +278,7 @@ struct GuidedWorkoutView: View {
             if showingPulseAnimation {
                 ZStack {
                     Color.black.opacity(0.4).ignoresSafeArea()
-                    
+
                     VStack(spacing: 20) {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 100))
@@ -286,7 +286,7 @@ struct GuidedWorkoutView: View {
                             .shadow(color: .accentColor, radius: 40)
                             .scaleEffect(pulseScale)
                             .opacity(pulseOpacity)
-                        
+
                         Text(pulseMessage)
                             .font(.title)
                             .fontWeight(.black)
@@ -300,6 +300,28 @@ struct GuidedWorkoutView: View {
                 }
                 .transition(.opacity)
                 .zIndex(100)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if let feedback = swapFeedback {
+                HStack(spacing: 10) {
+                    Image(systemName: feedback.hasPrefix("Swapped") ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(feedback.hasPrefix("Swapped") ? Brand.Color.success : Brand.Color.danger)
+                    Text(feedback)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(feedback.hasPrefix("Swapped") ? Brand.Color.success.opacity(0.4) : Brand.Color.danger.opacity(0.4), lineWidth: 1)
+                )
+                .padding(.bottom, 32)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: swapFeedback)
+                .zIndex(50)
             }
         }
     }
@@ -1101,11 +1123,17 @@ struct GuidedWorkoutView: View {
                     swapInput = ""
                     isSwapOptionsVisible = false
                 }
+                HapticEngine.notification(.success)
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                await MainActor.run { swapFeedback = nil }
             }
         } catch {
-             await MainActor.run { swapFeedback = "Override failed. Try again." }
+            await MainActor.run { swapFeedback = "Override failed. Try again." }
+            HapticEngine.notification(.error)
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await MainActor.run { swapFeedback = nil }
         }
-        
+
         await MainActor.run { swapLoading = false }
     }
     
