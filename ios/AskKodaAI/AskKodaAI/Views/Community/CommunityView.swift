@@ -295,6 +295,7 @@ struct CommunityView: View {
                                         joiningChallengeId = cid
                                         Task {
                                             try? await api.communityChallengesPost(challengeId: cid)
+                                            HapticEngine.notification(.success)
                                             await load()
                                             await MainActor.run { joiningChallengeId = nil }
                                         }

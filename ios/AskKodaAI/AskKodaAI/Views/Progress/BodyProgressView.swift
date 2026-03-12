@@ -377,7 +377,9 @@ struct BodyProgressView: View {
                 do {
                     let res = try await api.aiProgressInsight()
                     await MainActor.run { progressInsight = res.insight }
-                } catch { }
+                } catch {
+                    print("[Koda] aiProgressInsight: \(error)")
+                }
             }
             group.addTask {
                 narrativeLoading = true
@@ -391,7 +393,9 @@ struct BodyProgressView: View {
                 do {
                     let p = try await api.aiProjection(today: DateHelpers.todayLocal)
                     await MainActor.run { projection = p }
-                } catch { }
+                } catch {
+                    print("[Koda] aiProjection: \(error)")
+                }
             }
         }
     }

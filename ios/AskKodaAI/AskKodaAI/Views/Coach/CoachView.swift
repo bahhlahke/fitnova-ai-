@@ -162,6 +162,7 @@ struct CoachView: View {
     private func send(text rawText: String) {
         let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+        HapticEngine.selection()
         messages.append(MessageContent(role: "user", text: text, action: nil))
         input = ""
         isLoading = true

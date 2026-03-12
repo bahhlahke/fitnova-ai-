@@ -17,6 +17,7 @@ struct HomeView: View {
     @State private var profile: UserProfile?
     @State private var briefing: AIBriefingResponse?
     @State private var nudges: [CoachNudge] = []
+    @State private var weeklyInsight: String?
 
     // MARK: - Load phase
 
@@ -27,6 +28,8 @@ struct HomeView: View {
 
     @State private var showingGuidedWorkout = false
     @State private var showingCoachChat = false
+    @State private var showingCheckIn = false
+    @State private var showingLogNutrition = false
     @State private var generating = false
     @State private var refreshTask: Task<Void, Never>?
     @Namespace private var workoutNamespace
@@ -69,6 +72,9 @@ struct HomeView: View {
                         todayWorkoutSection
                         if let b = briefing, let text = b.briefing, !text.isEmpty {
                             briefingSection(text: text)
+                        }
+                        if let wi = weeklyInsight, !wi.isEmpty {
+                            weeklyInsightSection(text: wi)
                         }
                         if !nudges.isEmpty {
                             nudgesSection
@@ -113,6 +119,13 @@ struct HomeView: View {
                 }
                 .sheet(isPresented: $showingCoachChat) {
                     CoachView()
+                }
+                .sheet(isPresented: $showingCheckIn) {
+                    CheckInView()
+                        .onDisappear { Task { await loadAll() } }
+                }
+                .sheet(isPresented: $showingLogNutrition) {
+                    LogNutritionView()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StartGuidedWorkoutFromCoach"))) { note in
                     handleCoachWorkoutLaunch(note)
@@ -287,6 +300,29 @@ struct HomeView: View {
         )
     }
 
+    private func weeklyInsightSection(text: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("WEEKLY INSIGHT")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .tracking(1.4)
+                .foregroundStyle(Brand.Color.success)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Brand.Color.success.opacity(0.07))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(Brand.Color.success.opacity(0.25), lineWidth: 1)
+                )
+        )
+    }
+
     @ViewBuilder
     private var nudgesSection: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -334,8 +370,12 @@ struct HomeView: View {
                 quickActionButton(title: "Ask\nCoach", icon: "message.fill") {
                     showingCoachChat = true
                 }
-                quickActionButton(title: "Check\nIn", icon: "checkmark.circle.fill") { }
-                quickActionButton(title: "Log\nNutrition", icon: "fork.knife") { }
+                quickActionButton(title: "Check\nIn", icon: "checkmark.circle.fill") {
+                    showingCheckIn = true
+                }
+                quickActionButton(title: "Log\nNutrition", icon: "fork.knife") {
+                    showingLogNutrition = true
+                }
             }
         }
     }
@@ -373,8 +413,10 @@ struct HomeView: View {
             group.addTask { await self.loadBriefing() }
         }
         criticalPhaseLoading = false
+        // Secondary phase — non-blocking background loads
         async let _nudges: () = loadNudges()
-        _ = await (_nudges)
+        async let _insight: () = loadWeeklyInsight()
+        _ = await (_nudges, _insight)
     }
 
     private func loadProfile() async {
@@ -404,6 +446,11 @@ struct HomeView: View {
         guard let ds = dataService else { return }
         let n = try? await ds.fetchNudges(dateLocal: nil, unacknowledgedOnly: true, limit: 2)
         await MainActor.run { nudges = n ?? [] }
+    }
+
+    private func loadWeeklyInsight() async {
+        let res = try? await api.aiWeeklyInsight()
+        await MainActor.run { weeklyInsight = res?.insight }
     }
 
     private func generatePlan() async {

@@ -136,7 +136,9 @@ struct EditProfileView: View {
                 experienceLevel = p?.experience_level ?? "beginner"
                 motivationalDriver = p?.motivational_driver ?? "health"
             }
-        } catch { }
+        } catch {
+            await MainActor.run { errorMessage = error.localizedDescription }
+        }
     }
 
     private func save() async {

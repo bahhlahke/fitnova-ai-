@@ -114,6 +114,12 @@ struct TrophyRoomView: View {
         .task {
             await loadTrophies()
         }
+        .refreshable {
+            loading = true
+            trophies = []
+            appear = false
+            await loadTrophies()
+        }
     }
 
     private func loadTrophies() async {
