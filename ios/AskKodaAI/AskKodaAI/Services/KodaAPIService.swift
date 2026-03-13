@@ -149,30 +149,40 @@ struct KodaAPIService {
     }
 
     /// POST /api/v1/plan/adapt-day
-    func planAdaptDay(minutesAvailable: Int?, location: String?, soreness: String?, intensity: String?, equipmentContext: String?) async throws -> DailyPlanResponse {
+    func planAdaptDay(
+        userMessage: String,
+        focus: String,
+        intensity: String,
+        targetDuration: Int,
+        goals: [String],
+        currentExercises: [AnyCodable],
+        dateLocal: String? = nil
+    ) async throws -> AdaptDayResponse {
         if isDemoMode {
             let adaptedPlan = DailyPlan(
                 date_local: DemoContent.today,
                 training_plan: TrainingPlan(
-                    focus: "Condensed Lower Strength",
-                    duration_minutes: 34,
+                    focus: "Condensed \(focus)",
+                    duration_minutes: targetDuration,
                     exercises: Array(DemoContent.sampleExercises.prefix(2))
                 ),
-                nutrition_plan: DemoContent.dailyPlan.nutrition_plan,
-                safety_notes: ["Session adapted for tighter time window."]
+                adaptation_note: "Adapted to: \(userMessage)"
             )
             return try await DebugUX.resolve(
-                primary: DailyPlanResponse(plan: adaptedPlan),
-                empty: DailyPlanResponse(plan: DailyPlan(date_local: DemoContent.today, training_plan: nil, nutrition_plan: nil, safety_notes: nil)),
+                primary: AdaptDayResponse(plan: adaptedPlan),
+                empty: AdaptDayResponse(plan: nil),
                 label: "adapted plan"
             )
         }
-        var body: [String: Any] = [:]
-        if let m = minutesAvailable { body["minutesAvailable"] = m }
-        if let l = location { body["location"] = l }
-        if let s = soreness { body["soreness"] = s }
-        if let i = intensity { body["intensity"] = i }
-        if let ec = equipmentContext { body["equipmentContext"] = ec }
+        let body: [String: AnyCodable] = [
+            "userMessage": AnyCodable(value: userMessage),
+            "focus": AnyCodable(value: focus),
+            "intensity": AnyCodable(value: intensity),
+            "target_duration_minutes": AnyCodable(value: targetDuration),
+            "goals": AnyCodable(value: goals),
+            "current_exercises": AnyCodable(value: currentExercises),
+            "date_local": AnyCodable(value: dateLocal)
+        ]
         return try await post("api/v1/plan/adapt-day", body: body)
     }
 

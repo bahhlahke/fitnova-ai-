@@ -11,7 +11,16 @@ export type ProductEventName =
   | "prescription_blocked"
   | "substitution_policy_triggered"
   | "cv_cue_emitted"
-  | "cv_occlusion_suppressed";
+  | "cv_occlusion_suppressed"
+  | "funnel_assessment_start"
+  | "funnel_assessment_step_completed"
+  | "funnel_lead_captured"
+  | "funnel_auth_start"
+  | "funnel_auth_success"
+  | "funnel_checkout_start"
+  | "funnel_checkout_success"
+  | "funnel_onboarding_start"
+  | "funnel_onboarding_complete";
 
 export async function trackProductEvent(
   eventName: ProductEventName,

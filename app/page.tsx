@@ -515,11 +515,33 @@ export default function HomePage() {
 
             <div className="mt-12 flex flex-col gap-4 sm:flex-row">
               <Link href="/start">
-                <Button className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white text-black hover:bg-white/90">Start Assessment</Button>
+                <Button className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white text-black hover:bg-white/90">Preview Your Protocol</Button>
               </Link>
               <Link href="/auth">
                 <Button variant="secondary" className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 hover:bg-white/10 text-white">Member Access</Button>
               </Link>
+            </div>
+
+            {/* Proof-First: The First 7 Days Preview */}
+            <div className="mt-20 border-t border-white/10 pt-12">
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-6">Concrete Evolution</p>
+              <h2 className="font-display text-4xl font-black uppercase italic tracking-tighter text-white sm:text-5xl mb-10">Your First 7 Days</h2>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  { day: "D1", title: "Baseline Scan", desc: "Biometric calibration and 1RM prediction.", icon: "target" },
+                  { day: "D3", title: "Metabolic Peak", desc: "Protocol adjustment based on D2 recovery data.", icon: "zap" },
+                  { day: "D5", title: "Neural Adaptation", desc: "First 5% strength increase as CNS stabilizes.", icon: "activity" },
+                  { day: "D7", title: "The Pivot", desc: "Full performance dossier and week 2 expansion.", icon: "trending-up" },
+                ].map((item, i) => (
+                  <div key={item.day} className="relative p-6 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] transition-all group">
+                    <div className="absolute -top-4 -left-4 h-10 w-10 rounded-full bg-fn-accent flex items-center justify-center text-black font-black text-xs shadow-[0_0_15px_rgba(10,217,196,0.5)]">
+                      {item.day}
+                    </div>
+                    <p className="text-sm font-black text-white uppercase tracking-widest mb-2 mt-2">{item.title}</p>
+                    <p className="text-xs text-fn-muted leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="mt-12 flex items-center gap-6">

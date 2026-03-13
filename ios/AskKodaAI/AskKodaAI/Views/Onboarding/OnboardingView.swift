@@ -13,10 +13,12 @@ struct OnboardingView: View {
     @State private var name = ""
     @State private var age = ""
     @State private var sex = "male"
+    @State private var phoneNumber = ""
     @State private var heightCm = ""
     @State private var weightKg = ""
     @State private var goals: [String] = []
     @State private var injuries = ""
+    @State private var allergies = ""
     @State private var diet = "balanced"
     @State private var squad = "hypertrophy"
     @State private var experienceLevel = "beginner"
@@ -51,13 +53,12 @@ struct OnboardingView: View {
                         .padding(.top, 8)
 
                         // Header
-                        VStack(alignment: .leading, spacing: 8) {
                             PremiumSectionHeader(
                                 currentStepTitle,
-                                eyebrow: "STEP \(step + 1) OF 6",
+                                eyebrow: "STEP \(step + 1) OF 7",
                                 subtitle: currentStepSubtitle
                             )
-                            ProgressView(value: Double(step + 1), total: 6)
+                            ProgressView(value: Double(step + 1), total: 7)
                                 .tint(Brand.Color.accent)
                                 .animation(.spring(response: 0.5), value: step)
                         }
@@ -71,7 +72,8 @@ struct OnboardingView: View {
                             case 2: step2
                             case 3: step3
                             case 4: step4
-                            default: step5
+                            case 5: step5
+                            default: step6
                             }
                         }
                         .transition(.asymmetric(
@@ -101,7 +103,7 @@ struct OnboardingView: View {
                                 .buttonStyle(PremiumActionButtonStyle(filled: false))
                             }
 
-                            if step < 5 {
+                            if step < 6 {
                                 Button("Continue") {
                                     HapticEngine.impact(.light)
                                     step += 1
@@ -123,6 +125,9 @@ struct OnboardingView: View {
                 }
             }
             .navigationBarHidden(true)
+            .onAppear {
+                Telemetry.track(.onboardingStart)
+            }
         }
     }
 
@@ -133,6 +138,8 @@ struct OnboardingView: View {
             premiumField(placeholder: "Full name", text: $name, icon: "person.fill")
 
             premiumField(placeholder: "Age", text: $age, icon: "calendar", keyboard: .numberPad)
+            
+            premiumField(placeholder: "Phone number", text: $phoneNumber, icon: "phone.fill", keyboard: .phonePad)
 
             VStack(alignment: .leading, spacing: 8) {
                 fieldLabel("Biological sex")
@@ -242,6 +249,11 @@ struct OnboardingView: View {
                 .background(Brand.Color.surfaceRaised)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(Brand.Color.borderStrong))
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                fieldLabel("Allergies")
+                premiumField(placeholder: "e.g. peanuts, shellfish", text: $allergies, icon: "exclamationmark.circle.fill")
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -358,6 +370,86 @@ struct OnboardingView: View {
         }
     }
 
+    // MARK: - Step 6: Vitals & Wearables
+
+    private var step6: some View {
+        VStack(spacing: 20) {
+            Text("Sync physiological signals for deterministic plan adaptation.")
+                .font(.caption)
+                .foregroundStyle(Brand.Color.muted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+
+            VStack(spacing: 16) {
+                // Apple Health
+                Button {
+                    Task {
+                        try? await HealthKitService.shared.requestAuthorization()
+                        HapticEngine.notification(.success)
+                    }
+                } label: {
+                    HStack(spacing: 16) {
+                        Image(systemName: "heart.fill")
+                            .font(.title2)
+                            .foregroundStyle(.pink)
+                            .frame(width: 32)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Apple Health")
+                                .font(.headline)
+                            Text("HRV, Sleep, Weight")
+                                .font(.caption)
+                                .foregroundStyle(Brand.Color.muted)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "link")
+                            .foregroundStyle(Brand.Color.accent)
+                    }
+                    .padding(20)
+                    .premiumCard()
+                }
+                .buttonStyle(.plain)
+
+                // Spotify
+                Button {
+                    // Start Spotify OAuth flow
+                    auth.signInWithOAuth(provider: .spotify)
+                } label: {
+                    HStack(spacing: 16) {
+                        Image(systemName: "music.note")
+                            .font(.title2)
+                            .foregroundStyle(.green)
+                            .frame(width: 32)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Spotify")
+                                .font(.headline)
+                            Text("Contextual workout audio")
+                                .font(.caption)
+                                .foregroundStyle(Brand.Color.muted)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "link")
+                            .foregroundStyle(Brand.Color.accent)
+                    }
+                    .padding(20)
+                    .premiumCard()
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            
+            Text("You can also configure these later in Settings.")
+                .font(.system(size: 11))
+                .foregroundStyle(Brand.Color.muted)
+                .padding(.top, 8)
+        }
+    }
+
     // MARK: - Helpers
 
     private var continueDisabled: Bool {
@@ -379,7 +471,8 @@ struct OnboardingView: View {
         case 2: return "Set the outcome"
         case 3: return "Protect the constraints"
         case 4: return "Choose your squad protocol"
-        default: return "Choose your mastery level"
+        case 5: return "Choose your mastery level"
+        default: return "Ignite the biometrics"
         }
     }
 
@@ -390,7 +483,8 @@ struct OnboardingView: View {
         case 2: return "Define what winning looks like for you."
         case 3: return "Koda protects these limits in every plan it generates."
         case 4: return "Your squad synchronises training philosophy and benchmarks."
-        default: return "Calibrates periodisation logic and progression speed."
+        case 5: return "Calibrates periodisation logic and progression speed."
+        default: return "Connecting vitals allows Koda to detect recovery debt."
         }
     }
 
@@ -426,13 +520,14 @@ struct OnboardingView: View {
         defer { saving = false }
         var profile = UserProfile()
         profile.display_name = name.isEmpty ? nil : name
+        profile.phone_number = phoneNumber.isEmpty ? nil : phoneNumber
         profile.age = Int(age)
         profile.sex = sex
         profile.height_cm = Double(heightCm)
         profile.weight_kg = Double(weightKg)
         profile.goals = goals.isEmpty ? nil : goals
-        profile.injuries_limitations = injuries.isEmpty ? nil : injuries
-        profile.dietary_preferences = [diet]
+        profile.injuries_limitations = AnyCodable(value: injuries.isEmpty ? [:] : ["notes": injuries])
+        profile.dietary_preferences = AnyCodable(value: ["preference": diet, "allergies": allergies.isEmpty ? nil : allergies])
         profile.experience_level = experienceLevel
         profile.activity_level = squad
         profile.motivational_driver = motivationalDriver
@@ -449,6 +544,7 @@ struct OnboardingView: View {
             ]
             try await ds.upsertOnboarding(onboarding)
             await MainActor.run { onComplete?() }
+            Telemetry.track(.onboardingComplete)
         } catch {
             await MainActor.run { errorMessage = error.localizedDescription }
         }

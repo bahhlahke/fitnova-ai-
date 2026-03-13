@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Card, ErrorMessage, Checkbox } from "@/components/ui";
+import { trackProductEvent } from "@/lib/telemetry/events";
 
 import { clearPreAuthDraft, readPreAuthDraft } from "@/lib/funnel/preauth";
 import {
@@ -78,6 +79,7 @@ export default function OnboardingPage() {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     setResume(params.get("resume") === "1");
+    trackProductEvent("funnel_onboarding_start", { resume: params.get("resume") === "1" });
   }, []);
 
   useEffect(() => {
@@ -196,6 +198,7 @@ export default function OnboardingPage() {
     }
 
     clearPreAuthDraft(typeof window !== "undefined" ? window.localStorage : null);
+    trackProductEvent("funnel_onboarding_complete");
     setSaving(false);
     setCompleted(true);
   }

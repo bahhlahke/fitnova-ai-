@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import {
     PageLayout,
     Card,
@@ -8,6 +8,8 @@ import {
     CardHeader
 } from "@/components/ui";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const PLANS = [
     {
@@ -44,23 +46,43 @@ const PLANS = [
     },
 ];
 
-export default function PricingPage() {
+function PricingContent() {
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
-    const handleUpgrade = async () => {
+    const handleUpgrade = useCallback(async () => {
         setLoading(true);
         try {
+            const supabase = createClient();
+            if (!supabase) throw new Error("Supabase unavailable");
+            
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                // Preserve intent through auth
+                router.push("/auth?next=/pricing?intent=checkout");
+                return;
+            }
+
             const res = await fetch("/api/v1/stripe/checkout", { method: "POST" });
             const data = await res.json();
             if (data.url) {
                 window.location.href = data.url;
+            } else if (res.status === 401) {
+                router.push("/auth?next=/pricing?intent=checkout");
             }
         } catch (err) {
             console.error("Checkout failed", err);
         } finally {
             setLoading(false);
         }
-    };
+    }, [router]);
+
+    useEffect(() => {
+        if (searchParams.get("intent") === "checkout") {
+            handleUpgrade();
+        }
+    }, [searchParams, handleUpgrade]);
 
     return (
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
@@ -147,5 +169,13 @@ export default function PricingPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function PricingPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-fn-bg flex items-center justify-center"><div className="animate-spin h-8 w-8 border-4 border-fn-accent border-t-transparent rounded-full" /></div>}>
+            <PricingContent />
+        </Suspense>
     );
 }

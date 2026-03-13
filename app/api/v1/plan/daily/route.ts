@@ -13,6 +13,7 @@ import {
   persistReadinessSnapshot,
   persistSafetyLedger,
 } from "@/lib/sit/persistence";
+import { ReadinessOrchestrator } from "@/lib/plan/safety";
 import { buildCanonicalReadinessVector, evaluateReadinessVector } from "@/lib/sit/readiness";
 import { validatePrescription } from "@/lib/sit/safety";
 import { insertProductEvent } from "@/lib/telemetry/events";
@@ -152,6 +153,20 @@ export async function POST(request: Request) {
         issues: validation.issues,
         policy_version: validation.policy_version,
       };
+    }
+
+    const safetyOrchestrator = new ReadinessOrchestrator(supabase, user.id);
+    const safetyResult = await safetyOrchestrator.evaluatePlan(
+      finalPlan.training_plan.focus,
+      finalPlan.training_plan.exercises[0]?.intensity || "moderate"
+    );
+
+    if (safetyResult.adjustment_required) {
+      finalPlan.safety_notes = [
+        ...(finalPlan.safety_notes || []),
+        safetyResult.adjustment_notes,
+      ].filter(Boolean) as string[];
+      (finalPlan as any).safety_ready_status = safetyResult.risk_level;
     }
 
     const { error: insertErr } = await supabase.from("daily_plans").insert({

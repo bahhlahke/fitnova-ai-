@@ -9,13 +9,18 @@ import { validatePrescription } from "@/lib/sit/safety";
 const mockInsert = vi.fn().mockResolvedValue({ error: null });
 const mockSupabase = {
   auth: { getUser: vi.fn() },
-  from: vi.fn(() => ({
-    insert: mockInsert,
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    gte: vi.fn().mockReturnThis(),
-    order: vi.fn().mockResolvedValue({ data: [] }),
-  })),
+  from: vi.fn(() => {
+    const queryBuilder = {
+      insert: mockInsert,
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    };
+    return queryBuilder;
+  }),
 };
 
 vi.mock("@/lib/progression/plateau", () => ({

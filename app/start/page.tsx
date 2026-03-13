@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardHeader } from "@/components/ui";
-import {
-  writePreAuthDraft,
-} from "@/lib/funnel/preauth";
+import { writePreAuthDraft } from "@/lib/funnel/preauth";
+import { trackProductEvent } from "@/lib/telemetry/events";
 
 const goalOptions = ["Weight loss", "Muscle gain", "Mobility", "General fitness"];
 const experienceOptions = ["Beginner", "Intermediate", "Advanced"];
@@ -25,8 +24,16 @@ export default function StartAssessmentPage() {
   const [nutrition, setNutrition] = useState(nutritionOptions[0]);
   const [generating, setGenerating] = useState(false);
 
-  const totalSteps = 6;
+  useEffect(() => {
+    trackProductEvent("funnel_assessment_start");
+  }, []);
+
+  const totalSteps = 7;
   const progressPct = ((step + 1) / totalSteps) * 100;
+
+  useEffect(() => {
+    trackProductEvent("funnel_assessment_start");
+  }, []);
 
   const headline = useMemo(() => {
     if (step === 0) return "What is your primary goal right now?";
@@ -34,6 +41,7 @@ export default function StartAssessmentPage() {
     if (step === 2) return "Where will you train most days?";
     if (step === 3) return "How should we shape nutrition guidance?";
     if (step === 4) return "Generating Your Protocol...";
+    if (step === 5) return "Your Week 1 Performance Forecast";
     return "Unlock Your Performance Protocol";
   }, [step]);
 
@@ -58,11 +66,18 @@ export default function StartAssessmentPage() {
   async function handleNext() {
     if (step === 4) return; // Wait for generator
 
-    if (step === 5) {
+    trackProductEvent("funnel_assessment_step_completed", { 
+      step_index: step, 
+      headline,
+      selection: step === 0 ? goal : step === 1 ? experience : step === 2 ? location : step === 3 ? nutrition : null
+    });
+
+    if (step === 6) {
       if (!email.includes("@")) {
         alert("Please enter a valid email address.");
         return;
       }
+      trackProductEvent("funnel_lead_captured", { email_domain: email.split("@")[1] });
       writePreAuthDraft(typeof window !== "undefined" ? window.localStorage : null, {
         email_lead: email,
         goal,
@@ -96,6 +111,10 @@ export default function StartAssessmentPage() {
       router.push("/");
       return;
     }
+    if (step === 6) {
+      setStep(5);
+      return;
+    }
     if (step === 5) {
       setStep(3); // Skip generating
       return;
@@ -113,12 +132,12 @@ export default function StartAssessmentPage() {
             <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-fn-bg-alt">
               <div className="h-full rounded-full bg-fn-accent shadow-[0_0_10px_rgba(10,217,196,0.5)] transition-all" style={{ width: `${progressPct}%` }} />
             </div>
-            <p className="mt-2 text-sm text-fn-muted font-mono">STEP_IDENT_0{step + 1} // TOTAL_0{totalSteps}</p>
+            <p className="mt-2 text-sm text-fn-muted font-mono">STEP_IDENT_0{step + 1} {"//"} TOTAL_0{totalSteps}</p>
           </div>
 
           <h2 className="text-xl font-semibold text-fn-ink uppercase tracking-tight italic">{headline}</h2>
 
-          {step === 5 && (
+          {step === 6 && (
             <div className="mt-6 flex flex-col gap-3">
               <label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-fn-muted">
                 Satellite Uplink / Email Address
@@ -134,6 +153,36 @@ export default function StartAssessmentPage() {
               />
               <p className="text-xs text-fn-muted italic">
                 Secure your protocol link. Results calculated based on proprietary SIT benchmarks.
+              </p>
+            </div>
+          )}
+
+          {step === 5 && (
+            <div className="mt-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-6 rounded-2xl bg-fn-accent/5 border border-fn-accent/10">
+                  <p className="text-[10px] font-black tracking-widest text-fn-accent uppercase mb-2">Estimated Week 1 Gain</p>
+                  <p className="text-4xl font-black text-white italic">+1.2kg <span className="text-sm font-normal text-fn-muted not-italic">LBM</span></p>
+                </div>
+                <div className="p-6 rounded-2xl bg-fn-accent/5 border border-fn-accent/10">
+                  <p className="text-[10px] font-black tracking-widest text-fn-accent uppercase mb-2">Protocol Confidence</p>
+                  <p className="text-4xl font-black text-white italic">94%</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/[0.02]">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Primary stimulus focus</span>
+                  <span className="text-xs font-black text-fn-accent uppercase italic">{goal === "Muscle gain" ? "Mechanical Tension" : goal === "Weight loss" ? "Metabolic Output" : "Systemic Flow"}</span>
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/[0.02]">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Estimated session time</span>
+                  <span className="text-xs font-black text-fn-accent uppercase italic">42-55 Minutes</span>
+                </div>
+              </div>
+
+              <p className="text-sm text-fn-muted leading-relaxed italic border-l-2 border-fn-accent/30 pl-4">
+                &quot;We&apos;ve calibrated a high-frequency protocol optimized for {location.toLowerCase()} training. The neural net predicts early CNS adaptation within the first 72 hours.&quot;
               </p>
             </div>
           )}
@@ -204,7 +253,7 @@ export default function StartAssessmentPage() {
             {step !== 4 && (
               <Button onClick={handleNext} disabled={step === 4}>
                 <span className="text-[10px] font-black uppercase tracking-widest">
-                  {step === 5 ? "Claim Protocol" : "Initialize Next Step"}
+                  {step === 6 ? "Claim Protocol" : step === 5 ? "See My Full Plan" : "Initialize Next Step"}
                 </span>
               </Button>
             )}

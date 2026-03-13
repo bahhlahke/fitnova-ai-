@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button, ErrorMessage, Input, Card } from "@/components/ui";
+import { trackProductEvent } from "@/lib/telemetry/events";
 
 function encodeNext(next: string): string {
   if (!next.startsWith("/") || next.startsWith("//")) return "/";
@@ -45,6 +46,7 @@ export default function AuthPage() {
     }
 
     setLoadingEmail(true);
+    trackProductEvent("funnel_auth_start", { method: "email", intent });
     const getOrigin = () => {
       if (typeof window !== "undefined") return window.location.origin;
       return process.env.NEXT_PUBLIC_SITE_URL || "";
@@ -74,6 +76,7 @@ export default function AuthPage() {
     }
 
     setLoadingGoogle(true);
+    trackProductEvent("funnel_auth_start", { method: "google", intent });
     const callback =
       typeof window !== "undefined"
         ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`

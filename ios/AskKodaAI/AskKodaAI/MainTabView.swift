@@ -57,5 +57,23 @@ struct MainTabView: View {
         .onChange(of: selectedTab) { _, _ in
             HapticEngine.selection()
         }
+        .onOpenURL { url in
+            handleDeepLink(url)
+        }
+    }
+    
+    private func handleDeepLink(_ url: URL) {
+        let path = url.path.lowercased()
+        if path.contains("/plan") {
+            selectedTab = 0
+        } else if path.contains("/log") {
+            selectedTab = 1
+        } else if path.contains("/progress") {
+            selectedTab = 3
+        } else if path.contains("/coach") {
+            selectedTab = 2
+        } else if path.contains("/settings") {
+            selectedTab = 4
+        }
     }
 }

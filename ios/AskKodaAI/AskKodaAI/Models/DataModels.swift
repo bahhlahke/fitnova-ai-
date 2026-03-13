@@ -13,14 +13,14 @@ struct UserProfile: Codable {
     var user_id: String?
     var display_name: String?
     var email: String?
-    var phone: String?
+    var phone_number: String?
     var age: Int?
     var sex: String?
     var height_cm: Double?
     var weight_kg: Double?
     var goals: [String]?
-    var injuries_limitations: String?
-    var dietary_preferences: [String]?
+    var injuries_limitations: AnyCodable?
+    var dietary_preferences: AnyCodable?
     var activity_level: String?
     var devices: [String: AnyCodable]?
     var subscription_status: String?

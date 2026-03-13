@@ -290,29 +290,48 @@ struct PlanView: View {
     }
     
     private func adaptDay() async {
-        guard !adaptInput.isEmpty else { return }
+        guard !adaptInput.isEmpty, let day = selectedDay else { return }
         adaptLoading = true
         errorMessage = nil
         defer { adaptLoading = false }
         
         do {
-            // Simplified call leveraging existing adaptDay endpoint footprint
-            let res = try await api.planAdaptDay(minutesAvailable: nil, location: adaptInput, soreness: nil, intensity: nil, equipmentContext: nil)
+            let mappedExercises = (day.exercises ?? []).map { ex in
+                AnyCodable(value: ["name": ex.name, "sets": ex.sets, "reps": ex.reps])
+            }
+            
+            let res = try await api.planAdaptDay(
+                userMessage: adaptInput,
+                focus: day.focus ?? "Training",
+                intensity: day.intensity ?? "standard",
+                targetDuration: day.target_duration_minutes ?? 45,
+                goals: [weeklyPlan?.cycle_goal].compactMap { $0 },
+                currentExercises: mappedExercises,
+                dateLocal: day.date_local
+            )
             
             await MainActor.run {
-                let updatedPlan = res.plan
-                let mappedExercises = updatedPlan.training_plan?.exercises?.map { ex in
-                    WeeklyPlanExercise(name: ex.name, equipment: nil, sets: ex.sets, reps: ex.reps, coaching_cue: ex.notes)
+                if let updatedPlan = res.plan {
+                    let updatedDay = WeeklyPlanDay(
+                        date_local: updatedPlan.date_local,
+                        day_label: day.day_label,
+                        focus: updatedPlan.training_plan?.focus ?? day.focus,
+                        intensity: day.intensity,
+                        target_duration_minutes: updatedPlan.training_plan?.duration_minutes ?? day.target_duration_minutes,
+                        rationale: updatedPlan.adaptation_note ?? day.rationale,
+                        equipment_context: day.equipment_context,
+                        exercises: updatedPlan.training_plan?.exercises?.map { ex in
+                            WeeklyPlanExercise(name: ex.name, equipment: nil, sets: ex.sets, reps: ex.reps, coaching_cue: ex.notes)
+                        }
+                    )
+                    
+                    if let index = weeklyPlan?.days?.firstIndex(where: { $0.date_local == day.date_local }) {
+                        weeklyPlan?.days?[index] = updatedDay
+                        selectedDay = updatedDay
+                    }
                 }
-                
-                let updatedDay = WeeklyPlanDay(date_local: updatedPlan.date_local, day_label: selectedDay?.day_label, focus: selectedDay?.focus, intensity: selectedDay?.intensity, target_duration_minutes: updatedPlan.training_plan?.exercises != nil ? 45 : 0, rationale: selectedDay?.rationale, equipment_context: selectedDay?.equipment_context, exercises: mappedExercises)
-                
-                if let index = weeklyPlan?.days?.firstIndex(where: { $0.date_local == selectedDay?.date_local }) {
-                    weeklyPlan?.days?[index] = updatedDay
-                    selectedDay = updatedDay
-                    adaptInput = ""
-                    isAdapting = false
-                }
+                adaptInput = ""
+                isAdapting = false
             }
         } catch {
             await MainActor.run { errorMessage = error.localizedDescription }

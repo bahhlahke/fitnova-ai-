@@ -9,6 +9,7 @@ import AuthenticationServices
 
 struct AuthView: View {
     @EnvironmentObject var auth: SupabaseService
+    var onGuestAccess: (() -> Void)?
     @State private var email = ""
     @State private var message: String?
     @State private var isLoading = false
@@ -114,6 +115,17 @@ struct AuthView: View {
                             .foregroundStyle(Brand.Color.accent)
                     }
                     #endif
+
+                    Button(action: { 
+                        HapticEngine.impact(.light)
+                        onGuestAccess?() 
+                    }) {
+                        Text("Explore as Guest")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(Brand.Color.muted)
+                            .padding(.top, 12)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 28)
@@ -155,6 +167,7 @@ struct AuthView: View {
     }
 
     private func signInWithGoogle() {
+        Telemetry.track(.authStart, props: ["method": "google"])
         Task {
             do {
                 let url = try await auth.getGoogleSignInURL()
@@ -174,6 +187,7 @@ struct AuthView: View {
             if let appleIDCredential = authResult.credential as? ASAuthorizationAppleIDCredential,
                let tokenData = appleIDCredential.identityToken,
                let token = String(data: tokenData, encoding: .utf8) {
+                Telemetry.track(.authStart, props: ["method": "apple"])
                 Task {
                     do {
                         try await auth.signInWithApple(idToken: token, nonce: currentNonce)
@@ -190,6 +204,7 @@ struct AuthView: View {
     private func sendMagicLink() {
         message = nil
         isLoading = true
+        Telemetry.track(.authStart, props: ["method": "magic_link"])
         Task {
             do {
                 try await auth.signInWithMagicLink(email: email)
