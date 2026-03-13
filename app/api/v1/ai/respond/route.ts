@@ -55,12 +55,12 @@ function isValidLocalDate(value: string): boolean {
   );
 }
 
-function resolveLogDate(localDate: string | undefined): string {
+function resolveLogDate(localDate: string | undefined): string | null {
   if (typeof localDate === "string") {
     const trimmed = localDate.trim();
     if (isValidLocalDate(trimmed)) return trimmed;
   }
-  return new Date().toISOString().slice(0, 10);
+  return null;
 }
 
 function toKgFromLbs(lbs: number): number {
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
   }
 
   const message = typeof body.message === "string" ? body.message.trim() : "";
-  const logDate = resolveLogDate(body.localDate);
+  const logDate = resolveLogDate(body.localDate) || new Date().toISOString().slice(0, 10);
   // Sanitise and cap conversation history to last 10 turns
   const conversationHistory: ConversationTurn[] = Array.isArray(body.conversationHistory)
     ? body.conversationHistory
@@ -219,8 +219,7 @@ export async function POST(request: Request) {
       }
     }
 
-    let systemPrompt =
-      "You are an elite AI Performance Coach & Sports Scientist with a PhD in Exercise Physiology. Respond with the precision and authority of a world-class expert.\n\n" +
+    const BASE_CAPABILITIES = 
       "You have direct control over the application. You can:\n" +
       "- Log food (`log_meal`) and water (`log_hydration`).\n" +
       "- Log workouts (`log_workout`) with `calories_burned` for expenditure.\n" +
@@ -230,14 +229,18 @@ export async function POST(request: Request) {
       "- Share achievements to the activity feed (`create_social_post`).\n" +
       "- Create new personalized plans (`generate_daily_plan`) based on time/equipment.\n" +
       "- Navigate the user to a specific page context (`navigate_to`).\n" +
-      "- Escalate complex medical or technical issues to a human coach (`request_coach_assistance`).\n\n" +
+      "- Escalate complex medical or technical issues to a human coach (`request_coach_assistance`).\n\n";
+
+    let systemPrompt =
+      "You are an elite AI Performance Coach & Sports Scientist with a PhD in Exercise Physiology. Respond with the precision and authority of a world-class expert.\n\n" +
+      BASE_CAPABILITIES +
       "Synthesis Logic: Analyze the user's longitudinal data (HRV, PRs, Sleep) to provide high-performance insights typically reserved for Olympic teams. Always prefer taking action when the user reports data.\n\n" +
       "Date Resolution: The user may refer to relative dates (e.g. 'yesterday', 'this past Saturday', 'last Monday'). Always calculate the absolute YYYY-MM-DD based on the 'Current Context' provided in your system prompt and pass it to the logging tools. End with a concrete next step.";
 
     if (user?.id) {
       try {
         const { systemPrompt: assembled } = await assembleContext(supabase, user.id);
-        systemPrompt = `${assembled}\n\n${SAFETY_POLICY}`;
+        systemPrompt = `${assembled}\n\n${BASE_CAPABILITIES}\n\n${SAFETY_POLICY}`;
       } catch {
         systemPrompt = `${systemPrompt}\n\n${SAFETY_POLICY}`;
       }
