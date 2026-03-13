@@ -26,6 +26,8 @@ export default function CheckInPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [existingCheckInId, setExistingCheckInId] = useState<string | null>(null);
+  const [pivotLoading, setPivotLoading] = useState(false);
+  const [pivotMessage, setPivotMessage] = useState<string | null>(null);
   const today = toLocalDateString();
 
   useEffect(() => {
@@ -128,6 +130,28 @@ export default function CheckInPage() {
     setSaving(false);
     setSaved(true);
     emitDataRefresh(["dashboard"]);
+  }
+
+  async function handlePivot() {
+    setPivotLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/v1/plan/adapt-day", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userMessage: "Low energy recovery pivot. Adjust for high fatigue.",
+          date_local: today
+        }),
+      });
+      if (!res.ok) throw new Error("Adaptation failed");
+      setPivotMessage("Protocol adapted. Recovery focus initialized.");
+      emitDataRefresh(["dashboard", "workout"]);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setPivotLoading(false);
+    }
   }
 
   if (loading) {
@@ -240,14 +264,43 @@ export default function CheckInPage() {
             </Button>
 
             {saved && (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => router.push("/")}
-                className="w-full py-6"
-              >
-                Back to Cockpit
-              </Button>
+              <div className="space-y-4">
+                {energyScore && energyScore <= 2 && !pivotMessage && (
+                  <div className="rounded-xl border border-fn-accent/30 bg-fn-accent/5 p-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 w-2 rounded-full bg-fn-accent animate-ping" />
+                      <p className="text-xs font-black uppercase tracking-widest text-fn-accent">Recovery Protocol Detected</p>
+                    </div>
+                    <p className="text-sm text-fn-muted leading-relaxed">
+                      Your energy signature is critically low. Koda recommends an immediate pivot to a low-intensity recovery protocol to manage systemic fatigue.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handlePivot}
+                      loading={pivotLoading}
+                      className="w-full border-fn-accent/50 text-fn-accent hover:bg-fn-accent/10 py-4"
+                    >
+                      Initialize Plan Pivot
+                    </Button>
+                  </div>
+                )}
+
+                {pivotMessage && (
+                  <div className="rounded-xl border border-fn-accent bg-fn-accent/10 p-4">
+                    <p className="text-sm font-bold text-fn-accent text-center">{pivotMessage}</p>
+                  </div>
+                )}
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => router.push("/")}
+                  className="w-full py-6"
+                >
+                  Back to Cockpit
+                </Button>
+              </div>
             )}
           </div>
         </form>

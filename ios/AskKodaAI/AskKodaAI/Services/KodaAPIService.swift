@@ -389,6 +389,18 @@ struct KodaAPIService {
         return try await get("api/v1/ai/progress-insight")
     }
 
+    /// POST /api/v1/ai/evolutionary-narrative
+    func evolutionaryNarrative(localDate: String) async throws -> EvolutionaryNarrativeResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: EvolutionaryNarrativeResponse(narrative: "Your journey over the last 30 days has been a masterclass in adaptation. From the initial squat PR on March 1st to the consistent neural recovery scores this week, you are trending towards elite attainment."),
+                empty: EvolutionaryNarrativeResponse(narrative: nil),
+                label: "evolutionary narrative"
+            )
+        }
+        return try await post("api/v1/ai/evolutionary-narrative", body: ["localDate": localDate])
+    }
+
     /// POST /api/v1/nutrition/fridge-scanner
     func nutritionFridgeScanner(media: String, type: String, localDate: String) async throws -> FridgeScannerResponse {
         if isDemoMode {

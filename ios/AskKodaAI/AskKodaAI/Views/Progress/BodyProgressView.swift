@@ -19,6 +19,8 @@ struct BodyProgressView: View {
     @State private var saving = false
     @State private var progressInsight: String?
     @State private var progressInsightLoading = false
+    @State private var evolutionaryNarrative: String?
+    @State private var narrativeLoading = false
     @State private var projection: DashboardProjectionResponse?
 
     private var dataService: KodaDataService? {
@@ -61,21 +63,27 @@ struct BodyProgressView: View {
                         }
                     }
 
-                    // AI insight
-                    if progressInsightLoading {
-                        ShimmerCard(height: 80)
-                    } else if let insight = progressInsight, !insight.isEmpty {
+                    // Evolutionary Narrative
+                    if narrativeLoading {
+                        ShimmerCard(height: 120)
+                    } else if let narrative = evolutionaryNarrative, !narrative.isEmpty {
                         PremiumRowCard {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("AI TREND ANALYSIS")
-                                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                                    .tracking(1.2)
-                                    .foregroundStyle(Brand.Color.accent)
-                                Text(insight)
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "history.circle.fill")
+                                        .foregroundStyle(Brand.Color.accent)
+                                    Text("EVOLUTIONARY NARRATIVE")
+                                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                                        .tracking(1.4)
+                                        .foregroundStyle(Brand.Color.accent)
+                                }
+                                Text(narrative)
                                     .font(.subheadline)
+                                    .fontWeight(.medium)
                                     .foregroundStyle(.white)
-                                    .italic()
+                                    .lineSpacing(4)
                             }
+                            .padding(.vertical, 8)
                         }
                     }
 
@@ -370,6 +378,14 @@ struct BodyProgressView: View {
                     let res = try await api.aiProgressInsight()
                     await MainActor.run { progressInsight = res.insight }
                 } catch { }
+            }
+            group.addTask {
+                narrativeLoading = true
+                do {
+                    let res = try await api.evolutionaryNarrative(localDate: DateHelpers.todayLocal)
+                    await MainActor.run { evolutionaryNarrative = res.narrative }
+                } catch { }
+                narrativeLoading = false
             }
             group.addTask {
                 do {

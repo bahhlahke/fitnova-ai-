@@ -19,6 +19,7 @@ struct GuidedWorkoutView: View {
     @State private var exercises: [PlanExercise] = []
     @State private var sessionFocus: String?
     @State private var sessionDurationMinutes: Int?
+    @State private var sessionRationale: String?
 
     init(exercises: [PlanExercise] = [], trainingPlan: TrainingPlan? = nil) {
         let normalized = Self.normalizedTrainingPlan(trainingPlan)
@@ -358,6 +359,24 @@ struct GuidedWorkoutView: View {
                                             .fill(Brand.Color.surfaceRaised)
                                             .overlay(Circle().stroke(Brand.Color.borderStrong, lineWidth: 1))
                                     )
+                            }
+                        }
+                    }
+
+                    if let rationale = sessionRationale, !rationale.isEmpty {
+                        PremiumRowCard {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack(spacing: 6) {
+                                    Circle().fill(Brand.Color.accent).frame(width: 6, height: 6)
+                                    Text("Neural Rationale // Bio-Briefing")
+                                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                                        .foregroundStyle(Brand.Color.accent)
+                                }
+                                Text(rationale)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.white)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                         }
                     }
@@ -911,6 +930,13 @@ struct GuidedWorkoutView: View {
                     focus: freshPlan.training_plan?.focus,
                     durationMinutes: freshPlan.training_plan?.duration_minutes
                 )
+            }
+            Task {
+                if let briefing = try? await api.aiBriefing(localDate: DateHelpers.todayLocal) {
+                    await MainActor.run {
+                        sessionRationale = briefing.rationale
+                    }
+                }
             }
         } catch {
             if let ds = dataService {

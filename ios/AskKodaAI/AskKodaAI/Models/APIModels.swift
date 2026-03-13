@@ -59,6 +59,10 @@ struct ProgressInsightResponse: Decodable {
     let insight: String?
 }
 
+struct EvolutionaryNarrativeResponse: Decodable {
+    let narrative: String?
+}
+
 struct ProjectionResponse: Decodable {
     let current: Double?
     let projected_4w: Double?

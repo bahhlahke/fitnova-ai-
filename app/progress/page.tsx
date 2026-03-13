@@ -41,6 +41,8 @@ export default function ProgressPage() {
   const [loading, setLoading] = useState(true);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [aiInsightLoading, setAiInsightLoading] = useState(false);
+  const [evolutionaryNarrative, setEvolutionaryNarrative] = useState<string | null>(null);
+  const [evolutionaryNarrativeLoading, setEvolutionaryNarrativeLoading] = useState(false);
   const [analytics, setAnalytics] = useState<{
     workout_days: number;
     workout_minutes: number;
@@ -180,6 +182,15 @@ export default function ProgressPage() {
       })
       .catch(() => { })
       .finally(() => setAiInsightLoading(false));
+
+    setEvolutionaryNarrativeLoading(true);
+    fetch("/api/v1/ai/evolutionary-narrative", { method: "POST" })
+      .then((r) => r.json())
+      .then((body: { narrative?: string | null }) => {
+        if (body.narrative) setEvolutionaryNarrative(body.narrative);
+      })
+      .catch(() => { })
+      .finally(() => setEvolutionaryNarrativeLoading(false));
   }, [entries.length]);
 
   useEffect(() => {
@@ -241,17 +252,22 @@ export default function ProgressPage() {
       ) : (
         <>
           <div className="grid gap-4 lg:grid-cols-3">
-            {/* AI Narrative — wide */}
-            <Card padding="lg" className="lg:col-span-2 border-fn-accent/20 bg-fn-accent/5">
-              <CardHeader title="AI Performance Synthesis" subtitle="Based on your logged body composition data" />
-              {aiInsightLoading ? (
-                <div className="mt-6 space-y-4 animate-pulse">
+            {/* Evolutionary Narrative — wide */}
+            <Card padding="lg" className="lg:col-span-2 border-fn-accent/20 bg-fn-accent/5 relative overflow-hidden">
+              <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-fn-accent/10 blur-[100px] pointer-events-none" />
+              <CardHeader title="Evolutionary Narrative" subtitle="A 30-day clinical synthesis of your adaptation journey" />
+              {evolutionaryNarrativeLoading ? (
+                <div className="mt-8 space-y-4 animate-pulse">
                   <div className="h-4 w-full rounded-full bg-white/5" />
                   <div className="h-4 w-4/5 rounded-full bg-white/5" />
                   <div className="h-4 w-3/5 rounded-full bg-white/5" />
                 </div>
               ) : (
-                <p className="mt-6 text-lg text-white leading-relaxed border-l-2 border-fn-accent/30 pl-6 italic font-medium">{aiNarrative}</p>
+                <div className="mt-8">
+                  <p className="text-xl text-white leading-relaxed font-medium italic border-l-4 border-fn-accent/30 pl-8">
+                    {evolutionaryNarrative || aiNarrative}
+                  </p>
+                </div>
               )}
             </Card>
 
