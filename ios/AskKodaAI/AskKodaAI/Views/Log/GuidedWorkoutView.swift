@@ -1720,15 +1720,46 @@ struct GuidedWorkoutView: View {
         return log
     }
 
+    @Environment(\.modelContext) private var modelContext
+
     private func saveAndGetInsight() async {
         guard let ds = dataService else { return }
         // Optimistic: mark saved immediately so the completion screen shows the badge at once.
         await MainActor.run { saved = true }
 
-        var log = buildWorkoutLog()
-        log.log_id = sessionLogId
-        log.notes = nil // clear in-progress marker
-        try? await ds.upsertWorkoutLog(log)
+        let apiLog = buildWorkoutLog()
+        
+        // --- OFFLINE-FIRST PERSISTENCE ---
+        let persistentExercises = exercises.enumerated().compactMap { i, ex -> PersistentExerciseLog? in
+            let exLogs = i < loggedSets.count ? loggedSets[i] : []
+            let maxWeight = exLogs.compactMap { $0.weight }.max()
+            let repsStr = ex.reps ?? "0"
+            return PersistentExerciseLog(name: ex.name ?? "Exercise", sets: exLogs.count, reps: repsStr, weight: maxWeight)
+        }
+        
+        let localWorkout = PersistentWorkoutLog(
+            userId: auth.currentUserId ?? "anon",
+            date: DateHelpers.todayLocal,
+            workoutType: "Guided",
+            exercises: persistentExercises
+        )
+        localWorkout.logId = sessionLogId
+        localWorkout.notes = apiLog.notes
+        
+        modelContext.insert(localWorkout)
+        try? modelContext.save()
+        
+        // Attempt immediate sync if connected
+        if NetworkMonitor.shared.isConnected {
+            var log = apiLog
+            log.log_id = sessionLogId
+            try? await ds.upsertWorkoutLog(log)
+            localWorkout.isSynced = true
+            try? modelContext.save()
+        } else {
+            print("Offline mode: workout saved locally for future sync.")
+        }
+        
         _ = try? await api.analyticsProcessPRs()
         _ = try? await api.awardsCheck()
 

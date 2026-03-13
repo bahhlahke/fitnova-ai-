@@ -241,7 +241,18 @@ struct OnDeviceMotionAnalyzer {
             throw dataURLs.isEmpty ? MotionAnalysisError.noUsableImages : MotionAnalysisError.invalidImagePayload
         }
 
-        let frames = try decodedImages.compactMap(analyzeFrame)
+        let frames = try await withThrowingTaskGroup(of: PoseFrame?.self) { group in
+            for image in decodedImages {
+                group.addTask {
+                    try estimator.estimatePose(in: image)
+                }
+            }
+            var results: [PoseFrame] = []
+            for try await frame in group {
+                if let f = frame { results.append(f) }
+            }
+            return results
+        }
         guard !frames.isEmpty else {
             throw MotionAnalysisError.poseNotDetected
         }

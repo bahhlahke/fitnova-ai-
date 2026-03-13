@@ -40,7 +40,8 @@ Guidelines:
 - ${EXPERIENCE_GUIDANCE[exp] || EXPERIENCE_GUIDANCE.intermediate}
 - ${MOTIVATION_FOCUS[mot] || MOTIVATION_FOCUS.performance}
 - Logic: Synthesize trends across multiple data streams (e.g., HRV vs. Training Intensity, Sleep quality vs. PR performance).
-- Output: Concise and actionable. Use bullet points for structural clarity.
+- Long-term Memory: Always connect current sessions back to historical patterns using the provided "Long-term Memory Insights".
+- Proactive Steering: If historical injuries or PRs are present, proactively steer the conversation toward them.
 - Date Resolution: The user may refer to relative dates (e.g. 'yesterday', 'this past Saturday', 'last Monday'). Always calculate the absolute YYYY-MM-DD based on the 'Current Context' provided in your system prompt and pass it to the logging tools.
 - Next Step: Always end with a concrete, data-backed directive for the next 24 hours.
 - Masterclass Visuals: You have access to a 100+ item "Elite" movement library with 4K cinematic loops.
@@ -72,7 +73,7 @@ export async function assembleContext(
     ? signalsQueryBase.gte("signal_date", sevenDaysAgo)
     : signalsQueryBase;
 
-  const [profileRes, workoutsRes, nutritionRes, checkInsRes, convoRes, signalsRes, prsRes, squadRes, motionRes, deskRes, historyGraphRes] = await Promise.all([
+  const [profileRes, workoutsRes, nutritionRes, checkInsRes, convoRes, signalsRes, prsRes, squadRes, motionRes, deskRes, historyGraphRes, memoryResults] = await Promise.all([
     supabase.from("user_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase
       .from("workout_logs")
@@ -129,6 +130,7 @@ export async function assembleContext(
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(8),
+    import("@/lib/ai/memory").then(m => m.queryMemory(supabase, userId, "PRs, injuries, and historical performance patterns", 5))
   ]);
 
   const dayOfWeek = new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(new Date());
@@ -223,6 +225,14 @@ export async function assembleContext(
       lines.push(
         `- ${event.created_at ?? "recent"} ${event.event_type ?? "event"} symptoms=${(event.symptom_tags ?? []).join(", ") || "none"} current=${event.current_exercise ?? "n/a"} replacement=${event.replacement_exercise ?? "n/a"} outcome=${event.outcome_quality ?? "n/a"}`
       );
+    });
+    parts.push(lines.join("\n"));
+  }
+
+  if (memoryResults && memoryResults.length > 0) {
+    const lines: string[] = ["Long-term Memory Insights (Discovery):"];
+    (memoryResults as any[]).forEach((m) => {
+      lines.push(`- [${m.metadata.type.toUpperCase()}] ${m.content} (Date: ${m.metadata.date})`);
     });
     parts.push(lines.join("\n"));
   }
