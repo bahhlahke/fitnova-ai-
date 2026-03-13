@@ -20,6 +20,7 @@ struct RealtimeMotionLabSessionView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var cameraSession = CameraCaptureSession()
     @StateObject private var controller = RealtimeMotionLabController()
+    @State private var hasStartedSession = false
 
     init(
         capability: MotionAnalysisCapability,
@@ -40,13 +41,22 @@ struct RealtimeMotionLabSessionView: View {
             Color.black.ignoresSafeArea()
 
             if capability.supportsRealtime {
-                CameraPreviewLayer(cameraSession: cameraSession)
-                    .ignoresSafeArea()
-                    .overlay {
-                        GeometryReader { geometry in
-                            MotionSkeletonOverlay(snapshot: controller.snapshot, size: geometry.size)
+                if hasStartedSession {
+                    CameraPreviewLayer(cameraSession: cameraSession)
+                        .ignoresSafeArea()
+                        .overlay {
+                            GeometryReader { geometry in
+                                MotionSkeletonOverlay(snapshot: controller.snapshot, size: geometry.size)
+                            }
                         }
-                    }
+                } else {
+                    LinearGradient(
+                        colors: [Brand.Color.backgroundAlt, Brand.Color.background],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
+                }
 
                 LinearGradient(
                     colors: [Color.black.opacity(0.74), Color.clear, Color.black.opacity(0.88)],
@@ -89,59 +99,67 @@ struct RealtimeMotionLabSessionView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 12)
 
-                    HStack(spacing: 12) {
-                        liveMetric(title: "REPS", value: "\(controller.snapshot.repCount)")
-                        liveMetric(title: "PHASE", value: controller.snapshot.phase.label.uppercased())
-                        liveMetric(title: "FPS", value: "\(Int(controller.snapshot.fps.rounded()))")
-                        liveMetric(title: "VEL", value: String(format: "%.2f", controller.snapshot.currentVelocityMps))
+                    if hasStartedSession {
+                        HStack(spacing: 12) {
+                            liveMetric(title: "REPS", value: "\(controller.snapshot.repCount)")
+                            liveMetric(title: "PHASE", value: controller.snapshot.phase.label.uppercased())
+                            liveMetric(title: "FPS", value: "\(Int(controller.snapshot.fps.rounded()))")
+                            liveMetric(title: "VEL", value: String(format: "%.2f", controller.snapshot.currentVelocityMps))
+                        }
+                        .padding(.horizontal, 20)
                     }
-                    .padding(.horizontal, 20)
 
                     Spacer()
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Text("Live Cue")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text("\(controller.snapshot.score)/100")
-                                .font(.headline.weight(.bold))
-                                .foregroundStyle(Brand.Color.accent)
-                        }
-
-                        Text(controller.snapshot.cue)
-                            .font(.headline)
-                            .foregroundStyle(.white)
-
-                        HStack(spacing: 14) {
-                            Text("Confidence \(Int((controller.snapshot.poseConfidence * 100).rounded()))%")
-                            Text("\(controller.snapshot.pattern.label) \(Int(controller.snapshot.primaryMetric.rounded()))")
-                            Text("Torso \(Int(controller.snapshot.torsoLeanDegrees.rounded()))°")
-                            Text("Peak \(String(format: "%.2f", controller.snapshot.peakVelocityMps)) m/s")
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                        Button {
-                            if let summary = controller.finish() {
-                                onComplete(summary)
+                    if hasStartedSession {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("Live Cue")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text("\(controller.snapshot.score)/100")
+                                    .font(.headline.weight(.bold))
+                                    .foregroundStyle(Brand.Color.accent)
                             }
-                            dismiss()
-                        } label: {
-                            Text("Finish session")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Brand.Color.accent)
-                                .foregroundStyle(.black)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                            Text(controller.snapshot.cue)
+                                .font(.headline)
+                                .foregroundStyle(.white)
+
+                            HStack(spacing: 14) {
+                                Text("Confidence \(Int((controller.snapshot.poseConfidence * 100).rounded()))%")
+                                Text("\(controller.snapshot.pattern.label) \(Int(controller.snapshot.primaryMetric.rounded()))")
+                                Text("Torso \(Int(controller.snapshot.torsoLeanDegrees.rounded()))°")
+                                Text("Peak \(String(format: "%.2f", controller.snapshot.peakVelocityMps)) m/s")
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                            Button {
+                                if let summary = controller.finish() {
+                                    onComplete(summary)
+                                }
+                                dismiss()
+                            } label: {
+                                Text("Finish session")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Brand.Color.accent)
+                                    .foregroundStyle(.black)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                            }
                         }
+                        .padding(20)
+                        .background(Color.black.opacity(0.6))
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 26)
+                    } else {
+                        preflightCard
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 26)
                     }
-                    .padding(20)
-                    .background(Color.black.opacity(0.6))
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 26)
                 }
             } else {
                 VStack(spacing: 18) {
@@ -159,14 +177,93 @@ struct RealtimeMotionLabSessionView: View {
                 .padding(28)
             }
         }
-        .task {
-            guard capability.supportsRealtime else { return }
+        .task(id: hasStartedSession) {
+            guard capability.supportsRealtime, hasStartedSession else { return }
             controller.attach(to: cameraSession, configuration: configuration)
             await cameraSession.startSession(enableVideoFrames: true)
         }
         .onDisappear {
             cameraSession.setVideoFrameHandler(nil)
             cameraSession.stopSession()
+        }
+    }
+
+    private var preflightCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 12) {
+                Image(systemName: "figure.strengthtraining.traditional")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(Brand.Color.accent)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(configuration.pattern.label) setup")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.white)
+                    Text("Get a cleaner read before the first rep so the cues feel fast and accurate.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(preflightTips, id: \.self) { tip in
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundStyle(Brand.Color.accent)
+                        Text(tip)
+                            .font(.subheadline)
+                            .foregroundStyle(.white)
+                    }
+                }
+            }
+
+            HStack(spacing: 10) {
+                liveMetric(title: "CUES", value: "LIVE")
+                liveMetric(title: "PATTERN", value: configuration.pattern.label.uppercased())
+                liveMetric(title: "TARGET", value: "3 REPS")
+            }
+
+            Button {
+                hasStartedSession = true
+            } label: {
+                Text("Start \(configuration.pattern.label.lowercased()) scan")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Brand.Color.accent)
+                    .foregroundStyle(.black)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+        }
+        .padding(20)
+        .background(Color.black.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    private var preflightTips: [String] {
+        switch configuration.pattern {
+        case .squat:
+            return [
+                "Use a side angle and keep your full body in frame.",
+                "Give the app 2-3 clean reps from lockout to depth.",
+                "Keep the bar path and both feet visible when possible."
+            ]
+        case .hinge:
+            return [
+                "Use a true side view so hip travel is easy to read.",
+                "Keep your shoulders, hips, knees, and bar path in frame.",
+                "Pause briefly at lockout before the next hinge."
+            ]
+        case .press:
+            return [
+                "Stand tall with the wrists and elbows visible from the side.",
+                "Leave headroom so overhead lockout stays in frame.",
+                "Reset at the rack position before each rep."
+            ]
+        case .pull:
+            return [
+                "Use a slight side-front angle so elbow travel stays visible.",
+                "Keep the top contraction and full hang in frame.",
+                "Give the app a clean pause at both ends of the pull."
+            ]
         }
     }
 

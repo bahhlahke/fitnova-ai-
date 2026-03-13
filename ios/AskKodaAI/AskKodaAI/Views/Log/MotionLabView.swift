@@ -15,10 +15,14 @@ struct MotionLabView: View {
     @State private var showPicker = false
     @State private var showCamera = false
     @State private var showRealtimeScanner = false
+    @State private var showPricing = false
     @State private var analyzing = false
     @State private var result: VisionAnalysisResponse?
     @State private var errorMessage: String?
     @State private var selectedPattern: MotionMovementPattern = .squat
+    @State private var isPro = false
+    @State private var trialUsedThisMonth = false
+    @State private var profileLoading = true
 
     private var api: KodaAPIService {
         KodaAPIService(getAccessToken: { auth.accessToken })
@@ -35,9 +39,46 @@ struct MotionLabView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Capture a live photo or choose from your library. We'll analyze your form and suggest corrections.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                PremiumHeroCard(
+                    title: "Motion Lab turns your phone into a live form coach.",
+                    subtitle: "Scan reps in real time, get instant technique cues, and review camera-derived velocity trends without leaving the workout flow.",
+                    eyebrow: "Motion Lab"
+                ) {
+                    HStack(spacing: 10) {
+                        PremiumMetricPill(label: "Realtime", value: "Live cues")
+                        PremiumMetricPill(label: "Patterns", value: "4 lifts")
+                        PremiumMetricPill(label: "Source", value: analysisCapability.isOnDeviceAvailable ? "On-device" : "Fallback")
+                    }
+                }
+
+                PremiumRowCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Best results")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+
+                        ForEach(selectedPatternTips, id: \.self) { tip in
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: "bolt.badge.checkmark")
+                                    .foregroundStyle(Brand.Color.accent)
+                                Text(tip)
+                                    .font(.subheadline)
+                                    .foregroundStyle(Brand.Color.muted)
+                            }
+                        }
+
+                        NavigationLink {
+                            PricingView()
+                        } label: {
+                            HStack {
+                                Text("See why athletes upgrade for Motion Lab")
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                            }
+                        }
+                        .buttonStyle(PremiumActionButtonStyle(filled: false))
+                    }
+                }
 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
@@ -72,16 +113,69 @@ struct MotionLabView: View {
                         .foregroundStyle(.secondary)
 
                     Button {
-                        showRealtimeScanner = true
+                        if isPro || !trialUsedThisMonth {
+                            showRealtimeScanner = true
+                            if !isPro {
+                                markTrialUsed()
+                            }
+                        } else {
+                            showPricing = true
+                        }
                     } label: {
-                        Label("Start realtime scan", systemImage: "figure.strengthtraining.traditional")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(analysisCapability.supportsRealtime ? Brand.Color.accent : Color(.systemGray5))
-                            .foregroundStyle(analysisCapability.supportsRealtime ? .black : .secondary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        VStack(spacing: 4) {
+                            Label(isPro || !trialUsedThisMonth ? "Start \(selectedPattern.label.lowercased()) scan" : "Trial session used", systemImage: "figure.strengthtraining.traditional")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(analysisCapability.supportsRealtime ? Brand.Color.accent : Color(.systemGray5))
+                                .foregroundStyle(analysisCapability.supportsRealtime ? .black : .secondary)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            
+                            if !isPro && !trialUsedThisMonth {
+                                Text("1 free trial session available this month")
+                                    .font(.caption2.bold())
+                                    .foregroundStyle(Brand.Color.accent)
+                            }
+                        }
                     }
                     .disabled(!analysisCapability.supportsRealtime)
+
+                    if profileLoading {
+                        ProgressView("Checking Motion Lab access...")
+                            .font(.caption)
+                            .tint(Brand.Color.accent)
+                    } else if !isPro {
+                        PremiumRowCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(trialUsedThisMonth ? "Upgrade for unlimited live scans" : "Use your free scan, then keep coaching live")
+                                            .font(.headline)
+                                            .foregroundStyle(.white)
+                                        Text(trialUsedThisMonth ? "Your monthly trial session is used. Pro keeps Motion Lab available whenever the workout calls for it." : "You have one free realtime Motion Lab session this month. Pro removes the cap and keeps the live coaching loop open.")
+                                            .font(.subheadline)
+                                            .foregroundStyle(Brand.Color.muted)
+                                    }
+                                    Spacer()
+                                    Image(systemName: trialUsedThisMonth ? "crown.fill" : "sparkles")
+                                        .foregroundStyle(Brand.Color.accent)
+                                }
+
+                                HStack(spacing: 10) {
+                                    PremiumMetricPill(label: "Trial", value: trialUsedThisMonth ? "Used" : "Available")
+                                    PremiumMetricPill(label: "Live", value: "Unlimited")
+                                    PremiumMetricPill(label: "Value", value: "Realtime cues")
+                                }
+
+                                Button {
+                                    showPricing = true
+                                } label: {
+                                    Text(trialUsedThisMonth ? "Upgrade to Pro" : "See Pro benefits")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(PremiumActionButtonStyle(filled: true))
+                            }
+                        }
+                    }
                 }
 
                 // Dual-source capture
@@ -208,6 +302,33 @@ struct MotionLabView: View {
                     .padding()
                     .background(Color.accentColor.opacity(0.1))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                    if !isPro {
+                        PremiumRowCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Turn every set into a coached session")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                Text("Pro unlocks unlimited realtime scans, so the next cue and the next rep are always one tap away.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Brand.Color.muted)
+
+                                HStack(spacing: 10) {
+                                    PremiumMetricPill(label: "Scans", value: "Unlimited")
+                                    PremiumMetricPill(label: "Cues", value: "Live")
+                                    PremiumMetricPill(label: "Velocity", value: "Tracked")
+                                }
+
+                                Button {
+                                    showPricing = true
+                                } label: {
+                                    Text("Upgrade from Motion Lab")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(PremiumActionButtonStyle(filled: true))
+                            }
+                        }
+                    }
                 }
 
                 Button(action: analyze) {
@@ -251,6 +372,44 @@ struct MotionLabView: View {
             )
             .ignoresSafeArea()
         }
+        .sheet(isPresented: $showPricing) {
+            PricingView()
+        }
+        .task {
+            await checkProStatus()
+            checkTrialStatus()
+        }
+    }
+
+    private var dataService: KodaDataService? {
+        guard let uid = auth.currentUserId else { return nil }
+        return KodaDataService(client: auth.supabaseClient, userId: uid)
+    }
+
+    private func checkProStatus() async {
+        profileLoading = true
+        if let profile = try? await dataService?.fetchProfile() {
+            isPro = profile.subscription_status?.lowercased() == "pro" || profile.role?.lowercased() == "admin"
+        }
+        profileLoading = false
+    }
+
+    private func checkTrialStatus() {
+        let lastTrialMonth = UserDefaults.standard.string(forKey: "motion_lab_last_trial_month")
+        let currentMonth = currentMonthString()
+        trialUsedThisMonth = lastTrialMonth == currentMonth
+    }
+
+    private func markTrialUsed() {
+        let currentMonth = currentMonthString()
+        UserDefaults.standard.set(currentMonth, forKey: "motion_lab_last_trial_month")
+        trialUsedThisMonth = true
+    }
+
+    private func currentMonthString() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM"
+        return formatter.string(from: Date())
     }
 
     private func analyze() {
@@ -327,5 +486,34 @@ struct MotionLabView: View {
 
     private func benchmarkReportLabel(for path: String) -> String {
         URL(fileURLWithPath: path).lastPathComponent
+    }
+
+    private var selectedPatternTips: [String] {
+        switch selectedPattern {
+        case .squat:
+            return [
+                "Set the phone to a side angle and keep your whole body in frame.",
+                "Use the realtime scan when you want rep counting and live cues.",
+                "Photo checks work best when the bottom and lockout positions are visible."
+            ]
+        case .hinge:
+            return [
+                "A side angle gives the cleanest read on hip travel and torso shape.",
+                "Pause at lockout between reps so the velocity trend is easier to compare.",
+                "Keep the bar path and shoulders visible for the strongest cue quality."
+            ]
+        case .press:
+            return [
+                "Leave enough headroom for overhead lockout.",
+                "Show wrists, elbows, and torso from the side for cleaner lockout cues.",
+                "Use the live scan when you want immediate feedback on finish position."
+            ]
+        case .pull:
+            return [
+                "Use a slight side-front angle so the elbow path stays visible.",
+                "Show the full hang and top contraction on every rep.",
+                "The live scan is best when you want cueing on contraction quality."
+            ]
+        }
     }
 }
