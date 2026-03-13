@@ -672,6 +672,7 @@ struct APIErrorBody: Decodable {
 struct AIReplyResponse: Decodable {
     let reply: String
     let action: AIAction?
+    let actions: [AIAction]?
 }
 
 struct AIAction: Decodable {

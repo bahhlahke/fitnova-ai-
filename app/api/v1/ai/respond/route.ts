@@ -438,6 +438,39 @@ export async function POST(request: Request) {
             required: ["exercise_name"]
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "update_workout_plan",
+          description: "Updates the user's current training plan for today with a specific set of exercises and focus.",
+          parameters: {
+            type: "object",
+            properties: {
+              focus: { type: "string", description: "The high-level focus of the workout, e.g. 'CrossFit-Style Metabolic Conditioning'." },
+              duration_minutes: { type: "number", description: "Estimated duration in minutes." },
+              exercises: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    sets: { type: "number" },
+                    reps: { type: "string" },
+                    intensity: { type: "string" },
+                    notes: { type: "string" },
+                    tempo: { type: "string" },
+                    breathing: { type: "string" },
+                    intent: { type: "string" },
+                    rationale: { type: "string" }
+                  },
+                  required: ["name", "sets", "reps"]
+                }
+              }
+            },
+            required: ["focus", "exercises"]
+          }
+        }
       }
     ];
 
@@ -795,6 +828,54 @@ export async function POST(request: Request) {
                 } else {
                   resultStr = `I don't have a 4K demo for "${args.exercise_name}" yet, but I can provide coaching cues.`;
                 }
+              } else if (tc.function.name === "update_workout_plan") {
+                const { data: existingPlan, error: fetchErr } = await supabase
+                  .from("daily_plans")
+                  .select("plan_json")
+                  .eq("user_id", userId)
+                  .eq("date_local", logDate)
+                  .maybeSingle();
+
+                if (fetchErr) throw new Error(fetchErr.message);
+
+                const newTrainingPlan = {
+                  focus: args.focus,
+                  duration_minutes: args.duration_minutes || 45,
+                  exercises: (args.exercises || []).map((ex: any) => ({
+                    ...ex,
+                    // Ensure enriched fields are mapped if possible or left to default
+                  })),
+                  location_option: (existingPlan?.plan_json as any)?.training_plan?.location_option || "gym",
+                  alternatives: (existingPlan?.plan_json as any)?.training_plan?.alternatives || []
+                };
+
+                const updatedPlanJson = {
+                  ...(existingPlan?.plan_json as any || {}),
+                  date_local: logDate,
+                  training_plan: newTrainingPlan
+                };
+
+                const { error: upsertErr } = await supabase
+                  .from("daily_plans")
+                  .upsert({
+                    user_id: userId,
+                    date_local: logDate,
+                    plan_json: updatedPlanJson,
+                  }, { onConflict: "user_id,date_local" });
+
+                if (upsertErr) throw new Error(upsertErr.message);
+                
+                resultStr = `Successfully updated today's workout plan: ${args.focus}.`;
+                actions.push({
+                  type: "plan_daily", // iOS expects plan_daily for steering
+                  targetRoute: "/log/workout/guided",
+                  summary: "Start Guided Workout",
+                  payload: {
+                    training_plan: newTrainingPlan
+                  }
+                } as any);
+                refreshScopes.add("dashboard");
+                refreshScopes.add("plan" as any);
               } else {
                 resultStr = "Unknown tool.";
               }
@@ -874,6 +955,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       reply: content,
+      action: actions.length > 0 ? actions[0] : undefined, // Legacy support for iOS
       actions: actions.length > 0 ? actions : undefined,
       refreshScopes:
         refreshScopes.size > 0 ? Array.from(refreshScopes) : undefined,
