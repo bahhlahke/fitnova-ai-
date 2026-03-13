@@ -130,7 +130,12 @@ export async function assembleContext(
       .limit(8),
   ]);
 
-  const parts: string[] = [getSystemPrompt(profileRes.data)];
+  const dayOfWeek = new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(new Date());
+  
+  const parts: string[] = [
+    `Current Context: ${dayOfWeek}, ${today}`,
+    getSystemPrompt(profileRes.data)
+  ];
 
   if (profileRes.data) {
     const p = profileRes.data as Record<string, unknown>;

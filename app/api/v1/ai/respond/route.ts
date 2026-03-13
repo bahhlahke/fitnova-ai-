@@ -231,7 +231,8 @@ export async function POST(request: Request) {
       "- Create new personalized plans (`generate_daily_plan`) based on time/equipment.\n" +
       "- Navigate the user to a specific page context (`navigate_to`).\n" +
       "- Escalate complex medical or technical issues to a human coach (`request_coach_assistance`).\n\n" +
-      "Synthesis Logic: Analyze the user's longitudinal data (HRV, PRs, Sleep) to provide high-performance insights typically reserved for Olympic teams. Always prefer taking action when the user reports data. End with a concrete next step.";
+      "Synthesis Logic: Analyze the user's longitudinal data (HRV, PRs, Sleep) to provide high-performance insights typically reserved for Olympic teams. Always prefer taking action when the user reports data.\n\n" +
+      "Date Resolution: The user may refer to relative dates (e.g. 'yesterday', 'this past Saturday', 'last Monday'). Always calculate the absolute YYYY-MM-DD based on the 'Current Context' provided in your system prompt and pass it to the logging tools. End with a concrete next step.";
 
     if (user?.id) {
       try {
@@ -257,7 +258,8 @@ export async function POST(request: Request) {
               calories: { type: "number", description: "Estimated total calories." },
               protein: { type: "number", description: "Estimated protein in grams." },
               carbs: { type: "number", description: "Estimated carbs in grams." },
-              fat: { type: "number", description: "Estimated fat in grams." }
+              fat: { type: "number", description: "Estimated fat in grams." },
+              date: { type: "string", description: "The date of the meal in YYYY-MM-DD format. Required if the user mentions a past date." }
             },
             required: ["food_items", "calories", "protein", "carbs", "fat"],
           },
@@ -274,7 +276,8 @@ export async function POST(request: Request) {
               workout_type: { type: "string", enum: ["strength", "cardio", "mobility", "other"], description: "Type of workout" },
               duration_minutes: { type: "number", description: "Duration in minutes" },
               calories_burned: { type: "number", description: "Estimated calories burned during exercise (separate from consumption)." },
-              notes: { type: "string", description: "Summary of the workout" }
+              notes: { type: "string", description: "Summary of the workout" },
+              date: { type: "string", description: "The date of the workout in YYYY-MM-DD format. Required if the user mentions a past date." }
             },
             required: ["workout_type", "duration_minutes"]
           }
@@ -288,7 +291,8 @@ export async function POST(request: Request) {
           parameters: {
             type: "object",
             properties: {
-              meal_description: { type: "string", description: "Partial or full description of the meal to remove, e.g. 'banana'." }
+              meal_description: { type: "string", description: "Partial or full description of the meal to remove, e.g. 'banana'." },
+              date: { type: "string", description: "The date of the meal to remove in YYYY-MM-DD format. Default is today." }
             },
             required: ["meal_description"]
           }
@@ -302,7 +306,8 @@ export async function POST(request: Request) {
           parameters: {
             type: "object",
             properties: {
-              liters: { type: "number", description: "Amount of fluid in liters." }
+              liters: { type: "number", description: "Amount of fluid in liters." },
+              date: { type: "string", description: "The date of hydration in YYYY-MM-DD format. Default is today." }
             },
             required: ["liters"]
           }
@@ -396,7 +401,8 @@ export async function POST(request: Request) {
             type: "object",
             properties: {
               weight_lbs: { type: "number", description: "Body weight in lbs" },
-              body_fat_percent: { type: "number", description: "Body fat percentage" }
+              body_fat_percent: { type: "number", description: "Body fat percentage" },
+              date: { type: "string", description: "The date for these biometrics in YYYY-MM-DD format. Default is today." }
             }
           }
         }
@@ -464,6 +470,8 @@ export async function POST(request: Request) {
             let resultStr = "";
             try {
               const args = JSON.parse(tc.function.arguments);
+              const targetDate = resolveLogDate(args.date) || logDate;
+              
               if (tc.function.name === "log_meal") {
                 const calories = Number(args.calories);
                 const protein = Number(args.protein);
@@ -483,7 +491,7 @@ export async function POST(request: Request) {
                   .from("nutrition_logs")
                   .select("log_id, meals, total_calories")
                   .eq("user_id", userId)
-                  .eq("date", logDate)
+                  .eq("date", targetDate)
                   .maybeSingle();
 
                 if (existingLogError) throw new Error(existingLogError.message);
@@ -508,7 +516,7 @@ export async function POST(request: Request) {
                     .from("nutrition_logs")
                     .insert({
                       user_id: userId,
-                      date: logDate,
+                      date: targetDate,
                       meals: [newMeal],
                       total_calories: calories,
                     });
@@ -538,7 +546,7 @@ export async function POST(request: Request) {
 
                 const { error: insertError } = await supabase.from("workout_logs").insert({
                   user_id: userId,
-                  date: logDate,
+                  date: targetDate,
                   workout_type: workoutType,
                   duration_minutes: Math.round(durationMinutes),
                   calories_burned: Number.isFinite(args.calories_burned) ? Math.round(Number(args.calories_burned)) : null,
@@ -563,7 +571,7 @@ export async function POST(request: Request) {
                   .from("nutrition_logs")
                   .select("log_id, meals")
                   .eq("user_id", userId)
-                  .eq("date", logDate)
+                  .eq("date", targetDate)
                   .maybeSingle();
 
                 if (logError) throw new Error(logError.message);
@@ -603,7 +611,7 @@ export async function POST(request: Request) {
                   .from("nutrition_logs")
                   .select("log_id, hydration_liters")
                   .eq("user_id", userId)
-                  .eq("date", logDate)
+                  .eq("date", targetDate)
                   .maybeSingle();
 
                 if (logError) throw new Error(logError.message);
@@ -618,7 +626,7 @@ export async function POST(request: Request) {
                 } else {
                   const { error: insertError } = await supabase.from("nutrition_logs").insert({
                     user_id: userId,
-                    date: logDate,
+                    date: targetDate,
                     meals: [],
                     total_calories: 0,
                     hydration_liters: liters,
@@ -632,7 +640,7 @@ export async function POST(request: Request) {
               } else if (tc.function.name === "log_daily_check_in") {
                 const { error: checkErr } = await supabase.from("check_ins").insert({
                   user_id: userId,
-                  date_local: logDate,
+                  date_local: targetDate,
                   energy_score: args.energy_score,
                   sleep_hours: args.sleep_hours,
                   soreness_notes: args.soreness_notes,
@@ -715,7 +723,7 @@ export async function POST(request: Request) {
                   .from("progress_tracking")
                   .select("track_id")
                   .eq("user_id", userId)
-                  .eq("date", logDate)
+                  .eq("date", targetDate)
                   .maybeSingle();
                 if (existingTargetError) throw new Error(existingTargetError.message);
 
@@ -740,7 +748,7 @@ export async function POST(request: Request) {
                     .from("progress_tracking")
                     .insert({
                       user_id: userId,
-                      date: logDate,
+                      date: targetDate,
                       weight: hasWeight ? toKgFromLbs(weightLbs) : null,
                       body_fat_percent: hasBodyFat ? bodyFatPercent : null,
                       measurements: {},
