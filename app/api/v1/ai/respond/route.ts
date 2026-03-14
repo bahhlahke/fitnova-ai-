@@ -81,6 +81,212 @@ function detectExerciseMention(
   return ontologyMatch?.canonical_name ?? null;
 }
 
+type GuidedExercise = ReturnType<typeof normalizeGuidedExercise>;
+
+type WorkoutParityDiff = {
+  exercise_index: number;
+  exercise_name: string;
+  changed_fields: string[];
+  baseline_summary: string;
+  candidate_summary: string;
+};
+
+type WorkoutParityGuardPayload = {
+  requires_approval: boolean;
+  summary: string;
+  divergence_count: number;
+  diffs: WorkoutParityDiff[];
+};
+
+const PARITY_FIELDS: Array<
+  "name" | "sets" | "reps" | "intensity" | "target_rir" | "target_load_kg" | "rest_seconds_after_set" | "progression_note"
+> = [
+  "name",
+  "sets",
+  "reps",
+  "intensity",
+  "target_rir",
+  "target_load_kg",
+  "rest_seconds_after_set",
+  "progression_note",
+];
+
+function normalizeToolExercise(exercise: any): GuidedExercise {
+  return normalizeGuidedExercise({
+    name: typeof exercise?.name === "string" ? exercise.name : "Exercise",
+    sets: Number(exercise?.sets) || 1,
+    reps: typeof exercise?.reps === "string" ? exercise.reps : String(exercise?.reps ?? "8-10"),
+    intensity: typeof exercise?.intensity === "string" ? exercise.intensity : "RPE 7",
+    notes: typeof exercise?.notes === "string" ? exercise.notes : undefined,
+    tempo: typeof exercise?.tempo === "string" ? exercise.tempo : undefined,
+    breathing: typeof exercise?.breathing === "string" ? exercise.breathing : undefined,
+    intent: typeof exercise?.intent === "string" ? exercise.intent : undefined,
+    rationale: typeof exercise?.rationale === "string" ? exercise.rationale : undefined,
+    walkthrough_steps: Array.isArray(exercise?.walkthrough_steps) ? exercise.walkthrough_steps : undefined,
+    coaching_points: Array.isArray(exercise?.coaching_points) ? exercise.coaching_points : undefined,
+    setup_checklist: Array.isArray(exercise?.setup_checklist) ? exercise.setup_checklist : undefined,
+    common_mistakes: Array.isArray(exercise?.common_mistakes) ? exercise.common_mistakes : undefined,
+    target_load_kg: Number.isFinite(Number(exercise?.target_load_kg)) ? Number(exercise.target_load_kg) : undefined,
+    target_rir: Number.isFinite(Number(exercise?.target_rir)) ? Number(exercise.target_rir) : undefined,
+    rest_seconds_after_set:
+      Number.isFinite(Number(exercise?.rest_seconds_after_set)) ? Number(exercise.rest_seconds_after_set) : undefined,
+    progression_note: typeof exercise?.progression_note === "string" ? exercise.progression_note : undefined,
+  });
+}
+
+function extractDurationSeconds(text: string | undefined): number | null {
+  if (!text) return null;
+  const match = text.toLowerCase().match(/(\d{1,3})\s*(sec|secs|second|seconds|s|min|mins|minute|minutes|m)\b/);
+  if (!match) return null;
+  const value = Number(match[1]);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  const unit = match[2];
+  const seconds = unit.startsWith("m") ? value * 60 : value;
+  return Math.max(5, Math.min(seconds, 600));
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function equalParityField(a: unknown, b: unknown): boolean {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+  return a === b;
+}
+
+function summarizeExercise(exercise: GuidedExercise | undefined): string {
+  if (!exercise) return "No baseline";
+  const rest = typeof exercise.rest_seconds_after_set === "number" ? `${exercise.rest_seconds_after_set}s rest` : "auto rest";
+  return `${exercise.name} · ${exercise.sets}x${exercise.reps} · ${exercise.intensity} · ${rest}`;
+}
+
+function clampGuidedExerciseForParity(candidate: GuidedExercise, baseline: GuidedExercise | undefined): GuidedExercise {
+  const next: GuidedExercise = {
+    ...candidate,
+    walkthrough_steps: (candidate.walkthrough_steps ?? []).slice(0, 5),
+    coaching_points: (candidate.coaching_points ?? []).slice(0, 4),
+    setup_checklist: (candidate.setup_checklist ?? []).slice(0, 5),
+    common_mistakes: (candidate.common_mistakes ?? []).slice(0, 3),
+  };
+
+  if (!baseline) {
+    next.rest_seconds_after_set = clampNumber(
+      Number(next.rest_seconds_after_set ?? 60),
+      20,
+      180
+    );
+    return next;
+  }
+
+  const baselineSets = Number(baseline.sets) || 1;
+  next.sets = clampNumber(Number(next.sets) || baselineSets, Math.max(1, baselineSets - 1), baselineSets + 1);
+
+  const baselineTimed = extractDurationSeconds(baseline.reps ?? "") != null;
+  const candidateTimed = extractDurationSeconds(next.reps ?? "") != null;
+  if (baselineTimed !== candidateTimed) {
+    next.reps = baseline.reps;
+  }
+
+  if (typeof baseline.target_rir === "number") {
+    const candidateRir = typeof next.target_rir === "number" ? next.target_rir : baseline.target_rir;
+    next.target_rir = clampNumber(candidateRir, Math.max(0, baseline.target_rir - 2), baseline.target_rir + 2);
+  }
+
+  if (typeof baseline.target_load_kg === "number" && baseline.target_load_kg > 0) {
+    const candidateLoad =
+      typeof next.target_load_kg === "number" && next.target_load_kg > 0
+        ? next.target_load_kg
+        : baseline.target_load_kg;
+    const maxSafeLoad = baseline.target_load_kg * 1.12;
+    next.target_load_kg = Number(clampNumber(candidateLoad, 0, maxSafeLoad).toFixed(1));
+  }
+
+  const baselineRest =
+    typeof baseline.rest_seconds_after_set === "number" && baseline.rest_seconds_after_set > 0
+      ? baseline.rest_seconds_after_set
+      : 60;
+  next.rest_seconds_after_set = clampNumber(
+    Number(next.rest_seconds_after_set ?? baselineRest),
+    Math.max(20, Math.floor(baselineRest * 0.5)),
+    Math.min(180, Math.ceil(baselineRest * 1.5))
+  );
+
+  if (!next.progression_note && baseline.progression_note) {
+    next.progression_note = baseline.progression_note;
+  }
+
+  return next;
+}
+
+function buildWorkoutParityGuard(
+  baselineRawExercises: unknown,
+  candidateExercises: GuidedExercise[]
+): { exercises: GuidedExercise[]; parityGuard: WorkoutParityGuardPayload } {
+  const baselineExercises: GuidedExercise[] = Array.isArray(baselineRawExercises)
+    ? baselineRawExercises.map((exercise) => normalizeToolExercise(exercise))
+    : [];
+
+  const protectedExercises = candidateExercises.map((exercise, index) =>
+    clampGuidedExerciseForParity(exercise, baselineExercises[index])
+  );
+
+  const diffs: WorkoutParityDiff[] = [];
+  protectedExercises.forEach((exercise, index) => {
+    const baseline = baselineExercises[index];
+    if (!baseline) return;
+    const changed = PARITY_FIELDS.filter((field) => !equalParityField(baseline[field], exercise[field]));
+    if (changed.length > 0) {
+      diffs.push({
+        exercise_index: index,
+        exercise_name: exercise.name ?? `Exercise ${index + 1}`,
+        changed_fields: changed,
+        baseline_summary: summarizeExercise(baseline),
+        candidate_summary: summarizeExercise(exercise),
+      });
+    }
+  });
+
+  if (baselineExercises.length > 0 && baselineExercises.length !== protectedExercises.length) {
+    diffs.push({
+      exercise_index: -1,
+      exercise_name: "Session structure",
+      changed_fields: ["exercise_count"],
+      baseline_summary: `${baselineExercises.length} planned movements`,
+      candidate_summary: `${protectedExercises.length} planned movements`,
+    });
+  }
+
+  const divergenceCount = diffs.reduce((total, diff) => total + diff.changed_fields.length, 0);
+  const requiresApproval = divergenceCount > 0;
+  const summary = requiresApproval
+    ? `Plan diverges from Koda baseline on ${divergenceCount} guarded fields. Review and approve before launch.`
+    : "Plan is aligned with Koda baseline constraints and progression guardrails.";
+
+  return {
+    exercises: protectedExercises,
+    parityGuard: {
+      requires_approval: requiresApproval,
+      summary,
+      divergence_count: divergenceCount,
+      diffs,
+    },
+  };
+}
+
+function clampDurationMinutes(requestedDuration: unknown, baselineDuration: unknown): number {
+  const requested = Number(requestedDuration);
+  const baseline = Number(baselineDuration);
+  const fallback = Number.isFinite(requested) ? requested : Number.isFinite(baseline) ? baseline : 45;
+  if (!Number.isFinite(baseline) || baseline <= 0) {
+    return clampNumber(Math.round(fallback), 20, 90);
+  }
+  const min = Math.max(20, Math.round(baseline - 15));
+  const max = Math.min(90, Math.round(baseline + 15));
+  return clampNumber(Math.round(fallback), min, max);
+}
+
 export async function POST(request: Request) {
   const requestId = makeRequestId();
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -855,33 +1061,20 @@ export async function POST(request: Request) {
                 }
 
                 const normalizedExercises = Array.isArray(args.exercises)
-                  ? args.exercises.map((exercise: any) =>
-                    normalizeGuidedExercise({
-                      name: exercise.name,
-                      sets: Number(exercise.sets) || 1,
-                      reps: typeof exercise.reps === "string" ? exercise.reps : String(exercise.reps ?? "8-10"),
-                      intensity: typeof exercise.intensity === "string" ? exercise.intensity : "RPE 7",
-                      notes: typeof exercise.notes === "string" ? exercise.notes : undefined,
-                      tempo: typeof exercise.tempo === "string" ? exercise.tempo : undefined,
-                      breathing: typeof exercise.breathing === "string" ? exercise.breathing : undefined,
-                      intent: typeof exercise.intent === "string" ? exercise.intent : undefined,
-                      rationale: typeof exercise.rationale === "string" ? exercise.rationale : undefined,
-                      walkthrough_steps: Array.isArray(exercise.walkthrough_steps) ? exercise.walkthrough_steps : undefined,
-                      coaching_points: Array.isArray(exercise.coaching_points) ? exercise.coaching_points : undefined,
-                      setup_checklist: Array.isArray(exercise.setup_checklist) ? exercise.setup_checklist : undefined,
-                      common_mistakes: Array.isArray(exercise.common_mistakes) ? exercise.common_mistakes : undefined,
-                      target_load_kg: Number.isFinite(Number(exercise.target_load_kg)) ? Number(exercise.target_load_kg) : undefined,
-                      target_rir: Number.isFinite(Number(exercise.target_rir)) ? Number(exercise.target_rir) : undefined,
-                      rest_seconds_after_set: Number.isFinite(Number(exercise.rest_seconds_after_set)) ? Number(exercise.rest_seconds_after_set) : undefined,
-                      progression_note: typeof exercise.progression_note === "string" ? exercise.progression_note : undefined,
-                    })
-                  )
+                  ? args.exercises.map((exercise: any) => normalizeToolExercise(exercise))
                   : [];
+
+                const baseExercises = basePlan?.training_plan?.exercises ?? [];
+                const parityResult = buildWorkoutParityGuard(baseExercises, normalizedExercises);
+                const baseDurationMinutes =
+                  basePlan?.training_plan?.duration_minutes ??
+                  (existingPlan?.plan_json as any)?.training_plan?.duration_minutes ??
+                  45;
 
                 const newTrainingPlan = {
                   focus: args.focus,
-                  duration_minutes: args.duration_minutes || 45,
-                  exercises: normalizedExercises,
+                  duration_minutes: clampDurationMinutes(args.duration_minutes, baseDurationMinutes),
+                  exercises: parityResult.exercises,
                   location_option:
                     basePlan?.training_plan?.location_option ||
                     (existingPlan?.plan_json as any)?.training_plan?.location_option ||
@@ -908,13 +1101,16 @@ export async function POST(request: Request) {
 
                 if (upsertErr) throw new Error(upsertErr.message);
                 
-                resultStr = `Successfully updated today's workout plan: ${args.focus}.`;
+                resultStr = parityResult.parityGuard.requires_approval
+                  ? `Updated today's workout plan with guardrails applied. Approval is required before launch.`
+                  : `Successfully updated today's workout plan: ${args.focus}.`;
                 actions.push({
                   type: "plan_daily", // iOS expects plan_daily for steering
                   targetRoute: `/log/workout/guided?date=${logDate}`,
                   summary: "Open Guided Workout",
                   payload: {
-                    training_plan: newTrainingPlan
+                    training_plan: newTrainingPlan,
+                    parity_guard: parityResult.parityGuard,
                   }
                 } as any);
                 refreshScopes.add("dashboard");

@@ -147,6 +147,8 @@ Robustness: retry-friendly API client, loading/error/empty states, Supabase dire
 Additional iOS notes:
 
 - Guided workout voice cues now announce the next exercise during the intro step so coached sessions stay continuous between cards and set execution.
+- Guided workout now consumes rich coach metadata from plan payloads (setup checklist, walkthrough steps, coaching points, common mistakes, progression notes, per-exercise rest targets) and adds timed work intervals plus one-tap smart logging actions for between-set speed.
+- Coach chat now surfaces trust signals (weekly recap, plan rationale, progress loop, escalation SLA) and enforces a Koda-vs-coach parity approval checkpoint when a generated workout diverges from guarded baseline constraints.
 - Recipe generation response models decode `meal_type` so breakfast/lunch/dinner labels coming from the API are preserved in native UI fixtures and production payloads.
 - Motion Lab now offers a reusable realtime session sheet with on-device pose tracking, skeleton overlay, squat/hinge/press/pull rep segmentation, live cueing, camera-derived velocity summaries, and benchmark report capture for Motion Lab and Guided Workout form checks.
 - Motion Lab now includes a conversion-oriented access funnel: one free realtime scan per month for non-Pro accounts, stronger setup/preflight guidance before the live session starts, and direct in-flow upgrade prompts after valuable results.

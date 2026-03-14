@@ -31,10 +31,13 @@ struct GuidedWorkoutView: View {
     @State private var setIndex = 0
     @State private var phase: Phase = .loading
     @State private var restRemaining = 0
+    @State private var restTargetSeconds = 0
     @State private var errorMessage: String?
     @State private var saved = false
     @State private var postWorkoutInsight: String?
     @State private var insightLoading = false
+    @State private var workIntervalRemaining = 0
+    @State private var workIntervalTargetSeconds = 0
 
     // Neural Mastery State (Phase 5)
     @State private var neuralRestMode = true
@@ -43,6 +46,8 @@ struct GuidedWorkoutView: View {
     @State private var simulatedHeartRate = 148
     /// Active rest timer task — stored so it can be cancelled on manual skip.
     @State private var restTimerTask: Task<Void, Never>?
+    /// Active interval timer during timed work sets.
+    @State private var workIntervalTask: Task<Void, Never>?
     @State private var isFormCheckActive = false
     @State private var showRealtimeFormCheck = false
     @State private var formCheckLoading = false
@@ -79,7 +84,9 @@ struct GuidedWorkoutView: View {
 
     @State private var coachAudio = CoachAudioService.shared
 
-    private let restSeconds = 90
+    private let defaultRestSeconds = 90
+    private let minimumRestSeconds = 20
+    private let maximumRestSeconds = 180
     private var api: KodaAPIService { KodaAPIService(getAccessToken: { auth.accessToken }) }
     private var motionAnalysis: MotionAnalysisService { MotionAnalysisService(api: api) }
     private var dataService: KodaDataService? {
@@ -254,9 +261,11 @@ struct GuidedWorkoutView: View {
             await setupPulseSubscription()
             startNeuralMastery()
             speakCoachCue(for: phase)
+            handlePhaseTransition(phase)
         }
         .onChange(of: phase) { _, newValue in
             speakCoachCue(for: newValue)
+            handlePhaseTransition(newValue)
         }
         .onDisappear {
             stopNeuralMastery()
@@ -648,28 +657,37 @@ struct GuidedWorkoutView: View {
     }
 
     private func workSummarySection(exercise ex: PlanExercise) -> some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("NOW")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .tracking(1.2)
-                    .foregroundStyle(Brand.Color.accent)
-                Text("Set \(setIndex + 1) of \(ex.sets ?? 1)")
-                    .font(.title2.weight(.black))
-                    .foregroundStyle(.white)
-                Text(ex.rationale ?? "Stay crisp, hit the target cleanly, and leave enough control for the next round.")
-                    .font(.subheadline)
-                    .foregroundStyle(Brand.Color.muted)
-                    .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("NOW")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(Brand.Color.accent)
+                    Text("Set \(setIndex + 1) of \(ex.sets ?? 1)")
+                        .font(.title2.weight(.black))
+                        .foregroundStyle(.white)
+                    Text(ex.rationale ?? "Stay crisp, hit the target cleanly, and leave enough control for the next round.")
+                        .font(.subheadline)
+                        .foregroundStyle(Brand.Color.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text("Logged")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.64))
+                    Text("\(currentExerciseLoggedSets.count)")
+                        .font(.system(size: 30, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                }
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 6) {
-                Text("Logged")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.64))
-                Text("\(currentExerciseLoggedSets.count)")
-                    .font(.system(size: 30, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
+
+            if workIntervalTargetSeconds > 0 {
+                HStack(spacing: 12) {
+                    targetCard(title: "Interval", value: formatTime(workIntervalRemaining), accent: .white)
+                    targetCard(title: "Total", value: formatTime(workIntervalTargetSeconds), accent: Brand.Color.accent)
+                }
             }
         }
     }
@@ -696,7 +714,12 @@ struct GuidedWorkoutView: View {
 
     @ViewBuilder
     private func workCoachingSection(exercise ex: PlanExercise) -> some View {
-        if ex.tempo != nil || ex.breathing != nil || ex.intent != nil || ex.notes != nil {
+        let walkthrough = (ex.walkthrough_steps ?? []).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let coachingPoints = (ex.coaching_points ?? []).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let setupChecklist = (ex.setup_checklist ?? []).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let commonMistakes = (ex.common_mistakes ?? []).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let hasPrimaryCues = ex.tempo != nil || ex.breathing != nil || ex.intent != nil || ex.notes != nil
+        if hasPrimaryCues || !walkthrough.isEmpty || !coachingPoints.isEmpty || !setupChecklist.isEmpty || !commonMistakes.isEmpty || (ex.progression_note?.isEmpty == false) {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Coaching cues")
                     .font(.system(size: 10, weight: .black, design: .monospaced))
@@ -715,6 +738,22 @@ struct GuidedWorkoutView: View {
                     if let notes = ex.notes, !notes.isEmpty {
                         cueRow(label: "NOTE", value: notes)
                     }
+                }
+
+                if !setupChecklist.isEmpty {
+                    cueList(title: "Setup", icon: "checklist", items: Array(setupChecklist.prefix(3)))
+                }
+                if !walkthrough.isEmpty {
+                    cueList(title: "Walkthrough", icon: "figure.strengthtraining.traditional", items: Array(walkthrough.prefix(3)))
+                }
+                if !coachingPoints.isEmpty {
+                    cueList(title: "Live Coaching", icon: "waveform", items: Array(coachingPoints.prefix(2)))
+                }
+                if !commonMistakes.isEmpty {
+                    cueList(title: "Avoid", icon: "exclamationmark.triangle.fill", items: Array(commonMistakes.prefix(1)), tint: Brand.Color.warning)
+                }
+                if let progression = ex.progression_note, !progression.isEmpty {
+                    cueList(title: "Progression", icon: "chart.line.uptrend.xyaxis", items: [progression], tint: Brand.Color.success)
                 }
             }
         }
@@ -735,6 +774,26 @@ struct GuidedWorkoutView: View {
                 VStack(spacing: 12) {
                     workoutEntryField(label: "Weight", unit: "LBS", placeholder: "0", text: $currentWeightInput, keyboard: .decimalPad)
                     workoutEntryField(label: "Reps", unit: "COUNT", placeholder: ex.reps?.components(separatedBy: "-").first ?? "0", text: $currentRepsInput, keyboard: .numberPad)
+                }
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    quickActionButton("Use Last Set", systemImage: "arrow.counterclockwise") {
+                        applyLastSetDefaults()
+                    }
+                    quickActionButton("Use Target", systemImage: "target") {
+                        applyTargetDefaults(for: ex)
+                    }
+                    quickActionButton("+5 lb", systemImage: "plus.circle") {
+                        adjustWeight(by: 5)
+                    }
+                    quickActionButton("-5 lb", systemImage: "minus.circle") {
+                        adjustWeight(by: -5)
+                    }
+                    quickActionButton("+1 rep", systemImage: "plus.circle.fill") {
+                        adjustReps(by: 1, exercise: ex)
+                    }
                 }
             }
         }
@@ -760,24 +819,35 @@ struct GuidedWorkoutView: View {
     }
 
     private func loggedSetPill(index: Int, logged: LoggedSet) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("S\(index + 1)")
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(.white.opacity(0.64))
-            Text("\(Int(logged.weight ?? 0)) x \(logged.reps ?? 0)")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.white)
+        Button {
+            if let weight = logged.weight, weight > 0 {
+                currentWeightInput = String(Int(weight.rounded()))
+            }
+            if let reps = logged.reps, reps > 0 {
+                currentRepsInput = String(reps)
+            }
+            HapticEngine.selection()
+        } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("S\(index + 1)")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.64))
+                Text("\(Int(logged.weight ?? 0)) x \(logged.reps ?? 0)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+            )
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.06))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                )
-        )
+        .buttonStyle(.plain)
     }
 
     private var workActionSection: some View {
@@ -850,12 +920,14 @@ struct GuidedWorkoutView: View {
                     HStack(spacing: 12) {
                         targetCard(title: "Heart Rate", value: "\(displayHR)", accent: .white)
                         targetCard(title: "Target", value: "\(recoveryTarget)", accent: Brand.Color.accent)
+                        targetCard(title: "Rest", value: "\(restTargetSeconds)s", accent: .white)
                         targetCard(title: "Ready", value: isOptimal ? "Yes" : "Not Yet", accent: isOptimal ? Brand.Color.success : Brand.Color.warning)
                     }
 
                     VStack(spacing: 12) {
                         targetCard(title: "Heart Rate", value: "\(displayHR)", accent: .white)
                         targetCard(title: "Target", value: "\(recoveryTarget)", accent: Brand.Color.accent)
+                        targetCard(title: "Rest", value: "\(restTargetSeconds)s", accent: .white)
                         targetCard(title: "Ready", value: isOptimal ? "Yes" : "Not Yet", accent: isOptimal ? Brand.Color.success : Brand.Color.warning)
                     }
                 }
@@ -885,6 +957,7 @@ struct GuidedWorkoutView: View {
     private func restUpNextCard(exercise ex: PlanExercise, isOptimal: Bool) -> some View {
         let nextCatalog = ExerciseCatalog.entry(for: ex.name ?? "")
         let isNewExercise = isNewExerciseAfterRest
+        let firstPlanCue = (ex.coaching_points ?? []).first ?? (ex.walkthrough_steps ?? []).first
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -918,6 +991,16 @@ struct GuidedWorkoutView: View {
                         .font(.caption.weight(.bold))
                         .foregroundStyle(Brand.Color.accent)
                     Text(firstCue.cue)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.75))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else if let firstPlanCue, !firstPlanCue.isEmpty {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "waveform")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Brand.Color.accent)
+                    Text(firstPlanCue)
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.75))
                         .fixedSize(horizontal: false, vertical: true)
@@ -989,19 +1072,23 @@ struct GuidedWorkoutView: View {
     }
 
     private func advanceSet() {
+        stopWorkIntervalTimer(reset: true)
+
+        let ex = exercises[safe: exerciseIndex]
+        applySmartDefaultsIfNeeded(for: ex)
+
         // 1. Update local state immediately — the UI responds at once (optimistic).
-        let w = Double(currentWeightInput)
-        let r = Int(currentRepsInput)
+        let w = Double(currentWeightInput.filter { $0.isNumber || $0 == "." })
+        let r = parsedReps(from: currentRepsInput, fallbackExercise: ex)
         if exerciseIndex < loggedSets.count {
             loggedSets[exerciseIndex].append(LoggedSet(weight: w, reps: r))
         }
-        currentWeightInput = ""
-        currentRepsInput = ""
+        currentWeightInput = w.map { String(Int($0.rounded())) } ?? ""
+        currentRepsInput = r.map(String.init) ?? ""
 
         // Hide keyboard
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
 
-        let ex = exercises[safe: exerciseIndex]
         let sets = ex?.sets ?? 1
         if setIndex + 1 >= sets {
             if exerciseIndex + 1 >= exercises.count {
@@ -1040,12 +1127,15 @@ struct GuidedWorkoutView: View {
     private func advanceRest() {
         restTimerTask?.cancel()
         restTimerTask = nil
+        restRemaining = 0
         phase = .work
     }
 
     private func startRestTimer() {
         phase = .rest
-        restRemaining = restSeconds
+        let target = targetRestSeconds(for: currentExercise)
+        restTargetSeconds = target
+        restRemaining = target
 
         if neuralRestMode {
             // Seed simulation only when HealthKit HR is unavailable.
@@ -1057,7 +1147,7 @@ struct GuidedWorkoutView: View {
 
         restTimerTask?.cancel()
         restTimerTask = Task {
-            for i in (0..<restSeconds).reversed() {
+            for i in (0..<target).reversed() {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 guard !Task.isCancelled else { return }
                 await MainActor.run {
@@ -1073,7 +1163,21 @@ struct GuidedWorkoutView: View {
                 guard !Task.isCancelled else { return }
 
                 let effectiveHR = healthKit.currentHeartRate ?? simulatedHeartRate
-                if i == 0 || (neuralRestMode && effectiveHR <= recoveryTarget && i < restSeconds - 10) {
+                if i == 10 {
+                    HapticEngine.impact(.light)
+                    if coachAudio.isEnabled {
+                        coachAudio.playCue(
+                            .finishSet,
+                            details: coachAudioDetails(for: currentExercise),
+                            fallbackText: "Ten seconds. Breathe, reset, and get ready."
+                        )
+                    }
+                }
+                if i > 0 && i <= 3 {
+                    HapticEngine.selection()
+                }
+
+                if i == 0 || (neuralRestMode && effectiveHR <= recoveryTarget && i < max(target - 10, 5)) {
                     await MainActor.run {
                         if isNewExerciseAfterRest {
                             isNewExerciseAfterRest = false
@@ -1108,8 +1212,14 @@ struct GuidedWorkoutView: View {
                     breathing: ex?.breathing,
                     intent: ex?.intent,
                     rationale: ex?.rationale,
+                    walkthrough_steps: ex?.walkthrough_steps,
+                    coaching_points: ex?.coaching_points,
+                    setup_checklist: ex?.setup_checklist,
+                    common_mistakes: ex?.common_mistakes,
                     target_rir: ex?.target_rir,
                     target_load_kg: ex?.target_load_kg,
+                    rest_seconds_after_set: ex?.rest_seconds_after_set,
+                    progression_note: ex?.progression_note,
                     video_url: ex?.video_url,
                     cinema_video_url: ex?.cinema_video_url,
                     image_url: ex?.image_url
@@ -1435,6 +1545,8 @@ struct GuidedWorkoutView: View {
     private func stopNeuralMastery() {
         restTimerTask?.cancel()
         restTimerTask = nil
+        workIntervalTask?.cancel()
+        workIntervalTask = nil
         healthKit.stopHeartRateStreaming()
     }
 
@@ -1498,6 +1610,200 @@ struct GuidedWorkoutView: View {
             return "Physiological Calibration in Progress..."
         }
     }
+
+    private func handlePhaseTransition(_ newPhase: Phase) {
+        if newPhase == .work {
+            applySmartDefaultsIfNeeded(for: currentExercise)
+            startWorkIntervalIfNeeded()
+        } else {
+            stopWorkIntervalTimer(reset: true)
+        }
+    }
+
+    private func startWorkIntervalIfNeeded() {
+        guard let seconds = parseWorkIntervalSeconds(from: currentExercise?.reps) else {
+            stopWorkIntervalTimer(reset: true)
+            return
+        }
+
+        workIntervalTask?.cancel()
+        workIntervalTargetSeconds = seconds
+        workIntervalRemaining = seconds
+
+        workIntervalTask = Task {
+            for second in (0..<seconds).reversed() {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    workIntervalRemaining = second
+                    if second > 0 && second <= 3 {
+                        HapticEngine.selection()
+                    }
+                    if second == 0 {
+                        HapticEngine.notification(.success)
+                        if let name = currentExercise?.name {
+                            coachAudio.playCue(
+                                .finishSet,
+                                details: coachAudioDetails(for: currentExercise, nameOverride: name),
+                                fallbackText: "Interval complete. Log the set and move to recovery."
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func stopWorkIntervalTimer(reset: Bool) {
+        workIntervalTask?.cancel()
+        workIntervalTask = nil
+        if reset {
+            workIntervalTargetSeconds = 0
+            workIntervalRemaining = 0
+        }
+    }
+
+    private func parseWorkIntervalSeconds(from reps: String?) -> Int? {
+        guard let reps else { return nil }
+        let trimmed = reps.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !trimmed.isEmpty else { return nil }
+        return extractDurationSeconds(from: trimmed)
+    }
+
+    private func extractDurationSeconds(from text: String) -> Int? {
+        let pattern = #"(\d{1,3})\s*(sec|secs|second|seconds|s|min|mins|minute|minutes|m)\b"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = regex.firstMatch(in: text, options: [], range: range),
+              let valueRange = Range(match.range(at: 1), in: text),
+              let unitRange = Range(match.range(at: 2), in: text),
+              let value = Int(text[valueRange]) else {
+            return nil
+        }
+
+        let unit = text[unitRange].lowercased()
+        let seconds = unit.hasPrefix("m") ? value * 60 : value
+        return max(5, min(seconds, 600))
+    }
+
+    private func parsedReps(from value: String, fallbackExercise: PlanExercise?) -> Int? {
+        let sanitized = value.filter(\.isNumber)
+        if let parsed = Int(sanitized), parsed > 0 {
+            return parsed
+        }
+        if let fallback = firstInt(in: fallbackExercise?.reps) {
+            return fallback
+        }
+        return nil
+    }
+
+    private func firstInt(in text: String?) -> Int? {
+        guard let text else { return nil }
+        guard let regex = try? NSRegularExpression(pattern: #"\d{1,3}"#) else { return nil }
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = regex.firstMatch(in: text, options: [], range: range),
+              let valueRange = Range(match.range(at: 0), in: text) else {
+            return nil
+        }
+        return Int(text[valueRange])
+    }
+
+    private func applySmartDefaultsIfNeeded(for exercise: PlanExercise?) {
+        guard let exercise else { return }
+        if currentWeightInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if let lastWeight = currentExerciseLoggedSets.last?.weight {
+                currentWeightInput = String(Int(lastWeight.rounded()))
+            } else if exerciseIndex > 0, let previousWeight = loggedSets[safe: exerciseIndex - 1]?.last?.weight {
+                currentWeightInput = String(Int(previousWeight.rounded()))
+            } else if let targetKg = exercise.target_load_kg, targetKg > 0 {
+                currentWeightInput = String(Int((targetKg * 2.20462).rounded()))
+            }
+        }
+
+        if currentRepsInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if let lastReps = currentExerciseLoggedSets.last?.reps {
+                currentRepsInput = String(lastReps)
+            } else if let targetReps = firstInt(in: exercise.reps) {
+                currentRepsInput = String(targetReps)
+            }
+        }
+    }
+
+    private func applyLastSetDefaults() {
+        if let weight = currentExerciseLoggedSets.last?.weight {
+            currentWeightInput = String(Int(weight.rounded()))
+        }
+        if let reps = currentExerciseLoggedSets.last?.reps {
+            currentRepsInput = String(reps)
+        }
+        HapticEngine.selection()
+    }
+
+    private func applyTargetDefaults(for exercise: PlanExercise) {
+        if let targetKg = exercise.target_load_kg, targetKg > 0 {
+            currentWeightInput = String(Int((targetKg * 2.20462).rounded()))
+        }
+        if let targetReps = firstInt(in: exercise.reps) {
+            currentRepsInput = String(targetReps)
+        }
+        HapticEngine.selection()
+    }
+
+    private func adjustWeight(by delta: Int) {
+        let current = Int(currentWeightInput.filter(\.isNumber)) ?? 0
+        let next = max(current + delta, 0)
+        currentWeightInput = next > 0 ? String(next) : ""
+        HapticEngine.selection()
+    }
+
+    private func adjustReps(by delta: Int, exercise: PlanExercise) {
+        let baseline = Int(currentRepsInput.filter(\.isNumber))
+            ?? firstInt(in: exercise.reps)
+            ?? 8
+        let next = max(1, min(baseline + delta, 40))
+        currentRepsInput = String(next)
+        HapticEngine.selection()
+    }
+
+    private func targetRestSeconds(for exercise: PlanExercise?) -> Int {
+        if let configured = exercise?.rest_seconds_after_set, configured > 0 {
+            return min(max(configured, minimumRestSeconds), maximumRestSeconds)
+        }
+
+        let name = (exercise?.name ?? "").lowercased()
+        let intensity = (exercise?.intensity ?? "").lowercased()
+        if parseWorkIntervalSeconds(from: exercise?.reps) != nil {
+            return 45
+        }
+        if intensity.contains("high") || intensity.contains("rpe 8") || intensity.contains("rpe 9") || name.contains("squat") || name.contains("deadlift") || name.contains("press") {
+            return 90
+        }
+        if name.contains("stretch") || name.contains("mobility") || name.contains("cat-cow") || name.contains("breathing") {
+            return 30
+        }
+        return defaultRestSeconds
+    }
+
+    private func coachAudioDetails(for exercise: PlanExercise?, nameOverride: String? = nil) -> [String: Any] {
+        guard let exercise else { return [:] }
+        var details: [String: Any] = [:]
+        details["name"] = nameOverride ?? exercise.name ?? ""
+        details["reps"] = exercise.reps ?? ""
+        details["intensity"] = exercise.intensity ?? ""
+        details["tempo"] = exercise.tempo ?? ""
+        details["breathing"] = exercise.breathing ?? ""
+        details["intent"] = exercise.intent ?? ""
+        details["notes"] = exercise.notes ?? ""
+        details["rationale"] = exercise.rationale ?? ""
+        details["walkthrough_steps"] = exercise.walkthrough_steps ?? []
+        details["coaching_points"] = exercise.coaching_points ?? []
+        details["setup_checklist"] = exercise.setup_checklist ?? []
+        details["common_mistakes"] = exercise.common_mistakes ?? []
+        details["rest_seconds_after_set"] = targetRestSeconds(for: exercise)
+        details["setIndex"] = setIndex + 1
+        details["totalSets"] = exercise.sets ?? 1
+        return details
+    }
     
 
     // MARK: - Helpers
@@ -1541,6 +1847,58 @@ struct GuidedWorkoutView: View {
         .padding(.vertical, 6)
         .background(Color.white.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+
+    private func cueList(title: String, icon: String, items: [String], tint: Color = Brand.Color.accent) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(tint)
+                Text(title.uppercased())
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(tint.opacity(0.9))
+            }
+
+            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                HStack(alignment: .top, spacing: 8) {
+                    Circle()
+                        .fill(tint.opacity(0.8))
+                        .frame(width: 5, height: 5)
+                        .padding(.top, 5)
+                    Text(item)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(10)
+        .background(Color.white.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private func quickActionButton(_ label: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(label, systemImage: systemImage)
+                .font(.system(size: 11, weight: .bold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.08))
+                        .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                )
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.white.opacity(0.9))
+    }
+
+    private func formatTime(_ seconds: Int) -> String {
+        let clamped = max(seconds, 0)
+        let minutes = clamped / 60
+        let remainder = clamped % 60
+        return String(format: "%d:%02d", minutes, remainder)
     }
 
     private func overviewExerciseRow(index: Int, exercise: PlanExercise) -> some View {
@@ -1696,6 +2054,9 @@ struct GuidedWorkoutView: View {
     }
 
     private var nextActionLabel: String {
+        if workIntervalTargetSeconds > 0 && workIntervalRemaining > 0 {
+            return "Complete Interval + Log Set"
+        }
         let currentSets = currentExerciseLoggedSets.count + 1
         let targetSets = currentExercise?.sets ?? 1
         if exerciseIndex + 1 >= exercises.count && currentSets >= targetSets {
@@ -1743,7 +2104,15 @@ struct GuidedWorkoutView: View {
             let setDetailsStr = exLogs.enumerated().map { j, setLog in
                 "Set \(j+1): \(setLog.weight ?? 0)lbs x \(setLog.reps ?? 0)"
             }.joined(separator: "; ")
-            let finalNotes = (ex.notes != nil && !ex.notes!.isEmpty) ? "\(ex.notes!) | Log: \(setDetailsStr)" : "Log: \(setDetailsStr)"
+            let noteParts = [
+                ex.notes,
+                ex.progression_note.map { "Progression: \($0)" },
+                "Log: \(setDetailsStr)",
+            ].compactMap { value -> String? in
+                guard let value, !value.isEmpty else { return nil }
+                return value
+            }
+            let finalNotes = noteParts.joined(separator: " | ")
             return WorkoutExerciseEntry(name: ex.name, sets: ex.sets, reps: ex.reps, weight_kg: maxWeight > 0 ? maxWeight : nil, rpe: nil, form_cues: finalNotes)
         }
         return log
@@ -1807,18 +2176,38 @@ struct GuidedWorkoutView: View {
         
         switch phase {
         case .overview:
-            coachAudio.playCue(.startWorkout, fallbackText: "Your protocol is ready. Review the execution order and let's get to work.")
+            coachAudio.playCue(
+                .startWorkout,
+                details: [
+                    "focus": sessionFocusLabel,
+                    "name": currentExercise?.name ?? "",
+                    "setup_checklist": currentExercise?.setup_checklist ?? [],
+                ],
+                fallbackText: "Your protocol is ready. Review the execution order and let's get to work."
+            )
         case .work:
             if let name = currentExercise?.name {
-                coachAudio.playCue(.startSet, details: ["exercise": name], fallbackText: "Next set: \(name). Focus on quality reps.")
+                coachAudio.playCue(
+                    .startSet,
+                    details: coachAudioDetails(for: currentExercise, nameOverride: name),
+                    fallbackText: "Next set: \(name). Focus on quality reps."
+                )
             }
         case .rest:
-            coachAudio.playCue(.finishSet, fallbackText: "Set complete. Recover and reset.")
+            coachAudio.playCue(
+                .finishSet,
+                details: coachAudioDetails(for: currentExercise),
+                fallbackText: "Set complete. Recover and reset."
+            )
         case .completed:
             coachAudio.playCue(.finishWorkout, fallbackText: "Session closed. Insight analysis incoming.")
         case .exerciseIntro:
             if let name = currentExercise?.name {
-                coachAudio.playCue(.startSet, details: ["exercise": name], fallbackText: "Next up: \(name). Here's your execution guide.")
+                coachAudio.playCue(
+                    .startSet,
+                    details: coachAudioDetails(for: currentExercise, nameOverride: name),
+                    fallbackText: "Next up: \(name). Here's your execution guide."
+                )
             }
         case .loading:
             break

@@ -13,6 +13,11 @@ struct CoachView: View {
     @State private var hasLoadedHistory = false
     @State private var launchTrainingPlan: TrainingPlan?
     @State private var showingGuidedWorkout = false
+    @State private var weeklyInsight: String?
+    @State private var briefingRationale: String?
+    @State private var progressInsight: String?
+    @State private var activeEscalation: ActiveEscalationState?
+    @State private var trustSignalsLoaded = false
 
     struct MessageContent: Identifiable {
         let id = UUID()
@@ -55,6 +60,8 @@ struct CoachView: View {
                                     }
                                 }
                             }
+
+                            trustSignalCards
 
                             if messages.isEmpty {
                                 emptyStateCard
@@ -134,6 +141,7 @@ struct CoachView: View {
             if !hasLoadedHistory {
                 hasLoadedHistory = true
                 await fetchHistory()
+                await loadTrustSignals()
             }
         }
         .fullScreenCover(isPresented: $showingGuidedWorkout) {
@@ -196,6 +204,154 @@ struct CoachView: View {
         } catch {
             print("Failed to fetch history: \(error)")
         }
+    }
+
+    private func loadTrustSignals() async {
+        async let weekly = try? api.aiWeeklyInsight()
+        async let briefing = try? api.aiBriefing(localDate: DateHelpers.todayLocal)
+        async let progress = try? api.aiProgressInsight()
+        async let escalation = try? api.coachEscalateActive()
+
+        let weeklyInsightResponse = await weekly
+        let briefingResponse = await briefing
+        let progressResponse = await progress
+        let escalationResponse = await escalation
+
+        await MainActor.run {
+            weeklyInsight = weeklyInsightResponse?.insight
+            briefingRationale = briefingResponse?.rationale
+            progressInsight = progressResponse?.insight
+            activeEscalation = escalationResponse?.active
+            trustSignalsLoaded = true
+        }
+    }
+
+    @ViewBuilder
+    private var trustSignalCards: some View {
+        if weeklyInsight != nil || briefingRationale != nil || progressInsight != nil || activeEscalation != nil {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    if let weeklyInsight, !weeklyInsight.isEmpty {
+                        trustSignalCard(
+                            title: "Weekly Coach Recap",
+                            body: weeklyInsight,
+                            symbol: "calendar.badge.clock",
+                            accent: Brand.Color.accent
+                        )
+                    }
+                    if let briefingRationale, !briefingRationale.isEmpty {
+                        trustSignalCard(
+                            title: "Plan Rationale",
+                            body: briefingRationale,
+                            symbol: "brain.head.profile",
+                            accent: .white
+                        )
+                    }
+                    if let progressInsight, !progressInsight.isEmpty {
+                        trustSignalCard(
+                            title: "Progress Loop",
+                            body: progressInsight,
+                            symbol: "chart.line.uptrend.xyaxis",
+                            accent: Brand.Color.success
+                        )
+                    }
+                    if let escalation = activeEscalation {
+                        trustSignalCard(
+                            title: "Coach Escalation SLA",
+                            body: escalationSummary(for: escalation),
+                            symbol: escalation.status == "assigned" ? "person.crop.circle.badge.checkmark" : "clock.badge.exclamationmark",
+                            accent: escalationAccent(for: escalation)
+                        )
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+        } else if !trustSignalsLoaded {
+            ShimmerCard(height: 120)
+        } else {
+            PremiumRowCard {
+                HStack(spacing: 10) {
+                    Image(systemName: "shield")
+                        .foregroundStyle(Brand.Color.muted)
+                    Text("Trust signals will appear here once coach telemetry is available.")
+                        .font(.caption)
+                        .foregroundStyle(Brand.Color.muted)
+                }
+            }
+        }
+    }
+
+    private func trustSignalCard(title: String, body: String, symbol: String, accent: Color) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(accent)
+                Text(title.uppercased())
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .tracking(1.1)
+                    .foregroundStyle(accent.opacity(0.95))
+            }
+
+            Text(body)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.86))
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .frame(width: 250, alignment: .topLeading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Brand.Color.surfaceRaised.opacity(0.9))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Brand.Color.borderStrong, lineWidth: 1)
+                )
+        )
+    }
+
+    private func escalationSummary(for escalation: ActiveEscalationState) -> String {
+        var parts: [String] = []
+        if let topic = escalation.topic, !topic.isEmpty {
+            parts.append(topic)
+        }
+        if let status = escalation.status, !status.isEmpty {
+            parts.append("Status: \(status.capitalized)")
+        }
+        if let due = escalation.sla_due_at {
+            parts.append("SLA: \(relativeSlaLabel(for: due))")
+        }
+        if let latest = escalation.latest_message?.body, !latest.isEmpty {
+            parts.append("Latest: \(latest)")
+        }
+        return parts.joined(separator: "\n")
+    }
+
+    private func escalationAccent(for escalation: ActiveEscalationState) -> Color {
+        guard let dueAt = escalation.sla_due_at,
+              let dueDate = ISO8601DateFormatter().date(from: dueAt) else {
+            return Brand.Color.accent
+        }
+        let remaining = dueDate.timeIntervalSinceNow
+        if remaining <= 0 { return Brand.Color.danger }
+        if remaining <= 15 * 60 { return Brand.Color.warning }
+        return Brand.Color.success
+    }
+
+    private func relativeSlaLabel(for isoDate: String) -> String {
+        guard let dueDate = ISO8601DateFormatter().date(from: isoDate) else { return "Pending" }
+        let remaining = Int(dueDate.timeIntervalSinceNow)
+        if remaining <= 0 {
+            return "Overdue"
+        }
+        let hours = remaining / 3600
+        let minutes = (remaining % 3600) / 60
+        if hours > 0 {
+            return "\(hours)h \(minutes)m remaining"
+        }
+        return "\(max(minutes, 1))m remaining"
     }
     
     private var emptyStateCard: some View {
@@ -430,7 +586,10 @@ struct MessageBubble: View {
             }
 
             if let action = message.action, action.type == "plan_daily" {
-                WorkoutSteeringButton(trainingPlan: action.payload?.training_plan)
+                WorkoutSteeringButton(
+                    trainingPlan: action.payload?.training_plan,
+                    parityGuard: action.payload?.parity_guard
+                )
                     .padding(.leading, message.role == "assistant" ? 58 : 0)
             }
 
@@ -461,30 +620,134 @@ struct MessageBubble: View {
 
 struct WorkoutSteeringButton: View {
     let trainingPlan: TrainingPlan?
-    
+    let parityGuard: WorkoutParityGuard?
+    @State private var showingParityApproval = false
+
+    private var requiresApproval: Bool {
+        parityGuard?.requires_approval == true
+    }
+
     var body: some View {
         if let trainingPlan, let exercises = trainingPlan.exercises, !exercises.isEmpty {
-            Button {
-                NotificationCenter.default.post(
-                    name: NSNotification.Name("StartGuidedWorkoutFromCoach"),
-                    object: nil,
-                    userInfo: ["trainingPlan": trainingPlan, "exercises": exercises]
-                )
-            } label: {
-                HStack {
-                    Image(systemName: "play.fill")
-                    Text("Start Guided Workout")
+            VStack(alignment: .leading, spacing: 8) {
+                if requiresApproval {
+                    Label("Koda parity review required before launch", systemImage: "shield.lefthalf.filled")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(Brand.Color.warning)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(Brand.Color.warning.opacity(0.12))
+                                .overlay(Capsule().stroke(Brand.Color.warning.opacity(0.28), lineWidth: 1))
+                        )
                 }
-                .font(.system(size: 13, weight: .black))
-                .padding(.horizontal, 18)
-                .padding(.vertical, 14)
-                .frame(maxWidth: .infinity)
-                .background(Brand.Color.accent)
-                .foregroundStyle(.black)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                Button {
+                    if requiresApproval {
+                        showingParityApproval = true
+                    } else {
+                        startWorkout(trainingPlan: trainingPlan, exercises: exercises)
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: requiresApproval ? "checkmark.shield.fill" : "play.fill")
+                        Text(requiresApproval ? "Review Plan Diff" : "Start Guided Workout")
+                    }
+                    .font(.system(size: 13, weight: .black))
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 14)
+                    .frame(maxWidth: .infinity)
+                    .background(Brand.Color.accent)
+                    .foregroundStyle(.black)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
             }
             .padding(.horizontal, 2)
             .padding(.top, 8)
+            .sheet(isPresented: $showingParityApproval) {
+                parityApprovalSheet(trainingPlan: trainingPlan, exercises: exercises)
+            }
+        }
+    }
+
+    private func startWorkout(trainingPlan: TrainingPlan, exercises: [PlanExercise]) {
+        NotificationCenter.default.post(
+            name: NSNotification.Name("StartGuidedWorkoutFromCoach"),
+            object: nil,
+            userInfo: ["trainingPlan": trainingPlan, "exercises": exercises]
+        )
+    }
+
+    private func parityApprovalSheet(trainingPlan: TrainingPlan, exercises: [PlanExercise]) -> some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    PremiumHeroCard(
+                        title: "Workout Parity Review",
+                        subtitle: "Koda detected meaningful differences from the baseline coach logic. Review before launching.",
+                        eyebrow: "Approval Required"
+                    ) {
+                        HStack(spacing: 10) {
+                            PremiumMetricPill(label: "Diffs", value: "\(parityGuard?.divergence_count ?? parityGuard?.diffs?.count ?? 0)")
+                            PremiumMetricPill(label: "Status", value: "Pending")
+                        }
+                    }
+
+                    if let summary = parityGuard?.summary, !summary.isEmpty {
+                        PremiumRowCard {
+                            Text(summary)
+                                .font(.subheadline)
+                                .foregroundStyle(.white)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    if let diffs = parityGuard?.diffs, !diffs.isEmpty {
+                        ForEach(Array(diffs.enumerated()), id: \.offset) { _, diff in
+                            PremiumRowCard {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(diff.exercise_name ?? "Exercise")
+                                        .font(.headline.weight(.bold))
+                                        .foregroundStyle(.white)
+                                    if let changed = diff.changed_fields, !changed.isEmpty {
+                                        Text("Changed: \(changed.joined(separator: ", "))")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(Brand.Color.warning)
+                                    }
+                                    if let baseline = diff.baseline_summary, !baseline.isEmpty {
+                                        Text("Baseline: \(baseline)")
+                                            .font(.caption)
+                                            .foregroundStyle(Brand.Color.muted)
+                                    }
+                                    if let candidate = diff.candidate_summary, !candidate.isEmpty {
+                                        Text("Candidate: \(candidate)")
+                                            .font(.caption)
+                                            .foregroundStyle(.white.opacity(0.8))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Button("Approve And Start Guided Workout") {
+                        showingParityApproval = false
+                        startWorkout(trainingPlan: trainingPlan, exercises: exercises)
+                    }
+                    .buttonStyle(PremiumActionButtonStyle())
+                }
+                .padding(16)
+            }
+            .fnBackground()
+            .navigationTitle("Plan Approval")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        showingParityApproval = false
+                    }
+                }
+            }
         }
     }
 }

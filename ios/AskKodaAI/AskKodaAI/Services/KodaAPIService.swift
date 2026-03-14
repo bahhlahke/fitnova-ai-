@@ -499,6 +499,18 @@ struct KodaAPIService {
         return try await post("api/v1/coach/escalate/create", body: body)
     }
 
+    /// GET /api/v1/coach/escalate/active
+    func coachEscalateActive() async throws -> ActiveEscalationStateResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.activeEscalationState,
+                empty: ActiveEscalationStateResponse(active: nil),
+                label: "escalation active"
+            )
+        }
+        return try await get("api/v1/coach/escalate/active")
+    }
+
     /// GET /api/v1/coach/escalate/messages
     func coachEscalateMessages(escalationId: String) async throws -> EscalationMessagesResponse {
         if isDemoMode {
@@ -708,6 +720,19 @@ struct AIActionPayload: Codable {
     let exercise_name: String?
     let video_url: String?
     let training_plan: TrainingPlan?
+    let parity_guard: WorkoutParityGuard?
+
+    init(
+        exercise_name: String? = nil,
+        video_url: String? = nil,
+        training_plan: TrainingPlan? = nil,
+        parity_guard: WorkoutParityGuard? = nil
+    ) {
+        self.exercise_name = exercise_name
+        self.video_url = video_url
+        self.training_plan = training_plan
+        self.parity_guard = parity_guard
+    }
 }
 
 struct HistoryResponse: Decodable {
@@ -746,11 +771,61 @@ struct PlanExercise: Codable {
     let breathing: String?
     let intent: String?
     let rationale: String?
+    let walkthrough_steps: [String]?
+    let coaching_points: [String]?
+    let setup_checklist: [String]?
+    let common_mistakes: [String]?
     let target_rir: Int?
     let target_load_kg: Double?
+    let rest_seconds_after_set: Int?
+    let progression_note: String?
     let video_url: String?
     let cinema_video_url: String?
     let image_url: String?
+
+    init(
+        name: String? = nil,
+        sets: Int? = nil,
+        reps: String? = nil,
+        intensity: String? = nil,
+        notes: String? = nil,
+        tempo: String? = nil,
+        breathing: String? = nil,
+        intent: String? = nil,
+        rationale: String? = nil,
+        walkthrough_steps: [String]? = nil,
+        coaching_points: [String]? = nil,
+        setup_checklist: [String]? = nil,
+        common_mistakes: [String]? = nil,
+        target_rir: Int? = nil,
+        target_load_kg: Double? = nil,
+        rest_seconds_after_set: Int? = nil,
+        progression_note: String? = nil,
+        video_url: String? = nil,
+        cinema_video_url: String? = nil,
+        image_url: String? = nil
+    ) {
+        self.name = name
+        self.sets = sets
+        self.reps = reps
+        self.intensity = intensity
+        self.notes = notes
+        self.tempo = tempo
+        self.breathing = breathing
+        self.intent = intent
+        self.rationale = rationale
+        self.walkthrough_steps = walkthrough_steps
+        self.coaching_points = coaching_points
+        self.setup_checklist = setup_checklist
+        self.common_mistakes = common_mistakes
+        self.target_rir = target_rir
+        self.target_load_kg = target_load_kg
+        self.rest_seconds_after_set = rest_seconds_after_set
+        self.progression_note = progression_note
+        self.video_url = video_url
+        self.cinema_video_url = cinema_video_url
+        self.image_url = image_url
+    }
 }
 
 struct NutritionPlan: Codable {
