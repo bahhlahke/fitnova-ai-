@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         .limit(1);
 
       if (!logRows || logRows.length === 0) {
-        return jsonError(404, "NOT_FOUND", "No workout log found for the given date.");
+        return jsonError(404, "VALIDATION_ERROR", "No workout log found for the given date.");
       }
 
       const entry = logRows[0] as WorkoutLogEntry;
