@@ -34,6 +34,11 @@ struct HomeView: View {
     @State private var refreshTask: Task<Void, Never>?
     @Namespace private var workoutNamespace
 
+    // MARK: - HRV adaptive plan state
+
+    @State private var adaptiveReason: String?
+    @State private var isAdaptingPlan = false
+
     // MARK: - Services
 
     private var api: KodaAPIService {
@@ -69,6 +74,9 @@ struct HomeView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         greetingSection
+                        if let reason = adaptiveReason {
+                            hrvAdaptiveBanner(reason: reason)
+                        }
                         todayWorkoutSection
                         if let b = briefing, let text = b.briefing, !text.isEmpty {
                             briefingSection(text: text)
@@ -416,13 +424,23 @@ struct HomeView: View {
         // Secondary phase — non-blocking background loads
         async let _nudges: () = loadNudges()
         async let _insight: () = loadWeeklyInsight()
-        _ = await (_nudges, _insight)
+        async let _hrv: () = checkAndApplyHRVAdaptation()
+        _ = await (_nudges, _insight, _hrv)
+        // Schedule streak-at-risk notification for 20:00 if not already done today
+        NotificationService.shared.scheduleStreakAtRiskNotification()
     }
 
     private func loadProfile() async {
         guard let ds = dataService else { return }
         let p = try? await ds.fetchProfile()
         await MainActor.run { self.profile = p }
+        // Request notification permission once per install
+        let kNotifRequested = "koda.notificationsRequested"
+        if !UserDefaults.standard.bool(forKey: kNotifRequested) {
+            await NotificationService.shared.requestAuthorization()
+            NotificationService.shared.scheduleDailyPlanNotification()
+            UserDefaults.standard.set(true, forKey: kNotifRequested)
+        }
     }
 
     private func loadBriefing() async {
@@ -469,6 +487,71 @@ struct HomeView: View {
         guard let id = nudge.nudge_id, !id.isEmpty else { return }
         _ = try? await api.coachNudgeAck(nudgeId: id)
         await loadNudges()
+    }
+
+    // MARK: - HRV Adaptive Plan
+
+    private func checkAndApplyHRVAdaptation() async {
+        let (todayHRV, baseline) = await healthKit.computeHRVStatus()
+        guard let today = todayHRV, let base = baseline, base > 0 else { return }
+        // Trigger recovery adaptation when today's HRV is < 80% of 7-day baseline
+        guard today < base * 0.80 else { return }
+        isAdaptingPlan = true
+        defer { isAdaptingPlan = false }
+        do {
+            let res = try await api.planAdaptDay(
+                minutesAvailable: nil,
+                location: nil,
+                soreness: "Elevated recovery demand (low HRV: \(Int(today))ms vs \(Int(base))ms baseline)",
+                intensity: "recovery",
+                equipmentContext: nil
+            )
+            await MainActor.run {
+                dailyPlan = res.plan
+                adaptiveReason = "HRV is \(Int(today))ms (\(Int((today / base) * 100))% of baseline). Your plan has been adapted for recovery."
+            }
+        } catch {
+            print("[Koda] HRV adaptation: \(error)")
+        }
+    }
+
+    private func hrvAdaptiveBanner(reason: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "waveform.path.ecg")
+                .font(.title3)
+                .foregroundStyle(Brand.Color.warning)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("ADAPTIVE RECOVERY MODE")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(Brand.Color.warning)
+                Text(reason)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.85))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            Button {
+                withAnimation { adaptiveReason = nil }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Brand.Color.muted)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Brand.Color.warning.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Brand.Color.warning.opacity(0.3), lineWidth: 1)
+                )
+        )
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: adaptiveReason)
     }
 
     private func handleCoachWorkoutLaunch(_ note: NotificationCenter.Publisher.Output) {

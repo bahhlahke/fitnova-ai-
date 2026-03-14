@@ -87,25 +87,19 @@ struct BodyProgressView: View {
                         }
                     }
 
-                    // 12-week projection
-                    if let p = projection, let proj12 = p.projected_12w {
-                        PremiumRowCard {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("12-WEEK PROJECTION")
-                                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                                        .tracking(1.2)
-                                        .foregroundStyle(Brand.Color.accent)
-                                    Text("Based on current trajectory")
-                                        .font(.caption)
-                                        .foregroundStyle(Brand.Color.muted)
-                                }
-                                Spacer()
-                                Text(String(format: "%.1f kg", proj12))
-                                    .font(.system(size: 28, weight: .black, design: .rounded))
-                                    .foregroundStyle(Brand.Color.success)
-                            }
-                        }
+                    // Progress forecast chart
+                    if let p = projection,
+                       let cur = p.current,
+                       let proj4 = p.projected_4w,
+                       let proj12 = p.projected_12w,
+                       let conf = p.confidence {
+                        ProjectionChartCard(
+                            current: cur,
+                            projected4w: proj4,
+                            projected12w: proj12,
+                            rate: p.rate ?? 0,
+                            confidence: conf
+                        )
                     }
 
                     // Body comp scan + trophy room

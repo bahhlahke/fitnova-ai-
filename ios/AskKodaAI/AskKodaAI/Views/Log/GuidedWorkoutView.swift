@@ -1756,7 +1756,7 @@ struct GuidedWorkoutView: View {
         await MainActor.run { saved = true }
 
         let apiLog = buildWorkoutLog()
-        
+
         // --- OFFLINE-FIRST PERSISTENCE ---
         let persistentExercises = exercises.enumerated().compactMap { i, ex -> PersistentExerciseLog? in
             let exLogs = i < loggedSets.count ? loggedSets[i] : []
@@ -1764,7 +1764,7 @@ struct GuidedWorkoutView: View {
             let repsStr = ex.reps ?? "0"
             return PersistentExerciseLog(name: ex.name ?? "Exercise", sets: exLogs.count, reps: repsStr, weight: maxWeight)
         }
-        
+
         let localWorkout = PersistentWorkoutLog(
             userId: auth.currentUserId ?? "anon",
             date: DateHelpers.todayLocal,
@@ -1773,10 +1773,10 @@ struct GuidedWorkoutView: View {
         )
         localWorkout.logId = sessionLogId
         localWorkout.notes = apiLog.notes
-        
+
         modelContext.insert(localWorkout)
         try? modelContext.save()
-        
+
         // Attempt immediate sync if connected
         if NetworkMonitor.shared.isConnected {
             var log = apiLog
@@ -1787,7 +1787,9 @@ struct GuidedWorkoutView: View {
         } else {
             print("Offline mode: workout saved locally for future sync.")
         }
-        
+
+        // Workout saved — cancel any pending streak-at-risk notification
+        NotificationService.shared.cancelStreakAtRiskNotification()
         _ = try? await api.analyticsProcessPRs()
         _ = try? await api.awardsCheck()
 
