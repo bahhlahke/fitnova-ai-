@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PageLayout, Card, Button, CardHeader } from "@/components/ui";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -23,7 +23,23 @@ export default function BodyCompScannerPage() {
         };
     } | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [countdown, setCountdown] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const pendingSlotRef = useRef<"front" | "side" | "back" | null>(null);
+
+    useEffect(() => {
+        if (countdown === null) return;
+        if (countdown === 0) {
+            setCountdown(null);
+            if (pendingSlotRef.current) {
+                setActiveSlot(pendingSlotRef.current);
+                fileInputRef.current?.click();
+            }
+            return;
+        }
+        const id = setTimeout(() => setCountdown((c) => (c !== null ? c - 1 : null)), 1000);
+        return () => clearTimeout(id);
+    }, [countdown]);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -47,8 +63,8 @@ export default function BodyCompScannerPage() {
     };
 
     const triggerUpload = (slot: "front" | "side" | "back") => {
-        setActiveSlot(slot);
-        fileInputRef.current?.click();
+        pendingSlotRef.current = slot;
+        setCountdown(5);
     };
 
     const startScan = async () => {
@@ -66,12 +82,10 @@ export default function BodyCompScannerPage() {
                 }),
             });
 
-            if (!res.ok) {
-                throw new Error("Failed to analyze image");
-            }
-
             const data = await res.json();
-            if (data.error) throw new Error(data.error);
+            if (!res.ok || data.error) {
+                throw new Error(data.error || "Failed to analyze body composition.");
+            }
 
             setResult(data);
             emitDataRefresh(["dashboard", "progress"]);
@@ -196,7 +210,23 @@ export default function BodyCompScannerPage() {
                                         </div>
                                     </div>
                                 </div>
-                                <p className="text-[10px] font-black tracking-widest text-white/40 uppercase mb-2">Tap to Capture Filter</p>
+                                <p className="text-[10px] font-black tracking-widest text-white/40 uppercase mb-2">Tap · 5s timer · then pose</p>
+                            </div>
+                        )}
+
+                        {countdown !== null && (
+                            <div className="absolute inset-0 bg-black/90 backdrop-blur-xl z-50 flex flex-col items-center justify-center animate-in fade-in duration-300 rounded-2xl">
+                                <p className="font-display text-[120px] font-black italic tracking-tighter text-white leading-none drop-shadow-[0_0_40px_rgba(10,217,196,0.8)]" style={{ color: countdown <= 2 ? '#0AD9C4' : 'white' }}>
+                                    {countdown}
+                                </p>
+                                <p className="mt-2 text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">Get In Position</p>
+                                <p className="mt-1 text-[10px] text-fn-muted uppercase tracking-widest">Camera opens automatically</p>
+                                <button
+                                    className="mt-6 text-xs text-white/40 hover:text-white/70 transition-colors uppercase tracking-widest"
+                                    onClick={() => setCountdown(null)}
+                                >
+                                    Cancel
+                                </button>
                             </div>
                         )}
 

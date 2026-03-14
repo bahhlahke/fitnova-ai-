@@ -243,10 +243,10 @@ struct KodaAPIService {
             )
         }
         let body: [String: Any] = [
-            "images": [images.0, images.1, images.2],
+            "images": ["front": images.0, "side": images.1, "back": images.2],
             "localDate": localDate
         ]
-        return try await post("api/v1/ai/body-comp", body: body)
+        return try await post("api/v1/ai/body-comp", body: body, timeoutInterval: 120)
     }
 
     /// GET /api/v1/ai/projection
@@ -673,7 +673,7 @@ struct KodaAPIService {
         return try JSONDecoder().decode(T.self, from: data)
     }
 
-    func post<T: Decodable>(_ path: String, body: [String: Any]) async throws -> T {
+    func post<T: Decodable>(_ path: String, body: [String: Any], timeoutInterval: TimeInterval = 30) async throws -> T {
         let url: URL
         if path.hasPrefix("http"), let u = URL(string: path) {
             url = u
@@ -683,7 +683,7 @@ struct KodaAPIService {
             throw KodaAPIError.invalidURL
         }
         var request = URLRequest(url: url)
-        request.timeoutInterval = 30
+        request.timeoutInterval = timeoutInterval
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
