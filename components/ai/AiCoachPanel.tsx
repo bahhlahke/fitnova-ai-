@@ -226,7 +226,7 @@ export function AiCoachPanel({
         </div>
       )}
 
-      <div className="mt-4 max-h-none flex-1 space-y-5 overflow-y-auto pr-1">
+      <div className="mt-4 flex-1 space-y-5 overflow-y-auto pr-1 max-h-[calc(100dvh-20rem)] custom-scrollbar">
         {messages.length === 0 && (
           <div className="rounded-3xl border border-white/10 bg-black/20 p-6 text-center">
             <p className="text-lg font-black italic tracking-tight text-white">
