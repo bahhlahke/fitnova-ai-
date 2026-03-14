@@ -7,7 +7,7 @@ import { toLocalDateString } from "@/lib/date/local-date";
 import { emitDataRefresh, useDataRefresh } from "@/lib/ui/data-sync";
 import { DEFAULT_UNIT_SYSTEM, type UnitSystem, readUnitSystemFromProfile } from "@/lib/units";
 import { toPlainFitnessLanguage, toTitleCaseLabel } from "@/lib/ui/plain-language";
-import { Card, CardHeader, Button, LoadingState } from "@/components/ui";
+import { Card, Button, LoadingState } from "@/components/ui";
 import { AiCoachPanel } from "@/components/ai/AiCoachPanel";
 import { SpotifyMiniPlayer } from "@/components/music/SpotifyMiniPlayer";
 import { SpotifyProvider } from "@/lib/music/SpotifyProvider";
@@ -518,10 +518,10 @@ export default function HomePage() {
             </p>
 
             <div className="mt-12 flex flex-col gap-4 sm:flex-row">
-              <Link href="/start">
+              <Link href="/start" aria-label="Preview Your Protocol">
                 <Button className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white text-black hover:bg-white/90">Start Free Assessment</Button>
               </Link>
-              <Link href="/auth">
+              <Link href="/auth" aria-label="Member Access">
                 <Button variant="secondary" className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 hover:bg-white/10 text-white">Sign In</Button>
               </Link>
             </div>
@@ -745,7 +745,7 @@ export default function HomePage() {
       )
     },
     {
-      href: "/check-in", label: "Check In", color: "from-violet-500/20 to-violet-600/5 border-violet-500/20", iconColor: "text-violet-400", icon: (
+      href: "/check-in", label: "Check In", color: "from-amber-500/20 to-orange-500/5 border-amber-500/20", iconColor: "text-amber-300", icon: (
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -777,122 +777,185 @@ export default function HomePage() {
       ? "Score guide: 85-100% push, 70-84% moderate, below 70% recovery. Add a quick check-in to personalize."
       : `Score guide: 85-100% push, 70-84% moderate, below 70% recovery. Today: ${readyForTodayPercent}% ${readyForTodayPercent >= 85 ? "(push)" : readyForTodayPercent >= 70 ? "(moderate)" : "(recovery)"}.`;
 
+  const readinessBand =
+    readyForTodayPercent == null
+      ? "Needs check-in"
+      : readyForTodayPercent >= 85
+        ? "Push day"
+        : readyForTodayPercent >= 70
+          ? "Moderate day"
+          : "Recovery day";
+
+  const retentionRiskLabel =
+    typeof retentionRisk?.risk_score === "number"
+      ? `${Math.round(retentionRisk.risk_score * 100)}% risk`
+      : "Risk syncing";
+
   return (
-    <div className="mx-auto flex h-[calc(100vh-100px)] w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-8 md:h-[calc(100vh-40px)]">
-      {/* High-Density Vitals Header */}
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 shrink-0">
+    <div className="relative mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-7xl flex-col gap-4 px-4 py-5 sm:px-8 md:min-h-[calc(100vh-40px)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 bg-[radial-gradient(circle_at_15%_0%,rgba(10,217,196,0.18),transparent_55%),radial-gradient(circle_at_85%_0%,rgba(255,255,255,0.08),transparent_45%)]" />
+
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-5 shadow-[0_20px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:p-7">
+        <div className="absolute -right-16 -top-14 h-48 w-48 rounded-full bg-fn-accent/15 blur-3xl" />
+        <div className="absolute -bottom-20 left-20 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+        <div className="relative grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-fn-accent">Koda premium coach</p>
+            <h1 className="mt-3 max-w-2xl font-display text-4xl font-black italic tracking-tight text-white sm:text-5xl">
+              Your personal trainer brief for today.
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">
+              {hasPlanToday
+                ? "Your guided session, meal targets, and AI coaching are synced. Start the workout and keep execution tight."
+                : "No plan is loaded yet. Generate today’s session and Koda will set exercise flow, coaching cues, and logging targets."}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="rounded-full border border-white/15 bg-white/[0.05] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
+                Readiness: {readyForTodayPercent != null ? `${readyForTodayPercent}%` : "--"}
+              </span>
+              <span className="rounded-full border border-fn-accent/30 bg-fn-accent/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-fn-accent">
+                {readinessBand}
+              </span>
+              <span className="rounded-full border border-white/15 bg-white/[0.05] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75">
+                {hasWorkoutToday ? "Workout logged today" : "No workout logged yet"}
+              </span>
+            </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              {hasPlanToday ? (
+                <>
+                  <Link href="/log/workout/guided">
+                    <Button size="sm">Start Guided Workout</Button>
+                  </Link>
+                  <Link href="/plan#adjust-workout">
+                    <Button size="sm" variant="secondary">Adjust Workout</Button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Button size="sm" loading={planLoading || generating} onClick={() => void handleGeneratePlan()}>
+                    Generate Today&apos;s Plan
+                  </Button>
+                  <Link href="/check-in">
+                    <Button size="sm" variant="secondary">Quick Check-In</Button>
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/[0.12] bg-black/[0.35] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-fn-accent">Execution plan</p>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/60">
+                {retentionRiskLabel}
+              </span>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-fn-muted">{readyForTodayGuide}</p>
+            <div className="mt-4 space-y-2.5">
+              {[
+                "Review readiness and pain level.",
+                hasPlanToday ? "Start guided workout with video cues." : "Generate plan and verify today’s focus.",
+                "Log at least one set and one meal before noon.",
+              ].map((step, idx) => (
+                <div key={step} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                  <span className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-fn-accent/20 text-[10px] font-bold text-fn-accent">
+                    {idx + 1}
+                  </span>
+                  <p className="text-xs leading-relaxed text-white/80">{step}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-white/65">
+              Next best step:{" "}
+              <span className="text-white">
+                {hasPlanToday
+                  ? "Open guided mode and complete the first movement."
+                  : "Generate your plan so Koda can lock today’s workout and nutrition targets."}
+              </span>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: "Ready For Today", value: readyForTodayPercent != null ? `${readyForTodayPercent}%` : "...", icon: "⚡", href: "/vitals", hint: readyForTodayGuide },
-          { label: "Current Streak", value: `${streak} days`, icon: "🔥", href: "/progress" },
-          { label: "Workouts This Week", value: `${weekCount}`, icon: "📊", href: "/history" },
-          { label: "Food Target Today", value: todayPlan?.calories ? `${todayPlan.calories} kcal` : "Build plan", icon: "🥗", href: "/log/nutrition" },
+          { label: "Ready for Today", value: readyForTodayPercent != null ? `${readyForTodayPercent}%` : "Pending", icon: "RT", href: "/vitals", hint: readinessBand },
+          { label: "Current Streak", value: `${streak} days`, icon: "ST", href: "/progress" },
+          { label: "Workouts This Week", value: `${weekCount}`, icon: "WK", href: "/history" },
+          { label: "Food Target Today", value: todayPlan?.calories ? `${todayPlan.calories} kcal` : "Build plan", icon: "KC", href: "/log/nutrition" },
         ].map((item) => (
           <Link key={item.label} href={item.href}>
-            <div className="group rounded-2xl border border-white/[0.05] bg-fn-surface/40 p-4 transition-all hover:bg-fn-surface/60">
-              <div className="flex items-center justify-between opacity-50">
-                <p className="text-[9px] font-black uppercase tracking-wider">{item.label}</p>
-                <span className="text-xs">{item.icon}</span>
+            <div className="group h-full rounded-3xl border border-white/10 bg-white/[0.03] p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.06]">
+              <div className="flex items-center justify-between">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/55">{item.label}</p>
+                <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-bold text-fn-accent">{item.icon}</span>
               </div>
-              <p className="mt-1 font-display text-xl font-black italic uppercase italic tracking-tighter text-white sm:text-2xl">
+              <p className="mt-2 font-display text-2xl font-black italic tracking-tight text-white sm:text-3xl">
                 {item.value}
               </p>
-              {"hint" in item ? (
-                <p className="mt-1 text-[10px] leading-relaxed text-fn-muted/70">{item.hint}</p>
-              ) : null}
+              {"hint" in item && <p className="mt-1 text-[10px] leading-relaxed text-fn-muted/75">{item.hint}</p>}
             </div>
           </Link>
         ))}
       </section>
 
-      <section className="shrink-0 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Today In 3 Steps</p>
-        <p className="mt-2 text-sm leading-relaxed text-fn-muted">
-          {hasPlanToday
-            ? "Check how ready you are, then complete one key action: start today's workout, log a meal, or ask Coach to adapt the plan."
-            : "Generate today's plan first, then complete one key action: a workout, a meal log, or a quick check-in."}
-        </p>
-        <p className="mt-2 text-xs leading-relaxed text-fn-muted/80">
-          Ready For Today combines your recent training, check-ins, and recovery signals so you know whether to push, maintain, or take it easier.
-        </p>
-        <p className="mt-2 text-xs leading-relaxed text-fn-muted/80">
-          Readiness score guide: <span className="text-white">85-100% = push</span>, <span className="text-white">70-84% = moderate</span>, <span className="text-white">below 70% = recovery or adapt</span>.
-        </p>
-        <div className="mt-3 rounded-xl border border-fn-accent/20 bg-fn-accent/5 px-3 py-2 text-xs leading-relaxed text-fn-muted">
-          <span className="font-semibold text-white">Next best step right now:</span>{" "}
-          {hasPlanToday
-            ? "Start your guided workout. If your energy feels low, run a quick check-in first and adapt."
-            : "Generate today's plan, then start your first action (workout, meal log, or check-in)."}
-        </div>
-        {!hasPlanToday ? (
-          <p className="mt-2 text-xs text-fn-muted/80">
-            New here? Press the Step 1 button below first.
-          </p>
-        ) : null}
-        <div className="mt-3 grid gap-2 text-xs text-fn-muted sm:grid-cols-3">
-          {[
-            "1. Review your energy today.",
-            hasPlanToday ? "2. Start the workout or adapt it." : "2. Generate today’s plan.",
-            "3. Come back after one action for coach feedback.",
-          ].map((step) => (
-            <div key={step} className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
-              {step}
+      <section className="grid shrink-0 gap-3 md:grid-cols-4">
+        {quickActions.map((action) => (
+          <Link
+            key={action.href}
+            href={action.href}
+            className={`group rounded-2xl border bg-gradient-to-br p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/30 ${action.color}`}
+          >
+            <div className={`inline-flex rounded-xl border border-white/10 bg-black/25 p-2 ${action.iconColor}`}>
+              {action.icon}
             </div>
-          ))}
-        </div>
-        <div className="mt-4 flex flex-wrap gap-3">
-          {hasPlanToday ? (
-            <>
-              <Link href="/log/workout/guided">
-                <Button size="sm">Step 2: Start today&apos;s workout</Button>
-              </Link>
-              <Link href="/check-in">
-                <Button size="sm" variant="secondary">Quick check-in</Button>
-              </Link>
-            </>
-          ) : (
-            <>
-              <Button size="sm" loading={planLoading || generating} onClick={() => void handleGeneratePlan()}>
-                Step 1: Generate today&apos;s plan
-              </Button>
-              <Link href="/check-in">
-                <Button size="sm" variant="secondary">Quick check-in first</Button>
-              </Link>
-            </>
-          )}
-        </div>
+            <p className="mt-3 text-sm font-semibold text-white">{action.label}</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-white/65">
+              {action.label === "Ask Coach"
+                ? "Get a tactical answer and a direct next step."
+                : action.label === "Log Workout"
+                  ? "Record completed sets so progression stays accurate."
+                  : action.label === "Log Meal"
+                    ? "Capture nutrition quickly and update macro targets."
+                    : "Update recovery and soreness for better daily adaptation."}
+            </p>
+          </Link>
+        ))}
       </section>
 
       {/* Main Command Workspace */}
-      <div className="flex flex-1 gap-6 overflow-hidden">
+      <div className="flex flex-1 gap-5 overflow-hidden">
         {/* Left Signal Stream - Activity Log Feed (Fixed Sidebar) */}
-        <aside className="hidden w-72 flex-col gap-4 overflow-y-auto md:flex pr-2 custom-scrollbar">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-muted/50 border-b border-white/5 pb-2">Today&apos;s Coaching Summary</p>
+        <aside className="hidden w-80 flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar md:flex">
+          <p className="border-b border-white/10 pb-2 text-[9px] font-semibold uppercase tracking-[0.22em] text-white/45">Today&apos;s Coaching Summary</p>
           <div className="space-y-3">
             {/* Today's Protocol Focus */}
-            <div className="rounded-xl bg-fn-accent/5 border border-fn-accent/20 p-4">
-              <p className="text-[9px] font-black uppercase text-fn-accent mb-1">Today&apos;s Focus</p>
-              <p className="font-display text-lg font-black italic text-white leading-tight">{todayPlan?.focus ?? "Building today’s plan..."}</p>
-              <p className="mt-2 text-[10px] leading-relaxed text-fn-muted">
+            <div className="rounded-2xl border border-fn-accent/30 bg-[linear-gradient(145deg,rgba(10,217,196,0.14),rgba(10,217,196,0.05))] p-4">
+              <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.22em] text-fn-accent">Today&apos;s Focus</p>
+              <p className="font-display text-xl font-black italic tracking-tight text-white leading-tight">{todayPlan?.focus ?? "Building today’s plan..."}</p>
+              <p className="mt-2 text-[11px] leading-relaxed text-fn-muted">
                 {todayPlan
                   ? "This is the main training priority Koda wants you to complete next."
                   : "Step 1 is to generate your plan so Koda can show the recommended workout focus."}
               </p>
               {todayPlan && (
                 <Link href="/log/workout/guided">
-                  <button className="mt-3 text-[10px] font-black uppercase text-fn-accent hover:underline">Start Workout →</button>
+                  <button className="mt-3 rounded-full border border-fn-accent/30 bg-black/25 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-fn-accent transition-colors hover:bg-black/45">
+                    Start Workout
+                  </button>
                 </Link>
               )}
             </div>
 
             {/* Recent Nudge / Insight */}
             {nudges.slice(0, 1).map(n => (
-              <div key={n.nudge_id} className="rounded-xl bg-fn-surface/30 border border-white/5 p-4 italic text-sm text-fn-muted">
+              <div key={n.nudge_id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm italic text-fn-muted">
                 &ldquo;{n.message}&rdquo;
               </div>
             ))}
 
             {/* Elite AI Synthesis Terminal */}
-            <div className="rounded-xl bg-gradient-to-br from-fn-bg to-fn-surface/50 border border-fn-accent/20 p-4 relative overflow-hidden group">
+            <div className="group relative overflow-hidden rounded-2xl border border-white/[0.12] bg-[linear-gradient(150deg,rgba(255,255,255,0.06),rgba(255,255,255,0.01))] p-4">
               <div className="absolute top-0 right-0 w-32 h-32 bg-fn-accent/5 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-fn-accent/10 transition-all duration-700"></div>
 
               <div className="flex items-center gap-2 mb-3">
@@ -900,7 +963,7 @@ export default function HomePage() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fn-accent opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-fn-accent"></span>
                 </span>
-                <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Coach Summary</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-fn-accent">Coach Summary</p>
               </div>
 
               {briefingLoading ? (
@@ -915,8 +978,8 @@ export default function HomePage() {
                     &ldquo;{toPlainFitnessLanguage(briefing.briefing)}&rdquo;
                   </p>
 
-                  <div className="bg-black/40 rounded-lg p-3 border border-white/5 space-y-2">
-                    <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest">Why Koda Is Suggesting This</p>
+                  <div className="bg-black/30 rounded-xl p-3 border border-white/10 space-y-2">
+                    <p className="text-[9px] font-semibold text-white/60 uppercase tracking-[0.2em]">Why Koda Is Suggesting This</p>
                     <p className="text-[10px] text-fn-muted leading-relaxed">{toPlainFitnessLanguage(briefing.rationale)}</p>
                   </div>
 
@@ -931,16 +994,16 @@ export default function HomePage() {
                   )}
                 </div>
               ) : (
-                <div className="text-xs leading-relaxed text-fn-muted font-mono h-[80px] flex items-center justify-center border border-dashed border-white/10 rounded-lg">
+                <div className="text-xs leading-relaxed text-fn-muted font-mono h-[80px] flex items-center justify-center border border-dashed border-white/20 rounded-xl">
                   Step 1: generate today&apos;s plan. Step 2: complete one action. Step 3: return here for your coach summary.
                 </div>
               )}
               {/* Coach's Desk Mastery Insights */}
               {(coachInsights.length > 0 || coachInsightsLoading) && (
-                <div className="rounded-xl bg-fn-accent/5 border border-fn-accent/20 p-4 space-y-3">
+                <div className="rounded-xl bg-fn-accent/[0.07] border border-fn-accent/25 p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">🛡️</span>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Why This Matters</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Why This Matters</p>
                   </div>
                   <p className="text-[10px] leading-relaxed text-fn-muted">
                     Plain-English rule: if readiness looks low, choose an easier day or ask Coach to adapt the plan before you start.
@@ -974,8 +1037,8 @@ export default function HomePage() {
 
             {/* Weekly Insight */}
             {(weeklyInsightLoading || weeklyInsight) && (
-              <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-4 space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400 font-mono">Weekly Insight</p>
+              <div className="rounded-2xl bg-emerald-500/[0.08] border border-emerald-500/30 p-4 space-y-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300">Weekly Insight</p>
                 {weeklyInsightLoading ? (
                   <div className="space-y-2 animate-pulse">
                     <div className="h-2.5 w-full bg-emerald-500/10 rounded"></div>
@@ -993,10 +1056,10 @@ export default function HomePage() {
             </SpotifyProvider>
 
             {/* Workout Music */}
-            <div className="rounded-xl border border-fn-accent/20 bg-gradient-to-br from-fn-accent/10 via-black/40 to-black/70 p-4">
+            <div className="rounded-2xl border border-fn-accent/25 bg-gradient-to-br from-fn-accent/[0.12] via-black/[0.35] to-black/70 p-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm">🎵</span>
-                <p className="text-[9px] font-black uppercase tracking-widest text-fn-accent">Workout Music</p>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Workout Music</p>
               </div>
               <p className="mt-3 text-[10px] leading-relaxed text-fn-muted">
                 Connect Spotify once, then launch guided workouts with device-ready playback controls and fewer interruptions.
@@ -1016,25 +1079,25 @@ export default function HomePage() {
             </div>
 
             {/* Sensor Sync / Biometrics Status */}
-            <div className="rounded-xl bg-black/40 border border-white/5 p-4 group hover:bg-black/60 transition-all">
+            <div className="group rounded-2xl border border-white/10 bg-black/[0.35] p-4 transition-all hover:bg-black/55">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[9px] font-black uppercase text-fn-accent">Connected Tools</p>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Connected Tools</p>
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fn-accent opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-fn-accent"></span>
                 </span>
               </div>
               <div className="space-y-2">
-                <Link href="/integrations" className="block p-2 rounded-lg bg-white/5 hover:bg-fn-accent/10 border border-white/5 hover:border-fn-accent/20 transition-all">
+                <Link href="/integrations" className="block p-2 rounded-lg bg-white/5 hover:bg-fn-accent/10 border border-white/10 hover:border-fn-accent/30 transition-all">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">⌚</span>
-                    <span className="text-[10px] font-bold text-white uppercase tracking-tight">Wearables</span>
+                    <span className="text-[10px] font-semibold text-white uppercase tracking-[0.16em]">Wearables</span>
                   </div>
                 </Link>
-                <Link href="/log/nutrition/fridge" className="block p-2 rounded-lg bg-white/5 hover:bg-fn-accent/10 border border-white/5 hover:border-fn-accent/20 transition-all">
+                <Link href="/log/nutrition/fridge" className="block p-2 rounded-lg bg-white/5 hover:bg-fn-accent/10 border border-white/10 hover:border-fn-accent/30 transition-all">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">📸</span>
-                    <span className="text-[10px] font-bold text-white uppercase tracking-tight">Photo Food Scan</span>
+                    <span className="text-[10px] font-semibold text-white uppercase tracking-[0.16em]">Photo Food Scan</span>
                   </div>
                 </Link>
               </div>
@@ -1043,12 +1106,12 @@ export default function HomePage() {
         </aside>
 
         {/* Centerpiece Agent Interface */}
-        <main className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-hidden relative">
+        <main className="flex flex-1 flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.02] shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+          <div className="relative flex-1 overflow-hidden">
             <AiCoachPanel
               mode="embedded"
               autoFocus={focusAi}
-              className="h-full border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
+              className="h-full border-0 bg-transparent p-4 shadow-none backdrop-blur-none sm:p-5"
             />
           </div>
         </main>

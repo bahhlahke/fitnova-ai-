@@ -734,51 +734,58 @@ function GuidedWorkoutScreen() {
 
   if (phase === "loading") {
     return (
-      <div className="mx-auto flex min-h-[100dvh] max-w-shell flex-col items-center justify-center bg-fn-bg px-6 text-center">
+      <div className="premium-grid-bg mx-auto flex min-h-[100dvh] max-w-shell flex-col items-center justify-center bg-fn-bg px-6 text-center">
         <div className="h-12 w-12 rounded-full border-2 border-fn-accent/20 border-t-fn-accent animate-spin mb-4" />
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent">Neural Initialization</p>
-        <p className="mt-2 text-sm font-medium text-fn-ink/40">Calibrating session sequence...</p>
+        <p className="premium-kicker">Guided Session Setup</p>
+        <p className="mt-2 text-sm font-medium text-fn-ink/50">Preparing your trainer walkthrough, timers, and logging flow.</p>
       </div>
     );
   }
 
   if (phase === "overview") {
     return (
-      <div className="mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg">
+      <div className="premium-grid-bg mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg">
         <div className="flex-1 overflow-y-auto px-6 py-10 pb-32">
-          <header className="mb-10">
-            <Link href="/log/workout" className="text-sm font-bold text-fn-muted hover:text-white transition-colors flex items-center gap-2 mb-6">
+          <header className="premium-panel mb-8 p-6 sm:p-8">
+            <Link href="/log/workout" className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-fn-muted transition-colors hover:text-white">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
               Exit
             </Link>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-2">Session Overview</p>
-            <h1 className="font-display text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
+            <p className="premium-kicker mb-2">Session Overview</p>
+            <h1 className="premium-headline text-4xl leading-none sm:text-5xl">
               {planTitle}
             </h1>
-            <div className="mt-6 flex flex-wrap gap-4">
-              <div className="flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 border border-white/5">
-                <span className="h-1.5 w-1.5 rounded-full bg-fn-accent" />
-                <span className="text-[11px] font-black uppercase tracking-widest text-fn-ink/60">{exercises.length} Movements</span>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">
+              You&apos;re getting a trainer-grade experience with demo media, setup checklists, walkthrough cues, logging, and automated rest timing.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <div className="premium-badge">
+                <span className="mr-2 h-1.5 w-1.5 rounded-full bg-fn-accent" />
+                {exercises.length} movements
               </div>
-              <div className="flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 border border-white/5">
-                <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
-                <span className="text-[11px] font-black uppercase tracking-widest text-fn-ink/60">~{exercises.length * 8}m duration</span>
+              <div className="premium-badge">
+                <span className="mr-2 h-1.5 w-1.5 rounded-full bg-white/50" />
+                ~{exercises.length * 8} min
+              </div>
+              <div className="premium-badge">
+                <span className="mr-2 h-1.5 w-1.5 rounded-full bg-fn-accent" />
+                video + audio cues
               </div>
             </div>
           </header>
 
           <section className="space-y-4">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-muted mb-4 block">Sequence Flow</h3>
+            <h3 className="mb-4 block text-[10px] font-semibold uppercase tracking-[0.22em] text-fn-muted">Session Sequence</h3>
             {exercises.map((ex, i) => (
-              <div key={i} className="group relative overflow-hidden rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 transition-all hover:bg-white/[0.05]">
+              <div key={i} className="premium-panel-soft group relative overflow-hidden p-6 transition-all duration-300 hover:border-white/20 hover:bg-white/[0.06]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-[10px] font-black text-fn-muted">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/5 text-[10px] font-semibold text-fn-muted">
                       {i + 1}
                     </span>
                     <div>
-                      <h4 className="text-xl font-black text-white uppercase italic">{ex.name}</h4>
-                      <p className="mt-0.5 text-xs font-bold text-fn-muted">{ex.sets} Sets · {ex.reps} target</p>
+                      <h4 className="text-xl font-black italic tracking-tight text-white">{ex.name}</h4>
+                      <p className="mt-0.5 text-xs font-semibold text-fn-muted">{ex.sets} sets · {ex.reps} target</p>
                     </div>
                   </div>
                   <div className="h-12 w-12 overflow-hidden rounded-xl bg-black/40">
@@ -816,21 +823,21 @@ function GuidedWorkoutScreen() {
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2 border-t border-white/5 pt-4">
-                  <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                  <span className="rounded-full border border-white/15 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
                     Rest {getExerciseRestSeconds(ex)}s
                   </span>
                   {ex.tempo && (
-                    <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                    <span className="rounded-full border border-white/15 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
                       Tempo {ex.tempo}
                     </span>
                   )}
                   {typeof ex.target_rir === "number" && (
-                    <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                    <span className="rounded-full border border-white/15 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
                       {ex.target_rir} RIR
                     </span>
                   )}
                   {typeof ex.target_load_kg === "number" && (
-                    <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                    <span className="rounded-full border border-white/15 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
                       {Math.round(ex.target_load_kg * 10) / 10} kg
                     </span>
                   )}
@@ -845,7 +852,7 @@ function GuidedWorkoutScreen() {
                     </p>
                   ))}
                   {ex.progression_note && (
-                    <p className="text-[11px] font-medium leading-relaxed text-fn-accent/80">
+                    <p className="text-[11px] font-medium leading-relaxed text-fn-accent/90">
                       Next time: {ex.progression_note}
                     </p>
                   )}
@@ -854,8 +861,8 @@ function GuidedWorkoutScreen() {
             ))}
           </section>
 
-          <footer className="mt-12 rounded-3xl bg-fn-accent/5 border border-fn-accent/10 p-6">
-            <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Coach Note</p>
+          <footer className="premium-panel mt-10 p-6">
+            <p className="premium-kicker mb-2">Coach Note</p>
             <p className="text-sm font-medium leading-relaxed text-white/60">
               Every movement below is loaded with a demo loop, setup checklist, and live coaching cues. Once the session starts, Koda will carry the exact same plan into the guided flow with countdowns, logging, and recovery timing already set.
             </p>
@@ -866,10 +873,10 @@ function GuidedWorkoutScreen() {
           <button
             type="button"
             onClick={startWorkout}
-            className="group relative w-full overflow-hidden rounded-full bg-fn-accent py-5 text-lg font-black uppercase tracking-wider text-black shadow-[0_-10px_50px_rgba(10,217,196,0.2)] transition-all active:scale-[0.98] hover:bg-white"
+            className="group relative w-full overflow-hidden rounded-full bg-fn-accent py-5 text-lg font-black uppercase tracking-[0.2em] text-black shadow-[0_-10px_50px_rgba(10,217,196,0.22)] transition-all active:scale-[0.98] hover:bg-white"
           >
             <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out" />
-            Initiate Experience
+            Start Guided Session
           </button>
         </div>
       </div>
@@ -878,7 +885,7 @@ function GuidedWorkoutScreen() {
 
   if (phase === "completed") {
     return (
-      <div className="mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg pt-20 px-6 text-center">
+      <div className="premium-grid-bg mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg px-6 pt-20 text-center">
         <div className="flex flex-col items-center justify-center flex-1">
           <div className="relative mb-12 flex flex-col items-center">
             <div className="absolute inset-0 bg-fn-accent opacity-20 blur-[100px]" />
@@ -894,22 +901,22 @@ function GuidedWorkoutScreen() {
             />
           </div>
 
-          <h1 className="font-display text-5xl font-black italic tracking-tighter text-white uppercase leading-none mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            Session Transcended
+          <h1 className="premium-headline mb-4 animate-in fade-in slide-in-from-bottom-4 text-5xl leading-none duration-700">
+            Session Complete
           </h1>
-          <p className="text-sm font-bold uppercase tracking-[0.3em] text-fn-accent mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-            {saved ? "Neural Data Synchronized" : saveError ?? "Intensity Captured"}
+          <p className="mb-8 text-sm font-semibold uppercase tracking-[0.22em] text-fn-accent animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+            {saved ? "Session Saved" : saveError ?? "Session Captured"}
           </p>
 
           {!saved && saveError && (
-            <p className="max-w-md text-sm leading-relaxed text-white/60 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
+            <p className="max-w-md text-sm leading-relaxed text-white/65 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
               Your session is complete, but we could not save the workout yet. Retry once before leaving so your dashboard and progression stay accurate.
             </p>
           )}
 
           {(postWorkoutInsight || postWorkoutInsightLoading) && (
-            <div className="w-full max-w-md rounded-[2.5rem] border border-white/5 bg-white/[0.02] p-8 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4">Neural Recalibration</p>
+            <div className="premium-panel w-full max-w-md animate-in fade-in slide-in-from-bottom-8 p-8 duration-1000 delay-300">
+              <p className="premium-kicker mb-4">Coach Debrief</p>
               {postWorkoutInsightLoading ? (
                 <div className="space-y-3">
                   <div className="h-2 w-full rounded-full bg-white/5 animate-pulse" />
@@ -930,14 +937,14 @@ function GuidedWorkoutScreen() {
             <button
               type="button"
               onClick={() => void persistWorkout()}
-              className="w-full rounded-full border border-fn-accent/20 bg-fn-accent/10 py-4 text-sm font-black uppercase tracking-widest text-fn-accent transition-all hover:bg-fn-accent/20"
+              className="w-full rounded-full border border-fn-accent/20 bg-fn-accent/10 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-fn-accent transition-all hover:bg-fn-accent/20"
             >
               Retry Save Workout
             </button>
           )}
           <Link href="/log/workout" className="block w-full">
-            <button className="w-full rounded-full bg-white py-5 text-sm font-black uppercase tracking-widest text-black transition-all hover:bg-fn-accent hover:text-black hover:scale-[1.02] active:scale-[0.98]">
-              {saved ? "Return to Nexus" : "Continue to Workout Log"}
+            <button className="w-full rounded-full bg-white py-5 text-sm font-semibold uppercase tracking-[0.18em] text-black transition-all hover:scale-[1.02] hover:bg-fn-accent active:scale-[0.98]">
+              {saved ? "Back to Workout Log" : "Continue to Workout Log"}
             </button>
           </Link>
         </div>
@@ -965,11 +972,11 @@ function GuidedWorkoutScreen() {
   const restProgressRatio = restTargetSeconds > 0 ? restSeconds / restTargetSeconds : 0;
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg px-0 py-0">
+    <div className="premium-grid-bg mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg px-0 py-0">
       {/* Progress bar - fixed at top for gym use */}
-      <div className="fixed top-0 inset-x-0 z-50 h-1.5 w-full bg-fn-border/50 backdrop-blur-md">
+      <div className="fixed inset-x-0 top-0 z-50 h-1.5 w-full bg-fn-border/50 backdrop-blur-md">
         <div
-          className="h-full bg-fn-primary shadow-[0_0_10px_rgba(255,255,255,0.8)] transition-all duration-300"
+          className="h-full bg-fn-accent shadow-[0_0_12px_rgba(10,217,196,0.75)] transition-all duration-300"
           style={{ width: `${progressPct}%` }}
         />
       </div>
@@ -1052,16 +1059,16 @@ function GuidedWorkoutScreen() {
       )}
 
       <div className="relative z-10 flex flex-1 flex-col px-4 pb-6 pt-8">
-        <header className="mb-8 flex items-center justify-between">
+        <header className="premium-panel-soft mb-6 flex items-center justify-between px-4 py-3">
           <Link
             href="/log/workout"
-            className="flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-fn-muted hover:bg-white/10 hover:text-white transition-colors"
+            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-fn-muted transition-colors hover:bg-white/10 hover:text-white"
           >
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-            End
+            End Session
           </Link>
           <div className="flex flex-col items-end">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent leading-none mb-2 text-right">Neural Guidance</p>
+            <p className="mb-2 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-fn-accent leading-none">Live Coaching</p>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsMusicPanelOpen(!isMusicPanelOpen)}
@@ -1110,66 +1117,66 @@ function GuidedWorkoutScreen() {
         {phase === "work" && (
           <div className="flex flex-1 flex-col overflow-y-auto pb-24 pt-4">
             <div className="text-center mt-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-2">Set {setIndex + 1} of {totalSets}</p>
-              <h2 className="font-display text-5xl sm:text-6xl font-black italic tracking-tighter text-white uppercase drop-shadow-2xl">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-fn-accent">Set {setIndex + 1} of {totalSets}</p>
+              <h2 className="premium-headline text-5xl drop-shadow-2xl sm:text-6xl">
                 {exercise.name}
               </h2>
               {exercise.notes && (
-                <div className="mt-4 mx-auto max-w-sm rounded-2xl bg-black/40 backdrop-blur-md p-4 border border-white/10 shadow-2xl">
+                <div className="premium-panel-soft mx-auto mt-4 max-w-sm p-4">
                   <p className="text-sm font-medium leading-relaxed text-white text-center">&quot;{exercise.notes}&quot;</p>
                 </div>
               )}
             </div>
 
             <div className="mt-6 flex flex-wrap justify-center gap-2">
-              <span className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+              <span className="premium-badge">
                 Rest {getExerciseRestSeconds(exercise)}s
               </span>
               {exercise.tempo && (
-                <span className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                <span className="premium-badge">
                   Tempo {exercise.tempo}
                 </span>
               )}
               {typeof exercise.target_rir === "number" && (
-                <span className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                <span className="premium-badge">
                   Leave {exercise.target_rir} RIR
                 </span>
               )}
               {typeof exercise.target_load_kg === "number" && (
-                <span className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                <span className="premium-badge">
                   {Math.round(exercise.target_load_kg * 10) / 10} kg target
                 </span>
               )}
-              <span className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+              <span className="premium-badge">
                 {showMotionFallback ? "Cue mode" : "Demo active"}
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-8">
-              <div className="rounded-[2rem] border border-white/10 bg-black/40 p-5 shadow-2xl backdrop-blur-xl text-center">
-                <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-2 block">Planned Reps</span>
+              <div className="premium-panel-soft p-5 text-center">
+                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-fn-muted">Planned Reps</span>
                 <p className="text-3xl font-black text-white">{exercise.reps}</p>
               </div>
-              <div className="rounded-[2rem] border border-white/10 bg-black/40 p-5 shadow-2xl backdrop-blur-xl text-center">
-                <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-2 block">Intensity Target</span>
+              <div className="premium-panel-soft p-5 text-center">
+                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-fn-muted">Intensity Target</span>
                 <p className="text-2xl font-black text-fn-accent mt-1">{exercise.intensity}</p>
               </div>
             </div>
 
             {timedWorkSeconds != null && (
-              <div className="mt-6 rounded-[2.5rem] border border-fn-accent/20 bg-black/55 p-6 text-center shadow-2xl backdrop-blur-2xl">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Interval Countdown</p>
-                <p className="mt-4 font-display text-6xl font-black italic tracking-tighter text-white tabular-nums">
+              <div className="premium-panel mt-6 p-6 text-center">
+                <p className="premium-kicker">Interval Countdown</p>
+                <p className="premium-headline mt-4 text-6xl tabular-nums">
                   {formatCountdown(workSecondsRemaining ?? timedWorkSeconds)}
                 </p>
-                <p className="mt-3 text-xs font-bold uppercase tracking-widest text-white/50">
+                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/55">
                   Run the work interval, then log the set when you finish the effort.
                 </p>
                 <div className="mt-5 flex flex-wrap justify-center gap-3">
                   <button
                     type="button"
                     onClick={() => setIsWorkTimerRunning((current) => !current)}
-                    className="rounded-full bg-fn-accent px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-black transition-all hover:bg-white"
+                    className="rounded-full bg-fn-accent px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-black transition-all hover:bg-white"
                   >
                     {isWorkTimerRunning ? "Pause Timer" : (workSecondsRemaining ?? timedWorkSeconds) === timedWorkSeconds ? "Start Timer" : "Resume Timer"}
                   </button>
@@ -1179,7 +1186,7 @@ function GuidedWorkoutScreen() {
                       setIsWorkTimerRunning(false);
                       setWorkSecondsRemaining(timedWorkSeconds);
                     }}
-                    className="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/70 transition-all hover:bg-white/10 hover:text-white"
+                    className="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70 transition-all hover:bg-white/10 hover:text-white"
                   >
                     Reset
                   </button>
@@ -1189,18 +1196,18 @@ function GuidedWorkoutScreen() {
 
             <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
               <div className="space-y-4">
-                <div className="rounded-[2.5rem] border border-white/15 bg-black/55 p-6 shadow-2xl backdrop-blur-2xl">
+                <div className="premium-panel p-6">
                   <div className="flex items-center justify-between gap-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Premium Walkthrough</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Coach-grade cues</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/55">Premium Walkthrough</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fn-accent">Coach-grade cues</p>
                   </div>
                   <div className="mt-5 space-y-3">
                     {(exercise.walkthrough_steps ?? []).slice(0, 3).map((step, index) => (
                       <div
                         key={step}
-                        className="flex items-start gap-3 rounded-2xl border border-white/5 bg-white/[0.03] p-4"
+                        className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4"
                       >
-                        <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-fn-accent/15 text-[10px] font-black text-fn-accent">
+                        <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-fn-accent/15 text-[10px] font-semibold text-fn-accent">
                           {index + 1}
                         </span>
                         <p className="text-sm font-medium leading-relaxed text-white/80">{step}</p>
@@ -1214,15 +1221,15 @@ function GuidedWorkoutScreen() {
                   </div>
                 </div>
 
-                <div className="rounded-[2.5rem] border border-white/15 bg-black/55 p-6 shadow-2xl backdrop-blur-2xl">
+                <div className="premium-panel p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Log This Set</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Focus & Execute</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/55">Log This Set</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fn-accent">Focus & Execute</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black uppercase tracking-widest text-fn-muted">Weight</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">Weight</span>
                       <input
                         type="number"
                         inputMode="decimal"
@@ -1233,7 +1240,7 @@ function GuidedWorkoutScreen() {
                       />
                     </div>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black uppercase tracking-widest text-fn-muted">Reps</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">Reps</span>
                       <input
                         type="number"
                         inputMode="numeric"
@@ -1249,25 +1256,25 @@ function GuidedWorkoutScreen() {
                     type="button"
                     onClick={startRest}
                     disabled={isPlayingAudio}
-                    className="mt-5 w-full rounded-[2rem] bg-fn-accent py-6 text-xl font-black uppercase tracking-wider text-black shadow-[0_0_40px_rgba(10,217,196,0.3)] transition-transform active:scale-[0.98] hover:bg-white disabled:opacity-80 disabled:scale-100"
+                    className="mt-5 w-full rounded-[2rem] bg-fn-accent py-6 text-xl font-black uppercase tracking-[0.14em] text-black shadow-[0_0_40px_rgba(10,217,196,0.3)] transition-transform active:scale-[0.98] hover:bg-white disabled:scale-100 disabled:opacity-80"
                   >
                     {isPlayingAudio ? (
                       <div className="flex items-center justify-center gap-1">
                         <div className="w-1.5 h-4 bg-black rounded-full animate-[pulse_1s_ease-in-out_infinite]" />
                         <div className="w-1.5 h-6 bg-black rounded-full animate-[pulse_1s_ease-in-out_infinite_0.2s]" />
                         <div className="w-1.5 h-3 bg-black rounded-full animate-[pulse_1s_ease-in-out_infinite_0.4s]" />
-                        <span className="ml-3 font-black italic tracking-widest">Coaching...</span>
+                        <span className="ml-3 font-black italic tracking-[0.2em]">Coaching...</span>
                       </div>
                     ) : (
-                      "Log Set"
+                      "Log Set + Start Rest"
                     )}
                   </button>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <div className="rounded-[2.5rem] border border-white/15 bg-black/55 p-6 shadow-2xl backdrop-blur-2xl">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Setup Checklist</p>
+                <div className="premium-panel p-6">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/55">Setup Checklist</p>
                   <div className="mt-4 space-y-3">
                     {(exercise.setup_checklist ?? []).slice(0, 3).map((item) => (
                       <div key={item} className="flex items-start gap-3">
@@ -1278,8 +1285,8 @@ function GuidedWorkoutScreen() {
                   </div>
                 </div>
 
-                <div className="rounded-[2.5rem] border border-white/15 bg-black/55 p-6 shadow-2xl backdrop-blur-2xl">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Coach&apos;s Eye</p>
+                <div className="premium-panel p-6">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/55">Coach&apos;s Eye</p>
                   <div className="mt-4 space-y-3">
                     {(exercise.coaching_points ?? []).slice(0, 2).map((point) => (
                       <p key={point} className="text-sm font-medium leading-relaxed text-white/80">
@@ -1288,13 +1295,13 @@ function GuidedWorkoutScreen() {
                     ))}
                     {(exercise.common_mistakes ?? []).slice(0, 1).map((mistake) => (
                       <div key={mistake} className="rounded-2xl border border-amber-300/15 bg-amber-300/5 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-100/70">Avoid this</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-100/70">Avoid this</p>
                         <p className="mt-2 text-sm font-medium leading-relaxed text-amber-50/90">{mistake}</p>
                       </div>
                     ))}
                     {exercise.progression_note && (
                       <div className="rounded-2xl border border-fn-accent/20 bg-fn-accent/5 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Progression note</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fn-accent">Progression note</p>
                         <p className="mt-2 text-sm font-medium leading-relaxed text-white/75">{exercise.progression_note}</p>
                       </div>
                     )}
@@ -1302,13 +1309,13 @@ function GuidedWorkoutScreen() {
                 </div>
 
                 {currentExerciseLogs.length > 0 && (
-                  <div className="rounded-[2.5rem] border border-white/15 bg-black/55 p-6 shadow-2xl backdrop-blur-2xl">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Logged So Far</p>
+                  <div className="premium-panel p-6">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/55">Logged So Far</p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       {currentExerciseLogs.map((log, index) => (
                         <span
                           key={`${log.weight ?? "bodyweight"}-${log.reps ?? "na"}-${index}`}
-                          className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white/70"
+                          className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/75"
                         >
                           Set {index + 1}: {log.weight ? `${log.weight} kg` : "BW"}{log.reps ? ` x ${log.reps}` : ""}
                         </span>
@@ -1323,9 +1330,9 @@ function GuidedWorkoutScreen() {
               <button
                 type="button"
                 onClick={() => setIsSwapOptionsVisible(true)}
-                className="text-[10px] font-black uppercase tracking-widest text-fn-accent/70 hover:text-fn-accent transition-colors"
+                className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent/75 transition-colors hover:text-fn-accent"
               >
-                AI Override / Swap
+                Adapt or Swap Exercise
               </button>
               {swapFeedback && (
                 <p className="text-[10px] text-emerald-400 font-mono text-center max-w-sm">System: {swapFeedback}</p>
@@ -1402,29 +1409,29 @@ function GuidedWorkoutScreen() {
                 <circle cx="144" cy="144" r="136" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={854} strokeDashoffset={854 - (854 * restProgressRatio)} className="text-fn-accent transition-all duration-1000 ease-linear shadow-[0_0_30px_rgba(10,217,196,0.5)]" />
               </svg>
               <div className="flex flex-col items-center">
-                <span className="text-xs font-black uppercase tracking-[0.4em] text-white/50 mb-2">Rest Phase</span>
-                <p className="font-display text-8xl font-black italic tracking-tighter text-white tabular-nums drop-shadow-lg">
+                <span className="mb-2 text-xs font-semibold uppercase tracking-[0.28em] text-white/55">Rest Phase</span>
+                <p className="premium-headline text-8xl tabular-nums drop-shadow-lg">
                   {restSeconds}
                 </p>
-                <span className="text-sm font-bold text-fn-accent uppercase tracking-widest mt-2">seconds</span>
+                <span className="mt-2 text-sm font-semibold uppercase tracking-[0.2em] text-fn-accent">seconds</span>
               </div>
             </div>
 
-            <div className="mb-auto rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10 p-8 shadow-2xl w-full max-w-sm mx-auto">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent mb-3 block">Preparing Next Set</p>
-              <p className="text-3xl font-black text-white italic uppercase drop-shadow-md">
+            <div className="premium-panel mb-auto w-full max-w-sm mx-auto p-8">
+              <p className="premium-kicker mb-3 block">Preparing Next Set</p>
+              <p className="text-3xl font-black italic tracking-tight text-white drop-shadow-md">
                 {upcomingExercise.name}
               </p>
               <div className="mt-4 flex justify-between items-center border-t border-white/10 pt-4">
-                <span className="text-xs font-bold text-white/50 uppercase tracking-widest">Set {upcomingSetNumber} of {upcomingExercise.sets}</span>
-                <span className="text-xs font-bold text-white/50 uppercase tracking-widest">Target: {upcomingExercise.reps}</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">Set {upcomingSetNumber} of {upcomingExercise.sets}</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">Target: {upcomingExercise.reps}</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                <span className="premium-badge">
                   {upcomingExercise.intensity}
                 </span>
                 {upcomingExercise.tempo && (
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                  <span className="premium-badge">
                     Tempo {upcomingExercise.tempo}
                   </span>
                 )}
@@ -1439,7 +1446,7 @@ function GuidedWorkoutScreen() {
                 : "bg-black/60 border border-white/10 text-white backdrop-blur-md hover:bg-white/10 hover:border-white/20 active:scale-95"
                 }`}
             >
-              Skip Rest Interval
+              Start Next Set Now
             </button>
           </div>
         )}
@@ -1453,8 +1460,8 @@ function GuidedWorkoutScreen() {
         <div className="mx-auto max-w-shell h-[70vh] rounded-t-[3rem] border-t border-white/10 bg-black/90 p-8 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Live Expert Coaching</p>
-              <h3 className="font-display text-3xl font-black italic uppercase text-white">Ask Koda</h3>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-fn-accent">Live Expert Coaching</p>
+              <h3 className="premium-headline text-3xl">Ask Koda</h3>
             </div>
             <button
               onClick={() => setIsCoachOpen(false)}
@@ -1471,14 +1478,14 @@ function GuidedWorkoutScreen() {
                   <p className="text-sm font-medium leading-relaxed text-white">{coachReply}</p>
                   <button
                     onClick={() => setCoachReply(null)}
-                    className="mt-4 text-[10px] font-black uppercase tracking-widest text-fn-accent hover:underline"
+                    className="mt-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-fn-accent hover:underline"
                   >
                     Ask something else
                   </button>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Suggested for {exercise.name}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-fn-muted">Suggested for {exercise.name}</p>
                   {[
                     "Talk me through the setup.",
                     "What load should I choose for this set?",
@@ -1490,7 +1497,7 @@ function GuidedWorkoutScreen() {
                       onClick={() => {
                         void askCoach(q);
                       }}
-                      className="w-full text-left rounded-2xl border border-white/5 bg-white/5 p-4 text-xs font-bold text-white hover:bg-white/10 transition-colors"
+                      className="w-full text-left rounded-2xl border border-white/10 bg-white/5 p-4 text-xs font-semibold text-white transition-colors hover:bg-white/10"
                     >
                       {q}
                     </button>
@@ -1511,14 +1518,14 @@ function GuidedWorkoutScreen() {
                 type="text"
                 value={coachQuestion}
                 onChange={(e) => setCoachQuestion(e.target.value)}
-                placeholder="Ask your AI trainer..."
+                placeholder="Ask your trainer for cues, swaps, or loading advice..."
                 className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-sm text-white placeholder-white/30 focus:border-fn-accent/50 focus:outline-none transition-colors"
                 onKeyDown={(e) => e.key === 'Enter' && void askCoach()}
               />
               <button
                 onClick={() => void askCoach()}
                 disabled={coachLoading || !coachQuestion.trim()}
-                className="rounded-2xl bg-fn-accent px-6 py-4 text-xs font-black uppercase tracking-widest text-black disabled:opacity-50"
+                className="rounded-2xl bg-fn-accent px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-black disabled:opacity-50"
               >
                 Ask
               </button>
@@ -1533,6 +1540,7 @@ function GuidedWorkoutScreen() {
           onClick={() => setIsCoachOpen(true)}
           className="fixed bottom-32 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-fn-accent text-black shadow-[0_0_30px_rgba(10,217,196,0.4)] transition-transform hover:scale-110 active:scale-95 animate-in fade-in zoom-in"
         >
+          <span className="absolute inset-0 rounded-full border border-fn-accent/60 animate-ping" />
           <svg className="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 2.98 1 4.28L2 22l5.72-1c1.3.64 2.74 1 4.28 1 5.52 0 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z" />
           </svg>
