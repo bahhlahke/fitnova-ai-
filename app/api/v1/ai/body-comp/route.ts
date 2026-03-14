@@ -69,6 +69,7 @@ Output ONLY pure JSON formatted exactly like this example without markdown wrapp
                 { role: "user", content: contentArray as any }
             ],
             maxTokens: 500,
+            timeoutMs: 90_000,
         });
 
         // Parse explicit JSON

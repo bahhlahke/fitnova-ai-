@@ -33,6 +33,7 @@ export type CallModelOptions = {
     model?: string;
     maxTokens?: number;
     temperature?: number;
+    timeoutMs?: number;
     tools?: Array<{
         type: "function";
         function: {
@@ -251,7 +252,7 @@ export type CallModelResponse = {
 };
 
 export async function callModel(options: CallModelOptions): Promise<CallModelResponse> {
-    const { messages, model, maxTokens = 1024, temperature = 0.7, tools, tool_choice } = options;
+    const { messages, model, maxTokens = 1024, temperature = 0.7, timeoutMs = DEFAULT_TIMEOUT_MS, tools, tool_choice } = options;
     const apiKey = process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
@@ -284,7 +285,7 @@ export async function callModel(options: CallModelOptions): Promise<CallModelRes
                     model: candidateModel,
                     payloadBase,
                     apiKey,
-                    timeoutMs: DEFAULT_TIMEOUT_MS,
+                    timeoutMs,
                 });
             } catch (error) {
                 if (!(error instanceof AIProviderError)) {
