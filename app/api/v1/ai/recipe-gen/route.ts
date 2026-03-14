@@ -74,8 +74,7 @@ export async function POST(request: Request) {
         const key = k as keyof MealPlanPreferences;
         // Only use profile pref if not overridden by explicit request body
         if (body.preferences?.[key] === undefined) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (prefs as any)[key] = v;
+          (prefs as Record<string, unknown>)[key] = v;
         }
       });
     }
