@@ -80,6 +80,8 @@ export type PlannerInputs = {
     minutesAvailable?: number;
     location?: "gym" | "home";
     soreness?: string;
+    /** Optional workout style override, e.g. 'crossfit', 'hiit', 'strength', 'cardio', 'mobility'. */
+    workoutStyle?: string;
   };
 };
 

@@ -221,6 +221,20 @@ export async function composeDailyPlan(
     minutesAvailable = Math.min(minutesAvailable, 35);
   }
 
+  // Workout style override — respects explicit user request regardless of profile/schedule
+  const workoutStyle = (todayConstraints?.workoutStyle ?? "").toLowerCase();
+  if (workoutStyle.includes("crossfit") || workoutStyle.includes("metcon")) {
+    focus = "CrossFit-Style Metabolic Conditioning";
+  } else if (workoutStyle.includes("hiit") || workoutStyle.includes("interval") || workoutStyle.includes("circuit")) {
+    focus = "HIIT Circuit Training";
+  } else if (workoutStyle.includes("cardio") || workoutStyle.includes("running") || workoutStyle.includes("cycling")) {
+    focus = "Cardio Endurance Training";
+  } else if (workoutStyle.includes("mobility") || workoutStyle.includes("yoga") || workoutStyle.includes("stretch") || workoutStyle.includes("flexibility")) {
+    focus = "Mobility and Movement Quality";
+  } else if (workoutStyle.includes("strength") || workoutStyle.includes("powerlifting") || workoutStyle.includes("lifting")) {
+    focus = "Heavy Strength Training";
+  }
+
   const squatPool = location === "gym" ? SQUAT_POOL_GYM : SQUAT_POOL_HOME;
   const pushPool = location === "gym" ? PUSH_POOL_GYM : PUSH_POOL_HOME;
   const hingePool = location === "gym" ? HINGE_POOL_GYM : HINGE_POOL_HOME;
@@ -251,6 +265,9 @@ export async function composeDailyPlan(
   const mainSets = experience === "beginner" ? 3 : experience === "advanced" ? 5 : 4;
   const secondarySets = experience === "beginner" ? 2 : experience === "advanced" ? 4 : 3;
 
+  const isCrossFitStyle = workoutStyle.includes("crossfit") || workoutStyle.includes("metcon") || focus.includes("CrossFit");
+  const isHiitStyle = (workoutStyle.includes("hiit") || workoutStyle.includes("interval") || workoutStyle.includes("circuit")) && !isCrossFitStyle;
+
   const exercises: DailyPlanTrainingExercise[] =
     isRecoveryFocus(focus)
       ? [
@@ -259,6 +276,23 @@ export async function composeDailyPlan(
         { name: "90/90 Hip Switches", sets: 2, reps: "8/side", intensity: "Controlled" },
         { name: "Cat-Cow", sets: 3, reps: "10", intensity: "Fluid" },
       ]
+      : isCrossFitStyle
+      ? [
+        { name: "Thrusters", sets: 5, reps: "15", intensity: "High", notes: "Barbell or KB front squat to overhead press, full ROM" },
+        { name: pickFromPool(PULL_POOL_GYM, recentExerciseNames), sets: 5, reps: "10", intensity: "High" },
+        { name: "Box Jumps", sets: 4, reps: "15", intensity: "High", notes: "Land softly, step down" },
+        { name: "Burpees", sets: 4, reps: "15", intensity: "High" },
+        { name: "Wall Balls", sets: 4, reps: "20", intensity: "High", notes: "14/20 lb ball to 10-ft target" },
+        { name: "Devil Press", sets: 3, reps: "10", intensity: "High", notes: "Dumbbell burpee to snatch" },
+      ]
+      : isHiitStyle
+      ? [
+        { name: pickFromPool(HIIT_POOL, recentExerciseNames), sets: 4, reps: "40s work / 20s rest", intensity: "High" },
+        { name: pickFromPool(HIIT_POOL.slice(2), recentExerciseNames), sets: 4, reps: "40s work / 20s rest", intensity: "High" },
+        { name: pickFromPool(HIIT_POOL.slice(4), recentExerciseNames), sets: 4, reps: "40s work / 20s rest", intensity: "High" },
+        { name: "Mountain Climbers", sets: 4, reps: "40s work / 20s rest", intensity: "High" },
+        { name: "Squat Jumps", sets: 3, reps: "30s work / 15s rest", intensity: "Max" },
+      ]
       : [
         { name: squatSelection.name, sets: mainSets, reps: mainReps, intensity: baseRPE, notes: squatSelection.notes },
         { name: pushSelection.name, sets: mainSets, reps: mainReps, intensity: baseRPE, notes: pushSelection.notes },
@@ -266,8 +300,8 @@ export async function composeDailyPlan(
         { name: pullSelection.name, sets: secondarySets, reps: secondaryReps, intensity: baseRPE, notes: pullSelection.notes },
       ];
 
-  // Dynamically add accessories if time allows (> 45 min)
-  if (minutesAvailable > 45 && !isRecoveryFocus(focus)) {
+  // Dynamically add accessories for standard strength (not for CrossFit/HIIT styles)
+  if (minutesAvailable > 45 && !isRecoveryFocus(focus) && !isCrossFitStyle && !isHiitStyle) {
     exercises.push({
       name: pickFromPool(ACCESSORY_POOL, recentExerciseNames),
       sets: 3,
@@ -282,21 +316,23 @@ export async function composeDailyPlan(
     });
   }
 
-  // Add HIIT/Finisher
-  if (!isRecoveryFocus(focus) && (focus.includes("Fat-loss") || minutesAvailable > 40)) {
-    exercises.push({
-      name: pickFromPool(HIIT_POOL, recentExerciseNames),
-      sets: 4,
-      reps: "40s work / 20s rest",
-      intensity: "High"
-    });
-  } else {
-    exercises.push({
-      name: "Zone 2 Finisher",
-      sets: 1,
-      reps: `${Math.max(8, Math.floor(minutesAvailable * 0.25))} min`,
-      intensity: experience === "beginner" ? "Very Easy" : "Easy-moderate",
-    });
+  // Add HIIT/Finisher for standard strength plans only
+  if (!isRecoveryFocus(focus) && !isCrossFitStyle && !isHiitStyle) {
+    if (focus.includes("Fat-loss") || minutesAvailable > 40) {
+      exercises.push({
+        name: pickFromPool(HIIT_POOL, recentExerciseNames),
+        sets: 4,
+        reps: "40s work / 20s rest",
+        intensity: "High"
+      });
+    } else {
+      exercises.push({
+        name: "Zone 2 Finisher",
+        sets: 1,
+        reps: `${Math.max(8, Math.floor(minutesAvailable * 0.25))} min`,
+        intensity: experience === "beginner" ? "Very Easy" : "Easy-moderate",
+      });
+    }
   }
 
   const weightKg = Number(profile.weight) || 75;

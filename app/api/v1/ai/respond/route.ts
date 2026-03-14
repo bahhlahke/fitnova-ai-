@@ -585,7 +585,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const BASE_CAPABILITIES = 
+    const BASE_CAPABILITIES =
       "You have direct control over the application. You can:\n" +
       "- Log food (`log_meal`) and water (`log_hydration`).\n" +
       "- Log workouts (`log_workout`) with `calories_burned` for expenditure.\n" +
@@ -593,9 +593,15 @@ export async function POST(request: Request) {
       "- Correct logs by removing meals (`remove_meal`).\n" +
       "- Update the user's calibration, goals, and limitations (`update_user_profile`).\n" +
       "- Share achievements to the activity feed (`create_social_post`).\n" +
-      "- Create new personalized plans (`generate_daily_plan`) based on time/equipment.\n" +
+      "- Create a standard personalized plan (`generate_daily_plan`) based on time/equipment/style.\n" +
+      "- Generate a fully custom AI-coached workout from any prompt (`update_workout_plan`) — this saves the session so the user launches guided coaching immediately with demos and walkthroughs.\n" +
       "- Navigate the user to a specific page context (`navigate_to`).\n" +
-      "- Escalate complex medical or technical issues to a human coach (`request_coach_assistance`).\n\n";
+      "- Escalate complex medical or technical issues to a human coach (`request_coach_assistance`).\n\n" +
+      "WORKOUT GENERATION RULES:\n" +
+      "1. When the user asks for ANY specific workout type or style — CrossFit, HIIT, strength, cardio, yoga, circuit, Tabata, bootcamp, etc. — ALWAYS use `update_workout_plan`. Populate EVERY exercise with walkthrough_steps (3-5 steps), setup_checklist (2-4 items), coaching_points (2-4 cues), common_mistakes (1-3 items), rest_seconds_after_set, and intensity so the guided coached session is fully detailed.\n" +
+      "2. When the user gives a natural-language workout prompt like 'I want to do an hour CrossFit workout', use `update_workout_plan` with the correct focus and duration_minutes extracted from the message.\n" +
+      "3. Use `generate_daily_plan` ONLY when the user wants their standard AI-personalized plan with no specific style preference.\n" +
+      "4. After a successful `update_workout_plan` call, always confirm what was created and tell the user they can tap 'Open Guided Workout' to start the full coached session with demos.\n\n";
 
     let systemPrompt =
       "You are an elite AI Performance Coach & Sports Scientist with a PhD in Exercise Physiology. Respond with the precision and authority of a world-class expert.\n\n" +
@@ -756,12 +762,13 @@ export async function POST(request: Request) {
         type: "function",
         function: {
           name: "generate_daily_plan",
-          description: "Triggers a new guided-workout-ready daily plan generation with optional constraints.",
+          description: "Triggers a new personalized daily plan generation. Use this for standard plan refreshes. For user-specified workout styles (CrossFit, HIIT, etc.) prefer `update_workout_plan` instead.",
           parameters: {
             type: "object",
             properties: {
               location: { type: "string", enum: ["gym", "home"] },
-              minutesAvailable: { type: "number", minimum: 15, maximum: 180 }
+              minutesAvailable: { type: "number", minimum: 15, maximum: 180 },
+              workoutStyle: { type: "string", description: "Optional workout style override, e.g. 'crossfit', 'hiit', 'strength', 'cardio', 'mobility'. Influences exercise selection." }
             }
           }
         }
@@ -1107,16 +1114,34 @@ export async function POST(request: Request) {
                 const plan = await composeDailyPlan({ supabase, userId }, {
                   todayConstraints: {
                     location: args.location,
-                    minutesAvailable: args.minutesAvailable
+                    minutesAvailable: args.minutesAvailable,
+                    workoutStyle: typeof args.workoutStyle === "string" ? args.workoutStyle : undefined,
                   }
                 });
 
-                const { error: planErr } = await supabase.from("daily_plans").insert({
-                  user_id: userId,
-                  date_local: plan.date_local,
-                  plan_json: plan,
-                });
-                if (planErr) throw new Error(planErr.message);
+                // Use update-or-insert to avoid duplicating plans for the same date
+                const { data: existingGdPlans } = await supabase
+                  .from("daily_plans")
+                  .select("plan_id")
+                  .eq("user_id", userId)
+                  .eq("date_local", plan.date_local)
+                  .order("created_at", { ascending: false })
+                  .limit(1);
+                const existingGdPlan = existingGdPlans?.[0] ?? null;
+                if (existingGdPlan?.plan_id) {
+                  const { error: updateErr } = await supabase
+                    .from("daily_plans")
+                    .update({ plan_json: plan })
+                    .eq("plan_id", existingGdPlan.plan_id);
+                  if (updateErr) throw new Error(updateErr.message);
+                } else {
+                  const { error: insertErr } = await supabase.from("daily_plans").insert({
+                    user_id: userId,
+                    date_local: plan.date_local,
+                    plan_json: plan,
+                  });
+                  if (insertErr) throw new Error(insertErr.message);
+                }
                 resultStr = "Generated a new personalized plan for you. You can start the guided session now.";
                 actions.push({ type: "plan_generated", targetRoute: `/log/workout/guided?date=${plan.date_local}`, summary: "Start Guided Session" } as any);
                 refreshScopes.add("dashboard");
@@ -1208,15 +1233,22 @@ export async function POST(request: Request) {
                   resultStr = `I don't have a 4K demo for "${args.exercise_name}" yet, but I can provide coaching cues.`;
                 }
               } else if (tc.function.name === "update_workout_plan") {
-                const { data: existingPlan, error: fetchErr } = await supabase
+                // Fetch latest existing plan for today (handles duplicate rows gracefully)
+                const { data: existingPlans, error: fetchErr } = await supabase
                   .from("daily_plans")
-                  .select("plan_json")
+                  .select("plan_id, plan_json")
                   .eq("user_id", userId)
                   .eq("date_local", logDate)
-                  .maybeSingle();
+                  .order("created_at", { ascending: false })
+                  .limit(1);
 
                 if (fetchErr) throw new Error(fetchErr.message);
 
+                const existingPlan = existingPlans?.[0] ?? null;
+                const hadExistingPlan = existingPlan !== null;
+
+                // Use existing plan as base (for metadata like location/nutrition).
+                // Only call composeDailyPlan when there is no existing plan at all.
                 let basePlan = (existingPlan?.plan_json as any) ?? null;
                 if (!basePlan) {
                   const { composeDailyPlan } = await import("@/lib/plan/compose-daily-plan");
@@ -1227,42 +1259,49 @@ export async function POST(request: Request) {
                   ? args.exercises.map((exercise: any) => normalizeToolExercise(exercise))
                   : [];
 
-                const baseExercises = basePlan?.training_plan?.exercises ?? [];
+                // Only apply parity guard against exercises the user already has planned.
+                // When generating a brand-new session (no existing plan today), skip the
+                // guard so AI-specified CrossFit/HIIT exercises aren't clamped against an
+                // unrelated baseline.
+                const baseExercises = hadExistingPlan
+                  ? (basePlan?.training_plan?.exercises ?? [])
+                  : [];
                 const parityResult = buildWorkoutParityGuard(baseExercises, normalizedExercises);
                 const baseDurationMinutes =
-                  basePlan?.training_plan?.duration_minutes ??
-                  (existingPlan?.plan_json as any)?.training_plan?.duration_minutes ??
-                  45;
+                  hadExistingPlan
+                    ? (basePlan?.training_plan?.duration_minutes ?? 45)
+                    : 45;
 
                 const newTrainingPlan = {
                   focus: args.focus,
                   duration_minutes: clampDurationMinutes(args.duration_minutes, baseDurationMinutes),
                   exercises: parityResult.exercises,
                   location_option:
-                    basePlan?.training_plan?.location_option ||
-                    (existingPlan?.plan_json as any)?.training_plan?.location_option ||
-                    "gym",
+                    basePlan?.training_plan?.location_option || "gym",
                   alternatives:
-                    basePlan?.training_plan?.alternatives ||
-                    (existingPlan?.plan_json as any)?.training_plan?.alternatives ||
-                    []
+                    basePlan?.training_plan?.alternatives || [],
                 };
 
                 const updatedPlanJson = {
                   ...(basePlan || {}),
                   date_local: logDate,
-                  training_plan: newTrainingPlan
+                  training_plan: newTrainingPlan,
                 };
 
-                const { error: upsertErr } = await supabase
-                  .from("daily_plans")
-                  .upsert({
-                    user_id: userId,
-                    date_local: logDate,
-                    plan_json: updatedPlanJson,
-                  }, { onConflict: "user_id,date_local" });
-
-                if (upsertErr) throw new Error(upsertErr.message);
+                // Use explicit update-or-insert to avoid relying on a unique constraint
+                // (the daily_plans table uses an index, not a unique constraint).
+                if (hadExistingPlan && existingPlan.plan_id) {
+                  const { error: updateErr } = await supabase
+                    .from("daily_plans")
+                    .update({ plan_json: updatedPlanJson })
+                    .eq("plan_id", existingPlan.plan_id);
+                  if (updateErr) throw new Error(updateErr.message);
+                } else {
+                  const { error: insertErr } = await supabase
+                    .from("daily_plans")
+                    .insert({ user_id: userId, date_local: logDate, plan_json: updatedPlanJson });
+                  if (insertErr) throw new Error(insertErr.message);
+                }
                 
                 resultStr = parityResult.parityGuard.requires_approval
                   ? `Updated today's workout plan with guardrails applied. Approval is required before launch.`
