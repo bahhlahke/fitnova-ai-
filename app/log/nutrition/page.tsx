@@ -807,6 +807,21 @@ function NutritionLogContent() {
               setEditingIndex(null);
               // Trigger award check
               fetch("/api/v1/awards/check", { method: "POST" }).catch(() => { });
+              // Re-evaluate the weekly plan based on today’s nutrition intake
+              fetch("/api/v1/plan/adapt-from-log", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ type: "nutrition" }),
+              })
+                .then((r) => r.json())
+                .then((body: { adaptation_summary?: string; updated_days?: string[] }) => {
+                  if (body.adaptation_summary && (body.updated_days?.length ?? 0) > 0) {
+                    setStatusMessage(`Meal saved. ${body.adaptation_summary}`);
+                  }
+                })
+                .catch(() => {
+                  // Best-effort — don’t surface errors to the user
+                });
             }}
             existingMeals={meals}
             existingLogId={logId}
