@@ -9,6 +9,7 @@ import { DEFAULT_UNIT_SYSTEM, type UnitSystem, readUnitSystemFromProfile } from 
 import { toPlainFitnessLanguage, toTitleCaseLabel } from "@/lib/ui/plain-language";
 import { Card, CardHeader, Button, LoadingState } from "@/components/ui";
 import { AiCoachPanel } from "@/components/ai/AiCoachPanel";
+import { SpotifyMiniPlayer } from "@/components/music/SpotifyMiniPlayer";
 import {
   type DashboardTodayPlan,
 } from "@/components/dashboard/DashboardPlanSection";
