@@ -371,3 +371,90 @@ export interface ProductEventRecord {
   session_id?: string | null;
   created_at: string;
 }
+
+// ── Meal Planning V2 ────────────────────────────────────────────────────────
+
+export interface MealPlanPreferences {
+  duration_days: 1 | 3 | 7 | 14 | 30;
+  meals_per_day: 3 | 4 | 5 | 6;
+  dietary_restrictions: string[]; // e.g. ["Vegetarian", "Gluten-Free"]
+  allergies: string[];            // e.g. ["peanuts", "shellfish"]
+  cuisine_preferences: string[];  // e.g. ["Mediterranean", "Mexican"]
+  cooking_skill: "beginner" | "intermediate" | "advanced";
+  prep_time_budget: "quick" | "moderate" | "elaborate"; // <15min / 15-30min / 30+min
+  weekly_budget_usd?: number | null;
+  servings_per_meal: 1 | 2 | 4;
+  meal_prep_mode: boolean;
+  include_snacks: boolean;
+}
+
+export interface EnhancedMeal {
+  name: string;
+  meal_type: "breakfast" | "lunch" | "dinner" | "snack";
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber_g?: number;
+  sodium_mg?: number;
+  recipe: string;
+  ingredients: string[]; // imperial: "8 oz chicken breast", "1 cup brown rice"
+  prep_time_minutes: number;
+  servings: number;
+  cuisine_type?: string;
+  estimated_cost_usd?: number;
+}
+
+export interface EnhancedGroceryItem {
+  item: string;
+  category:
+    | "Produce"
+    | "Meat & Seafood"
+    | "Dairy & Eggs"
+    | "Canned & Jarred"
+    | "Dry & Pantry"
+    | "Frozen"
+    | "Bakery"
+    | "Beverages"
+    | "Other";
+  quantity: string; // imperial: "2 lbs", "12 oz", "1 cup"
+  estimated_cost_usd?: number;
+  checked: boolean;
+  custom?: boolean;
+}
+
+export interface EnhancedMealPlan {
+  days: Array<{
+    date: string;
+    meals: EnhancedMeal[];
+  }>;
+  grocery_list: EnhancedGroceryItem[];
+  total_estimated_cost_usd?: number;
+}
+
+export interface EatingOutLog {
+  log_id: string;
+  user_id: string;
+  date_local: string;
+  restaurant_name?: string;
+  meal_name: string;
+  calories?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
+  notes?: string;
+  created_at: string;
+}
+
+export interface MealSwapOption {
+  name: string;
+  meal_type: "breakfast" | "lunch" | "dinner" | "snack";
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  recipe: string;
+  ingredients: string[];
+  prep_time_minutes: number;
+  reason: string;
+}

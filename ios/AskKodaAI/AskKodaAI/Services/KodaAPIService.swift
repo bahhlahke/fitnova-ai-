@@ -457,16 +457,123 @@ struct KodaAPIService {
         return try await post("api/v1/nutrition/fridge-scanner", body: ["media": media, "type": type, "localDate": localDate])
     }
 
-    /// POST /api/v1/ai/recipe-gen
-    func aiRecipeGen(startDate: String, durationDays: Int) async throws -> RecipeGenResponse {
+    /// POST /api/v1/ai/recipe-gen — Generate a meal plan with preferences.
+    func aiRecipeGen(startDate: String, preferences: MealPlanPreferences) async throws -> RecipeGenResponse {
         if isDemoMode {
             return try await DebugUX.resolve(
                 primary: DemoContent.recipePlan,
-                empty: RecipeGenResponse(plan_id: nil, days: [], grocery_list: []),
+                empty: RecipeGenResponse(plan: nil, planId: nil, days: [], grocery_list: []),
                 label: "recipe generation"
             )
         }
-        return try await post("api/v1/ai/recipe-gen", body: ["startDate": startDate, "durationDays": durationDays])
+        // Encode preferences as a nested dict
+        let prefsData = try JSONEncoder().encode(preferences)
+        let prefsDict = (try JSONSerialization.jsonObject(with: prefsData) as? [String: Any]) ?? [:]
+        let body: [String: Any] = ["startDate": startDate, "preferences": prefsDict]
+        return try await post("api/v1/ai/recipe-gen", body: body, timeoutInterval: 90)
+    }
+
+    /// POST /api/v1/ai/meal-swap — Get 3 alternative meals for a specific plan slot.
+    func aiMealSwapOptions(
+        planId: String,
+        dayDate: String,
+        mealIndex: Int,
+        currentMeal: RecipeGenMeal
+    ) async throws -> MealSwapResponse {
+        if isDemoMode {
+            return MealSwapResponse(options: [])
+        }
+        var mealDict: [String: Any] = [
+            "name": currentMeal.name ?? "",
+            "meal_type": currentMeal.meal_type ?? "dinner",
+            "calories": currentMeal.calories ?? 0,
+            "protein": currentMeal.protein ?? 0,
+            "carbs": currentMeal.carbs ?? 0,
+            "fat": currentMeal.fat ?? 0,
+            "recipe": currentMeal.recipe ?? "",
+            "ingredients": currentMeal.ingredients ?? [],
+            "prep_time_minutes": currentMeal.prep_time_minutes ?? 30,
+        ]
+        let body: [String: Any] = [
+            "planId": planId,
+            "dayDate": dayDate,
+            "mealIndex": mealIndex,
+            "currentMeal": mealDict
+        ]
+        return try await post("api/v1/ai/meal-swap", body: body, timeoutInterval: 30)
+    }
+
+    /// PATCH /api/v1/ai/meal-swap — Confirm and save a meal swap.
+    func aiMealSwapConfirm(planId: String, dayDate: String, mealIndex: Int, newMeal: MealSwapOption) async throws {
+        if isDemoMode { return }
+        let mealDict: [String: Any] = [
+            "name": newMeal.name ?? "",
+            "meal_type": newMeal.meal_type ?? "dinner",
+            "calories": newMeal.calories ?? 0,
+            "protein": newMeal.protein ?? 0,
+            "carbs": newMeal.carbs ?? 0,
+            "fat": newMeal.fat ?? 0,
+            "recipe": newMeal.recipe ?? "",
+            "ingredients": newMeal.ingredients ?? [],
+            "prep_time_minutes": newMeal.prep_time_minutes ?? 30,
+        ]
+        let body: [String: Any] = [
+            "planId": planId,
+            "dayDate": dayDate,
+            "mealIndex": mealIndex,
+            "newMeal": mealDict
+        ]
+        let _: GroceryPatchResponse = try await patch("api/v1/ai/meal-swap", body: body)
+    }
+
+    /// POST /api/v1/nutrition/eating-out — Log a restaurant meal and estimate nutrition.
+    func nutritionEatingOut(
+        restaurantName: String?,
+        mealName: String,
+        dateLocal: String,
+        notes: String? = nil
+    ) async throws -> EatingOutLogResponse {
+        if isDemoMode {
+            return EatingOutLogResponse(log_id: "demo", calories: 650, protein_g: 42, carbs_g: 58, fat_g: 22)
+        }
+        var body: [String: Any] = ["meal_name": mealName, "date_local": dateLocal]
+        if let r = restaurantName, !r.isEmpty { body["restaurant_name"] = r }
+        if let n = notes, !n.isEmpty { body["notes"] = n }
+        return try await post("api/v1/nutrition/eating-out", body: body, timeoutInterval: 20)
+    }
+
+    /// PATCH /api/v1/nutrition/grocery — Toggle grocery item checked state.
+    func nutritionGroceryToggle(planId: String, itemIndex: Int, checked: Bool) async throws {
+        if isDemoMode { return }
+        let body: [String: Any] = ["planId": planId, "itemIndex": itemIndex, "checked": checked]
+        let _: GroceryPatchResponse = try await patch("api/v1/nutrition/grocery", body: body)
+    }
+
+    /// POST /api/v1/nutrition/grocery — Add custom item to grocery list.
+    func nutritionGroceryAddItem(planId: String, item: GroceryItem) async throws {
+        if isDemoMode { return }
+        let itemDict: [String: Any] = [
+            "item": item.item ?? "",
+            "category": item.category ?? "Other",
+            "quantity": item.quantity ?? ""
+        ]
+        let body: [String: Any] = ["planId": planId, "item": itemDict]
+        let _: GroceryPatchResponse = try await post("api/v1/nutrition/grocery", body: body)
+    }
+
+    /// DELETE /api/v1/nutrition/grocery — Remove item from grocery list.
+    func nutritionGroceryRemoveItem(planId: String, itemIndex: Int) async throws {
+        if isDemoMode { return }
+        let url = URL(string: "api/v1/nutrition/grocery?planId=\(planId)&itemIndex=\(itemIndex)", relativeTo: baseURL)?.absoluteURL
+        guard let url else { throw KodaAPIError.invalidURL }
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.timeoutInterval = 15
+        if let token = await getAccessToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validateResponse(response, data: data)
     }
 
     /// POST /api/v1/telemetry/event
@@ -668,6 +775,29 @@ struct KodaAPIService {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validateResponse(response, data: data)
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    func patch<T: Decodable>(_ path: String, body: [String: Any], timeoutInterval: TimeInterval = 15) async throws -> T {
+        let url: URL
+        if path.hasPrefix("http"), let u = URL(string: path) {
+            url = u
+        } else if let u = URL(string: path, relativeTo: baseURL)?.absoluteURL {
+            url = u
+        } else {
+            throw KodaAPIError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = timeoutInterval
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let token = await getAccessToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await URLSession.shared.data(for: request)
         try validateResponse(response, data: data)
         return try JSONDecoder().decode(T.self, from: data)
