@@ -25,7 +25,11 @@ export async function GET() {
 
         if (error) {
             console.error("fetch_trophies_error", { requestId, error });
-            return jsonError(500, "INTERNAL_ERROR", "Could not fetch trophies.");
+            return NextResponse.json({
+                trophies: [],
+                degraded: true,
+                message: "Achievements are warming up. Your progress data is still safe.",
+            });
         }
 
         return NextResponse.json({ trophies: trophies || [] });
@@ -34,6 +38,10 @@ export async function GET() {
             requestId,
             error: error instanceof Error ? error.message : "unknown",
         });
-        return jsonError(500, "INTERNAL_ERROR", "Internal server error.");
+        return NextResponse.json({
+            trophies: [],
+            degraded: true,
+            message: "Achievements are temporarily unavailable. Your progress data is still safe.",
+        });
     }
 }

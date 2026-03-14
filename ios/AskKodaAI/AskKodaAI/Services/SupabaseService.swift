@@ -97,6 +97,17 @@ final class SupabaseService: ObservableObject {
         )
     }
 
+    func signInWithOAuth(provider: Provider) async throws {
+        let appRedirect = AppConfig.authRedirectURL ?? URL(string: "kodaai://auth/callback")!
+        let url = try await client.auth.getOAuthSignInURL(
+            provider: provider,
+            redirectTo: appRedirect
+        )
+        await MainActor.run {
+            UIApplication.shared.open(url)
+        }
+    }
+
     /// DEV only bypass: signs in with a mock session for local testing.
     func signInWithBypass() async {
         let baseUrl = AppConfig.apiBaseURL.absoluteString.replacingOccurrences(of: "localhost", with: "127.0.0.1")

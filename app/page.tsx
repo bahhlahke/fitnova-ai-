@@ -1,23 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toLocalDateString } from "@/lib/date/local-date";
 import { emitDataRefresh, useDataRefresh } from "@/lib/ui/data-sync";
 import { DEFAULT_UNIT_SYSTEM, type UnitSystem, readUnitSystemFromProfile } from "@/lib/units";
+import { toPlainFitnessLanguage, toTitleCaseLabel } from "@/lib/ui/plain-language";
 import { Card, CardHeader, Button, LoadingState } from "@/components/ui";
-import { DashboardHero } from "@/components/dashboard/DashboardHero";
-import { SocialFeed } from "@/components/social/SocialFeed";
 import { AiCoachPanel } from "@/components/ai/AiCoachPanel";
 import {
-  DashboardPlanSection,
   type DashboardTodayPlan,
 } from "@/components/dashboard/DashboardPlanSection";
-import { DashboardReadinessSection } from "@/components/dashboard/DashboardReadinessSection";
 import {
-  DashboardProgressSection,
   type DashboardProjection,
 } from "@/components/dashboard/DashboardProgressSection";
 import { calculateReadiness, type MuscleReadiness } from "@/lib/workout/recovery";
@@ -31,16 +26,13 @@ export type DailyCheckIn = {
   soreness_notes?: string | null;
 };
 import {
-  DashboardAnalyticsSection,
   type DashboardPerformanceAnalytics,
   type DashboardWeeklyPlanSummary,
 } from "@/components/dashboard/DashboardAnalyticsSection";
 import {
-  DashboardRetentionSection,
   type DashboardNudge,
   type DashboardRetentionRisk,
 } from "@/components/dashboard/DashboardRetentionSection";
-import { SpotifyMiniPlayer } from "@/components/music/SpotifyMiniPlayer";
 
 function getWeekStart(date: Date): string {
   const day = date.getDay();
@@ -48,6 +40,16 @@ function getWeekStart(date: Date): string {
   const monday = new Date(date);
   monday.setDate(diff);
   return toLocalDateString(monday);
+}
+
+function simplifyCoachInsightTitle(title?: string): string {
+  const normalized = title?.toLowerCase() ?? "";
+  if (normalized.includes("overreach")) return "Recovery warning";
+  if (normalized.includes("protein")) return "Protein target check";
+  if (normalized.includes("sleep")) return "Sleep reminder";
+  if (normalized.includes("hydration")) return "Hydration reminder";
+  if (normalized.includes("fatigue")) return "Fatigue warning";
+  return toTitleCaseLabel(toPlainFitnessLanguage(title));
 }
 
 export default function HomePage() {
@@ -504,34 +506,34 @@ export default function HomePage() {
 
           <div className="relative z-10">
             <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">
-              Legend Status Guaranteed
+              Daily Coaching That Adapts
             </p>
             <h1 className="mt-6 font-display text-6xl font-black uppercase italic tracking-tighter text-white sm:text-8xl lg:text-9xl leading-[0.85]">
               Build Your<br />Legend
             </h1>
             <p className="mt-8 max-w-2xl text-lg font-medium leading-relaxed text-fn-muted/90 lg:text-2xl">
-              Biometric-driven fitness coaching with predictive progression models, adaptive daily plans, and an intelligent command center.
+              Koda gives you a clear daily workout, meal targets, and coach guidance that adjusts to your energy, schedule, and goals.
             </p>
 
             <div className="mt-12 flex flex-col gap-4 sm:flex-row">
               <Link href="/start">
-                <Button className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white text-black hover:bg-white/90">Preview Your Protocol</Button>
+                <Button className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white text-black hover:bg-white/90">Start Free Assessment</Button>
               </Link>
               <Link href="/auth">
-                <Button variant="secondary" className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 hover:bg-white/10 text-white">Member Access</Button>
+                <Button variant="secondary" className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 hover:bg-white/10 text-white">Sign In</Button>
               </Link>
             </div>
 
             {/* Proof-First: The First 7 Days Preview */}
             <div className="mt-20 border-t border-white/10 pt-12">
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-6">Concrete Evolution</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-6">What Your First Week Looks Like</p>
               <h2 className="font-display text-4xl font-black uppercase italic tracking-tighter text-white sm:text-5xl mb-10">Your First 7 Days</h2>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {[
-                  { day: "D1", title: "Baseline Scan", desc: "Biometric calibration and 1RM prediction.", icon: "target" },
-                  { day: "D3", title: "Metabolic Peak", desc: "Protocol adjustment based on D2 recovery data.", icon: "zap" },
-                  { day: "D5", title: "Neural Adaptation", desc: "First 5% strength increase as CNS stabilizes.", icon: "activity" },
-                  { day: "D7", title: "The Pivot", desc: "Full performance dossier and week 2 expansion.", icon: "trending-up" },
+                  { day: "D1", title: "Starting Point", desc: "Koda learns your goals, schedule, and current baseline.", icon: "target" },
+                  { day: "D3", title: "Plan Tune-Up", desc: "Your workout and food targets adjust to early feedback.", icon: "zap" },
+                  { day: "D5", title: "Progress Check", desc: "Koda spots what is working and where you may need a lighter day.", icon: "activity" },
+                  { day: "D7", title: "Week 1 Review", desc: "You get a simple recap and a better plan for week two.", icon: "trending-up" },
                 ].map((item, i) => (
                   <div key={item.day} className="relative p-6 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] transition-all group">
                     <div className="absolute -top-4 -left-4 h-10 w-10 rounded-full bg-fn-accent flex items-center justify-center text-black font-black text-xs shadow-[0_0_15px_rgba(10,217,196,0.5)]">
@@ -552,7 +554,7 @@ export default function HomePage() {
                   <span className="text-[10px] font-black text-fn-accent">+10k</span>
                 </div>
               </div>
-              <p className="text-sm font-semibold text-fn-muted leading-tight">Training protocols calibrated from<br /><span className="text-white">50,000+ scientific data points</span></p>
+              <p className="text-sm font-semibold text-fn-muted leading-tight">Plans informed by<br /><span className="text-white">50,000+ training and nutrition signals</span></p>
             </div>
           </div>
         </section>
@@ -560,9 +562,9 @@ export default function HomePage() {
         {/* Stats strip */}
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
-            { value: "50+ M", label: "Biometric Data Points Analyzed" },
-            { value: "10K+", label: "Legendary Members" },
-            { value: "99.2%", label: "Protocol Accuracy" },
+            { value: "50+ M", label: "Health And Training Signals Reviewed" },
+            { value: "10K+", label: "Members Coached" },
+            { value: "99.2%", label: "Plan Reliability" },
           ].map(({ value, label }) => (
             <div key={label} className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-fn-surface/40 py-8 px-4 backdrop-blur-sm transition-all hover:bg-fn-surface/60">
               <p className="font-display text-4xl font-black italic tracking-tighter text-white lg:text-5xl">{value}</p>
@@ -577,33 +579,33 @@ export default function HomePage() {
             {
               src: "/images/refined/athletic_female_gym_2.png",
               alt: "AI Coaching Interface",
-              label: "Command Surface",
-              title: "Dashboard AI",
-              desc: "Log meals, workouts, and vitals via natural language — AI routes the data and syncs the entire app.",
+              label: "Daily Coaching",
+              title: "Clear Next Step",
+              desc: "See today’s workout, meal targets, and coach guidance in one place.",
               accent: "border-fn-accent/30",
             },
             {
               src: "/images/refined/scanner.png",
               alt: "Hormonal Cycle Tracking",
-              label: "Female Physiology",
-              title: "Cycle AI Coach",
-              desc: "Adaptive volume and intensity prescription based on menstrual phase (Luteal vs Follicular).",
+              label: "Women’s Health",
+              title: "Cycle-Aware Coaching",
+              desc: "Training and recovery guidance can adapt around menstrual-cycle needs.",
               accent: "border-fn-accent/30",
             },
             {
               src: "/images/refined/athletic_female_lifting.png",
               alt: "Progression Intelligence",
-              label: "Predictive Models",
-              title: "Progression Engine",
-              desc: "1RM tracking and automatic verified PR recognition. Never guess your working weight again.",
+              label: "Strength Progress",
+              title: "Progress Tracking",
+              desc: "Track PRs and estimated strength changes without guessing what to lift next.",
               accent: "border-fn-accent/30",
             },
             {
               src: "/images/refined/motion.png",
               alt: "Wearable Sync",
-              label: "Systemic Recovery",
-              title: "Biometric Sync",
-              desc: "Connect Oura, Garmin, or Apple Watch to feed HRV, Deep Sleep, and SpO2 back into your coach.",
+              label: "Recovery Data",
+              title: "Wearable Sync",
+              desc: "Connect wearables so Koda can factor in sleep, recovery, and activity data.",
               accent: "border-fn-accent/30",
             },
           ].map(({ src, alt, label, title, desc, accent }) => (
@@ -640,12 +642,12 @@ export default function HomePage() {
             </svg>
           </div>
           <div className="relative z-10 max-w-3xl">
-            <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">The Science of Legend</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">Why People Trust Koda</p>
             <h2 className="mt-6 font-display text-4xl font-black uppercase italic tracking-tighter text-white sm:text-6xl">
-              50 Million+ Biometric Points Analyzed Daily
+              Daily coaching built from real training and recovery data
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-fn-muted">
-              Koda AI is built on a proprietary LLM fine-tuned on longitudinal athletic data. We don&apos;t just track steps; we analyze HRV, SpO2, and muscle fatigue recovery curves from your wearables to predict your optimal training window.
+              Koda combines your workouts, check-ins, food logs, and optional wearable data so it can recommend when to push, when to maintain, and when to back off.
             </p>
             <div className="mt-10 grid grid-cols-2 gap-8 border-t border-fn-accent/20 pt-10">
               <div>
@@ -709,14 +711,14 @@ export default function HomePage() {
 
         {/* Final CTA Strip */}
         <section className="mt-20 text-center py-20 bg-fn-accent text-black rounded-xl3 mb-10">
-          <h2 className="font-display text-5xl font-black uppercase italic tracking-tighter sm:text-7xl">Ready for Protocol Launch?</h2>
-          <p className="mt-6 text-xl font-bold uppercase tracking-tight opacity-80 max-w-xl mx-auto">Join the elite few. Start your 7-day free trial today.</p>
+          <h2 className="font-display text-5xl font-black uppercase italic tracking-tighter sm:text-7xl">Ready To Start?</h2>
+          <p className="mt-6 text-xl font-bold uppercase tracking-tight opacity-80 max-w-xl mx-auto">Start your free assessment and get your first personalized plan.</p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
             <Link href="/start">
-              <Button className="bg-black text-white hover:bg-black/90 border-0 h-16 px-10 text-sm font-black uppercase tracking-widest">Start 7-Day Trial</Button>
+              <Button className="bg-black text-white hover:bg-black/90 border-0 h-16 px-10 text-sm font-black uppercase tracking-widest">Start Free Assessment</Button>
             </Link>
             <Link href="/pricing">
-              <Button variant="secondary" className="bg-black/10 border-black/20 text-black hover:bg-black/20 h-16 px-10 text-sm font-black uppercase tracking-widest">View Protocols</Button>
+              <Button variant="secondary" className="bg-black/10 border-black/20 text-black hover:bg-black/20 h-16 px-10 text-sm font-black uppercase tracking-widest">View Plans</Button>
             </Link>
           </div>
         </section>
@@ -761,7 +763,7 @@ export default function HomePage() {
       {/* High-Density Vitals Header */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 shrink-0">
         {[
-          { label: "Readiness", value: (() => {
+          { label: "Ready For Today", value: (() => {
             if (checkIn?.energy_score != null) {
               const energy = (checkIn.energy_score / 5.0) * 0.7;
               const adherence = ((checkIn.adherence_score ?? checkIn.energy_score) / 5.0) * 0.3;
@@ -769,9 +771,9 @@ export default function HomePage() {
             }
             return readiness.overall_score != null ? `${Math.round(readiness.overall_score * 100)}%` : "...";
           })(), icon: "⚡", href: "/vitals" },
-          { label: "Streak", value: `${streak} Days`, icon: "🔥", href: "/progress" },
-          { label: "Volume", value: `${weekCount} Szn`, icon: "📊", href: "/history" },
-          { label: "Today", value: todayPlan?.calories ? `${todayPlan.calories} kcal` : "No Protocol", icon: "🧬", href: "/log/nutrition" },
+          { label: "Current Streak", value: `${streak} days`, icon: "🔥", href: "/progress" },
+          { label: "Workouts This Week", value: `${weekCount}`, icon: "📊", href: "/history" },
+          { label: "Food Target Today", value: todayPlan?.calories ? `${todayPlan.calories} kcal` : "Build plan", icon: "🥗", href: "/log/nutrition" },
         ].map((item) => (
           <Link key={item.label} href={item.href}>
             <div className="group rounded-2xl border border-white/[0.05] bg-fn-surface/40 p-4 transition-all hover:bg-fn-surface/60">
@@ -787,19 +789,68 @@ export default function HomePage() {
         ))}
       </section>
 
+      <section className="shrink-0 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Start Here Today</p>
+        <p className="mt-2 text-sm leading-relaxed text-fn-muted">
+          {hasPlanToday
+            ? "Check how ready you are, then complete one key action: start today's workout, log a meal, or ask Coach to adapt the plan."
+            : "Generate today's plan first, then complete one key action: a workout, a meal log, or a quick check-in."}
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-fn-muted/80">
+          Ready For Today combines your recent training, check-ins, and recovery signals so you know whether to push, maintain, or take it easier.
+        </p>
+        <div className="mt-3 grid gap-2 text-xs text-fn-muted sm:grid-cols-3">
+          {[
+            "1. Review your energy today.",
+            hasPlanToday ? "2. Start the workout or adapt it." : "2. Generate today’s plan.",
+            "3. Come back after one action for coach feedback.",
+          ].map((step) => (
+            <div key={step} className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
+              {step}
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-3">
+          {hasPlanToday ? (
+            <>
+              <Link href="/log/workout/guided">
+                <Button size="sm">Start today&apos;s workout</Button>
+              </Link>
+              <Link href="/check-in">
+                <Button size="sm" variant="secondary">Quick check-in</Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Button size="sm" loading={planLoading || generating} onClick={() => void handleGeneratePlan()}>
+                Generate today&apos;s plan
+              </Button>
+              <Link href="/check-in">
+                <Button size="sm" variant="secondary">Quick check-in first</Button>
+              </Link>
+            </>
+          )}
+        </div>
+      </section>
+
       {/* Main Command Workspace */}
       <div className="flex flex-1 gap-6 overflow-hidden">
         {/* Left Signal Stream - Activity Log Feed (Fixed Sidebar) */}
         <aside className="hidden w-72 flex-col gap-4 overflow-y-auto md:flex pr-2 custom-scrollbar">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-muted/50 border-b border-white/5 pb-2">Active Signal Feed</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-muted/50 border-b border-white/5 pb-2">Today&apos;s Coaching Summary</p>
           <div className="space-y-3">
             {/* Today's Protocol Focus */}
             <div className="rounded-xl bg-fn-accent/5 border border-fn-accent/20 p-4">
-              <p className="text-[9px] font-black uppercase text-fn-accent mb-1">Target Protocol</p>
-              <p className="font-display text-lg font-black italic text-white leading-tight">{todayPlan?.focus ?? "Analyzing Schedule..."}</p>
+              <p className="text-[9px] font-black uppercase text-fn-accent mb-1">Today&apos;s Focus</p>
+              <p className="font-display text-lg font-black italic text-white leading-tight">{todayPlan?.focus ?? "Building today’s plan..."}</p>
+              <p className="mt-2 text-[10px] leading-relaxed text-fn-muted">
+                {todayPlan
+                  ? "This is the main training priority Koda wants you to complete next."
+                  : "Step 1 is to generate your plan so Koda can show the recommended workout focus."}
+              </p>
               {todayPlan && (
                 <Link href="/log/workout/guided">
-                  <button className="mt-3 text-[10px] font-black uppercase text-fn-accent hover:underline">Execute Now →</button>
+                  <button className="mt-3 text-[10px] font-black uppercase text-fn-accent hover:underline">Start Workout →</button>
                 </Link>
               )}
             </div>
@@ -820,7 +871,7 @@ export default function HomePage() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fn-accent opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-fn-accent"></span>
                 </span>
-                <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">AI Synthesis</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Coach Summary</p>
               </div>
 
               {briefingLoading ? (
@@ -832,12 +883,12 @@ export default function HomePage() {
               ) : briefing ? (
                 <div className="space-y-4">
                   <p className="text-xs font-medium text-white italic leading-relaxed border-l-2 border-fn-accent/50 pl-2">
-                    &ldquo;{briefing.briefing}&rdquo;
+                    &ldquo;{toPlainFitnessLanguage(briefing.briefing)}&rdquo;
                   </p>
 
                   <div className="bg-black/40 rounded-lg p-3 border border-white/5 space-y-2">
-                    <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest">Causal Rationale</p>
-                    <p className="text-[10px] text-fn-muted leading-relaxed">{briefing.rationale}</p>
+                    <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest">Why Koda Is Suggesting This</p>
+                    <p className="text-[10px] text-fn-muted leading-relaxed">{toPlainFitnessLanguage(briefing.rationale)}</p>
                   </div>
 
                   {briefing.inputs && briefing.inputs.length > 0 && (
@@ -852,7 +903,7 @@ export default function HomePage() {
                 </div>
               ) : (
                 <div className="text-xs leading-relaxed text-fn-muted font-mono h-[80px] flex items-center justify-center border border-dashed border-white/10 rounded-lg">
-                  System awaiting initialization.
+                  Step 1: generate today&apos;s plan. Step 2: complete one action. Step 3: return here for your coach summary.
                 </div>
               )}
               {/* Coach's Desk Mastery Insights */}
@@ -860,8 +911,11 @@ export default function HomePage() {
                 <div className="rounded-xl bg-fn-accent/5 border border-fn-accent/20 p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">🛡️</span>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Coach&apos;s Desk</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Why This Matters</p>
                   </div>
+                  <p className="text-[10px] leading-relaxed text-fn-muted">
+                    Plain-English rule: if readiness looks low, choose an easier day or ask Coach to adapt the plan before you start.
+                  </p>
                   {coachInsightsLoading ? (
                     <div className="space-y-2 animate-pulse">
                       <div className="h-2 w-full bg-fn-accent/10 rounded"></div>
@@ -879,8 +933,8 @@ export default function HomePage() {
                             }
                           }}
                         >
-                          <p className="text-[11px] font-black text-white uppercase italic">{insight.title}</p>
-                          <p className="text-[10px] text-fn-ink/60 leading-relaxed line-clamp-2">{insight.message}</p>
+                          <p className="text-[11px] font-black text-white uppercase italic">{simplifyCoachInsightTitle(insight.title)}</p>
+                          <p className="text-[10px] text-fn-ink/60 leading-relaxed line-clamp-2">{toPlainFitnessLanguage(insight.message)}</p>
                         </div>
                       ))}
                     </div>
@@ -907,10 +961,33 @@ export default function HomePage() {
             {/* Spotify Integration */}
             <SpotifyMiniPlayer />
 
+            {/* Workout Music */}
+            <div className="rounded-xl border border-fn-accent/20 bg-gradient-to-br from-fn-accent/10 via-black/40 to-black/70 p-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">🎵</span>
+                <p className="text-[9px] font-black uppercase tracking-widest text-fn-accent">Workout Music</p>
+              </div>
+              <p className="mt-3 text-[10px] leading-relaxed text-fn-muted">
+                Connect Spotify once, then launch guided workouts with device-ready playback controls and fewer interruptions.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link href="/integrations">
+                  <Button size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest">
+                    Connect Spotify
+                  </Button>
+                </Link>
+                <Link href="/log/workout/guided">
+                  <Button size="sm" variant="ghost" className="h-8 border border-white/10 text-[9px] font-black uppercase tracking-widest">
+                    Open Guided Workout
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
             {/* Sensor Sync / Biometrics Status */}
             <div className="rounded-xl bg-black/40 border border-white/5 p-4 group hover:bg-black/60 transition-all">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[9px] font-black uppercase text-fn-accent">Sensor Sync</p>
+                <p className="text-[9px] font-black uppercase text-fn-accent">Connected Tools</p>
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fn-accent opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-fn-accent"></span>
@@ -920,13 +997,13 @@ export default function HomePage() {
                 <Link href="/integrations" className="block p-2 rounded-lg bg-white/5 hover:bg-fn-accent/10 border border-white/5 hover:border-fn-accent/20 transition-all">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">⌚</span>
-                    <span className="text-[10px] font-bold text-white uppercase tracking-tight">Vitals Pipeline</span>
+                    <span className="text-[10px] font-bold text-white uppercase tracking-tight">Wearables</span>
                   </div>
                 </Link>
                 <Link href="/log/nutrition/fridge" className="block p-2 rounded-lg bg-white/5 hover:bg-fn-accent/10 border border-white/5 hover:border-fn-accent/20 transition-all">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">📸</span>
-                    <span className="text-[10px] font-bold text-white uppercase tracking-tight">Fridge Scanner</span>
+                    <span className="text-[10px] font-bold text-white uppercase tracking-tight">Photo Food Scan</span>
                   </div>
                 </Link>
               </div>

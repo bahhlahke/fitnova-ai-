@@ -43,6 +43,8 @@ This document orients AI coding agents and human contributors to the repo: layou
 - **AI test review:** `npm run test:ai-review` (writes to `docs/reports/ai-test-review-<timestamp>.md`; needs `OPENROUTER_API_KEY` for AI section)
 - **AI coverage review:** `npm run test:ai-review:coverage` (Vitest with coverage + AI review)
 - **Workflow validation:** `npm run workflow:validate:ai` (HTTP workflow checks + AI judgment)
+- **Web surface smoke:** `npm run test:web:surfaces` (desktop + mobile workflow screenshots plus manifest for AI review)
+- **Cross-platform UI validation:** `npm run validate:ui:ai` (web + iOS surface capture plus persona-based AI readiness review)
 
 ---
 
@@ -53,6 +55,7 @@ This document orients AI coding agents and human contributors to the repo: layou
   `xcodebuild -project ios/AskKodaAI/AskKodaAI.xcodeproj -scheme AskKodaAI -destination 'platform=iOS Simulator,name=iPhone 17' build`
 - **Tests:** In Xcode **Product → Test** (⌘U), or from repo root: `npm run test:ios`. The script uses a **single** simulator (iPhone 17); **run only one iOS test job at a time** on resource-limited machines.
 - **Surface smoke pass:** `npm run test:ios:surfaces` (captures screen state matrix on simulator)
+- **Cross-platform surface review:** `npm run validate:ui:ai` (reuses iOS smoke captures together with web screenshots and AI persona review)
 - **Test host:** Unit tests run inside the app (host). If tests crash before running (e.g. “Early unexpected exit” / “signal trap”), ensure `Generated.xcconfig` exists and the app launches when run directly (⌘R); in Debug the app uses placeholder config when keys are missing so the host can start.
 - **AI review / production gate:** `npm run test:ai-review:ios`, `npm run test:ios:ready` (see [docs/RUNBOOK.md](docs/RUNBOOK.md#ios-tests-and-ai-review)).
 
@@ -82,5 +85,6 @@ This document orients AI coding agents and human contributors to the repo: layou
 | [ios/README.md](ios/README.md) | iOS setup, config (.env.local → Generated.xcconfig), run/test, production checklist, feature parity summary. |
 | [docs/DESIGN.md](docs/DESIGN.md) | Design system, UI components. |
 | [docs/SMOKE-CHECKLIST.md](docs/SMOKE-CHECKLIST.md) | Pre-launch smoke run. |
+| [docs/AI-UI-SURFACE-VALIDATION.md](docs/AI-UI-SURFACE-VALIDATION.md) | Cross-platform UI surface smoke capture and persona-based AI readiness review. |
 
 When changing iOS app behavior, config, or tests, update **ios/README.md** and, if relevant, **docs/IOS-PARITY-MAP.md** or **AGENTS.md**.

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { PageLayout, Card, CardHeader, Button, LoadingState } from "@/components/ui";
 import { toLocalDateString } from "@/lib/date/local-date";
+import { toPlainFitnessLanguage } from "@/lib/ui/plain-language";
 import Link from "next/link";
 import type { WeeklyPlan, WeeklyPlanDay, WeeklyPlanExercise } from "@/lib/plan/types";
 
@@ -43,6 +44,11 @@ const INTENSITY_CONFIG = {
 
 const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const WEEKDAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const ADAPT_PROMPTS = [
+    "I only have 25 minutes today. Keep the main goal.",
+    "I need a lower-impact version today.",
+    "I only have dumbbells and a bench today.",
+] as const;
 
 function getTodayWeekday(): number {
     return new Date().getDay();
@@ -54,6 +60,17 @@ function isToday(dateLocal: string): boolean {
 
 function isPast(dateLocal: string): boolean {
     return dateLocal < toLocalDateString();
+}
+
+function explainFocusForBeginners(focus?: string | null): string {
+    const normalized = focus?.toLowerCase() ?? "";
+    if (normalized.includes("upper")) return "This is mostly an upper-body session.";
+    if (normalized.includes("lower")) return "This is mostly a lower-body session.";
+    if (normalized.includes("full body")) return "This session works your whole body.";
+    if (normalized.includes("recovery")) return "This is an easier session to help you recover.";
+    if (normalized.includes("mobility")) return "This is a lighter movement session to help you loosen up.";
+    if (normalized.includes("cardio")) return "This session is focused on conditioning.";
+    return "Open the planned session below to see the exact exercises and a simpler breakdown.";
 }
 
 export default function PlanPage() {
@@ -192,13 +209,13 @@ export default function PlanPage() {
     const todayWeekday = getTodayWeekday();
 
     if (loading) return (
-        <PageLayout title="Training Plan" subtitle="Your personalized weekly schedule">
+        <PageLayout title="Training Plan" subtitle="Your weekly schedule, today’s focus, and how to adjust it safely">
             <LoadingState message="Composing your training plan..." />
         </PageLayout>
     );
 
     if (!user) return (
-        <PageLayout title="Training Plan" subtitle="Your personalized weekly schedule">
+        <PageLayout title="Training Plan" subtitle="Your weekly schedule, today’s focus, and how to adjust it safely">
             <Card padding="lg" className="border-fn-accent/20 bg-fn-accent/5">
                 <CardHeader title="Sign In Required" subtitle="Sign in to access your personalized training plan" />
                 <div className="mt-6">
@@ -249,8 +266,11 @@ export default function PlanPage() {
                             <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38l-.001-.001z" clipRule="evenodd" />
                         </svg>
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.35em] text-fn-accent">AI Weekly Analysis</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.35em] text-fn-accent">This Week&apos;s Coach Note</p>
                 </div>
+                <p className="mb-3 text-sm leading-relaxed text-fn-muted">
+                    Plain-English summary: what to focus on this week, what to avoid, and what Koda wants you to do next.
+                </p>
                 {aiLoading ? (
                     <div className="space-y-2 animate-pulse">
                         <div className="h-4 w-full rounded-full bg-white/5" />
@@ -258,9 +278,9 @@ export default function PlanPage() {
                         <div className="h-4 w-3/5 rounded-full bg-white/5" />
                     </div>
                 ) : aiInsight ? (
-                    <p className="text-base font-medium italic text-white leading-relaxed border-l-2 border-fn-accent/30 pl-4">{aiInsight}</p>
+                    <p className="text-base font-medium italic text-white leading-relaxed border-l-2 border-fn-accent/30 pl-4">{toPlainFitnessLanguage(aiInsight)}</p>
                 ) : (
-                    <p className="text-sm text-fn-muted italic">Log workouts this week to unlock your AI performance analysis.</p>
+                    <p className="text-sm text-fn-muted italic">Log 1-2 workouts this week to unlock a personalized coach note.</p>
                 )}
                 {weekStats && (weekStats.workoutCount > 0 || weekStats.avgCalories != null) && (
                     <div className="mt-4 flex gap-4 flex-wrap">
@@ -284,6 +304,21 @@ export default function PlanPage() {
                         )}
                     </div>
                 )}
+            </Card>
+
+            <Card padding="lg" className="mb-6 border-white/[0.08] bg-white/[0.03]">
+                <CardHeader title="How To Use This Plan" subtitle="A quick guide for adjusting the week without losing momentum" />
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    {[
+                        "1. Pick today’s card to see the full session and coaching cues.",
+                        "2. If the title sounds unfamiliar, open the planned session below. Koda shows the exact exercises.",
+                        "3. Use Tailor This Workout if you need lower impact, less time, or different equipment.",
+                    ].map((item) => (
+                        <div key={item} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm leading-relaxed text-fn-muted">
+                            {item}
+                        </div>
+                    ))}
+                </div>
             </Card>
 
             <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
@@ -384,6 +419,9 @@ export default function PlanPage() {
                                             <h2 className="mt-2 text-2xl font-black text-white uppercase italic tracking-tighter leading-tight">
                                                 {selectedDay.focus}
                                             </h2>
+                                            <p className="mt-2 max-w-md text-sm leading-relaxed text-fn-muted">
+                                                {explainFocusForBeginners(selectedDay.focus)} If the title still feels technical, the planned session below breaks it into exercises and cues.
+                                            </p>
                                         </div>
                                         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${config.border}`}>
                                             <span className={`text-[9px] font-black uppercase tracking-widest ${config.text}`}>
@@ -402,7 +440,7 @@ export default function PlanPage() {
                                             <span className="font-black text-white">{selectedDay.target_duration_minutes} minutes</span>
                                         </div>
                                         <div className="flex items-center justify-between text-xs">
-                                            <span className="font-bold text-fn-muted">Schedule alignment</span>
+                                            <span className="font-bold text-fn-muted">Fits your preferred schedule</span>
                                             <span className={`font-black text-[9px] uppercase tracking-widest ${isPreferred ? "text-fn-accent" : "text-fn-muted/50"}`}>
                                                 {isPreferred ? "Preferred Training Day" : "Rest / Light Day"}
                                             </span>
@@ -412,8 +450,8 @@ export default function PlanPage() {
 
                                 {/* AI Rationale */}
                                 <div className="rounded-2xl border border-white/[0.07] bg-fn-surface/40 p-5">
-                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-fn-muted mb-2">AI Rationale</p>
-                                    <p className="text-sm text-fn-muted leading-relaxed italic">{selectedDay.rationale}</p>
+                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-fn-muted mb-2">Why this session is here</p>
+                                    <p className="text-sm text-fn-muted leading-relaxed italic">{toPlainFitnessLanguage(selectedDay.rationale)}</p>
                                 </div>
 
                                 {/* Exercise List */}
@@ -469,8 +507,25 @@ export default function PlanPage() {
                                 <div className="rounded-2xl border border-white/[0.07] bg-fn-surface/40 p-4">
                                     <p className="text-[9px] font-black uppercase tracking-[0.3em] text-fn-muted mb-2">Tailor This Workout</p>
                                     <p className="text-[10px] text-fn-muted/50 mb-3 leading-relaxed">
-                                        Tell the AI any constraint — equipment available today, injuries, time limit, or preference.
+                                        Tell Koda what changed today: time limit, equipment, soreness, or anything else that affects the session.
                                     </p>
+                                    <div className="mb-3 grid gap-2 text-[11px] leading-relaxed text-fn-muted sm:grid-cols-3">
+                                        <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">1. Pick an example or describe the constraint.</div>
+                                        <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">2. Press <span className="font-semibold text-white">Adapt</span> to generate a safer version.</div>
+                                        <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">3. Review the updated exercises before you start.</div>
+                                    </div>
+                                    <div className="mb-3 flex flex-wrap gap-2">
+                                        {ADAPT_PROMPTS.map((prompt) => (
+                                            <button
+                                                key={prompt}
+                                                type="button"
+                                                onClick={() => setAdaptMessage(prompt)}
+                                                className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-fn-muted transition-colors hover:border-fn-accent/30 hover:text-fn-accent"
+                                            >
+                                                {prompt === ADAPT_PROMPTS[0] ? "Short on time" : prompt === ADAPT_PROMPTS[1] ? "Lower impact" : "Hotel gym"}
+                                            </button>
+                                        ))}
+                                    </div>
                                     {adaptNote && (
                                         <div className="mb-3 rounded-xl bg-fn-accent/10 border border-fn-accent/20 px-3 py-2">
                                             <p className="text-[10px] text-fn-accent font-medium">✓ {adaptNote}</p>

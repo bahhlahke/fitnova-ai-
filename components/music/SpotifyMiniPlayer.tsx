@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { useSpotify } from "@/lib/music/SpotifyProvider";
 import { Button } from "@/components/ui";
 
@@ -14,30 +15,93 @@ export function SpotifyMiniPlayer() {
         next,
         previous,
         transferPlayback,
-        error
+        error,
+        connectionState,
+        statusMessage,
+        refreshConnection,
     } = useSpotify();
 
-    if (!isReady) {
+    if (connectionState === "loading") {
         return (
-            <div className="rounded-xl bg-black/40 border border-white/5 p-4 italic text-[10px] text-fn-muted/50">
-                Initializing Spotify Engine...
+            <div className="rounded-2xl border border-white/5 bg-black/40 p-4">
+                <p className="text-[9px] font-black uppercase tracking-widest text-fn-accent">Spotify Controls</p>
+                <p className="mt-2 text-[10px] leading-relaxed text-fn-muted">
+                    {statusMessage || "Preparing Spotify controls for this guided workout..."}
+                </p>
             </div>
         );
     }
 
-    if (error) {
+    if (connectionState === "disconnected") {
         return (
-            <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-4 text-[10px] text-red-400">
-                Spotify Error: {error}
+            <div className="rounded-2xl border border-fn-accent/20 bg-fn-accent/5 p-4">
+                <p className="text-[9px] font-black uppercase tracking-widest text-fn-accent">Spotify Optional</p>
+                <p className="mt-2 text-[10px] leading-relaxed text-fn-muted">
+                    {statusMessage || "Connect Spotify to add device-ready playback controls to guided workouts."}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                    <Link href="/integrations">
+                        <Button size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest">
+                            Connect Spotify
+                        </Button>
+                    </Link>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 border border-white/10 text-[9px] font-black uppercase tracking-widest"
+                        onClick={refreshConnection}
+                    >
+                        Refresh
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
+    if (connectionState === "error" || error) {
+        return (
+            <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
+                <p className="text-[9px] font-black uppercase tracking-widest text-red-300">Spotify Needs Attention</p>
+                <p className="mt-2 text-[10px] leading-relaxed text-red-200/80">
+                    {statusMessage || error || "Spotify hit a snag. You can keep training and reconnect later."}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                    <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-8 text-[9px] font-black uppercase tracking-widest"
+                        onClick={refreshConnection}
+                    >
+                        Retry
+                    </Button>
+                    <Link href="/integrations">
+                        <Button size="sm" variant="ghost" className="h-8 border border-red-500/20 text-[9px] font-black uppercase tracking-widest">
+                            Open Integrations
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isReady) {
+        return (
+            <div className="rounded-2xl border border-white/5 bg-black/40 p-4">
+                <p className="text-[9px] font-black uppercase tracking-widest text-fn-accent">Spotify Controls</p>
+                <p className="mt-2 text-[10px] leading-relaxed text-fn-muted">
+                    {statusMessage || "Open Spotify on this device and we will finish wiring up playback."}
+                </p>
             </div>
         );
     }
 
     if (!isActive) {
         return (
-            <div className="rounded-xl bg-fn-surface/30 border border-white/5 p-4">
-                <p className="text-[9px] font-black uppercase text-fn-accent mb-2">Spotify Disconnected</p>
-                <p className="text-[10px] text-fn-muted mb-3">Sync playback to this device to enable AI-controlled workout music.</p>
+            <div className="rounded-2xl border border-white/5 bg-fn-surface/30 p-4">
+                <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-fn-accent">Spotify Ready</p>
+                <p className="mb-3 text-[10px] leading-relaxed text-fn-muted">
+                    Open Spotify on this device, then sync playback to let Koda control your workout music.
+                </p>
                 <Button
                     size="sm"
                     variant="secondary"

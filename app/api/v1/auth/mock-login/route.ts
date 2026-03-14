@@ -13,20 +13,21 @@ export async function GET(request: Request) {
     const next = searchParams.get("next") || "/";
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!supabaseUrl || !serviceRoleKey) {
+    if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
         return new NextResponse("Missing Supabase configuration in .env.local", { status: 500 });
     }
 
-    // Create an admin client to generate a link or sign in
     const cookieStore = cookies();
-    const supabase = createServerClient(supabaseUrl, serviceRoleKey, {
+    type CookieOptions = Parameters<typeof cookieStore.set>[2];
+    const cookieAdapter = {
         cookies: {
             getAll() {
                 return cookieStore.getAll();
             },
-            setAll(cookiesToSet) {
+            setAll(cookiesToSet: Array<{ name: string; value: string; options?: CookieOptions }>) {
                 try {
                     cookiesToSet.forEach(({ name, value, options }) =>
                         cookieStore.set(name, value, options)
@@ -36,38 +37,53 @@ export async function GET(request: Request) {
                 }
             },
         },
-    });
+    };
 
-    // Use a fixed test email for the AI agent
+    const adminClient = createServerClient(supabaseUrl, serviceRoleKey, cookieAdapter);
+    const sessionClient = createServerClient(supabaseUrl, supabaseAnonKey, cookieAdapter);
+
     const testEmail = "test-agent@fitnova.ai";
+    const testPassword = process.env.MOCK_LOGIN_TEST_PASSWORD || "TestAgentPass123!";
+    const testMetadata = { full_name: "Test AI Agent" };
 
-    // Generate a magic link for this user. 
-    // If the user doesn't exist, this might fail, so we ensure they exist first.
-    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+    const { data: { users }, error: listError } = await adminClient.auth.admin.listUsers();
+    if (listError) {
+        return new NextResponse(`Failed to list users: ${listError.message}`, { status: 500 });
+    }
     const existingUser = users?.find(u => u.email === testEmail);
 
     if (!existingUser) {
-        const { error: createError } = await supabase.auth.admin.createUser({
+        const { error: createError } = await adminClient.auth.admin.createUser({
             email: testEmail,
+            password: testPassword,
             email_confirm: true,
-            user_metadata: { full_name: "Test AI Agent" }
+            user_metadata: testMetadata,
         });
         if (createError) {
             return new NextResponse(`Failed to create test user: ${createError.message}`, { status: 500 });
         }
+    } else {
+        const { error: updateError } = await adminClient.auth.admin.updateUserById(existingUser.id, {
+            password: testPassword,
+            email_confirm: true,
+            user_metadata: {
+                ...(existingUser.user_metadata || {}),
+                ...testMetadata,
+            },
+        });
+        if (updateError) {
+            return new NextResponse(`Failed to update test user: ${updateError.message}`, { status: 500 });
+        }
     }
 
-    // Generate a magic link for this user and redirect to it
-    const { data: { properties }, error: linkError } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
+    const { error: signInError } = await sessionClient.auth.signInWithPassword({
         email: testEmail,
-        options: { redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}` }
+        password: testPassword,
     });
 
-    if (linkError || !properties?.action_link) {
-        return new NextResponse(`Failed to generate magic link: ${linkError?.message || "No link"}`, { status: 500 });
+    if (signInError) {
+        return new NextResponse(`Failed to sign in test user: ${signInError.message}`, { status: 500 });
     }
 
-    // Redirect the browser to the magic link to establish the session
-    return NextResponse.redirect(properties.action_link);
+    return NextResponse.redirect(new URL(next, origin));
 }

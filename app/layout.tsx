@@ -105,8 +105,6 @@ export const metadata: Metadata = {
   },
 };
 
-import { SpotifyProvider } from "@/lib/music/SpotifyProvider";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -116,17 +114,15 @@ export default function RootLayout({
     <html lang="en">
       <body suppressHydrationWarning className={`${manrope.variable} ${fraunces.variable} min-h-screen flex flex-row font-sans text-fn-ink bg-black`}>
         <AuthProvider>
-          <SpotifyProvider>
-            <a
-              href="#main"
-              className="absolute -left-[9999px] top-4 z-[100] rounded-lg bg-fn-primary px-4 py-2 text-white outline-none ring-2 ring-fn-ink/20 focus:left-4 focus:inline"
-            >
-              Skip to main content
-            </a>
-            <MainLayout>
-              {children}
-            </MainLayout>
-          </SpotifyProvider>
+          <a
+            href="#main"
+            className="absolute -left-[9999px] top-4 z-[100] rounded-lg bg-fn-primary px-4 py-2 text-white outline-none ring-2 ring-fn-ink/20 focus:left-4 focus:inline"
+          >
+            Skip to main content
+          </a>
+          <MainLayout>
+            {children}
+          </MainLayout>
         </AuthProvider>
         <Suspense fallback={null}>
           <MetaPixel />

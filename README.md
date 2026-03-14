@@ -79,6 +79,9 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 | `npm run test:watch` | Run Vitest in watch mode. |
 | `npm run validate` | Lint, build, and test. |
 | `npm run workflow:validate:ai` | Run AI-assisted workflow validator and write report to `docs/reports/`. |
+| `npm run test:web:surfaces` | Capture desktop + mobile web workflow surfaces and write a smoke report plus manifest to `docs/reports/`. |
+| `npm run test:ios:surfaces` | Capture deterministic iOS simulator workflow surfaces and write a smoke report plus manifest to `docs/reports/`. |
+| `npm run validate:ui:ai` | Run the cross-platform AI UI validator across web and iOS surfaces with persona-based readiness analysis. |
 | `npm run reminders:dispatch` | Trigger reminder/nudge dispatch job (uses service role + optional Twilio creds). |
 | `npm run sit:backtest` | Trigger SIT backtesting job endpoint and print summary JSON. |
 | `npm run integrations:reconcile` | Trigger integrations reconciliation/replay processing job endpoint. |
@@ -121,6 +124,7 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 | [docs/COMPETITOR-PARITY-PASS-2026-03-01.md](docs/COMPETITOR-PARITY-PASS-2026-03-01.md) | Implementation-level quality parity assessment vs Future and peers. |
 | [docs/IMPLEMENTATION-ROLLUP-2026-03-01.md](docs/IMPLEMENTATION-ROLLUP-2026-03-01.md) | Delivered P0/P1/P2 implementation summary. |
 | [docs/AI-WORKFLOW-VALIDATION.md](docs/AI-WORKFLOW-VALIDATION.md) | AI workflow validator usage and workflow coverage. |
+| [docs/AI-UI-SURFACE-VALIDATION.md](docs/AI-UI-SURFACE-VALIDATION.md) | Cross-platform UI surface smoke capture and persona-based AI readiness review. |
 
 ## iOS app
 

@@ -40,9 +40,9 @@ export default function StartAssessmentPage() {
     if (step === 1) return "How often do you plan to train?";
     if (step === 2) return "Where will you train most days?";
     if (step === 3) return "How should we shape nutrition guidance?";
-    if (step === 4) return "Generating Your Protocol...";
-    if (step === 5) return "Your Week 1 Performance Forecast";
-    return "Unlock Your Performance Protocol";
+    if (step === 4) return "Building Your First Plan...";
+    if (step === 5) return "Your Week 1 Preview";
+    return "Save Your Personalized Plan";
   }, [step]);
 
   const options = useMemo(() => {
@@ -127,12 +127,12 @@ export default function StartAssessmentPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <Card padding="lg" className="rise-reveal">
           <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">AI assessment</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">Quick assessment</p>
             <h1 className="mt-3 font-display text-3xl text-fn-ink sm:text-4xl italic uppercase font-black tracking-tighter">Build Your Legend</h1>
             <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-fn-bg-alt">
               <div className="h-full rounded-full bg-fn-accent shadow-[0_0_10px_rgba(10,217,196,0.5)] transition-all" style={{ width: `${progressPct}%` }} />
             </div>
-            <p className="mt-2 text-sm text-fn-muted font-mono">STEP_IDENT_0{step + 1} {"//"} TOTAL_0{totalSteps}</p>
+            <p className="mt-2 text-sm text-fn-muted font-mono">Step 0{step + 1} / 0{totalSteps}</p>
           </div>
 
           <h2 className="text-xl font-semibold text-fn-ink uppercase tracking-tight italic">{headline}</h2>
@@ -140,7 +140,7 @@ export default function StartAssessmentPage() {
           {step === 6 && (
             <div className="mt-6 flex flex-col gap-3">
               <label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-fn-muted">
-                Satellite Uplink / Email Address
+                Email address
               </label>
               <input
                 id="email"
@@ -152,7 +152,7 @@ export default function StartAssessmentPage() {
                 autoFocus
               />
               <p className="text-xs text-fn-muted italic">
-                Secure your protocol link. Results calculated based on proprietary SIT benchmarks.
+                We&apos;ll save your answers and send you back to your setup after sign-in.
               </p>
             </div>
           )}
@@ -161,19 +161,19 @@ export default function StartAssessmentPage() {
             <div className="mt-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-6 rounded-2xl bg-fn-accent/5 border border-fn-accent/10">
-                  <p className="text-[10px] font-black tracking-widest text-fn-accent uppercase mb-2">Estimated Week 1 Gain</p>
-                  <p className="text-4xl font-black text-white italic">+1.2kg <span className="text-sm font-normal text-fn-muted not-italic">LBM</span></p>
+                  <p className="text-[10px] font-black tracking-widest text-fn-accent uppercase mb-2">Sample Week 1 Change</p>
+                  <p className="text-4xl font-black text-white italic">+1.2kg <span className="text-sm font-normal text-fn-muted not-italic">lean mass</span></p>
                 </div>
                 <div className="p-6 rounded-2xl bg-fn-accent/5 border border-fn-accent/10">
-                  <p className="text-[10px] font-black tracking-widest text-fn-accent uppercase mb-2">Protocol Confidence</p>
+                  <p className="text-[10px] font-black tracking-widest text-fn-accent uppercase mb-2">Plan Confidence</p>
                   <p className="text-4xl font-black text-white italic">94%</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/[0.02]">
-                  <span className="text-xs font-bold text-white uppercase tracking-wider">Primary stimulus focus</span>
-                  <span className="text-xs font-black text-fn-accent uppercase italic">{goal === "Muscle gain" ? "Mechanical Tension" : goal === "Weight loss" ? "Metabolic Output" : "Systemic Flow"}</span>
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Main training focus</span>
+                  <span className="text-xs font-black text-fn-accent uppercase italic">{goal === "Muscle gain" ? "Strength and muscle" : goal === "Weight loss" ? "Calorie burn and consistency" : "Move and feel better"}</span>
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/[0.02]">
                   <span className="text-xs font-bold text-white uppercase tracking-wider">Estimated session time</span>
@@ -182,7 +182,7 @@ export default function StartAssessmentPage() {
               </div>
 
               <p className="text-sm text-fn-muted leading-relaxed italic border-l-2 border-fn-accent/30 pl-4">
-                &quot;We&apos;ve calibrated a high-frequency protocol optimized for {location.toLowerCase()} training. The neural net predicts early CNS adaptation within the first 72 hours.&quot;
+                &quot;Your first plan is shaped around {location.toLowerCase()} training, your weekly availability, and the goal you chose. You can always adjust it once you&apos;re inside the app.&quot;
               </p>
             </div>
           )}
@@ -191,10 +191,10 @@ export default function StartAssessmentPage() {
             <div className="mt-8 space-y-4">
               <div className="flex flex-col gap-3">
                 {[
-                  "Synthesizing biometrics...",
-                  "Calculating mechanical load...",
-                  "optimizing metabolic windows...",
-                  "Calibrating recovery debt..."
+                  "Reviewing your answers...",
+                  "Sizing your first workout...",
+                  "Building your meal guidance...",
+                  "Preparing your recovery plan..."
                 ].map((text, i) => (
                   <div key={text} className="flex items-center gap-3 animate-pulse" style={{ animationDelay: `${i * 0.4}s` }}>
                     <div className="h-1.5 w-1.5 rounded-full bg-fn-accent" />
@@ -241,36 +241,36 @@ export default function StartAssessmentPage() {
                   }`}
               >
                 <span className={`block text-xs font-black uppercase tracking-widest ${selectedValue === option ? "text-fn-accent" : "text-fn-muted"}`}>{option}</span>
-                <span className="mt-1 block text-[10px] font-medium text-fn-muted">Protocol selection optimized for performance.</span>
+                <span className="mt-1 block text-[10px] font-medium text-fn-muted">This choice helps Koda shape your first plan.</span>
               </button>
             ))}
           </div>
 
           <div className="mt-10 flex items-center justify-between gap-3 pt-6 border-t border-fn-border">
             <Button variant="ghost" onClick={handleBack} disabled={step === 0 || step === 4}>
-              <span className="text-[10px] font-black uppercase tracking-widest">Abort / Back</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Back</span>
             </Button>
             {step !== 4 && (
               <Button onClick={handleNext} disabled={step === 4}>
                 <span className="text-[10px] font-black uppercase tracking-widest">
-                  {step === 6 ? "Claim Protocol" : step === 5 ? "See My Full Plan" : "Initialize Next Step"}
+                  {step === 6 ? "Create Account" : step === 5 ? "Continue To Sign In" : "Next"}
                 </span>
               </Button>
             )}
           </div>
 
-          <p className="mt-6 text-[9px] font-mono text-fn-muted/50 uppercase tracking-[0.2em] text-center">LEGEND_OS v2.4 // SECURE_INTEL_GATED</p>
+          <p className="mt-6 text-[9px] font-mono text-fn-muted/50 uppercase tracking-[0.2em] text-center">Personalized coaching preview</p>
         </Card>
 
         <Card padding="lg" className="rise-reveal rise-reveal-delay-1 lg:sticky lg:top-8 lg:h-fit border-fn-accent/10 bg-fn-accent/[0.02]">
-          <CardHeader title="Live Build" subtitle="Selections shape your neural net" />
+          <CardHeader title="Your choices so far" subtitle="These answers shape your first plan" />
           <dl className="mt-4 space-y-4 text-[11px]">
             <div>
               <dt className="font-black uppercase tracking-widest text-fn-muted mb-1">Target Goal</dt>
               <dd className="font-bold text-white uppercase italic">{goal}</dd>
             </div>
             <div>
-              <dt className="font-black uppercase tracking-widest text-fn-muted mb-1">XP Baseline</dt>
+              <dt className="font-black uppercase tracking-widest text-fn-muted mb-1">Experience Level</dt>
               <dd className="font-bold text-white uppercase italic">{experience}</dd>
             </div>
             <div>
@@ -282,20 +282,20 @@ export default function StartAssessmentPage() {
               <dd className="font-bold text-white uppercase italic">{location}</dd>
             </div>
             <div>
-              <dt className="font-black uppercase tracking-widest text-fn-muted mb-1">Metabolic Focus</dt>
+              <dt className="font-black uppercase tracking-widest text-fn-muted mb-1">Nutrition Focus</dt>
               <dd className="font-bold text-white uppercase italic">{nutrition}</dd>
             </div>
             {email && (
               <div className="pt-3 border-t border-fn-accent/10">
-                <dt className="font-black uppercase tracking-widest text-fn-accent mb-1">Satellite Lead</dt>
+                <dt className="font-black uppercase tracking-widest text-fn-accent mb-1">Email</dt>
                 <dd className="font-bold text-fn-accent truncate">{email}</dd>
               </div>
             )}
           </dl>
           <div className="mt-8 rounded-xl bg-fn-accent/10 p-4 border border-fn-accent/20">
-            <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Neural Rationale</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Why this makes sense</p>
             <p className="text-[10px] text-fn-muted leading-relaxed">
-              Based on your {experience.toLowerCase()} status, we are calibrating a {goal.toLowerCase()} protocol focused on {location.toLowerCase()} execution {days.toLowerCase()}.
+              Based on your {experience.toLowerCase()} experience level, we are shaping a {goal.toLowerCase()} plan for {location.toLowerCase()} training {days.toLowerCase()}.
             </p>
           </div>
         </Card>

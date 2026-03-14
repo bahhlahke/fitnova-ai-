@@ -24,6 +24,7 @@ export default function WorkoutLogPage() {
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [editWorkoutData, setEditWorkoutData] = useState<{ type: string; duration: string; notes: string }>({ type: "strength", duration: "", notes: "" });
   const [workoutSaveStatus, setWorkoutSaveStatus] = useState<"idle" | "saving" | "error">("idle");
+  const [feedback, setFeedback] = useState<{ tone: "success" | "error"; message: string } | null>(null);
 
   const fetchWorkouts = useCallback(() => {
     const supabase = createClient();
@@ -64,8 +65,13 @@ export default function WorkoutLogPage() {
   async function handleSaveWorkoutEdit(e: React.FormEvent, log_id: string) {
     e.preventDefault();
     setWorkoutSaveStatus("saving");
+    setFeedback(null);
     const supabase = createClient();
-    if (!supabase) return;
+    if (!supabase) {
+      setWorkoutSaveStatus("error");
+      setFeedback({ tone: "error", message: "Workout updates are unavailable because Supabase is not configured." });
+      return;
+    }
     const durationNum = editWorkoutData.duration.trim() ? parseInt(editWorkoutData.duration, 10) : null;
     const { error } = await supabase.from("workout_logs").update({
       workout_type: editWorkoutData.type,
@@ -75,6 +81,7 @@ export default function WorkoutLogPage() {
 
     if (error) {
       setWorkoutSaveStatus("error");
+      setFeedback({ tone: "error", message: error.message });
       return;
     }
 
@@ -86,6 +93,7 @@ export default function WorkoutLogPage() {
     } : w));
     setWorkoutSaveStatus("idle");
     setEditingWorkoutId(null);
+    setFeedback({ tone: "success", message: "Workout updated. Your recent sessions list is now current." });
   }
 
   return (
@@ -109,8 +117,8 @@ export default function WorkoutLogPage() {
         </Link>
 
         <Card>
-          <CardHeader title="Intelligence Insight" subtitle="Contextual coaching signals" />
-          <p className="mt-4 text-base font-medium text-fn-ink/40 leading-relaxed uppercase tracking-widest">Optimized performance metrics suggest maintaining core volume with high-intensity finishers.</p>
+          <CardHeader title="Coach&apos;s Take" subtitle="Plain-English guidance for today&apos;s session" />
+          <p className="mt-4 text-base font-medium text-fn-ink/40 leading-relaxed uppercase tracking-widest">Keep the main lifts steady today, then finish with one shorter hard effort if your energy still feels good.</p>
           <div className="mt-8 flex flex-wrap gap-4">
             <Link href="/motion">
               <Button variant="secondary" size="sm">Motion Lab</Button>
@@ -124,20 +132,38 @@ export default function WorkoutLogPage() {
         </Card>
       </div>
 
+      {feedback && (
+        <div
+          className={`mt-4 rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
+            feedback.tone === "success"
+              ? "border-fn-accent/20 bg-fn-accent/5 text-fn-muted"
+              : "border-red-500/20 bg-red-500/5 text-red-200"
+          }`}
+        >
+          {feedback.message}
+        </div>
+      )}
+
       <Card className="mt-4" padding="lg">
-        <CardHeader title="System Session Log" subtitle="Capture completions for adaptive recalibration" />
+        <CardHeader title="Quick Workout Log" subtitle="Save the session so your dashboard, plan, and progress stay current" />
         <WorkoutQuickForm
           onSuccess={() => {
             setRefetch((n) => n + 1);
             emitDataRefresh(["dashboard", "workout"]);
             setPostWorkoutInsight(null);
             setPostWorkoutInsightLoading(true);
+            setFeedback({ tone: "success", message: "Workout saved. Koda is updating your dashboard and recap now." });
             fetch("/api/v1/ai/post-workout-insight", { method: "POST" })
               .then((r) => r.json())
               .then((body: { insight?: string | null }) => {
                 if (body.insight && typeof body.insight === "string") setPostWorkoutInsight(body.insight);
               })
-              .catch(() => { })
+              .catch(() => {
+                setFeedback({
+                  tone: "success",
+                  message: "Workout saved. The AI recap is unavailable right now, but your dashboard still updated.",
+                });
+              })
               .finally(() => setPostWorkoutInsightLoading(false));
             fetch("/api/v1/analytics/process-prs", { method: "POST" }).catch(() => { });
           }}
@@ -221,19 +247,24 @@ export default function WorkoutLogPage() {
                         </button>
                         <button
                           onClick={async () => {
+                            setFeedback(null);
                             const supabase = createClient();
-                            if (!supabase) return;
+                            if (!supabase) {
+                              setFeedback({ tone: "error", message: "Workout deletion is unavailable because Supabase is not configured." });
+                              return;
+                            }
                             const { data: { user } } = await supabase.auth.getUser();
                             if (!user) {
-                              // User not logged in, cannot delete.
-                              // In a real app, you might show a message or redirect to login.
-                              console.warn("User not logged in, cannot delete workout.");
+                              setFeedback({ tone: "error", message: "Sign in to delete this workout." });
                               return;
                             }
                             const { error } = await supabase.from("workout_logs").delete().eq("log_id", w.log_id);
                             if (!error) {
                               setWorkouts(prev => prev.filter(item => item.log_id !== w.log_id));
                               emitDataRefresh(["dashboard", "workout"]);
+                              setFeedback({ tone: "success", message: "Workout removed from your history." });
+                            } else {
+                              setFeedback({ tone: "error", message: error.message });
                             }
                           }}
                           className="p-2 text-fn-ink/40 hover:bg-fn-danger/10 hover:text-fn-danger rounded-lg transition-all"
@@ -395,7 +426,7 @@ function WorkoutQuickForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
         <div>
           <div className="flex justify-between items-end mb-2">
-            <Label>Intensity / RPE</Label>
+            <Label>How hard it felt (RPE 1-10)</Label>
             <span className={`text-xs font-bold ${notes ? "text-fn-accent" : "text-fn-muted"}`}>{notes ? `${notes}/10` : "Select 1-10"}</span>
           </div>
           <div className="flex items-center gap-3 bg-fn-surface border border-fn-border rounded-xl px-4 py-3">

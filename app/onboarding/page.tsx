@@ -19,7 +19,7 @@ import {
 import { normalizePhoneNumber } from "@/lib/phone";
 
 const steps = [
-  { id: "stats", label: "Stats" },
+  { id: "stats", label: "Your body metrics" },
   { id: "goals", label: "Goals" },
   { id: "identity", label: "Identity" },
   { id: "injuries", label: "Injuries" },
@@ -285,9 +285,34 @@ export default function OnboardingPage() {
 
               {steps[currentStep].id === "stats" && (
                 <div className="mt-4 space-y-0">
+                  <div className="mb-4 rounded-2xl border border-fn-accent/10 bg-fn-accent/5 px-4 py-3 text-sm leading-relaxed text-fn-muted">
+                    These details help Koda size your workouts, nutrition targets, and recovery guidance correctly. You can update them later in Settings.
+                  </div>
+                  <div className="mb-4 grid gap-3 sm:grid-cols-3">
+                    {[
+                      {
+                        title: "Age and sex",
+                        detail: "Used to tune recovery guidance, safety ranges, and training adjustments.",
+                      },
+                      {
+                        title: "Height and weight",
+                        detail: "Used to estimate calorie targets, strength ranges, and progress trends.",
+                      },
+                      {
+                        title: "Phone number",
+                        detail: "Optional. Only add it if you want text reminders and account alerts.",
+                      },
+                    ].map((item) => (
+                      <div key={item.title} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent">{item.title}</p>
+                        <p className="mt-2 text-xs leading-relaxed text-fn-muted">{item.detail}</p>
+                      </div>
+                    ))}
+                  </div>
                   <label className={labelClass}>Name</label>
                   <input type="text" value={stats.name} onChange={(e) => setStats((s) => ({ ...s, name: e.target.value }))} className={inputClass} placeholder="Your name" />
-                  <label className={labelClass}>Phone number (optional)</label>
+                  <label className={labelClass}>Phone number (optional, for text reminders)</label>
+                  <p className="mt-1 text-xs leading-relaxed text-fn-muted">Add this only if you want workout reminders, accountability nudges, and account alerts by text. You can skip it.</p>
                   <input type="tel" value={stats.phone} onChange={(e) => setStats((s) => ({ ...s, phone: e.target.value }))} className={inputClass} placeholder="+15551234567" />
 
                   {stats.phone && (
@@ -311,14 +336,16 @@ export default function OnboardingPage() {
 
                   <label className={labelClass}>Age</label>
                   <input type="number" value={stats.age} onChange={(e) => setStats((s) => ({ ...s, age: e.target.value }))} className={inputClass} placeholder="25" min={13} max={120} />
-                  <label className={labelClass}>Sex</label>
+                  <p className="mt-1 text-xs leading-relaxed text-fn-muted">Age helps Koda scale recovery and training recommendations to your stage of life.</p>
+                  <label className={labelClass}>Sex used for plan adjustments</label>
                   <select value={stats.sex} onChange={(e) => setStats((s) => ({ ...s, sex: e.target.value }))} className={inputClass}>
                     <option value="">Select</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                     <option value="other">Other</option>
                   </select>
-                  <label className={labelClass}>Units</label>
+                  <p className="mt-1 text-xs leading-relaxed text-fn-muted">This helps Koda choose the right training and nutrition ranges for you.</p>
+                  <label className={labelClass}>How you want to see height and weight</label>
                   <select value={unitSystem} onChange={(e) => setUnitSystem(e.target.value === "metric" ? "metric" : "imperial")} className={inputClass}>
                     <option value="imperial">in / lbs</option>
                     <option value="metric">cm / kg</option>
@@ -341,6 +368,7 @@ export default function OnboardingPage() {
                     className={inputClass}
                     placeholder={unitSystem === "imperial" ? "154" : "70"}
                   />
+                  <p className="mt-1 text-xs leading-relaxed text-fn-muted">Koda uses height and weight to set calorie targets and show progress clearly over time.</p>
                 </div>
               )}
 

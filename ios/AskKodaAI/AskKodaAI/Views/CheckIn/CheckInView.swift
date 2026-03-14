@@ -29,6 +29,10 @@ struct CheckInView: View {
         return KodaDataService(client: auth.supabaseClient, userId: uid)
     }
 
+    private var api: KodaAPIService {
+        KodaAPIService(getAccessToken: { await auth.accessToken })
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -54,98 +58,11 @@ struct CheckInView: View {
                         adherenceCard
                     }
 
-                    if let err = errorMessage {
-                        HStack(spacing: 10) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(Brand.Color.danger)
-                            Text(err)
-                                .font(.caption)
-                                .foregroundStyle(Brand.Color.danger)
-                        }
-                        .padding(14)
-                        .background(Brand.Color.danger.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-
-                    if saved {
-                        VStack(spacing: 16) {
-                            HStack(spacing: 10) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(Brand.Color.success)
-                                Text("Check-in saved.")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(Brand.Color.success)
-                            }
-                            .padding(.horizontal, 16)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                            if energyScore <= 3 && pivotMessage == nil {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        Circle().fill(Brand.Color.warning).frame(width: 8, height: 8)
-                                        Text("RECOVERY PIVOT RECOMMENDED")
-                                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                                            .foregroundStyle(Brand.Color.warning)
-                                    }
-
-                                    Text("Your energy is red-lined. Tap below to pivot today's protocol to active recovery.")
-                                        .font(.caption)
-                                        .foregroundStyle(Brand.Color.muted)
-
-                                    Button {
-                                        Task { await pivotPlan() }
-                                    } label: {
-                                        if pivotLoading {
-                                            ProgressView().tint(Brand.Color.accent)
-                                        } else {
-                                            Text("Pivot Protocol Now")
-                                                .font(.caption.weight(.black))
-                                                .uppercase()
-                                                .foregroundStyle(Brand.Color.accent)
-                                        }
-                                    }
-                                    .padding(.vertical, 10)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Brand.Color.accent.opacity(0.1))
-                                    .clipShape(Capsule())
-                                    .overlay(Capsule().stroke(Brand.Color.accent.opacity(0.3), lineWidth: 1))
-                                }
-                                .padding(16)
-                                .background(Brand.Color.surfaceRaised)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.Color.warning.opacity(0.2), lineWidth: 1))
-                            }
-
-                            if let msg = pivotMessage {
-                                Text(msg)
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(Brand.Color.accent)
-                                    .padding(12)
-                                    .background(Brand.Color.accent.opacity(0.1))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
-                        }
-                        .padding(.vertical, 16)
-                        .background(Brand.Color.surfaceRaised.opacity(0.5))
-                        .clipShape(RoundedRectangle(cornerRadius: 20))
-                    }
+                    errorSection
+                    recoveryPivotSection
 
                     if !loading {
-                        Button {
-                            Task { await save() }
-                        } label: {
-                            if saving {
-                                HStack(spacing: 10) {
-                                    ProgressView().tint(.black).scaleEffect(0.85)
-                                    Text("Saving…")
-                                }
-                            } else {
-                                Text(alreadyCheckedIn ? "Update Check-in" : "Save Check-in")
-                            }
-                        }
-                        .buttonStyle(PremiumActionButtonStyle())
-                        .disabled(saving)
-                        .padding(.top, 4)
+                        submitButton
                     }
                 }
                 .padding(.horizontal, 16)
@@ -155,6 +72,124 @@ struct CheckInView: View {
             .navigationTitle("Check-in")
             .navigationBarTitleDisplayMode(.inline)
             .task { await loadExistingCheckIn() }
+        }
+    }
+
+    @ViewBuilder
+    private var recoveryPivotSection: some View {
+        if saved {
+            VStack(spacing: 16) {
+                savedStatusHeader
+                
+                if energyScore <= 3 && pivotMessage == nil {
+                    pivotRecommendationCard
+                }
+
+                if let msg = pivotMessage {
+                    pivotFeedbackToast(msg)
+                }
+            }
+            .padding(.vertical, 16)
+            .background(Brand.Color.surfaceRaised.opacity(0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+    }
+
+    private var savedStatusHeader: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(Brand.Color.success)
+            Text("Check-in saved.")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Brand.Color.success)
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var pivotRecommendationCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Circle().fill(Brand.Color.warning).frame(width: 8, height: 8)
+                Text("RECOVERY PIVOT RECOMMENDED")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(Brand.Color.warning)
+            }
+
+            Text("Your energy is red-lined. Tap below to pivot today's protocol to active recovery.")
+                .font(.caption)
+                .foregroundStyle(Brand.Color.muted)
+
+            Button {
+                Task { await pivotPlan() }
+            } label: {
+                pivotButtonContent
+            }
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(Brand.Color.accent.opacity(0.1))
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(Brand.Color.accent.opacity(0.3), lineWidth: 1))
+        }
+        .padding(16)
+        .background(Brand.Color.surfaceRaised)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.Color.warning.opacity(0.2), lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private var pivotButtonContent: some View {
+        if pivotLoading {
+            ProgressView().tint(Brand.Color.accent)
+        } else {
+            Text("Pivot Protocol Now")
+                .font(.caption.weight(.black))
+                .textCase(.uppercase)
+                .foregroundStyle(Brand.Color.accent)
+        }
+    }
+
+    private func pivotFeedbackToast(_ msg: String) -> some View {
+        Text(msg)
+            .font(.caption.weight(.bold))
+            .foregroundStyle(Brand.Color.accent)
+            .padding(12)
+            .background(Brand.Color.accent.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    @ViewBuilder
+    private var submitButton: some View {
+        Button {
+            Task { await save() }
+        } label: {
+            if saving {
+                HStack(spacing: 10) {
+                    ProgressView().tint(.black).scaleEffect(0.85)
+                    Text("Saving…")
+                }
+            } else {
+                Text(alreadyCheckedIn ? "Update Check-in" : "Save Check-in")
+            }
+        }
+        .buttonStyle(PremiumActionButtonStyle())
+        .disabled(saving)
+        .padding(.top, 4)
+    }
+
+    @ViewBuilder
+    private var errorSection: some View {
+        if let err = errorMessage {
+            HStack(spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(Brand.Color.danger)
+                Text(err)
+                    .font(.caption)
+                    .foregroundStyle(Brand.Color.danger)
+            }
+            .padding(14)
+            .background(Brand.Color.danger.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
         }
     }
 
@@ -469,7 +504,15 @@ struct CheckInView: View {
         errorMessage = nil
         defer { pivotLoading = false }
         do {
-            _ = try await api.planAdaptDay(userMessage: "Low energy recovery pivot. Adjust for high fatigue.")
+            _ = try await api.planAdaptDay(
+                userMessage: "Low energy recovery pivot. Adjust for high fatigue.",
+                focus: "Recovery",
+                intensity: "low",
+                targetDuration: 30,
+                goals: [],
+                currentExercises: [],
+                dateLocal: DateHelpers.todayLocal
+            )
             await MainActor.run {
                 pivotMessage = "Protocol adapted. New objective: Recovery."
                 NotificationCenter.default.post(name: NSNotification.Name("DashboardDataChanged"), object: nil)

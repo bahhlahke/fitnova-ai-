@@ -30,7 +30,8 @@ Native iOS client for Koda AI. Uses the same Supabase backend and Next.js API as
 
 - **In Xcode:** **Product → Test** (⌘U). Ensure **AskKodaAITests** is in the scheme’s Test action.
 - **From repo root (terminal):** `npm run test:ios` (or `npm run test:ai-review:ios` / `npm run test:ios:ready` for AI review and production gate). The script uses a single simulator (iPhone 17); **run only one iOS test job at a time** on resource-limited machines.
-- **Surface smoke pass:** `npm run test:ios:surfaces` builds the app, launches each major screen in deterministic **demo mode**, captures a state matrix (primary plus loading/empty/error variants where relevant) on `iPhone 17`, runs a tighter layout sanity pass on `iPhone 16e`, and writes a report to `docs/reports/ios-surface-smoke-<timestamp>/SUMMARY.md`.
+- **Surface smoke pass:** `npm run test:ios:surfaces` builds the app, launches each major screen in deterministic **demo mode**, captures a state matrix (primary plus loading/empty/error variants where relevant) on `iPhone 17`, runs a tighter layout sanity pass on `iPhone 16e`, and writes both `SUMMARY.md` and `manifest.json` to `docs/reports/ios-surface-smoke-<timestamp>/`.
+- **Cross-platform UI validation:** `npm run validate:ui:ai` reuses the iOS surface smoke output alongside web surface captures, then asks a multimodal AI judge to assess production readiness across multiple personas with different proficiency levels.
 - **If tests crash before running** (e.g. “Early unexpected exit” / “signal trap”): the test host is the app; it must launch successfully. Run `node scripts/generate-ios-env.mjs` from repo root so `ios/AskKodaAI/Config/Generated.xcconfig` exists with valid values from `.env.local`, then build and run the app once (⌘R) to confirm it launches, then run tests again.
 
 ---
@@ -118,11 +119,12 @@ Before release or CI “production ready” gate:
 2. **Build:** `xcodebuild -scheme AskKodaAI -destination 'platform=iOS Simulator,name=iPhone 17' build` succeeds.
 3. **Run:** App launches in simulator or device; auth screen or main UI appears (no white screen); magic link or Sign in with Apple works.
 4. **Tests:** Unit tests (DateHelpers, APIModels, DataModels, ProductionReadiness) pass. If the test host crashes, ensure `Generated.xcconfig` exists and the app launches when run directly.
-5. **Surface QA:** `npm run test:ios:surfaces` completes and the generated screenshots do not show blank, clipped, or obviously broken screens.
-6. **Device validations:** Validate Apple Health permissions/sync on a physical iPhone, validate Spotify playback controls with a linked account and active playback device, and verify Motion Lab realtime local pose analysis on supported hardware with Low Power Mode off.
-7. **Secrets:** No real keys committed; `ios/AskKodaAI/Config/Generated.xcconfig` is in `.gitignore`.
-8. **HTTPS:** Production builds use HTTPS for API and Supabase URLs.
-9. **Feature parity:** See “Feature parity with web” and `docs/IOS-PARITY-MAP.md` for coverage.
+5. **Surface QA:** `npm run test:ios:surfaces` completes, the generated screenshots do not show blank, clipped, or obviously broken screens, and `manifest.json` is present for downstream review tooling.
+6. **Cross-platform UX QA:** `npm run validate:ui:ai --fail-if-not-ready` does not report blocked workflows for iOS or web.
+7. **Device validations:** Validate Apple Health permissions/sync on a physical iPhone, validate Spotify playback controls with a linked account and active playback device, and verify Motion Lab realtime local pose analysis on supported hardware with Low Power Mode off.
+8. **Secrets:** No real keys committed; `ios/AskKodaAI/Config/Generated.xcconfig` is in `.gitignore`.
+9. **HTTPS:** Production builds use HTTPS for API and Supabase URLs.
+10. **Feature parity:** See “Feature parity with web” and `docs/IOS-PARITY-MAP.md` for coverage.
 
 ## Feature parity with web
 
@@ -161,6 +163,8 @@ The debug launcher and surface smoke harness use these environment variables:
 - `E2E_VARIANT` — optional extra variant channel; the smoke harness currently mirrors the scenario value here
 
 In demo mode, the app uses stable profile, plan, workout, nutrition, community, and coach fixtures so simulator QA can focus on layout and polish instead of login or backend state.
+
+The surface smoke runner now also writes `manifest.json` next to `SUMMARY.md` so downstream QA tools can reason over exact simulator, surface, scenario, and screenshot evidence without scraping Markdown.
 
 ## Unit tests and AI review
 

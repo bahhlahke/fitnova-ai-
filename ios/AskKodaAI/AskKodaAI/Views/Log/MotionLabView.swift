@@ -366,7 +366,7 @@ struct MotionLabView: View {
                 onComplete: { summary in
                     result = summary.response
                     Task {
-                        await Telemetry.track("ios_cv_realtime_session_completed", props: realtimeTelemetry(for: summary))
+                        await Telemetry.track(.cvRealtimeSessionCompleted, props: realtimeTelemetry(for: summary))
                     }
                 }
             )
@@ -420,13 +420,13 @@ struct MotionLabView: View {
         Task {
             do {
                 let res = try await motionAnalysis.analyze(images: imageDataUrls, configuration: MotionSessionConfiguration(pattern: selectedPattern))
-                await Telemetry.track("ios_cv_analysis_completed", props: analysisTelemetry(for: res))
+                await Telemetry.track(.cvAnalysisCompleted, props: analysisTelemetry(for: res))
                 await MainActor.run {
                     result = res
                     analyzing = false
                 }
             } catch {
-                await Telemetry.track("ios_cv_analysis_failed", props: [
+                await Telemetry.track(.cvAnalysisFailed, props: [
                     "requested_frames": imageDataUrls.count,
                     "error": (error as? LocalizedError)?.errorDescription ?? error.localizedDescription,
                 ])

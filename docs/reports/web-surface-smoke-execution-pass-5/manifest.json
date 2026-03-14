@@ -1,0 +1,2096 @@
+{
+  "app": "web",
+  "generatedAt": "2026-03-14T02:45:33.904Z",
+  "baseUrl": "http://localhost:3003",
+  "authBootstrapPath": "/api/v1/auth/mock-login?next=/",
+  "results": [
+    {
+      "app": "web",
+      "workflowId": "acquisition",
+      "surfaceId": "landing",
+      "title": "Landing page",
+      "route": "/",
+      "requiresAuth": false,
+      "notes": "Signed-out first impression and value proposition.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": false,
+        "success": false,
+        "finalUrl": "",
+        "message": "No auth bootstrap required.",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/landing.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/landing.png",
+      "finalUrl": "http://localhost:3003/",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 48,
+      "textPreview": "Skip to main content Preparing your dashboard...",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456221898"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456221898"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": false,
+      "error": "text too short (48)"
+    },
+    {
+      "app": "web",
+      "workflowId": "acquisition",
+      "surfaceId": "assessment",
+      "title": "Assessment start",
+      "route": "/start",
+      "requiresAuth": false,
+      "notes": "Entry into the quiz-first acquisition funnel.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": false,
+        "success": false,
+        "finalUrl": "",
+        "message": "No auth bootstrap required.",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/assessment.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/assessment.png",
+      "finalUrl": "http://localhost:3003/start",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 672,
+      "textPreview": "Skip to main content Quick assessment Build Your Legend Step 01 / 07 What is your primary goal right now? Weight lossThis choice helps Koda shape your first plan.Muscle gainThis choice helps Koda shape your first plan.MobilityThis choice helps Koda shape your first plan.General fitnessThis choice helps Koda shape your first plan. BackNext Personalized coaching preview Your choices so far These answers shape your first plan Target Goal Weight loss Experience Level Beginner Frequency 3 days Environment Gym Nutrition Focus Calorie control Why this makes sense Based on your beginner experience level, we are shaping a weight loss plan for gym training 3 days.",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456224995"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456224995"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/start/page.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "acquisition",
+      "surfaceId": "auth",
+      "title": "Authentication",
+      "route": "/auth",
+      "requiresAuth": false,
+      "notes": "Sign-in and account continuation screen.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": false,
+        "success": false,
+        "finalUrl": "",
+        "message": "No auth bootstrap required.",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/auth.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/auth.png",
+      "finalUrl": "http://localhost:3003/auth",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 949,
+      "textPreview": "Skip to main content Continue your personalized plan Create your Koda AI coaching account You are one step away from adaptive workouts, nutrition targets, and in-app accountability. Sign in once and Koda will bring you back to the right next step, whether that is finishing setup, starting today's workout, or logging your first meal. Continue with Google[DEV] Bypass Login EmailSend magic link AI guidance is educational and does not replace medical care. What happens next Here is the exact flow after you sign in so there are no surprises. Step 1 Verify your account Use Google or your email link to sign in securely. Step 2 Open your dashboard See your next best step, whether that is today’s workout, meal log, or check-in. Step 3 Complete one first action Start a workout, log a meal, or finish a quick check-in so Koda can coach you from real data. You will land on open your dashboard after sign-in. Route: / Back to home",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456227612"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/auth/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456227612"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "onboarding",
+      "surfaceId": "onboarding",
+      "title": "Onboarding",
+      "route": "/onboarding?resume=1",
+      "requiresAuth": true,
+      "notes": "Post-auth setup and profile calibration.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/onboarding.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/onboarding.png",
+      "finalUrl": "http://localhost:3003/onboarding?resume=1",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 1244,
+      "textPreview": "Skip to main content Onboarding Build your AI coaching profile This takes about two minutes and helps tailor workouts, nutrition, and safety adjustments. Step 1 of 7: Your body metrics Your body metrics These details help Koda size your workouts, nutrition targets, and recovery guidance correctly. You can update them later in Settings. Age and sex Used to tune recovery guidance, safety ranges, and training adjustments. Height and weight Used to estimate calorie targets, strength ranges, and progress trends. Phone number Optional. Only add it if you want text reminders and account alerts. NamePhone number (optional)Age Age helps Koda scale recovery and training recommendations to your stage of life. Sex used for plan adjustments Select Male Female Other This helps Koda choose the right training and nutrition ranges for you. How you want to see height and weight in / lbs cm / kg Height (in)Weight (lb) Koda uses height and weight to set calorie targets and show progress clearly over time. Next What you unlock Adaptive daily plan based on your goals and schedule Nutrition targets tuned to your progress trend Safety-aware alternatives for injuries and low-energy days Educational AI coa…",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456230470"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456230470"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/onboarding/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "dashboard",
+      "surfaceId": "dashboard",
+      "title": "Dashboard AI command center",
+      "route": "/?focus=ai",
+      "requiresAuth": true,
+      "notes": "Returning user cockpit with readiness, plan, AI, and retention surfaces.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/dashboard.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/dashboard.png",
+      "finalUrl": "http://localhost:3003/?focus=ai",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 48,
+      "textPreview": "Skip to main content Preparing your dashboard...",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456233348"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456233348"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": false,
+      "error": "text too short (48)"
+    },
+    {
+      "app": "web",
+      "workflowId": "planning",
+      "surfaceId": "plan",
+      "title": "Weekly plan",
+      "route": "/plan",
+      "requiresAuth": true,
+      "notes": "Weekly planning, adaptation, and daily execution context.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/plan.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/plan.png",
+      "finalUrl": "http://localhost:3003/plan",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 308,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining Plan NutritionWorkoutCheck-InProgressCommunityCoachSettings U Member Training Plan Your weekly schedule, today’s focus, and how to adjust it safely Composing your training plan... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456237029"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456237029"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/plan/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "workout",
+      "surfaceId": "log_workout",
+      "title": "Workout log",
+      "route": "/log/workout",
+      "requiresAuth": true,
+      "notes": "Quick logging and recent workout context.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/log_workout.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/log_workout.png",
+      "finalUrl": "http://localhost:3003/log/workout",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 968,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkout Check-InProgressCommunityCoachSettings U Member Workout Capture sessions and keep progression visible Coaching Protocol Initiate Coached Session Plan-aware sequence flow with neural guidance. Begin Guided Experience Coach's Take Plain-English guidance for today's session Keep the main lifts steady today, then finish with one shorter hard effort if your energy still feels good. Motion LabQuery Concierge Quick Workout Log Save the session so your dashboard, plan, and progress stay current Session type Strength Progressive overload Cardio Aerobic conditioning Mobility Movement quality Other Custom session Exercise Details (Optional) Duration (min) 15m30m45m60m How hard it felt (RPE 1-10)Select 1-10 LightMax Save workout Recent sessions Last 20 entries Loading... View historyAnalyze movement Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456240660"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456240660"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/log/workout/page.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "workout",
+      "surfaceId": "guided_workout",
+      "title": "Guided workout",
+      "route": "/log/workout/guided",
+      "requiresAuth": true,
+      "notes": "In-session execution, progression, and exercise adaptation flow.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/guided_workout.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/guided_workout.png",
+      "finalUrl": "http://localhost:3003/log/workout/guided",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 251,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkout Check-InProgressCommunityCoachSettings U Member Neural Initialization Calibrating session sequence... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456244015"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/log/workout/guided/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456244015"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "workout",
+      "surfaceId": "motion_lab",
+      "title": "Motion Lab",
+      "route": "/motion",
+      "requiresAuth": true,
+      "notes": "Form analysis and coaching feedback surface.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/motion_lab.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/motion_lab.png",
+      "finalUrl": "http://localhost:3003/motion",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 490,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunityCoachSettings U Member ← Workout Motion Lab Upload side-profile footage for biomechanical critique. Upload Footage MP4 or MOV. Keep it under 30 seconds for the cleanest scan. Select Video Neural Verdict Biomechanical integrity status Awaiting Data Upload a movement clip to activate the motion analysis system. Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456247358"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456247358"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/motion/page.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "nutrition",
+      "surfaceId": "nutrition",
+      "title": "Nutrition log",
+      "route": "/log/nutrition",
+      "requiresAuth": true,
+      "notes": "Meal logging, targets, and AI nutrition insights.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/nutrition.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/nutrition.png",
+      "finalUrl": "http://localhost:3003/log/nutrition",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 1160,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutrition WorkoutCheck-InProgressCommunityCoachSettings U Member Nutrition Log meals, track macros, and stay on target Log a meal Choose one: describe it, take a photo, or scan a barcode Fastest option: type a short description. Best estimate: use a clear top-down photo. Packaged food: scan the barcode. New here? Start with a short description like “Greek yogurt, berries, and granola”. You can adjust calories and macros before saving. 1. Choose the fastest method for this meal. 2. Review the AI estimate and edit anything that looks off. 3. Save the meal and Koda updates your daily targets right away. DescribePhotoBarcode Take a Photo Use a clear top-down shot for the best estimate Choose photo Tip: a clear top-down photo with good lighting gives the best results. View historyMeal PlannerFridge ScannerAsk AI on Dashboard Today's targets Based on logged meals 0 kcal Protein0g / 150g Carbs0g / — Fat0g / — Suggest next meal Hydration System Daily Target: 2.5 L 0.0L Intake Volume +0.25L+0.5L Loading... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456250847"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/log/nutrition/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456250847"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "progress",
+      "surfaceId": "progress",
+      "title": "Progress",
+      "route": "/progress",
+      "requiresAuth": true,
+      "notes": "Trend analysis, summaries, and progress check-ins.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/progress.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/progress.png",
+      "finalUrl": "http://localhost:3003/progress",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 603,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgress CommunityCoachSettings U Member Progress Track check-ins, see trends, and know what to do next How This Page Works 1. Add a check-in with weight, body fat, or notes. 2. Add another check-in after your next workout or later this week. 3. Koda updates your trend and coach summary here automatically. Add check-inAI body scan After you save a check-in, this page refreshes with your latest numbers, trend, and coach guidance. Loading... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456254479"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456254479"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/progress/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "progress",
+      "surfaceId": "check_in",
+      "title": "Daily check-in",
+      "route": "/check-in",
+      "requiresAuth": true,
+      "notes": "Recovery, adherence, and daily status entry.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/check_in.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/check_in.png",
+      "finalUrl": "http://localhost:3003/check-in",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 241,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-In ProgressCommunityCoachSettings U Member ← Back System Scan Initializing Bio-Sync... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456257855"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456257855"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/check-in/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "progress",
+      "surfaceId": "history",
+      "title": "History",
+      "route": "/history?tab=workouts",
+      "requiresAuth": true,
+      "notes": "Historical workout and nutrition evidence.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/history.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/history.png",
+      "finalUrl": "http://localhost:3003/history?tab=workouts",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 453,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunityCoachSettings U Member ← Workout History Past workouts and nutrition Evolutionary Performance Synthesis \"Synthesizing longitudinal data strands... Complete at least 5 sessions to establish a stable evolutionary baseline.\" Session LogsMetabolic Intake Loading... Back to Workout Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456260798"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456260798"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/history/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "community",
+      "surfaceId": "community",
+      "title": "Community",
+      "route": "/community",
+      "requiresAuth": true,
+      "notes": "Groups, challenges, and social motivation.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/community.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/community.png",
+      "finalUrl": "http://localhost:3003/community",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 677,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunity CoachSettings U Member Community Join challenges, find your group, and stay motivated with other members How Community Works 1. Join a challenge or group that matches your style. 2. Keep logging workouts, meals, or steps as usual. 3. Your standing updates as your activity is recorded. Manage Friends Live Challenges Join one challenge, keep logging, and your progress counts automatically Loading... Groups Pick a group that matches your style and stay accountable with people like you Loading... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456263462"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456263462"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/community/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "account",
+      "surfaceId": "settings",
+      "title": "Settings",
+      "route": "/settings",
+      "requiresAuth": true,
+      "notes": "Profile, preferences, billing, and account management.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/settings.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/settings.png",
+      "finalUrl": "http://localhost:3003/settings",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 258,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunityCoachSettings U Member Settings Profile, AI preferences, and data sources Loading... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456266295"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/settings/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456266295"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "account",
+      "surfaceId": "integrations",
+      "title": "Integrations",
+      "route": "/integrations",
+      "requiresAuth": true,
+      "notes": "Connected device and partner integrations.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/integrations.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/integrations.png",
+      "finalUrl": "http://localhost:3003/integrations",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 1426,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunityCoachSettings U Member Integrations & Devices Connect your wearables to supercharge your AI Coach with real biometric data Setup Instructions Link your device to start syncing in under 2 minutes 1 Copy your Koda ID This is your unique identifier, required to pair your wearable data. Loading...Copy 2 Open the Open Wearables Dashboard Sign in and paste your Koda ID into the \"User ID\" field when linking a device. OAuth authentication happens there — this is the genuine step that authorizes your wearable account. Launch Dashboard 3 Data syncs automatically Once connected, your device sends sleep, HRV, and activity data to Koda AI in real-time. The \"Active Sync\" badge below will appear only after real data is received. ⚠️ Apple Health / Apple Watch requires a manual export. Apple does not support direct cloud OAuth like Garmin or Oura. To sync Apple Health data, you must export it from the Health app and import it manually, or use a third-party bridge app. Learn how to export → Supported Devices Status reflects real data received — not just dashboard links Loading... Biometric data is proc…",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456269364"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456269364"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/integrations/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "account",
+      "surfaceId": "pricing",
+      "title": "Pricing",
+      "route": "/pricing",
+      "requiresAuth": true,
+      "notes": "Upgrade value communication and billing action clarity.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/pricing.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/pricing.png",
+      "finalUrl": "http://localhost:3003/pricing",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 971,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunityCoachSettings U Member Investment in Excellence Choose your protocol Scale your performance with precision-engineered coaching tiers. Standard 7-Day Trial Experience the full power of Koda AI for one week. Full Natural Language Logging Adaptive Daily Protocols Core Performance Analytics Single Device Sync Start Free Trial Most Advanced Pro $9.99/mo The gold standard for elite performance intelligence. Everything in Trial Predictive Progression Engine (1RM, PRs) Wearable Biometric Sync (SpO2, HRV, Sleep) Hormonal Cycle AI Coaching AI Motion Analysis Lab Metabolic Autopilot & Scanning Priority AI Inference Speed Go Pro (Includes Trial) “Koda AI isn't just an app; it's the silent partner in my pursuit of elite performance. The precision is unmatched.” Marcus V. Hyrox Elite Athlete Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456272227"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456272227"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/pricing/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "account",
+      "surfaceId": "coach_support",
+      "title": "Coach support",
+      "route": "/coach/escalate",
+      "requiresAuth": true,
+      "notes": "Human escalation and support workflow.",
+      "viewportId": "desktop",
+      "viewportLabel": "Desktop 1440",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "desktop",
+        "viewportLabel": "Desktop 1440"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/desktop/coach_support.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/desktop/coach_support.png",
+      "finalUrl": "http://localhost:3003/coach/escalate",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 544,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunityCoach Settings U Member ← Dashboard Coach Escalation Hybrid support for blockers, injury concerns, and plan complexity Request Coach Review Escalate when AI guidance needs human oversight Topic Urgency Low Normal High Preferred channel In-app SMS Email Details Submit escalation Recent Requests Track status of your escalation queue Loading... Return to Dashboard AI Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456274896"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456274896"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/coach/escalate/page.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "acquisition",
+      "surfaceId": "landing",
+      "title": "Landing page",
+      "route": "/",
+      "requiresAuth": false,
+      "notes": "Signed-out first impression and value proposition.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": false,
+        "success": false,
+        "finalUrl": "",
+        "message": "No auth bootstrap required.",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/landing.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/landing.png",
+      "finalUrl": "http://localhost:3003/",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 48,
+      "textPreview": "Skip to main content Preparing your dashboard...",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456281487"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456281487"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/page.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": false,
+      "error": "text too short (48)"
+    },
+    {
+      "app": "web",
+      "workflowId": "acquisition",
+      "surfaceId": "assessment",
+      "title": "Assessment start",
+      "route": "/start",
+      "requiresAuth": false,
+      "notes": "Entry into the quiz-first acquisition funnel.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": false,
+        "success": false,
+        "finalUrl": "",
+        "message": "No auth bootstrap required.",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/assessment.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/assessment.png",
+      "finalUrl": "http://localhost:3003/start",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 672,
+      "textPreview": "Skip to main content Quick assessment Build Your Legend Step 01 / 07 What is your primary goal right now? Weight lossThis choice helps Koda shape your first plan.Muscle gainThis choice helps Koda shape your first plan.MobilityThis choice helps Koda shape your first plan.General fitnessThis choice helps Koda shape your first plan. BackNext Personalized coaching preview Your choices so far These answers shape your first plan Target Goal Weight loss Experience Level Beginner Frequency 3 days Environment Gym Nutrition Focus Calorie control Why this makes sense Based on your beginner experience level, we are shaping a weight loss plan for gym training 3 days.",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456284154"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456284154"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/start/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "acquisition",
+      "surfaceId": "auth",
+      "title": "Authentication",
+      "route": "/auth",
+      "requiresAuth": false,
+      "notes": "Sign-in and account continuation screen.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": false,
+        "success": false,
+        "finalUrl": "",
+        "message": "No auth bootstrap required.",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/auth.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/auth.png",
+      "finalUrl": "http://localhost:3003/auth",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 949,
+      "textPreview": "Skip to main content Continue your personalized plan Create your Koda AI coaching account You are one step away from adaptive workouts, nutrition targets, and in-app accountability. Sign in once and Koda will bring you back to the right next step, whether that is finishing setup, starting today's workout, or logging your first meal. Continue with Google[DEV] Bypass Login EmailSend magic link AI guidance is educational and does not replace medical care. What happens next Here is the exact flow after you sign in so there are no surprises. Step 1 Verify your account Use Google or your email link to sign in securely. Step 2 Open your dashboard See your next best step, whether that is today’s workout, meal log, or check-in. Step 3 Complete one first action Start a workout, log a meal, or finish a quick check-in so Koda can coach you from real data. You will land on open your dashboard after sign-in. Route: / Back to home",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456286798"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456286798"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/auth/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "onboarding",
+      "surfaceId": "onboarding",
+      "title": "Onboarding",
+      "route": "/onboarding?resume=1",
+      "requiresAuth": true,
+      "notes": "Post-auth setup and profile calibration.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/onboarding.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/onboarding.png",
+      "finalUrl": "http://localhost:3003/onboarding?resume=1",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 1244,
+      "textPreview": "Skip to main content Onboarding Build your AI coaching profile This takes about two minutes and helps tailor workouts, nutrition, and safety adjustments. Step 1 of 7: Your body metrics Your body metrics These details help Koda size your workouts, nutrition targets, and recovery guidance correctly. You can update them later in Settings. Age and sex Used to tune recovery guidance, safety ranges, and training adjustments. Height and weight Used to estimate calorie targets, strength ranges, and progress trends. Phone number Optional. Only add it if you want text reminders and account alerts. NamePhone number (optional)Age Age helps Koda scale recovery and training recommendations to your stage of life. Sex used for plan adjustments Select Male Female Other This helps Koda choose the right training and nutrition ranges for you. How you want to see height and weight in / lbs cm / kg Height (in)Weight (lb) Koda uses height and weight to set calorie targets and show progress clearly over time. Next What you unlock Adaptive daily plan based on your goals and schedule Nutrition targets tuned to your progress trend Safety-aware alternatives for injuries and low-energy days Educational AI coa…",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456289293"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456289293"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/onboarding/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "dashboard",
+      "surfaceId": "dashboard",
+      "title": "Dashboard AI command center",
+      "route": "/?focus=ai",
+      "requiresAuth": true,
+      "notes": "Returning user cockpit with readiness, plan, AI, and retention surfaces.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/dashboard.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/dashboard.png",
+      "finalUrl": "http://localhost:3003/?focus=ai",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 48,
+      "textPreview": "Skip to main content Preparing your dashboard...",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456292192"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456292192"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": false,
+      "error": "text too short (48)"
+    },
+    {
+      "app": "web",
+      "workflowId": "planning",
+      "surfaceId": "plan",
+      "title": "Weekly plan",
+      "route": "/plan",
+      "requiresAuth": true,
+      "notes": "Weekly planning, adaptation, and daily execution context.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/plan.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/plan.png",
+      "finalUrl": "http://localhost:3003/plan",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 308,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining Plan NutritionWorkoutCheck-InProgressCommunityCoachSettings U Member Training Plan Your weekly schedule, today’s focus, and how to adjust it safely Composing your training plan... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456295661"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/plan/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456295661"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "workout",
+      "surfaceId": "log_workout",
+      "title": "Workout log",
+      "route": "/log/workout",
+      "requiresAuth": true,
+      "notes": "Quick logging and recent workout context.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/log_workout.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/log_workout.png",
+      "finalUrl": "http://localhost:3003/log/workout",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 968,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkout Check-InProgressCommunityCoachSettings U Member Workout Capture sessions and keep progression visible Coaching Protocol Initiate Coached Session Plan-aware sequence flow with neural guidance. Begin Guided Experience Coach's Take Plain-English guidance for today's session Keep the main lifts steady today, then finish with one shorter hard effort if your energy still feels good. Motion LabQuery Concierge Quick Workout Log Save the session so your dashboard, plan, and progress stay current Session type Strength Progressive overload Cardio Aerobic conditioning Mobility Movement quality Other Custom session Exercise Details (Optional) Duration (min) 15m30m45m60m How hard it felt (RPE 1-10)Select 1-10 LightMax Save workout Recent sessions Last 20 entries Loading... View historyAnalyze movement Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456298951"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456298951"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/log/workout/page.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "workout",
+      "surfaceId": "guided_workout",
+      "title": "Guided workout",
+      "route": "/log/workout/guided",
+      "requiresAuth": true,
+      "notes": "In-session execution, progression, and exercise adaptation flow.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/guided_workout.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/guided_workout.png",
+      "finalUrl": "http://localhost:3003/log/workout/guided",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 251,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkout Check-InProgressCommunityCoachSettings U Member Neural Initialization Calibrating session sequence... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456302075"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456302075"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/log/workout/guided/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "workout",
+      "surfaceId": "motion_lab",
+      "title": "Motion Lab",
+      "route": "/motion",
+      "requiresAuth": true,
+      "notes": "Form analysis and coaching feedback surface.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/motion_lab.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/motion_lab.png",
+      "finalUrl": "http://localhost:3003/motion",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 490,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunityCoachSettings U Member ← Workout Motion Lab Upload side-profile footage for biomechanical critique. Upload Footage MP4 or MOV. Keep it under 30 seconds for the cleanest scan. Select Video Neural Verdict Biomechanical integrity status Awaiting Data Upload a movement clip to activate the motion analysis system. Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456305154"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456305154"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/motion/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "nutrition",
+      "surfaceId": "nutrition",
+      "title": "Nutrition log",
+      "route": "/log/nutrition",
+      "requiresAuth": true,
+      "notes": "Meal logging, targets, and AI nutrition insights.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/nutrition.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/nutrition.png",
+      "finalUrl": "http://localhost:3003/log/nutrition",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 1160,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutrition WorkoutCheck-InProgressCommunityCoachSettings U Member Nutrition Log meals, track macros, and stay on target Log a meal Choose one: describe it, take a photo, or scan a barcode Fastest option: type a short description. Best estimate: use a clear top-down photo. Packaged food: scan the barcode. New here? Start with a short description like “Greek yogurt, berries, and granola”. You can adjust calories and macros before saving. 1. Choose the fastest method for this meal. 2. Review the AI estimate and edit anything that looks off. 3. Save the meal and Koda updates your daily targets right away. DescribePhotoBarcode Take a Photo Use a clear top-down shot for the best estimate Choose photo Tip: a clear top-down photo with good lighting gives the best results. View historyMeal PlannerFridge ScannerAsk AI on Dashboard Today's targets Based on logged meals 0 kcal Protein0g / 150g Carbs0g / — Fat0g / — Suggest next meal Hydration System Daily Target: 2.5 L 0.0L Intake Volume +0.25L+0.5L Loading... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456308225"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456308225"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/log/nutrition/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "progress",
+      "surfaceId": "progress",
+      "title": "Progress",
+      "route": "/progress",
+      "requiresAuth": true,
+      "notes": "Trend analysis, summaries, and progress check-ins.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/progress.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/progress.png",
+      "finalUrl": "http://localhost:3003/progress",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 603,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgress CommunityCoachSettings U Member Progress Track check-ins, see trends, and know what to do next How This Page Works 1. Add a check-in with weight, body fat, or notes. 2. Add another check-in after your next workout or later this week. 3. Koda updates your trend and coach summary here automatically. Add check-inAI body scan After you save a check-in, this page refreshes with your latest numbers, trend, and coach guidance. Loading... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456311336"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456311336"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/progress/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "progress",
+      "surfaceId": "check_in",
+      "title": "Daily check-in",
+      "route": "/check-in",
+      "requiresAuth": true,
+      "notes": "Recovery, adherence, and daily status entry.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/check_in.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/check_in.png",
+      "finalUrl": "http://localhost:3003/check-in",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 241,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-In ProgressCommunityCoachSettings U Member ← Back System Scan Initializing Bio-Sync... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456314428"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456314428"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/check-in/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "progress",
+      "surfaceId": "history",
+      "title": "History",
+      "route": "/history?tab=workouts",
+      "requiresAuth": true,
+      "notes": "Historical workout and nutrition evidence.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/history.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/history.png",
+      "finalUrl": "http://localhost:3003/history?tab=workouts",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 453,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunityCoachSettings U Member ← Workout History Past workouts and nutrition Evolutionary Performance Synthesis \"Synthesizing longitudinal data strands... Complete at least 5 sessions to establish a stable evolutionary baseline.\" Session LogsMetabolic Intake Loading... Back to Workout Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456317101"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/history/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456317101"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "community",
+      "surfaceId": "community",
+      "title": "Community",
+      "route": "/community",
+      "requiresAuth": true,
+      "notes": "Groups, challenges, and social motivation.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/community.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/community.png",
+      "finalUrl": "http://localhost:3003/community",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 677,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunity CoachSettings U Member Community Join challenges, find your group, and stay motivated with other members How Community Works 1. Join a challenge or group that matches your style. 2. Keep logging workouts, meals, or steps as usual. 3. Your standing updates as your activity is recorded. Manage Friends Live Challenges Join one challenge, keep logging, and your progress counts automatically Loading... Groups Pick a group that matches your style and stay accountable with people like you Loading... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456319745"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456319745"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/community/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "account",
+      "surfaceId": "settings",
+      "title": "Settings",
+      "route": "/settings",
+      "requiresAuth": true,
+      "notes": "Profile, preferences, billing, and account management.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/settings.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/settings.png",
+      "finalUrl": "http://localhost:3003/settings",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 258,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunityCoachSettings U Member Settings Profile, AI preferences, and data sources Loading... Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456322619"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456322619"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/settings/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "account",
+      "surfaceId": "integrations",
+      "title": "Integrations",
+      "route": "/integrations",
+      "requiresAuth": true,
+      "notes": "Connected device and partner integrations.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/integrations.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/integrations.png",
+      "finalUrl": "http://localhost:3003/integrations",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 1426,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunityCoachSettings U Member Integrations & Devices Connect your wearables to supercharge your AI Coach with real biometric data Setup Instructions Link your device to start syncing in under 2 minutes 1 Copy your Koda ID This is your unique identifier, required to pair your wearable data. Loading...Copy 2 Open the Open Wearables Dashboard Sign in and paste your Koda ID into the \"User ID\" field when linking a device. OAuth authentication happens there — this is the genuine step that authorizes your wearable account. Launch Dashboard 3 Data syncs automatically Once connected, your device sends sleep, HRV, and activity data to Koda AI in real-time. The \"Active Sync\" badge below will appear only after real data is received. ⚠️ Apple Health / Apple Watch requires a manual export. Apple does not support direct cloud OAuth like Garmin or Oura. To sync Apple Health data, you must export it from the Health app and import it manually, or use a third-party bridge app. Learn how to export → Supported Devices Status reflects real data received — not just dashboard links Loading... Biometric data is proc…",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456325700"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/integrations/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456325700"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "account",
+      "surfaceId": "pricing",
+      "title": "Pricing",
+      "route": "/pricing",
+      "requiresAuth": true,
+      "notes": "Upgrade value communication and billing action clarity.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/pricing.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/pricing.png",
+      "finalUrl": "http://localhost:3003/pricing",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 971,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunityCoachSettings U Member Investment in Excellence Choose your protocol Scale your performance with precision-engineered coaching tiers. Standard 7-Day Trial Experience the full power of Koda AI for one week. Full Natural Language Logging Adaptive Daily Protocols Core Performance Analytics Single Device Sync Start Free Trial Most Advanced Pro $9.99/mo The gold standard for elite performance intelligence. Everything in Trial Predictive Progression Engine (1RM, PRs) Wearable Biometric Sync (SpO2, HRV, Sleep) Hormonal Cycle AI Coaching AI Motion Analysis Lab Metabolic Autopilot & Scanning Priority AI Inference Speed Go Pro (Includes Trial) “Koda AI isn't just an app; it's the silent partner in my pursuit of elite performance. The precision is unmatched.” Marcus V. Hyrox Elite Athlete Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456328602"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456328602"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/pricing/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    },
+    {
+      "app": "web",
+      "workflowId": "account",
+      "surfaceId": "coach_support",
+      "title": "Coach support",
+      "route": "/coach/escalate",
+      "requiresAuth": true,
+      "notes": "Human escalation and support workflow.",
+      "viewportId": "mobile",
+      "viewportLabel": "iPhone 15",
+      "authBootstrap": {
+        "attempted": true,
+        "success": true,
+        "finalUrl": "http://localhost:3003/",
+        "message": "Authenticated via /api/v1/auth/mock-login?next=/",
+        "viewportId": "mobile",
+        "viewportLabel": "iPhone 15"
+      },
+      "screenshotPath": "docs/reports/web-surface-smoke-execution-pass-5/mobile/coach_support.png",
+      "absoluteScreenshotPath": "/Users/blakeaycock/code/fitnessAI/docs/reports/web-surface-smoke-execution-pass-5/mobile/coach_support.png",
+      "finalUrl": "http://localhost:3003/coach/escalate",
+      "titleText": "Koda AI | Build Your Legend",
+      "responseStatus": 200,
+      "textLength": 544,
+      "textPreview": "Skip to main content Koda AI DashboardVitalsTraining PlanNutritionWorkoutCheck-InProgressCommunityCoach Settings U Member ← Dashboard Coach Escalation Hybrid support for blockers, injury concerns, and plan complexity Request Coach Review Escalate when AI guidance needs human oversight Topic Urgency Low Normal High Preferred channel In-app SMS Email Details Submit escalation Recent Requests Track status of your escalation queue Loading... Return to Dashboard AI Home Plan Nutrition Workout Progress Settings Coach Coach Koda is ready",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "resourceIssues": [
+        {
+          "status": 404,
+          "resourceType": "stylesheet",
+          "url": "/_next/static/css/app/layout.css?v=1773456331236"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/main-app.js?v=1773456331236"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app-pages-internals.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/coach/escalate/page.js"
+        },
+        {
+          "status": 404,
+          "resourceType": "script",
+          "url": "/_next/static/chunks/app/layout.js"
+        }
+      ],
+      "authRedirected": false,
+      "pass": true,
+      "error": ""
+    }
+  ]
+}
