@@ -74,7 +74,7 @@ export async function POST(request: Request) {
         const key = k as keyof MealPlanPreferences;
         // Only use profile pref if not overridden by explicit request body
         if (body.preferences?.[key] === undefined) {
-          (prefs as Record<string, unknown>)[key] = v;
+          (prefs as unknown as Record<string, unknown>)[key] = v;
         }
       });
     }
