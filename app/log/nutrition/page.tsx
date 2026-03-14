@@ -753,6 +753,24 @@ function NutritionLogContent() {
 
   return (
     <PageLayout title="Nutrition" subtitle={isPastDay ? `Viewing ${targetDate}` : "Log meals, track macros, and stay on target"}>
+      <section className="premium-panel animate-panel-rise mb-4 p-5 sm:p-6">
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <p className="premium-kicker">Nutrition execution</p>
+            <h1 className="premium-headline mt-2 text-3xl sm:text-4xl">Log faster, keep targets accurate.</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70">
+              Describe, scan, or photo-log each meal. Koda refreshes calories and macros so training and recovery decisions stay calibrated.
+            </p>
+          </div>
+          <div className="premium-panel-soft p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Coach standard</p>
+            <p className="mt-2 text-xs leading-relaxed text-white/75">
+              Hit protein first, keep meal timing consistent, and review suggestions when you are under target.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr]">
 
         {/* ── Smart entry ─────────────────────────────────────── */}

@@ -247,32 +247,44 @@ export default function ProgressPage() {
 
   return (
     <PageLayout title="Progress" subtitle="Track check-ins, see trends, and know what to do next">
+      <section className="premium-panel animate-panel-rise mb-6 p-5 sm:p-6">
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <p className="premium-kicker">Progress control center</p>
+            <h1 className="premium-headline mt-2 text-3xl sm:text-4xl">
+              Know what changed, and what to do next.
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70">
+              Check-ins feed trend, strength progression, and coach guidance. Keep a steady rhythm for cleaner signal quality.
+            </p>
+          </div>
+          <div className="premium-panel-soft p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Next step now</p>
+            <p className="mt-2 text-xs leading-relaxed text-white/75">Add today&apos;s check-in so Koda can refresh your trend direction and guidance.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link href="/progress/add">
+                <Button size="sm">Add check-in</Button>
+              </Link>
+              <Link href="/progress/scan">
+                <Button size="sm" variant="secondary">Photo check-in</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="mb-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">How This Page Works</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-fn-accent">How This Page Works</p>
         <div className="mt-2 grid gap-2 text-sm leading-relaxed text-fn-muted md:grid-cols-3">
-          <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">1. Add a check-in with weight, body fat, or notes.</div>
-          <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">2. Add another check-in after your next workout or later this week.</div>
-          <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">3. Koda updates your trend and coach summary here automatically.</div>
+          <div className="rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2">1. Add a check-in with weight, body fat, or notes.</div>
+          <div className="rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2">2. Add another check-in after your next workout or later this week.</div>
+          <div className="rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2">3. Koda updates your trend and coach summary here automatically.</div>
         </div>
         <div className="mt-3 rounded-xl border border-fn-accent/10 bg-fn-accent/5 px-4 py-3 text-xs leading-relaxed text-fn-muted">
           <span className="font-semibold text-white">Glossary:</span> A <span className="font-semibold text-white">check-in</span> is a quick daily status update (energy, sleep, soreness). An <span className="font-semibold text-white">AI body scan</span> is an optional photo-based estimate.
         </div>
-        <div className="mt-3 rounded-xl border border-white/10 bg-black/20 px-4 py-3">
-          <p className="text-xs leading-relaxed text-fn-muted">
-            <span className="font-semibold text-white">Next step now:</span> add today&apos;s check-in so Koda can update your trend.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Link href="/progress/add">
-              <Button size="sm">Add today&apos;s check-in</Button>
-            </Link>
-            <Link href="/progress/scan">
-              <Button size="sm" variant="secondary">Photo check-in</Button>
-            </Link>
-          </div>
-        </div>
       </div>
 
-      {/* Prominent CTAs above the fold */}
       <div className="mb-8 flex flex-wrap gap-4">
         <Link href="/progress/add">
           <Button variant="secondary" size="sm" icon={
