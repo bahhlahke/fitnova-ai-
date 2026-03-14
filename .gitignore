@@ -54,3 +54,7 @@ test-results-final.log
 /ios/AskKodaAI/build/
 
 ios/build/
+
+# Xcode user state
+*.xcuserstate
+xcuserdata/
