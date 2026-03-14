@@ -6,7 +6,19 @@ import { createClient } from "@/lib/supabase/server";
 import { assembleContext } from "@/lib/ai/assemble-context";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
-import { callModel } from "@/lib/ai/model";
+import { AIProviderError, callModel } from "@/lib/ai/model";
+import {
+  ensureSitArtifacts,
+  loadPhysicalHistoryEvents,
+  persistPhysicalHistoryEvent,
+} from "@/lib/sit/persistence";
+import {
+  detectSymptomIntent,
+  getExerciseOntologySeed,
+  selectDeterministicSubstitution,
+} from "@/lib/sit/substitutions";
+import { insertProductEvent } from "@/lib/telemetry/events";
+import { normalizeGuidedExercise } from "@/lib/workout/guided-session";
 import type { AiActionResult, RefreshScope } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -28,11 +40,45 @@ type ConversationTurn = {
   content: string;
 };
 
+type WearableContextInput = {
+  provider?: unknown;
+  currentHeartRate?: unknown;
+  current_heart_rate?: unknown;
+  todaySteps?: unknown;
+  today_steps?: unknown;
+  todayHRV?: unknown;
+  today_hrv?: unknown;
+  hrvBaseline?: unknown;
+  hrv_baseline?: unknown;
+  hrvDelta?: unknown;
+  hrv_delta?: unknown;
+  sessionPhase?: unknown;
+  session_phase?: unknown;
+  recoveryTargetHeartRate?: unknown;
+  recovery_target_heart_rate?: unknown;
+  signalCapturedAt?: unknown;
+  signal_captured_at?: unknown;
+};
+
 type RequestBody = {
   message?: string;
   localDate?: string;
   /** Optional prior conversation turns for multi-turn continuity (iOS persistent chat). */
   conversationHistory?: ConversationTurn[];
+  /** Optional live wearable context from the iOS session layer. */
+  wearableContext?: WearableContextInput;
+};
+
+type SanitizedWearableContext = {
+  provider: string;
+  currentHeartRate?: number;
+  todaySteps?: number;
+  todayHRV?: number;
+  hrvBaseline?: number;
+  hrvDelta?: number;
+  sessionPhase?: string;
+  recoveryTargetHeartRate?: number;
+  signalCapturedAtIso: string;
 };
 
 function isValidLocalDate(value: string): boolean {
@@ -44,16 +90,330 @@ function isValidLocalDate(value: string): boolean {
   );
 }
 
-function resolveLogDate(localDate: string | undefined): string {
+function resolveLogDate(localDate: string | undefined): string | null {
   if (typeof localDate === "string") {
     const trimmed = localDate.trim();
     if (isValidLocalDate(trimmed)) return trimmed;
   }
-  return new Date().toISOString().slice(0, 10);
+  return null;
 }
 
 function toKgFromLbs(lbs: number): number {
   return Math.round(lbs * 0.45359237 * 10) / 10;
+}
+
+function toFiniteNumber(value: unknown): number | undefined {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  return parsed;
+}
+
+function sanitizeWearableContext(input: WearableContextInput | undefined): SanitizedWearableContext | null {
+  if (!input || typeof input !== "object") return null;
+
+  const providerRaw = typeof input.provider === "string" ? input.provider.trim().toLowerCase() : "apple_health";
+  const provider = providerRaw.length > 0 ? providerRaw.slice(0, 32) : "apple_health";
+
+  const currentHeartRate = toFiniteNumber(input.currentHeartRate ?? input.current_heart_rate);
+  const todaySteps = toFiniteNumber(input.todaySteps ?? input.today_steps);
+  const todayHRV = toFiniteNumber(input.todayHRV ?? input.today_hrv);
+  const hrvBaseline = toFiniteNumber(input.hrvBaseline ?? input.hrv_baseline);
+  const hrvDelta = toFiniteNumber(input.hrvDelta ?? input.hrv_delta);
+  const recoveryTargetHeartRate = toFiniteNumber(
+    input.recoveryTargetHeartRate ?? input.recovery_target_heart_rate
+  );
+  const sessionPhaseRaw =
+    typeof (input.sessionPhase ?? input.session_phase) === "string"
+      ? String(input.sessionPhase ?? input.session_phase).trim().toLowerCase()
+      : undefined;
+
+  const boundedHeartRate =
+    currentHeartRate != null ? clampNumber(Math.round(currentHeartRate), 30, 230) : undefined;
+  const boundedSteps =
+    todaySteps != null ? clampNumber(Math.round(todaySteps), 0, 120_000) : undefined;
+  const boundedTodayHRV =
+    todayHRV != null ? Number(clampNumber(todayHRV, 5, 300).toFixed(1)) : undefined;
+  const boundedBaselineHRV =
+    hrvBaseline != null ? Number(clampNumber(hrvBaseline, 5, 300).toFixed(1)) : undefined;
+  const boundedHRVDelta =
+    hrvDelta != null ? Number(clampNumber(hrvDelta, -150, 150).toFixed(1)) : undefined;
+  const boundedRecoveryTarget =
+    recoveryTargetHeartRate != null
+      ? clampNumber(Math.round(recoveryTargetHeartRate), 70, 170)
+      : undefined;
+
+  const signalCapturedAtRaw = input.signalCapturedAt ?? input.signal_captured_at;
+  const signalCapturedAtDate =
+    typeof signalCapturedAtRaw === "string" && !Number.isNaN(Date.parse(signalCapturedAtRaw))
+      ? new Date(signalCapturedAtRaw)
+      : new Date();
+  const signalCapturedAtIso = signalCapturedAtDate.toISOString();
+
+  const hasMetric =
+    boundedHeartRate != null ||
+    boundedSteps != null ||
+    boundedTodayHRV != null ||
+    boundedBaselineHRV != null ||
+    boundedHRVDelta != null ||
+    boundedRecoveryTarget != null;
+
+  if (!hasMetric && !sessionPhaseRaw) {
+    return null;
+  }
+
+  return {
+    provider,
+    currentHeartRate: boundedHeartRate,
+    todaySteps: boundedSteps,
+    todayHRV: boundedTodayHRV,
+    hrvBaseline: boundedBaselineHRV,
+    hrvDelta: boundedHRVDelta,
+    sessionPhase: sessionPhaseRaw?.slice(0, 32),
+    recoveryTargetHeartRate: boundedRecoveryTarget,
+    signalCapturedAtIso,
+  };
+}
+
+function buildWearableContextPrompt(context: SanitizedWearableContext): string {
+  const lines: string[] = [];
+  lines.push(
+    `Live wearable context (provider: ${context.provider}, captured: ${context.signalCapturedAtIso}):`
+  );
+  if (context.currentHeartRate != null) lines.push(`- Current heart rate: ${context.currentHeartRate} bpm`);
+  if (context.recoveryTargetHeartRate != null) {
+    lines.push(`- Recovery target heart rate: ${context.recoveryTargetHeartRate} bpm`);
+  }
+  if (context.todaySteps != null) lines.push(`- Today's step count: ${context.todaySteps}`);
+  if (context.todayHRV != null) lines.push(`- Today's HRV: ${context.todayHRV} ms`);
+  if (context.hrvBaseline != null) lines.push(`- HRV baseline (7d): ${context.hrvBaseline} ms`);
+  if (context.hrvDelta != null) {
+    const sign = context.hrvDelta >= 0 ? "+" : "";
+    lines.push(`- HRV delta vs baseline: ${sign}${context.hrvDelta} ms`);
+  }
+  if (context.sessionPhase) lines.push(`- Session phase: ${context.sessionPhase}`);
+  lines.push(
+    "Use this as high-priority real-time context for intensity, rest guidance, and recovery recommendations."
+  );
+  return lines.join("\n");
+}
+
+function detectExerciseMention(
+  message: string,
+  plannedExercises: Array<{ name?: string }>
+): string | null {
+  const lower = message.toLowerCase();
+  const fromPlan = plannedExercises.find((exercise) => exercise.name && lower.includes(exercise.name.toLowerCase()));
+  if (fromPlan?.name) return fromPlan.name;
+  const ontologyMatch = getExerciseOntologySeed().find((entry) =>
+    entry.aliases.some((alias) => lower.includes(alias))
+  );
+  return ontologyMatch?.canonical_name ?? null;
+}
+
+type GuidedExercise = ReturnType<typeof normalizeGuidedExercise>;
+
+type WorkoutParityDiff = {
+  exercise_index: number;
+  exercise_name: string;
+  changed_fields: string[];
+  baseline_summary: string;
+  candidate_summary: string;
+};
+
+type WorkoutParityGuardPayload = {
+  requires_approval: boolean;
+  summary: string;
+  divergence_count: number;
+  diffs: WorkoutParityDiff[];
+};
+
+const PARITY_FIELDS: Array<
+  "name" | "sets" | "reps" | "intensity" | "target_rir" | "target_load_kg" | "rest_seconds_after_set" | "progression_note"
+> = [
+  "name",
+  "sets",
+  "reps",
+  "intensity",
+  "target_rir",
+  "target_load_kg",
+  "rest_seconds_after_set",
+  "progression_note",
+];
+
+function normalizeToolExercise(exercise: any): GuidedExercise {
+  return normalizeGuidedExercise({
+    name: typeof exercise?.name === "string" ? exercise.name : "Exercise",
+    sets: Number(exercise?.sets) || 1,
+    reps: typeof exercise?.reps === "string" ? exercise.reps : String(exercise?.reps ?? "8-10"),
+    intensity: typeof exercise?.intensity === "string" ? exercise.intensity : "RPE 7",
+    notes: typeof exercise?.notes === "string" ? exercise.notes : undefined,
+    tempo: typeof exercise?.tempo === "string" ? exercise.tempo : undefined,
+    breathing: typeof exercise?.breathing === "string" ? exercise.breathing : undefined,
+    intent: typeof exercise?.intent === "string" ? exercise.intent : undefined,
+    rationale: typeof exercise?.rationale === "string" ? exercise.rationale : undefined,
+    walkthrough_steps: Array.isArray(exercise?.walkthrough_steps) ? exercise.walkthrough_steps : undefined,
+    coaching_points: Array.isArray(exercise?.coaching_points) ? exercise.coaching_points : undefined,
+    setup_checklist: Array.isArray(exercise?.setup_checklist) ? exercise.setup_checklist : undefined,
+    common_mistakes: Array.isArray(exercise?.common_mistakes) ? exercise.common_mistakes : undefined,
+    target_load_kg: Number.isFinite(Number(exercise?.target_load_kg)) ? Number(exercise.target_load_kg) : undefined,
+    target_rir: Number.isFinite(Number(exercise?.target_rir)) ? Number(exercise.target_rir) : undefined,
+    rest_seconds_after_set:
+      Number.isFinite(Number(exercise?.rest_seconds_after_set)) ? Number(exercise.rest_seconds_after_set) : undefined,
+    progression_note: typeof exercise?.progression_note === "string" ? exercise.progression_note : undefined,
+  });
+}
+
+function extractDurationSeconds(text: string | undefined): number | null {
+  if (!text) return null;
+  const match = text.toLowerCase().match(/(\d{1,3})\s*(sec|secs|second|seconds|s|min|mins|minute|minutes|m)\b/);
+  if (!match) return null;
+  const value = Number(match[1]);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  const unit = match[2];
+  const seconds = unit.startsWith("m") ? value * 60 : value;
+  return Math.max(5, Math.min(seconds, 600));
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function equalParityField(a: unknown, b: unknown): boolean {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+  return a === b;
+}
+
+function summarizeExercise(exercise: GuidedExercise | undefined): string {
+  if (!exercise) return "No baseline";
+  const rest = typeof exercise.rest_seconds_after_set === "number" ? `${exercise.rest_seconds_after_set}s rest` : "auto rest";
+  return `${exercise.name} · ${exercise.sets}x${exercise.reps} · ${exercise.intensity} · ${rest}`;
+}
+
+function clampGuidedExerciseForParity(candidate: GuidedExercise, baseline: GuidedExercise | undefined): GuidedExercise {
+  const next: GuidedExercise = {
+    ...candidate,
+    walkthrough_steps: (candidate.walkthrough_steps ?? []).slice(0, 5),
+    coaching_points: (candidate.coaching_points ?? []).slice(0, 4),
+    setup_checklist: (candidate.setup_checklist ?? []).slice(0, 5),
+    common_mistakes: (candidate.common_mistakes ?? []).slice(0, 3),
+  };
+
+  if (!baseline) {
+    next.rest_seconds_after_set = clampNumber(
+      Number(next.rest_seconds_after_set ?? 60),
+      20,
+      180
+    );
+    return next;
+  }
+
+  const baselineSets = Number(baseline.sets) || 1;
+  next.sets = clampNumber(Number(next.sets) || baselineSets, Math.max(1, baselineSets - 1), baselineSets + 1);
+
+  const baselineTimed = extractDurationSeconds(baseline.reps ?? "") != null;
+  const candidateTimed = extractDurationSeconds(next.reps ?? "") != null;
+  if (baselineTimed !== candidateTimed) {
+    next.reps = baseline.reps;
+  }
+
+  if (typeof baseline.target_rir === "number") {
+    const candidateRir = typeof next.target_rir === "number" ? next.target_rir : baseline.target_rir;
+    next.target_rir = clampNumber(candidateRir, Math.max(0, baseline.target_rir - 2), baseline.target_rir + 2);
+  }
+
+  if (typeof baseline.target_load_kg === "number" && baseline.target_load_kg > 0) {
+    const candidateLoad =
+      typeof next.target_load_kg === "number" && next.target_load_kg > 0
+        ? next.target_load_kg
+        : baseline.target_load_kg;
+    const maxSafeLoad = baseline.target_load_kg * 1.12;
+    next.target_load_kg = Number(clampNumber(candidateLoad, 0, maxSafeLoad).toFixed(1));
+  }
+
+  const baselineRest =
+    typeof baseline.rest_seconds_after_set === "number" && baseline.rest_seconds_after_set > 0
+      ? baseline.rest_seconds_after_set
+      : 60;
+  next.rest_seconds_after_set = clampNumber(
+    Number(next.rest_seconds_after_set ?? baselineRest),
+    Math.max(20, Math.floor(baselineRest * 0.5)),
+    Math.min(180, Math.ceil(baselineRest * 1.5))
+  );
+
+  if (!next.progression_note && baseline.progression_note) {
+    next.progression_note = baseline.progression_note;
+  }
+
+  return next;
+}
+
+function buildWorkoutParityGuard(
+  baselineRawExercises: unknown,
+  candidateExercises: GuidedExercise[]
+): { exercises: GuidedExercise[]; parityGuard: WorkoutParityGuardPayload } {
+  const baselineExercises: GuidedExercise[] = Array.isArray(baselineRawExercises)
+    ? baselineRawExercises.map((exercise) => normalizeToolExercise(exercise))
+    : [];
+
+  const protectedExercises = candidateExercises.map((exercise, index) =>
+    clampGuidedExerciseForParity(exercise, baselineExercises[index])
+  );
+
+  const diffs: WorkoutParityDiff[] = [];
+  protectedExercises.forEach((exercise, index) => {
+    const baseline = baselineExercises[index];
+    if (!baseline) return;
+    const changed = PARITY_FIELDS.filter((field) => !equalParityField(baseline[field], exercise[field]));
+    if (changed.length > 0) {
+      diffs.push({
+        exercise_index: index,
+        exercise_name: exercise.name ?? `Exercise ${index + 1}`,
+        changed_fields: changed,
+        baseline_summary: summarizeExercise(baseline),
+        candidate_summary: summarizeExercise(exercise),
+      });
+    }
+  });
+
+  if (baselineExercises.length > 0 && baselineExercises.length !== protectedExercises.length) {
+    diffs.push({
+      exercise_index: -1,
+      exercise_name: "Session structure",
+      changed_fields: ["exercise_count"],
+      baseline_summary: `${baselineExercises.length} planned movements`,
+      candidate_summary: `${protectedExercises.length} planned movements`,
+    });
+  }
+
+  const divergenceCount = diffs.reduce((total, diff) => total + diff.changed_fields.length, 0);
+  const requiresApproval = divergenceCount > 0;
+  const summary = requiresApproval
+    ? `Plan diverges from Koda baseline on ${divergenceCount} guarded fields. Review and approve before launch.`
+    : "Plan is aligned with Koda baseline constraints and progression guardrails.";
+
+  return {
+    exercises: protectedExercises,
+    parityGuard: {
+      requires_approval: requiresApproval,
+      summary,
+      divergence_count: divergenceCount,
+      diffs,
+    },
+  };
+}
+
+function clampDurationMinutes(requestedDuration: unknown, baselineDuration: unknown): number {
+  const requested = Number(requestedDuration);
+  const baseline = Number(baselineDuration);
+  const fallback = Number.isFinite(requested) ? requested : Number.isFinite(baseline) ? baseline : 45;
+  if (!Number.isFinite(baseline) || baseline <= 0) {
+    return clampNumber(Math.round(fallback), 20, 90);
+  }
+  const min = Math.max(20, Math.round(baseline - 15));
+  const max = Math.min(90, Math.round(baseline + 15));
+  return clampNumber(Math.round(fallback), min, max);
 }
 
 export async function POST(request: Request) {
@@ -75,7 +435,8 @@ export async function POST(request: Request) {
   }
 
   const message = typeof body.message === "string" ? body.message.trim() : "";
-  const logDate = resolveLogDate(body.localDate);
+  const logDate = resolveLogDate(body.localDate) || new Date().toISOString().slice(0, 10);
+  const wearableContext = sanitizeWearableContext(body.wearableContext);
   // Sanitise and cap conversation history to last 10 turns
   const conversationHistory: ConversationTurn[] = Array.isArray(body.conversationHistory)
     ? body.conversationHistory
@@ -121,8 +482,110 @@ export async function POST(request: Request) {
       );
     }
 
-    let systemPrompt =
-      "You are an elite AI Performance Coach & Sports Scientist with a PhD in Exercise Physiology. Respond with the precision and authority of a world-class expert.\n\n" +
+    if (user?.id && wearableContext) {
+      const hasPersistableSignal =
+        wearableContext.todaySteps != null || wearableContext.todayHRV != null;
+      if (hasPersistableSignal) {
+        try {
+          await supabase.from("connected_signals").upsert(
+            {
+              user_id: user.id,
+              provider: wearableContext.provider,
+              signal_date: logDate,
+              steps: wearableContext.todaySteps ?? null,
+              hrv: wearableContext.todayHRV ?? null,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,provider,signal_date" }
+          );
+        } catch (wearablePersistError) {
+          console.warn("ai_wearable_context_upsert_failed", {
+            requestId,
+            userId: user.id,
+            error:
+              wearablePersistError instanceof Error
+                ? wearablePersistError.message
+                : "unknown wearable upsert error",
+          });
+        }
+      }
+    }
+
+    if (user?.id) {
+      const symptomIntent = detectSymptomIntent(message);
+      if (symptomIntent.triggered) {
+        await ensureSitArtifacts(supabase);
+        const todayPlanRes = await supabase
+          .from("daily_plans")
+          .select("plan_json")
+          .eq("user_id", user.id)
+          .eq("date_local", logDate)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const currentPlanExercises =
+          ((todayPlanRes.data?.plan_json as any)?.training_plan?.exercises as Array<{ name?: string }>) ?? [];
+        const currentExercise = detectExerciseMention(message, currentPlanExercises) ?? currentPlanExercises[0]?.name;
+
+        if (currentExercise) {
+          const history = await loadPhysicalHistoryEvents(supabase, user.id, symptomIntent.symptom_tags);
+          const deterministic = selectDeterministicSubstitution({
+            currentExercise,
+            reason: message,
+            location: ((todayPlanRes.data?.plan_json as any)?.training_plan?.location_option ?? "gym") as
+              | "gym"
+              | "home",
+            history,
+          });
+
+          await Promise.allSettled([
+            persistPhysicalHistoryEvent(supabase, user.id, {
+              event_type: "symptom_reported",
+              symptom_tags: deterministic.symptom_tags,
+              current_exercise: currentExercise,
+              metadata: { source: "ai_respond", message },
+            }),
+            persistPhysicalHistoryEvent(supabase, user.id, {
+              event_type: "substitution_recommended",
+              symptom_tags: deterministic.symptom_tags,
+              current_exercise: currentExercise,
+              replacement_exercise: deterministic.replacement.name,
+              metadata: {
+                source: "ai_respond",
+                policy_version: deterministic.policy_version,
+                rationale: deterministic.rationale,
+              },
+            }),
+            insertProductEvent(supabase, user.id, "substitution_policy_triggered", {
+              source: "ai_respond",
+              current_exercise: currentExercise,
+              replacement_exercise: deterministic.replacement.name,
+              symptom_tags: deterministic.symptom_tags,
+              policy_version: deterministic.policy_version,
+            }),
+          ]);
+
+          const deterministicReply = [
+            `Pain/symptom trigger detected for ${currentExercise}.`,
+            `Swap it for ${deterministic.replacement.name} at ${deterministic.replacement.sets} x ${deterministic.replacement.reps} around ${deterministic.replacement.intensity}.`,
+            deterministic.rationale,
+            "If pain is sharp, radiating, or worsening, stop and seek licensed medical care.",
+          ].join(" ");
+
+          return NextResponse.json({
+            reply: deterministicReply,
+            policy: {
+              version: deterministic.policy_version,
+              symptom_tags: deterministic.symptom_tags,
+              replacement: deterministic.replacement,
+            },
+            refreshScopes: ["plan"],
+          });
+        }
+      }
+    }
+
+    const BASE_CAPABILITIES = 
       "You have direct control over the application. You can:\n" +
       "- Log food (`log_meal`) and water (`log_hydration`).\n" +
       "- Log workouts (`log_workout`) with `calories_burned` for expenditure.\n" +
@@ -132,18 +595,28 @@ export async function POST(request: Request) {
       "- Share achievements to the activity feed (`create_social_post`).\n" +
       "- Create new personalized plans (`generate_daily_plan`) based on time/equipment.\n" +
       "- Navigate the user to a specific page context (`navigate_to`).\n" +
-      "- Escalate complex medical or technical issues to a human coach (`request_coach_assistance`).\n\n" +
-      "Synthesis Logic: Analyze the user's longitudinal data (HRV, PRs, Sleep) to provide high-performance insights typically reserved for Olympic teams. Always prefer taking action when the user reports data. End with a concrete next step.";
+      "- Escalate complex medical or technical issues to a human coach (`request_coach_assistance`).\n\n";
+
+    let systemPrompt =
+      "You are an elite AI Performance Coach & Sports Scientist with a PhD in Exercise Physiology. Respond with the precision and authority of a world-class expert.\n\n" +
+      BASE_CAPABILITIES +
+      "Synthesis Logic: Analyze the user's longitudinal data (HRV, PRs, Sleep) to provide high-performance insights typically reserved for Olympic teams. Always prefer taking action when the user reports data.\n" +
+      "Workout Generation Logic: When the user asks you to build, regenerate, or personalize a workout for today, prefer `update_workout_plan` or `generate_daily_plan` so the result is immediately usable inside the guided workout flow. Premium guided workouts should include precise sets, reps, intensity, rest guidance, walkthrough steps, setup checklist items, coaching points, common mistakes, and progression notes whenever useful.\n\n" +
+      "Date Resolution: The user may refer to relative dates (e.g. 'yesterday', 'this past Saturday', 'last Monday'). Always calculate the absolute YYYY-MM-DD based on the 'Current Context' provided in your system prompt and pass it to the logging tools. End with a concrete next step.";
 
     if (user?.id) {
       try {
         const { systemPrompt: assembled } = await assembleContext(supabase, user.id);
-        systemPrompt = `${assembled}\n\n${SAFETY_POLICY}`;
+        systemPrompt = `${assembled}\n\n${BASE_CAPABILITIES}\n\n${SAFETY_POLICY}`;
       } catch {
         systemPrompt = `${systemPrompt}\n\n${SAFETY_POLICY}`;
       }
     } else {
       systemPrompt = `${systemPrompt}\n\n${SAFETY_POLICY}`;
+    }
+
+    if (wearableContext) {
+      systemPrompt = `${systemPrompt}\n\n${buildWearableContextPrompt(wearableContext)}`;
     }
 
     const OMNI_TOOLS: any[] = [
@@ -159,7 +632,8 @@ export async function POST(request: Request) {
               calories: { type: "number", description: "Estimated total calories." },
               protein: { type: "number", description: "Estimated protein in grams." },
               carbs: { type: "number", description: "Estimated carbs in grams." },
-              fat: { type: "number", description: "Estimated fat in grams." }
+              fat: { type: "number", description: "Estimated fat in grams." },
+              date: { type: "string", description: "The date of the meal in YYYY-MM-DD format. Required if the user mentions a past date." }
             },
             required: ["food_items", "calories", "protein", "carbs", "fat"],
           },
@@ -176,7 +650,8 @@ export async function POST(request: Request) {
               workout_type: { type: "string", enum: ["strength", "cardio", "mobility", "other"], description: "Type of workout" },
               duration_minutes: { type: "number", description: "Duration in minutes" },
               calories_burned: { type: "number", description: "Estimated calories burned during exercise (separate from consumption)." },
-              notes: { type: "string", description: "Summary of the workout" }
+              notes: { type: "string", description: "Summary of the workout" },
+              date: { type: "string", description: "The date of the workout in YYYY-MM-DD format. Required if the user mentions a past date." }
             },
             required: ["workout_type", "duration_minutes"]
           }
@@ -190,7 +665,8 @@ export async function POST(request: Request) {
           parameters: {
             type: "object",
             properties: {
-              meal_description: { type: "string", description: "Partial or full description of the meal to remove, e.g. 'banana'." }
+              meal_description: { type: "string", description: "Partial or full description of the meal to remove, e.g. 'banana'." },
+              date: { type: "string", description: "The date of the meal to remove in YYYY-MM-DD format. Default is today." }
             },
             required: ["meal_description"]
           }
@@ -204,7 +680,8 @@ export async function POST(request: Request) {
           parameters: {
             type: "object",
             properties: {
-              liters: { type: "number", description: "Amount of fluid in liters." }
+              liters: { type: "number", description: "Amount of fluid in liters." },
+              date: { type: "string", description: "The date of hydration in YYYY-MM-DD format. Default is today." }
             },
             required: ["liters"]
           }
@@ -279,7 +756,7 @@ export async function POST(request: Request) {
         type: "function",
         function: {
           name: "generate_daily_plan",
-          description: "Triggers a new daily plan generation with optional constraints.",
+          description: "Triggers a new guided-workout-ready daily plan generation with optional constraints.",
           parameters: {
             type: "object",
             properties: {
@@ -298,7 +775,8 @@ export async function POST(request: Request) {
             type: "object",
             properties: {
               weight_lbs: { type: "number", description: "Body weight in lbs" },
-              body_fat_percent: { type: "number", description: "Body fat percentage" }
+              body_fat_percent: { type: "number", description: "Body fat percentage" },
+              date: { type: "string", description: "The date for these biometrics in YYYY-MM-DD format. Default is today." }
             }
           }
         }
@@ -329,6 +807,47 @@ export async function POST(request: Request) {
               exercise_name: { type: "string", description: "Name of the exercise to demonstrate, e.g. 'Back Squat', 'Pigeon Stretch'." }
             },
             required: ["exercise_name"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "update_workout_plan",
+          description: "Updates the user's current guided workout plan for today with coach-grade exercises, walkthroughs, setup checklists, coaching cues, load targets, and rest guidance. The guided coach reads these details live during the workout.",
+          parameters: {
+            type: "object",
+            properties: {
+              focus: { type: "string", description: "The high-level focus of the workout, e.g. 'CrossFit-Style Metabolic Conditioning'." },
+              duration_minutes: { type: "number", description: "Estimated duration in minutes." },
+              exercises: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    sets: { type: "number" },
+                    reps: { type: "string" },
+                    intensity: { type: "string" },
+                    notes: { type: "string" },
+                    tempo: { type: "string" },
+                    breathing: { type: "string" },
+                    intent: { type: "string" },
+                    rationale: { type: "string" },
+                    walkthrough_steps: { type: "array", items: { type: "string" } },
+                    coaching_points: { type: "array", items: { type: "string" } },
+                    setup_checklist: { type: "array", items: { type: "string" } },
+                    common_mistakes: { type: "array", items: { type: "string" } },
+                    target_load_kg: { type: "number" },
+                    target_rir: { type: "number" },
+                    rest_seconds_after_set: { type: "number" },
+                    progression_note: { type: "string" }
+                  },
+                  required: ["name", "sets", "reps"]
+                }
+              }
+            },
+            required: ["focus", "exercises"]
           }
         }
       }
@@ -366,6 +885,8 @@ export async function POST(request: Request) {
             let resultStr = "";
             try {
               const args = JSON.parse(tc.function.arguments);
+              const targetDate = resolveLogDate(args.date) || logDate;
+              
               if (tc.function.name === "log_meal") {
                 const calories = Number(args.calories);
                 const protein = Number(args.protein);
@@ -385,7 +906,7 @@ export async function POST(request: Request) {
                   .from("nutrition_logs")
                   .select("log_id, meals, total_calories")
                   .eq("user_id", userId)
-                  .eq("date", logDate)
+                  .eq("date", targetDate)
                   .maybeSingle();
 
                 if (existingLogError) throw new Error(existingLogError.message);
@@ -410,7 +931,7 @@ export async function POST(request: Request) {
                     .from("nutrition_logs")
                     .insert({
                       user_id: userId,
-                      date: logDate,
+                      date: targetDate,
                       meals: [newMeal],
                       total_calories: calories,
                     });
@@ -440,7 +961,7 @@ export async function POST(request: Request) {
 
                 const { error: insertError } = await supabase.from("workout_logs").insert({
                   user_id: userId,
-                  date: logDate,
+                  date: targetDate,
                   workout_type: workoutType,
                   duration_minutes: Math.round(durationMinutes),
                   calories_burned: Number.isFinite(args.calories_burned) ? Math.round(Number(args.calories_burned)) : null,
@@ -465,7 +986,7 @@ export async function POST(request: Request) {
                   .from("nutrition_logs")
                   .select("log_id, meals")
                   .eq("user_id", userId)
-                  .eq("date", logDate)
+                  .eq("date", targetDate)
                   .maybeSingle();
 
                 if (logError) throw new Error(logError.message);
@@ -505,7 +1026,7 @@ export async function POST(request: Request) {
                   .from("nutrition_logs")
                   .select("log_id, hydration_liters")
                   .eq("user_id", userId)
-                  .eq("date", logDate)
+                  .eq("date", targetDate)
                   .maybeSingle();
 
                 if (logError) throw new Error(logError.message);
@@ -520,7 +1041,7 @@ export async function POST(request: Request) {
                 } else {
                   const { error: insertError } = await supabase.from("nutrition_logs").insert({
                     user_id: userId,
-                    date: logDate,
+                    date: targetDate,
                     meals: [],
                     total_calories: 0,
                     hydration_liters: liters,
@@ -534,7 +1055,7 @@ export async function POST(request: Request) {
               } else if (tc.function.name === "log_daily_check_in") {
                 const { error: checkErr } = await supabase.from("check_ins").insert({
                   user_id: userId,
-                  date_local: logDate,
+                  date_local: targetDate,
                   energy_score: args.energy_score,
                   sleep_hours: args.sleep_hours,
                   soreness_notes: args.soreness_notes,
@@ -617,7 +1138,7 @@ export async function POST(request: Request) {
                   .from("progress_tracking")
                   .select("track_id")
                   .eq("user_id", userId)
-                  .eq("date", logDate)
+                  .eq("date", targetDate)
                   .maybeSingle();
                 if (existingTargetError) throw new Error(existingTargetError.message);
 
@@ -642,7 +1163,7 @@ export async function POST(request: Request) {
                     .from("progress_tracking")
                     .insert({
                       user_id: userId,
-                      date: logDate,
+                      date: targetDate,
                       weight: hasWeight ? toKgFromLbs(weightLbs) : null,
                       body_fat_percent: hasBodyFat ? bodyFatPercent : null,
                       measurements: {},
@@ -686,6 +1207,77 @@ export async function POST(request: Request) {
                 } else {
                   resultStr = `I don't have a 4K demo for "${args.exercise_name}" yet, but I can provide coaching cues.`;
                 }
+              } else if (tc.function.name === "update_workout_plan") {
+                const { data: existingPlan, error: fetchErr } = await supabase
+                  .from("daily_plans")
+                  .select("plan_json")
+                  .eq("user_id", userId)
+                  .eq("date_local", logDate)
+                  .maybeSingle();
+
+                if (fetchErr) throw new Error(fetchErr.message);
+
+                let basePlan = (existingPlan?.plan_json as any) ?? null;
+                if (!basePlan) {
+                  const { composeDailyPlan } = await import("@/lib/plan/compose-daily-plan");
+                  basePlan = await composeDailyPlan({ supabase, userId }, {});
+                }
+
+                const normalizedExercises = Array.isArray(args.exercises)
+                  ? args.exercises.map((exercise: any) => normalizeToolExercise(exercise))
+                  : [];
+
+                const baseExercises = basePlan?.training_plan?.exercises ?? [];
+                const parityResult = buildWorkoutParityGuard(baseExercises, normalizedExercises);
+                const baseDurationMinutes =
+                  basePlan?.training_plan?.duration_minutes ??
+                  (existingPlan?.plan_json as any)?.training_plan?.duration_minutes ??
+                  45;
+
+                const newTrainingPlan = {
+                  focus: args.focus,
+                  duration_minutes: clampDurationMinutes(args.duration_minutes, baseDurationMinutes),
+                  exercises: parityResult.exercises,
+                  location_option:
+                    basePlan?.training_plan?.location_option ||
+                    (existingPlan?.plan_json as any)?.training_plan?.location_option ||
+                    "gym",
+                  alternatives:
+                    basePlan?.training_plan?.alternatives ||
+                    (existingPlan?.plan_json as any)?.training_plan?.alternatives ||
+                    []
+                };
+
+                const updatedPlanJson = {
+                  ...(basePlan || {}),
+                  date_local: logDate,
+                  training_plan: newTrainingPlan
+                };
+
+                const { error: upsertErr } = await supabase
+                  .from("daily_plans")
+                  .upsert({
+                    user_id: userId,
+                    date_local: logDate,
+                    plan_json: updatedPlanJson,
+                  }, { onConflict: "user_id,date_local" });
+
+                if (upsertErr) throw new Error(upsertErr.message);
+                
+                resultStr = parityResult.parityGuard.requires_approval
+                  ? `Updated today's workout plan with guardrails applied. Approval is required before launch.`
+                  : `Successfully updated today's workout plan: ${args.focus}.`;
+                actions.push({
+                  type: "plan_daily", // iOS expects plan_daily for steering
+                  targetRoute: `/log/workout/guided?date=${logDate}`,
+                  summary: "Open Guided Workout",
+                  payload: {
+                    training_plan: newTrainingPlan,
+                    parity_guard: parityResult.parityGuard,
+                  }
+                } as any);
+                refreshScopes.add("dashboard");
+                refreshScopes.add("plan" as any);
               } else {
                 resultStr = "Unknown tool.";
               }
@@ -765,15 +1357,45 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       reply: content,
+      action: actions.length > 0 ? actions[0] : undefined, // Legacy support for iOS
       actions: actions.length > 0 ? actions : undefined,
       refreshScopes:
         refreshScopes.size > 0 ? Array.from(refreshScopes) : undefined,
     });
   } catch (error) {
+    if (error instanceof AIProviderError) {
+      console.error("ai_respond_upstream_error", {
+        requestId,
+        code: error.code,
+        status: error.status,
+        model: error.model,
+        providerMessage: error.providerMessage,
+        retryable: error.retryable,
+      });
+
+      if (error.code === "AI_TIMEOUT") {
+        return jsonError(504, "UPSTREAM_ERROR", "AI coach timed out. Please try again.");
+      }
+      if (error.status === 429) {
+        return jsonError(503, "UPSTREAM_ERROR", "AI coach is busy right now. Please try again in a moment.");
+      }
+      if (error.code === "AI_NETWORK") {
+        return jsonError(503, "UPSTREAM_ERROR", "AI network is temporarily unavailable. Please retry.");
+      }
+      if (error.code === "AI_INVALID_RESPONSE") {
+        return jsonError(502, "UPSTREAM_ERROR", "AI provider returned an invalid response. Please retry.");
+      }
+      return jsonError(502, "UPSTREAM_ERROR", "AI provider request failed. Please retry.");
+    }
+
     console.error("ai_respond_unhandled", {
       requestId,
       error: error instanceof Error ? error.message : "unknown",
     });
-    return jsonError(500, "INTERNAL_ERROR", "AI service error.");
+    return jsonError(
+      503,
+      "UPSTREAM_ERROR",
+      "Coach service is temporarily unavailable. Please try again."
+    );
   }
 }

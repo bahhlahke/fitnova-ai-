@@ -9,6 +9,7 @@ import SwiftUI
 import Supabase
 import Realtime
 import PhotosUI
+import SwiftData
 
 struct GuidedWorkoutView: View {
     @EnvironmentObject var auth: SupabaseService
@@ -19,25 +20,38 @@ struct GuidedWorkoutView: View {
     @State private var exercises: [PlanExercise] = []
     @State private var sessionFocus: String?
     @State private var sessionDurationMinutes: Int?
+    @State private var sessionRationale: String?
 
     init(exercises: [PlanExercise] = [], trainingPlan: TrainingPlan? = nil) {
-        self.initialExercises = trainingPlan?.exercises ?? exercises
-        self.initialTrainingPlan = trainingPlan
+        let normalized = Self.normalizedTrainingPlan(trainingPlan)
+        self.initialExercises = normalized?.exercises ?? exercises
+        self.initialTrainingPlan = normalized
     }
     @State private var exerciseIndex = 0
     @State private var setIndex = 0
     @State private var phase: Phase = .loading
     @State private var restRemaining = 0
+    @State private var restTargetSeconds = 0
     @State private var errorMessage: String?
     @State private var saved = false
     @State private var postWorkoutInsight: String?
     @State private var insightLoading = false
+    @State private var workIntervalRemaining = 0
+    @State private var workIntervalTargetSeconds = 0
 
     // Neural Mastery State (Phase 5)
     @State private var neuralRestMode = true
     @State private var recoveryTarget = 110
-    @State private var heartRate = 148              // Simulated post-set HR for neural rest mode
+    /// Simulated HR used only when HealthKit streaming is unavailable.
+    @State private var simulatedHeartRate = 148
+    /// Active rest timer task — stored so it can be cancelled on manual skip.
+    @State private var restTimerTask: Task<Void, Never>?
+    /// Active interval timer during timed work sets.
+    @State private var workIntervalTask: Task<Void, Never>?
+    /// Lightweight polling loop for steps + HRV during active session phases.
+    @State private var liveSignalTask: Task<Void, Never>?
     @State private var isFormCheckActive = false
+    @State private var showRealtimeFormCheck = false
     @State private var formCheckLoading = false
     @State private var formCheckResult: VisionAnalysisResponse?
     @State private var capturedPhotos: [String] = [] // Base64 strings for simplicity in this flow
@@ -50,7 +64,7 @@ struct GuidedWorkoutView: View {
     @State private var swapFeedback: String?
 
     // Logging State
-    struct LoggedSet { var weight: Double?; var reps: Int? }
+    struct LoggedSet: Codable { var weight: Double?; var reps: Int? }
     // Array of sets per exercise index
     @State private var loggedSets: [[LoggedSet]] = []
     @State private var currentWeightInput: String = ""
@@ -61,20 +75,156 @@ struct GuidedWorkoutView: View {
     // Resolved CDN demo video URL for the current exercise (nil until fetched).
     @State private var resolvedDemoURL: URL?
 
+    // Exercise intro: set when transitioning to a new exercise after rest
+    @State private var isNewExerciseAfterRest = false
+
     // Pulse state
     @State private var showingPulseAnimation = false
     @State private var pulseMessage = ""
     @State private var pulseScale = 0.8
     @State private var pulseOpacity = 0.0
 
-    private let restSeconds = 90
+    @State private var coachAudio = CoachAudioService.shared
+
+    private let defaultRestSeconds = 90
+    private let minimumRestSeconds = 20
+    private let maximumRestSeconds = 180
     private var api: KodaAPIService { KodaAPIService(getAccessToken: { auth.accessToken }) }
+    private var motionAnalysis: MotionAnalysisService { MotionAnalysisService(api: api) }
     private var dataService: KodaDataService? {
         guard let uid = auth.currentUserId else { return nil }
         return KodaDataService(client: auth.supabaseClient, userId: uid)
     }
 
-    enum Phase { case loading, overview, work, rest, completed }
+    private static func normalizedTrainingPlan(_ plan: TrainingPlan?) -> TrainingPlan? {
+        guard let plan else { return nil }
+        guard shouldReplaceWithRecoveryPlan(plan) else { return plan }
+
+        let duration = plan.duration_minutes ?? 25
+        return TrainingPlan(
+            focus: "Recovery and movement quality",
+            duration_minutes: duration,
+            exercises: recoveryExercises(for: duration)
+        )
+    }
+
+    private static func shouldReplaceWithRecoveryPlan(_ plan: TrainingPlan) -> Bool {
+        let focus = (plan.focus ?? "").lowercased()
+        let isRecoveryFocus =
+            focus.contains("recovery") ||
+            focus.contains("mobility") ||
+            focus.contains("movement quality") ||
+            focus.contains("stress-relief")
+
+        guard isRecoveryFocus else { return false }
+
+        let exerciseText = (plan.exercises ?? [])
+            .compactMap(\.name)
+            .map { $0.lowercased() }
+            .joined(separator: " ")
+        let strengthSignals = [
+            "bench",
+            "squat",
+            "deadlift",
+            "press",
+            "row",
+            "pull",
+            "lunge",
+            "hinge",
+            "hypertrophy",
+            "strength",
+        ]
+
+        return strengthSignals.contains { exerciseText.contains($0) }
+    }
+
+    private static func recoveryExercises(for duration: Int) -> [PlanExercise] {
+        let finisherMinutes = max(6, min(12, duration / 3))
+        return [
+            PlanExercise(
+                name: "90/90 Breathing",
+                sets: 3,
+                reps: "5 breaths",
+                intensity: "Easy",
+                notes: "Feet elevated, ribs down, and full exhales on every rep.",
+                tempo: "Slow",
+                breathing: "Full nasal inhale, long controlled exhale",
+                intent: "Shift into recovery mode",
+                rationale: "Down-regulates tension and restores recovery posture.",
+                target_rir: nil,
+                target_load_kg: nil,
+                video_url: nil,
+                cinema_video_url: nil,
+                image_url: nil
+            ),
+            PlanExercise(
+                name: "Cat-Cow",
+                sets: 2,
+                reps: "8",
+                intensity: "Fluid",
+                notes: "Move segment by segment instead of rushing through the range.",
+                tempo: "Controlled",
+                breathing: "Inhale into extension, exhale into flexion",
+                intent: "Restore spinal motion",
+                rationale: "Opens the trunk without heavy axial loading.",
+                target_rir: nil,
+                target_load_kg: nil,
+                video_url: nil,
+                cinema_video_url: nil,
+                image_url: nil
+            ),
+            PlanExercise(
+                name: "90/90 Hip Switches",
+                sets: 2,
+                reps: "8/side",
+                intensity: "Controlled",
+                notes: "Stay tall and let the hips do the work.",
+                tempo: "2111",
+                breathing: "Exhale into end range",
+                intent: "Open hips and reduce stiffness",
+                rationale: "Restores hip rotation and movement quality.",
+                target_rir: nil,
+                target_load_kg: nil,
+                video_url: nil,
+                cinema_video_url: nil,
+                image_url: nil
+            ),
+            PlanExercise(
+                name: "Pigeon Stretch",
+                sets: 2,
+                reps: "45s/side",
+                intensity: "Easy-moderate",
+                notes: "Stay square through the hips and ease into the position.",
+                tempo: "Hold",
+                breathing: "Slow nasal breathing",
+                intent: "Reduce hip and glute tension",
+                rationale: "Supports low-intensity mobility and tissue recovery.",
+                target_rir: nil,
+                target_load_kg: nil,
+                video_url: nil,
+                cinema_video_url: nil,
+                image_url: nil
+            ),
+            PlanExercise(
+                name: "Zone 2 Finisher",
+                sets: 1,
+                reps: "\(finisherMinutes) min",
+                intensity: "Easy",
+                notes: "Walk, bike, or row at a conversational pace.",
+                tempo: "Steady",
+                breathing: "Nasal, conversational",
+                intent: "Facilitate recovery",
+                rationale: "Keeps the session executable while staying aligned with a recovery day.",
+                target_rir: nil,
+                target_load_kg: nil,
+                video_url: nil,
+                cinema_video_url: nil,
+                image_url: nil
+            ),
+        ]
+    }
+
+    enum Phase { case loading, overview, exerciseIntro, work, rest, completed }
 
     var body: some View {
         Group {
@@ -84,6 +234,8 @@ struct GuidedWorkoutView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .overview:
                 overviewView
+            case .exerciseIntro:
+                exerciseIntroPhaseView
             case .work, .rest:
                 workoutView
             case .completed:
@@ -110,15 +262,35 @@ struct GuidedWorkoutView: View {
             await loadPlan()
             await setupPulseSubscription()
             startNeuralMastery()
+            speakCoachCue(for: phase)
+            handlePhaseTransition(phase)
+        }
+        .onChange(of: phase) { _, newValue in
+            speakCoachCue(for: newValue)
+            handlePhaseTransition(newValue)
         }
         .onDisappear {
             stopNeuralMastery()
+        }
+        .sheet(isPresented: $showRealtimeFormCheck) {
+            RealtimeMotionLabSessionView(
+                capability: motionAnalysis.capability,
+                configuration: MotionSessionConfiguration(pattern: currentMotionPattern),
+                title: "Realtime Form Check",
+                subtitle: "Run live rep counting and technique cues without leaving your workout."
+            ) { summary in
+                formCheckResult = summary.response
+                Task {
+                    await Telemetry.track(.guidedFormCheckRealtimeCompleted, props: realtimeFormCheckTelemetry(for: summary))
+                }
+            }
+            .ignoresSafeArea()
         }
         .overlay {
             if showingPulseAnimation {
                 ZStack {
                     Color.black.opacity(0.4).ignoresSafeArea()
-                    
+
                     VStack(spacing: 20) {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 100))
@@ -126,7 +298,7 @@ struct GuidedWorkoutView: View {
                             .shadow(color: .accentColor, radius: 40)
                             .scaleEffect(pulseScale)
                             .opacity(pulseOpacity)
-                        
+
                         Text(pulseMessage)
                             .font(.title)
                             .fontWeight(.black)
@@ -142,6 +314,28 @@ struct GuidedWorkoutView: View {
                 .zIndex(100)
             }
         }
+        .overlay(alignment: .bottom) {
+            if let feedback = swapFeedback {
+                HStack(spacing: 10) {
+                    Image(systemName: feedback.hasPrefix("Swapped") ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(feedback.hasPrefix("Swapped") ? Brand.Color.success : Brand.Color.danger)
+                    Text(feedback)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(feedback.hasPrefix("Swapped") ? Brand.Color.success.opacity(0.4) : Brand.Color.danger.opacity(0.4), lineWidth: 1)
+                )
+                .padding(.bottom, 32)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: swapFeedback)
+                .zIndex(50)
+            }
+        }
     }
 
     private var overviewView: some View {
@@ -154,72 +348,123 @@ struct GuidedWorkoutView: View {
                 .blur(radius: 10)
             
             Color.black.opacity(0.6).ignoresSafeArea()
-            
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    PremiumHeroCard(
-                        title: "Guided Workout",
-                        subtitle: "One clear exercise at a time, with live targets, fast logging, and recovery control between efforts.",
-                        eyebrow: "Session Cockpit"
-                    ) {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 10) {
-                                PremiumMetricPill(label: "Exercises", value: "\(exercises.count)")
-                                PremiumMetricPill(label: "Sets", value: "\(totalSetCount)")
-                                PremiumMetricPill(label: "Focus", value: sessionFocusLabel)
-                                if let sessionDurationMinutes {
-                                    PremiumMetricPill(label: "Duration", value: "\(sessionDurationMinutes)m")
+
+            GeometryReader { geometry in
+                let contentWidth = max(geometry.size.width - 32, 0)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        PremiumHeroCard(
+                            title: "Guided Workout",
+                            subtitle: "One clear exercise at a time, with live targets, fast logging, and recovery control between efforts.",
+                            eyebrow: "Session Cockpit"
+                        ) {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 10) {
+                                    PremiumMetricPill(label: "Exercises", value: "\(exercises.count)")
+                                    PremiumMetricPill(label: "Sets", value: "\(totalSetCount)")
+                                    PremiumMetricPill(label: "Focus", value: sessionFocusLabel)
+                                    if let sessionDurationMinutes {
+                                        PremiumMetricPill(label: "Duration", value: "\(sessionDurationMinutes)m")
+                                    }
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        PremiumRowCard {
+                            HStack(alignment: .top, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Today")
+                                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                                        .tracking(1.2)
+                                        .foregroundStyle(Brand.Color.accent)
+                                    Text(sessionTitle)
+                                        .font(.title3.weight(.black))
+                                        .foregroundStyle(.white)
+                                        .lineLimit(2)
+                                        .minimumScaleFactor(0.86)
+                                    Text("Lead with quality reps, then move smoothly through the remaining sequence.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(Brand.Color.muted)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                Spacer()
+                                Button(action: { dismiss() }) {
+                                    Image(systemName: "xmark")
+                                        .font(.headline.weight(.bold))
+                                        .foregroundStyle(.white.opacity(0.72))
+                                        .frame(width: 36, height: 36)
+                                        .background(
+                                            Circle()
+                                                .fill(Brand.Color.surfaceRaised)
+                                                .overlay(Circle().stroke(Brand.Color.borderStrong, lineWidth: 1))
+                                        )
                                 }
                             }
                         }
-                    }
 
-                    PremiumRowCard {
-                        HStack(alignment: .top, spacing: 12) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Today")
-                                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                                    .tracking(1.2)
-                                    .foregroundStyle(Brand.Color.accent)
-                                Text(sessionTitle)
-                                    .font(.title3.weight(.black))
-                                    .foregroundStyle(.white)
-                                Text("Lead with quality reps, then move smoothly through the remaining sequence.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Brand.Color.muted)
-                            }
-                            Spacer()
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .font(.headline.weight(.bold))
-                                    .foregroundStyle(.white.opacity(0.72))
-                                    .frame(width: 36, height: 36)
-                                    .background(
-                                        Circle()
-                                            .fill(Brand.Color.surfaceRaised)
-                                            .overlay(Circle().stroke(Brand.Color.borderStrong, lineWidth: 1))
-                                    )
+                        if let rationale = sessionRationale, !rationale.isEmpty {
+                            PremiumRowCard {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack(spacing: 6) {
+                                        Circle().fill(Brand.Color.accent).frame(width: 6, height: 6)
+                                        Text("Neural Rationale // Bio-Briefing")
+                                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                                            .foregroundStyle(Brand.Color.accent)
+                                    }
+                                    Text(rationale)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(.white)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
                         }
-                    }
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        PremiumSectionHeader("Exercise Order", eyebrow: "Plan")
-                        ForEach(Array(exercises.enumerated()), id: \.offset) { i, ex in
-                            overviewExerciseRow(index: i, exercise: ex)
+                        VStack(alignment: .leading, spacing: 12) {
+                            PremiumSectionHeader("Exercise Order", eyebrow: "Plan")
+                            ForEach(Array(exercises.enumerated()), id: \.offset) { i, ex in
+                                overviewExerciseRow(index: i, exercise: ex)
+                            }
                         }
-                    }
 
-                    Button(action: {
-                        phase = exercises.isEmpty ? .completed : .work
-                        setIndex = 0
-                    }) {
-                        Text("Start Session")
+                        Button(action: {
+                            guard !exercises.isEmpty else { phase = .completed; return }
+                            setIndex = 0
+                            exerciseIndex = 0
+                            isNewExerciseAfterRest = false
+                            phase = .exerciseIntro
+                        }) {
+                            Text("Start Session")
+                        }
+                        .buttonStyle(PremiumActionButtonStyle())
                     }
-                    .buttonStyle(PremiumActionButtonStyle())
+                    .padding(.vertical, 16)
+                    .frame(width: contentWidth, alignment: .leading)
+                    .padding(.horizontal, 16)
                 }
-                .padding()
+                .frame(width: geometry.size.width, alignment: .top)
             }
+        }
+    }
+
+    /// Full-screen coached intro view shown before each exercise (session start + new-exercise transitions).
+    @ViewBuilder
+    private var exerciseIntroPhaseView: some View {
+        if let ex = exercises[safe: exerciseIndex] {
+            ExerciseIntroView(
+                exercise: ex,
+                exerciseIndex: exerciseIndex,
+                totalExercises: exercises.count,
+                onReady: {
+                    HapticEngine.impact(.medium)
+                    phase = .work
+                }
+            )
+        } else {
+            // Fallback — shouldn't happen but avoids a blank screen
+            Color.black.ignoresSafeArea()
+                .overlay(ProgressView().tint(Brand.Color.accent))
         }
     }
 
@@ -253,7 +498,10 @@ struct GuidedWorkoutView: View {
                     workCockpit(exercise: ex)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
     }
 
     private var completedView: some View {
@@ -266,60 +514,68 @@ struct GuidedWorkoutView: View {
                 .blur(radius: 20)
             
             Color.black.opacity(0.7).ignoresSafeArea()
-            
-            ScrollView {
-                VStack(spacing: 20) {
-                    PremiumHeroCard(
-                        title: "Workout Complete",
-                        subtitle: "Session logged, post-workout insight generated, and the execution trail is now on record.",
-                        eyebrow: "Session Closed"
-                    ) {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 10) {
-                                PremiumMetricPill(label: "Exercises", value: "\(exercises.count)")
-                                PremiumMetricPill(label: "Sets Logged", value: "\(completedSetCount)")
-                                PremiumMetricPill(label: "Status", value: saved ? "Saved" : "Pending")
+
+            GeometryReader { geometry in
+                let contentWidth = max(geometry.size.width - 32, 0)
+                ScrollView {
+                    VStack(spacing: 20) {
+                        PremiumHeroCard(
+                            title: "Workout Complete",
+                            subtitle: "Session logged, post-workout insight generated, and the execution trail is now on record.",
+                            eyebrow: "Session Closed"
+                        ) {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 10) {
+                                    PremiumMetricPill(label: "Exercises", value: "\(exercises.count)")
+                                    PremiumMetricPill(label: "Sets Logged", value: "\(completedSetCount)")
+                                    PremiumMetricPill(label: "Status", value: saved ? "Saved" : "Pending")
+                                }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                    }
-                    if saved {
-                        VStack(spacing: 24) {
-                            ProBadge(
-                                type: exercises.first?.name?.lowercased().contains("squat") == true ? .iron_core : .architect,
-                                label: "Elite Attainment",
-                                size: 150
-                            )
-                            .padding(.vertical, 20)
-                            
-                            Text("Session Decoded. Protocol Logged.")
-                                .font(.system(size: 12, weight: .black, design: .monospaced))
-                                .foregroundStyle(Brand.Color.accent)
-                        }
-                    }
-                    if insightLoading {
-                        PremiumStateCard(title: "Generating recap", detail: "Koda is turning your logged work into a concise post-session insight.", symbol: "waveform.path.ecg")
-                    } else if let insight = postWorkoutInsight {
-                        PremiumRowCard {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Post-Workout Readout")
-                                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                                    .tracking(1.1)
+
+                        if saved {
+                            VStack(spacing: 24) {
+                                ProBadge(
+                                    type: exercises.first?.name?.lowercased().contains("squat") == true ? .iron_core : .architect,
+                                    label: "Elite Attainment",
+                                    size: 150
+                                )
+                                .padding(.vertical, 20)
+                                
+                                Text("Session Decoded. Protocol Logged.")
+                                    .font(.system(size: 12, weight: .black, design: .monospaced))
                                     .foregroundStyle(Brand.Color.accent)
-                                Text(insight)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.white)
-                                    .fixedSize(horizontal: false, vertical: true)
                             }
                         }
+                        if insightLoading {
+                            PremiumStateCard(title: "Generating recap", detail: "Koda is turning your logged work into a concise post-session insight.", symbol: "waveform.path.ecg")
+                        } else if let insight = postWorkoutInsight {
+                            PremiumRowCard {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Post-Workout Readout")
+                                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                                        .tracking(1.1)
+                                        .foregroundStyle(Brand.Color.accent)
+                                    Text(insight)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.white)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                        }
+                        
+                        Button("Return Home") {
+                            dismiss()
+                        }
+                        .buttonStyle(PremiumActionButtonStyle())
+                        .padding(.top, 20)
                     }
-                    
-                    Button("Return Home") {
-                        dismiss()
-                    }
-                    .buttonStyle(PremiumActionButtonStyle())
-                    .padding(.top, 20)
+                    .padding(.vertical, 16)
+                    .frame(width: contentWidth, alignment: .leading)
+                    .padding(.horizontal, 16)
                 }
-                .padding()
+                .frame(width: geometry.size.width, alignment: .top)
             }
         }
     }
@@ -404,6 +660,7 @@ struct GuidedWorkoutView: View {
                 loggedSetsSection
                 workActionSection
             }
+            .frame(maxWidth: .infinity)
             .padding(20)
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
@@ -416,31 +673,57 @@ struct GuidedWorkoutView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 16)
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func workSummarySection(exercise ex: PlanExercise) -> some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("NOW")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .tracking(1.2)
-                    .foregroundStyle(Brand.Color.accent)
-                Text("Set \(setIndex + 1) of \(ex.sets ?? 1)")
-                    .font(.title2.weight(.black))
-                    .foregroundStyle(.white)
-                Text(ex.rationale ?? "Stay crisp, hit the target cleanly, and leave enough control for the next round.")
-                    .font(.subheadline)
-                    .foregroundStyle(Brand.Color.muted)
-                    .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("NOW")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(Brand.Color.accent)
+                    Text("Set \(setIndex + 1) of \(ex.sets ?? 1)")
+                        .font(.title2.weight(.black))
+                        .foregroundStyle(.white)
+                    Text(ex.rationale ?? "Stay crisp, hit the target cleanly, and leave enough control for the next round.")
+                        .font(.subheadline)
+                        .foregroundStyle(Brand.Color.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text("Logged")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.64))
+                    Text("\(currentExerciseLoggedSets.count)")
+                        .font(.system(size: 30, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                }
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 6) {
-                Text("Logged")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.64))
-                Text("\(currentExerciseLoggedSets.count)")
-                    .font(.system(size: 30, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
+
+            if workIntervalTargetSeconds > 0 {
+                HStack(spacing: 12) {
+                    targetCard(title: "Interval", value: formatTime(workIntervalRemaining), accent: .white)
+                    targetCard(title: "Total", value: formatTime(workIntervalTargetSeconds), accent: Brand.Color.accent)
+                }
+            }
+
+            if hasLiveCoachingSignals {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) {
+                        targetCard(title: "Live HR", value: "\(healthKit.currentHeartRate ?? simulatedHeartRate)", accent: .white)
+                        targetCard(title: "Steps", value: formattedStepCount(healthKit.todaySteps), accent: Brand.Color.accent)
+                        targetCard(title: "HRV Δ", value: formattedHRVDelta, accent: hrvDeltaAccent)
+                    }
+
+                    VStack(spacing: 12) {
+                        targetCard(title: "Live HR", value: "\(healthKit.currentHeartRate ?? simulatedHeartRate)", accent: .white)
+                        targetCard(title: "Steps", value: formattedStepCount(healthKit.todaySteps), accent: Brand.Color.accent)
+                        targetCard(title: "HRV Δ", value: formattedHRVDelta, accent: hrvDeltaAccent)
+                    }
+                }
             }
         }
     }
@@ -467,7 +750,12 @@ struct GuidedWorkoutView: View {
 
     @ViewBuilder
     private func workCoachingSection(exercise ex: PlanExercise) -> some View {
-        if ex.tempo != nil || ex.breathing != nil || ex.intent != nil || ex.notes != nil {
+        let walkthrough = (ex.walkthrough_steps ?? []).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let coachingPoints = (ex.coaching_points ?? []).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let setupChecklist = (ex.setup_checklist ?? []).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let commonMistakes = (ex.common_mistakes ?? []).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let hasPrimaryCues = ex.tempo != nil || ex.breathing != nil || ex.intent != nil || ex.notes != nil
+        if hasPrimaryCues || !walkthrough.isEmpty || !coachingPoints.isEmpty || !setupChecklist.isEmpty || !commonMistakes.isEmpty || (ex.progression_note?.isEmpty == false) {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Coaching cues")
                     .font(.system(size: 10, weight: .black, design: .monospaced))
@@ -486,6 +774,22 @@ struct GuidedWorkoutView: View {
                     if let notes = ex.notes, !notes.isEmpty {
                         cueRow(label: "NOTE", value: notes)
                     }
+                }
+
+                if !setupChecklist.isEmpty {
+                    cueList(title: "Setup", icon: "checklist", items: Array(setupChecklist.prefix(3)))
+                }
+                if !walkthrough.isEmpty {
+                    cueList(title: "Walkthrough", icon: "figure.strengthtraining.traditional", items: Array(walkthrough.prefix(3)))
+                }
+                if !coachingPoints.isEmpty {
+                    cueList(title: "Live Coaching", icon: "waveform", items: Array(coachingPoints.prefix(2)))
+                }
+                if !commonMistakes.isEmpty {
+                    cueList(title: "Avoid", icon: "exclamationmark.triangle.fill", items: Array(commonMistakes.prefix(1)), tint: Brand.Color.warning)
+                }
+                if let progression = ex.progression_note, !progression.isEmpty {
+                    cueList(title: "Progression", icon: "chart.line.uptrend.xyaxis", items: [progression], tint: Brand.Color.success)
                 }
             }
         }
@@ -506,6 +810,26 @@ struct GuidedWorkoutView: View {
                 VStack(spacing: 12) {
                     workoutEntryField(label: "Weight", unit: "LBS", placeholder: "0", text: $currentWeightInput, keyboard: .decimalPad)
                     workoutEntryField(label: "Reps", unit: "COUNT", placeholder: ex.reps?.components(separatedBy: "-").first ?? "0", text: $currentRepsInput, keyboard: .numberPad)
+                }
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    quickActionButton("Use Last Set", systemImage: "arrow.counterclockwise") {
+                        applyLastSetDefaults()
+                    }
+                    quickActionButton("Use Target", systemImage: "target") {
+                        applyTargetDefaults(for: ex)
+                    }
+                    quickActionButton("+5 lb", systemImage: "plus.circle") {
+                        adjustWeight(by: 5)
+                    }
+                    quickActionButton("-5 lb", systemImage: "minus.circle") {
+                        adjustWeight(by: -5)
+                    }
+                    quickActionButton("+1 rep", systemImage: "plus.circle.fill") {
+                        adjustReps(by: 1, exercise: ex)
+                    }
                 }
             }
         }
@@ -531,24 +855,35 @@ struct GuidedWorkoutView: View {
     }
 
     private func loggedSetPill(index: Int, logged: LoggedSet) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("S\(index + 1)")
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(.white.opacity(0.64))
-            Text("\(Int(logged.weight ?? 0)) x \(logged.reps ?? 0)")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.white)
+        Button {
+            if let weight = logged.weight, weight > 0 {
+                currentWeightInput = String(Int(weight.rounded()))
+            }
+            if let reps = logged.reps, reps > 0 {
+                currentRepsInput = String(reps)
+            }
+            HapticEngine.selection()
+        } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("S\(index + 1)")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.64))
+                Text("\(Int(logged.weight ?? 0)) x \(logged.reps ?? 0)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+            )
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.06))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                )
-        )
+        .buttonStyle(.plain)
     }
 
     private var workActionSection: some View {
@@ -587,7 +922,8 @@ struct GuidedWorkoutView: View {
     }
 
     private func restCockpit(exercise ex: PlanExercise) -> some View {
-        let isOptimal = heartRate <= recoveryTarget
+        let displayHR = healthKit.currentHeartRate ?? simulatedHeartRate
+        let isOptimal = displayHR <= recoveryTarget
 
         return VStack(spacing: 20) {
             Spacer()
@@ -600,7 +936,7 @@ struct GuidedWorkoutView: View {
 
                 if neuralRestMode {
                     NeuralRestHUD(
-                        heartRate: heartRate,
+                        heartRate: displayHR,
                         timeRemaining: restRemaining,
                         recoveryScore: calculateRecoveryScore(),
                         steeringMessage: getSteeringMessage()
@@ -618,31 +954,25 @@ struct GuidedWorkoutView: View {
 
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 12) {
-                        targetCard(title: "Heart Rate", value: "\(heartRate)", accent: .white)
+                        targetCard(title: "Heart Rate", value: "\(displayHR)", accent: .white)
                         targetCard(title: "Target", value: "\(recoveryTarget)", accent: Brand.Color.accent)
+                        targetCard(title: "Rest", value: "\(restTargetSeconds)s", accent: .white)
+                        targetCard(title: "Steps", value: formattedStepCount(healthKit.todaySteps), accent: .white)
+                        targetCard(title: "HRV Δ", value: formattedHRVDelta, accent: hrvDeltaAccent)
                         targetCard(title: "Ready", value: isOptimal ? "Yes" : "Not Yet", accent: isOptimal ? Brand.Color.success : Brand.Color.warning)
                     }
 
                     VStack(spacing: 12) {
-                        targetCard(title: "Heart Rate", value: "\(heartRate)", accent: .white)
+                        targetCard(title: "Heart Rate", value: "\(displayHR)", accent: .white)
                         targetCard(title: "Target", value: "\(recoveryTarget)", accent: Brand.Color.accent)
+                        targetCard(title: "Rest", value: "\(restTargetSeconds)s", accent: .white)
+                        targetCard(title: "Steps", value: formattedStepCount(healthKit.todaySteps), accent: .white)
+                        targetCard(title: "HRV Δ", value: formattedHRVDelta, accent: hrvDeltaAccent)
                         targetCard(title: "Ready", value: isOptimal ? "Yes" : "Not Yet", accent: isOptimal ? Brand.Color.success : Brand.Color.warning)
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Up next")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .tracking(1.1)
-                        .foregroundStyle(Brand.Color.accent)
-                    Text(ex.name ?? "Next Exercise")
-                        .font(.title3.weight(.black))
-                        .foregroundStyle(.white)
-                    Text(isOptimal ? "Recovery threshold met. You can move into the next effort early." : "Hold position, slow breathing, and let readiness catch up before the override.")
-                        .font(.subheadline)
-                        .foregroundStyle(Brand.Color.muted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                restUpNextCard(exercise: ex, isOptimal: isOptimal)
 
                 Button(action: advanceRest) {
                     Text(isOptimal ? "Start Next Set" : "Override Recovery")
@@ -660,6 +990,69 @@ struct GuidedWorkoutView: View {
             )
             .padding(.horizontal, 16)
             .padding(.bottom, 16)
+        }
+    }
+
+    /// "Up next" card shown during rest — previews the upcoming exercise with catalog cues.
+    private func restUpNextCard(exercise ex: PlanExercise, isOptimal: Bool) -> some View {
+        let nextCatalog = ExerciseCatalog.entry(for: ex.name ?? "")
+        let isNewExercise = isNewExerciseAfterRest
+        let firstPlanCue = (ex.coaching_points ?? []).first ?? (ex.walkthrough_steps ?? []).first
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(isNewExercise ? "NEXT EXERCISE" : "CONTINUING")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .tracking(1.1)
+                        .foregroundStyle(Brand.Color.accent)
+                    Text(ex.name ?? "Next Exercise")
+                        .font(.title3.weight(.black))
+                        .foregroundStyle(.white)
+                }
+                Spacer()
+                if let muscles = nextCatalog?.muscles {
+                    VStack(alignment: .trailing, spacing: 3) {
+                        ForEach(muscles.prefix(2), id: \.self) { m in
+                            Text(m)
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(Capsule().fill(Color.white.opacity(0.07)))
+                        }
+                    }
+                }
+            }
+
+            if isNewExercise, let firstCue = nextCatalog?.formCues.first {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: firstCue.icon)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Brand.Color.accent)
+                    Text(firstCue.cue)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.75))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else if let firstPlanCue, !firstPlanCue.isEmpty {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "waveform")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Brand.Color.accent)
+                    Text(firstPlanCue)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.75))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Text(isOptimal
+                 ? "Recovery threshold met. Intro will play when you're ready."
+                 : "Keep breathing, let your heart rate settle before advancing.")
+                .font(.caption)
+                .foregroundStyle(Brand.Color.muted)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -683,6 +1076,13 @@ struct GuidedWorkoutView: View {
                     focus: freshPlan.training_plan?.focus,
                     durationMinutes: freshPlan.training_plan?.duration_minutes
                 )
+            }
+            Task {
+                if let briefing = try? await api.aiBriefing(localDate: DateHelpers.todayLocal) {
+                    await MainActor.run {
+                        sessionRationale = briefing.rationale
+                    }
+                }
             }
         } catch {
             if let ds = dataService {
@@ -712,19 +1112,23 @@ struct GuidedWorkoutView: View {
     }
 
     private func advanceSet() {
+        stopWorkIntervalTimer(reset: true)
+
+        let ex = exercises[safe: exerciseIndex]
+        applySmartDefaultsIfNeeded(for: ex)
+
         // 1. Update local state immediately — the UI responds at once (optimistic).
-        let w = Double(currentWeightInput)
-        let r = Int(currentRepsInput)
+        let w = Double(currentWeightInput.filter { $0.isNumber || $0 == "." })
+        let r = parsedReps(from: currentRepsInput, fallbackExercise: ex)
         if exerciseIndex < loggedSets.count {
             loggedSets[exerciseIndex].append(LoggedSet(weight: w, reps: r))
         }
-        currentWeightInput = ""
-        currentRepsInput = ""
+        currentWeightInput = w.map { String(Int($0.rounded())) } ?? ""
+        currentRepsInput = r.map(String.init) ?? ""
 
         // Hide keyboard
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
 
-        let ex = exercises[safe: exerciseIndex]
         let sets = ex?.sets ?? 1
         if setIndex + 1 >= sets {
             if exerciseIndex + 1 >= exercises.count {
@@ -734,12 +1138,14 @@ struct GuidedWorkoutView: View {
             } else {
                 exerciseIndex += 1
                 setIndex = 0
+                isNewExerciseAfterRest = true   // flag: show exercise intro after rest
                 HapticEngine.impact(.heavy)
                 if let next = exercises[safe: exerciseIndex] { prefetchDemoURL(for: next) }
                 startRestTimer()
             }
         } else {
             setIndex += 1
+            isNewExerciseAfterRest = false
             HapticEngine.impact(.heavy)
             startRestTimer()
         }
@@ -757,34 +1163,74 @@ struct GuidedWorkoutView: View {
         try? await ds.upsertWorkoutLog(log)
     }
     
-    // Extracted logic to skip rest
+    // Skip the rest countdown and advance immediately.
     private func advanceRest() {
-        restRemaining = 0 // Causes loop to exit
+        restTimerTask?.cancel()
+        restTimerTask = nil
+        restRemaining = 0
+        phase = .work
     }
 
     private func startRestTimer() {
         phase = .rest
-        restRemaining = restSeconds
+        let target = targetRestSeconds(for: currentExercise)
+        restTargetSeconds = target
+        restRemaining = target
+
+        Task {
+            await healthKit.refreshLiveCoachingSignals()
+            await persistLiveCoachingSignals()
+        }
 
         if neuralRestMode {
-            heartRate = 148       // Simulate high post-set HR
-            recoveryTarget = 110  // Simulated PhD-level target
+            // Seed simulation only when HealthKit HR is unavailable.
+            if healthKit.currentHeartRate == nil {
+                simulatedHeartRate = 148
+            }
+            recoveryTarget = adaptiveRecoveryTarget()
         }
-        
-        Task {
-            for i in (0..<restSeconds).reversed() {
+
+        restTimerTask?.cancel()
+        restTimerTask = Task {
+            for i in (0..<target).reversed() {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
-                await MainActor.run { 
-                    restRemaining = i 
-                    if neuralRestMode && heartRate > recoveryTarget {
-                        // Simulate HR drop by 1-3 bpm per second
-                        heartRate -= Int.random(in: 1...3)
-                        if heartRate < recoveryTarget { heartRate = recoveryTarget }
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    restRemaining = i
+                    if neuralRestMode {
+                        // When HealthKit is unavailable, simulate HR drop
+                        if healthKit.currentHeartRate == nil {
+                            simulatedHeartRate -= Int.random(in: 1...3)
+                            if simulatedHeartRate < recoveryTarget { simulatedHeartRate = recoveryTarget }
+                        }
                     }
                 }
-                
-                if i == 0 || (neuralRestMode && heartRate <= recoveryTarget && i < restSeconds - 10) {
-                    await MainActor.run { phase = .work }
+                guard !Task.isCancelled else { return }
+
+                let effectiveHR = healthKit.currentHeartRate ?? simulatedHeartRate
+                if i == 10 {
+                    HapticEngine.impact(.light)
+                    if coachAudio.isEnabled {
+                        coachAudio.playCue(
+                            .finishSet,
+                            details: coachAudioDetails(for: currentExercise),
+                            fallbackText: "Ten seconds. Breathe, reset, and get ready."
+                        )
+                    }
+                }
+                if i > 0 && i <= 3 {
+                    HapticEngine.selection()
+                }
+
+                if i == 0 || (neuralRestMode && effectiveHR <= recoveryTarget && i < max(target - 10, 5)) {
+                    await MainActor.run {
+                        if isNewExerciseAfterRest {
+                            isNewExerciseAfterRest = false
+                            phase = .exerciseIntro
+                        } else {
+                            phase = .work
+                        }
+                    }
                     break
                 }
             }
@@ -811,8 +1257,14 @@ struct GuidedWorkoutView: View {
                     breathing: ex?.breathing,
                     intent: ex?.intent,
                     rationale: ex?.rationale,
+                    walkthrough_steps: ex?.walkthrough_steps,
+                    coaching_points: ex?.coaching_points,
+                    setup_checklist: ex?.setup_checklist,
+                    common_mistakes: ex?.common_mistakes,
                     target_rir: ex?.target_rir,
                     target_load_kg: ex?.target_load_kg,
+                    rest_seconds_after_set: ex?.rest_seconds_after_set,
+                    progression_note: ex?.progression_note,
                     video_url: ex?.video_url,
                     cinema_video_url: ex?.cinema_video_url,
                     image_url: ex?.image_url
@@ -827,11 +1279,17 @@ struct GuidedWorkoutView: View {
                     swapInput = ""
                     isSwapOptionsVisible = false
                 }
+                HapticEngine.notification(.success)
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                await MainActor.run { swapFeedback = nil }
             }
         } catch {
-             await MainActor.run { swapFeedback = "Override failed. Try again." }
+            await MainActor.run { swapFeedback = "Override failed. Try again." }
+            HapticEngine.notification(.error)
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await MainActor.run { swapFeedback = nil }
         }
-        
+
         await MainActor.run { swapLoading = false }
     }
     
@@ -961,12 +1419,27 @@ struct GuidedWorkoutView: View {
                 
                 if let result = formCheckResult {
                     VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Label(
+                                result.analysis_source == "on_device" ? "ON DEVICE" : "SERVER",
+                                systemImage: result.analysis_source == "on_device" ? "cpu" : "network"
+                            )
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(result.analysis_source == "on_device" ? Brand.Color.accent : .orange)
+
+                            if let benchmark = result.benchmark_ms {
+                                Text("\(benchmark) MS")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
                         HStack {
                             Text("BIOMECHANICAL SCORE:")
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundStyle(.secondary)
                             Spacer()
-                            Text("\(Int(result.score ?? 0))")
+                            Text("\(normalizedVisionScore(result.score))")
                                 .font(.system(size: 24, weight: .black, design: .rounded))
                                 .foregroundStyle(Brand.Color.accent)
                         }
@@ -983,6 +1456,43 @@ struct GuidedWorkoutView: View {
                                 .background(Brand.Color.accent.opacity(0.1))
                                 .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
+
+                        if let fallback = result.fallback_reason, !fallback.isEmpty {
+                            Text(fallback)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if let reps = result.rep_count, reps > 0 || result.peak_velocity_mps != nil {
+                            HStack(spacing: 8) {
+                                if reps > 0 {
+                                    Text("\(reps) REPS")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.secondary)
+                                }
+                                if let peak = result.peak_velocity_mps {
+                                    Text(String(format: "PEAK %.2f M/S", peak))
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.secondary)
+                                }
+                                if let mean = result.mean_velocity_mps {
+                                    Text(String(format: "MEAN %.2f M/S", mean))
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.secondary)
+                                }
+                                if let dropoff = result.velocity_dropoff_percent, dropoff > 0 {
+                                    Text(String(format: "DROPOFF %.0f%%", dropoff))
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+
+                        if let reportPath = result.benchmark_report_path, !reportPath.isEmpty {
+                            Text("BENCHMARK: \(benchmarkReportLabel(for: reportPath))")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     .padding()
                     .background(Color.white.opacity(0.05))
@@ -997,6 +1507,20 @@ struct GuidedWorkoutView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
+
+                        if motionAnalysis.capability.supportsRealtime {
+                            Button {
+                                showRealtimeFormCheck = true
+                            } label: {
+                                Text("START REALTIME SCAN")
+                                    .font(.system(size: 12, weight: .black))
+                                    .padding()
+                                    .frame(maxWidth: .infinity)
+                                    .background(Brand.Color.accent.opacity(0.14))
+                                    .foregroundStyle(Brand.Color.accent)
+                                    .clipShape(Capsule())
+                            }
+                        }
                         
                         PhotosPicker(selection: $selectedItems, maxSelectionCount: 1, matching: .images) {
                             Text("CHOOSE PHOTO")
@@ -1040,12 +1564,20 @@ struct GuidedWorkoutView: View {
         formCheckResult = nil
         Task {
             do {
-                let res = try await api.aiVision(images: capturedPhotos)
+                let res = try await motionAnalysis.analyze(
+                    images: capturedPhotos,
+                    configuration: MotionSessionConfiguration(pattern: currentMotionPattern)
+                )
+                await Telemetry.track(.guidedFormCheckCompleted, props: formCheckTelemetry(for: res))
                 await MainActor.run {
                     formCheckResult = res
                     formCheckLoading = false
                 }
             } catch {
+                await Telemetry.track(.guidedFormCheckFailed, props: [
+                    "exercise": currentExercise?.name ?? "unknown",
+                    "error": (error as? LocalizedError)?.errorDescription ?? error.localizedDescription,
+                ])
                 await MainActor.run { formCheckLoading = false }
             }
         }
@@ -1053,31 +1585,416 @@ struct GuidedWorkoutView: View {
     
     private func startNeuralMastery() {
         healthKit.startHeartRateStreaming()
+        liveSignalTask?.cancel()
+        liveSignalTask = Task { @MainActor in
+            await healthKit.refreshLiveCoachingSignals()
+            await persistLiveCoachingSignals()
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 45_000_000_000)
+                guard !Task.isCancelled else { break }
+                await healthKit.refreshLiveCoachingSignals()
+                if phase == .work || phase == .rest || phase == .exerciseIntro {
+                    await persistLiveCoachingSignals()
+                }
+            }
+        }
     }
     
     private func stopNeuralMastery() {
+        restTimerTask?.cancel()
+        restTimerTask = nil
+        workIntervalTask?.cancel()
+        workIntervalTask = nil
+        liveSignalTask?.cancel()
+        liveSignalTask = nil
         healthKit.stopHeartRateStreaming()
+    }
+
+    private func normalizedVisionScore(_ score: Double?) -> Int {
+        guard let score else { return 0 }
+        if score <= 1 {
+            return Int((score * 100).rounded())
+        }
+        return Int(score.rounded())
+    }
+
+    private func benchmarkReportLabel(for path: String) -> String {
+        URL(fileURLWithPath: path).lastPathComponent
+    }
+
+    private func formCheckTelemetry(for response: VisionAnalysisResponse) -> [String: Any] {
+        var props: [String: Any] = [
+            "requested_frames": capturedPhotos.count,
+            "source": response.analysis_source ?? "unknown",
+            "mode": response.analysis_mode ?? "unknown",
+        ]
+        if let benchmark = response.benchmark_ms { props["benchmark_ms"] = benchmark }
+        if let frames = response.frames_analyzed { props["frames_analyzed"] = frames }
+        if let confidence = response.pose_confidence { props["pose_confidence"] = confidence }
+        if let fallback = response.fallback_reason, !fallback.isEmpty { props["fallback_reason"] = fallback }
+        if let pattern = response.movement_pattern { props["movement_pattern"] = pattern }
+        if let reps = response.rep_count { props["rep_count"] = reps }
+        if let peak = response.peak_velocity_mps { props["peak_velocity_mps"] = peak }
+        if let mean = response.mean_velocity_mps { props["mean_velocity_mps"] = mean }
+        if let dropoff = response.velocity_dropoff_percent { props["velocity_dropoff_percent"] = dropoff }
+        if let reportPath = response.benchmark_report_path { props["benchmark_report_path"] = reportPath }
+        return props
+    }
+
+    private func realtimeFormCheckTelemetry(for summary: RealtimeMotionSessionSummary) -> [String: Any] {
+        var props = formCheckTelemetry(for: summary.response)
+        props["average_fps"] = summary.benchmark.averageFPS
+        props["latency_p50_ms"] = summary.benchmark.p50LatencyMs
+        props["latency_p95_ms"] = summary.benchmark.p95LatencyMs
+        props["processed_frames"] = summary.benchmark.processedFrames
+        props["dropped_frames"] = summary.benchmark.droppedFrames
+        return props
     }
     
     private func calculateRecoveryScore() -> Double {
-        guard let hr = healthKit.currentHeartRate else { return 0.5 }
+        let hr = Double(healthKit.currentHeartRate ?? simulatedHeartRate)
         let spread = 160.0 - Double(recoveryTarget)
-        let progress = 1.0 - (Double(hr - recoveryTarget) / spread)
+        let progress = 1.0 - ((hr - Double(recoveryTarget)) / spread)
         return max(0, min(1, progress))
     }
-    
+
     private func getSteeringMessage() -> String? {
-        guard let hr = healthKit.currentHeartRate else { return "Waiting for Synapse data..." }
-        
-        if hr <= recoveryTarget {
+        let hr = Double(healthKit.currentHeartRate ?? simulatedHeartRate)
+        if let delta = healthKit.hrvDelta, delta <= -12 {
+            return "HRV is suppressed versus baseline. Extend rest and prioritize clean reps."
+        } else if let delta = healthKit.hrvDelta, delta >= 8 {
+            return "HRV trend is strong. Stay precise and keep rest disciplined."
+        }
+
+        if let steps = healthKit.todaySteps, steps < 3000 {
+            return "Low movement day so far. Add a brief walk after this session for recovery."
+        }
+
+        if hr <= Double(recoveryTarget) {
             return "Metabolic Reset Complete. Readiness Optimal."
-        } else if restRemaining < 20 && hr > recoveryTarget + 20 {
+        } else if restRemaining < 20 && hr > Double(recoveryTarget) + 20 {
             return "Recovery Lag Detected. Suggest Neural Override."
         } else if hr > 150 {
             return "High Intensity Signal. Focus on Deep Respiration."
         } else {
             return "Physiological Calibration in Progress..."
         }
+    }
+
+    private func handlePhaseTransition(_ newPhase: Phase) {
+        if newPhase == .work {
+            applySmartDefaultsIfNeeded(for: currentExercise)
+            startWorkIntervalIfNeeded()
+            Task {
+                await healthKit.refreshLiveCoachingSignals()
+                await persistLiveCoachingSignals()
+            }
+        } else if newPhase == .rest {
+            Task {
+                await healthKit.refreshLiveCoachingSignals()
+                await persistLiveCoachingSignals()
+            }
+        } else {
+            stopWorkIntervalTimer(reset: true)
+        }
+    }
+
+    private var hasLiveCoachingSignals: Bool {
+        healthKit.currentHeartRate != nil ||
+        healthKit.todaySteps != nil ||
+        healthKit.todayHRV != nil ||
+        healthKit.hrvBaseline != nil
+    }
+
+    private var formattedHRVDelta: String {
+        guard let delta = healthKit.hrvDelta else { return "N/A" }
+        let sign = delta >= 0 ? "+" : ""
+        return "\(sign)\(Int(delta.rounded()))"
+    }
+
+    private var hrvDeltaAccent: Color {
+        guard let delta = healthKit.hrvDelta else { return Brand.Color.muted }
+        if delta <= -12 { return Brand.Color.danger }
+        if delta <= -6 { return Brand.Color.warning }
+        if delta >= 8 { return Brand.Color.success }
+        return Brand.Color.accent
+    }
+
+    private func formattedStepCount(_ steps: Int?) -> String {
+        guard let steps else { return "N/A" }
+        if steps >= 10_000 {
+            return String(format: "%.1fk", Double(steps) / 1_000.0)
+        }
+        return "\(steps)"
+    }
+
+    private func adaptiveRecoveryTarget() -> Int {
+        var target = 110
+        if let delta = healthKit.hrvDelta {
+            if delta <= -12 {
+                target = 102
+            } else if delta <= -6 {
+                target = 106
+            } else if delta >= 8 {
+                target = 114
+            }
+        }
+        if let current = healthKit.currentHeartRate, current > 165 {
+            target -= 2
+        }
+        return min(max(target, 95), 120)
+    }
+
+    private func persistLiveCoachingSignals() async {
+        guard let dataService else { return }
+        guard let snapshot = healthKit.liveSnapshot(
+            sessionPhase: phaseLabel(phase),
+            recoveryTargetHeartRate: recoveryTarget
+        ) else {
+            return
+        }
+
+        var signal = ConnectedSignal()
+        signal.provider = snapshot.provider
+        signal.signal_date = DateHelpers.todayLocal
+        signal.steps = snapshot.todaySteps
+        signal.hrv = snapshot.todayHRV
+        signal.updated_at = ISO8601DateFormatter().string(from: Date())
+
+        guard signal.steps != nil || signal.hrv != nil else { return }
+        try? await dataService.upsertConnectedSignal(signal)
+    }
+
+    private func phaseLabel(_ value: Phase) -> String {
+        switch value {
+        case .loading:
+            return "guided_loading"
+        case .overview:
+            return "guided_overview"
+        case .exerciseIntro:
+            return "guided_intro"
+        case .work:
+            return "guided_work"
+        case .rest:
+            return "guided_rest"
+        case .completed:
+            return "guided_completed"
+        }
+    }
+
+    private func startWorkIntervalIfNeeded() {
+        guard let seconds = parseWorkIntervalSeconds(from: currentExercise?.reps) else {
+            stopWorkIntervalTimer(reset: true)
+            return
+        }
+
+        workIntervalTask?.cancel()
+        workIntervalTargetSeconds = seconds
+        workIntervalRemaining = seconds
+
+        workIntervalTask = Task {
+            for second in (0..<seconds).reversed() {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    workIntervalRemaining = second
+                    if second > 0 && second <= 3 {
+                        HapticEngine.selection()
+                    }
+                    if second == 0 {
+                        HapticEngine.notification(.success)
+                        if let name = currentExercise?.name {
+                            coachAudio.playCue(
+                                .finishSet,
+                                details: coachAudioDetails(for: currentExercise, nameOverride: name),
+                                fallbackText: "Interval complete. Log the set and move to recovery."
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func stopWorkIntervalTimer(reset: Bool) {
+        workIntervalTask?.cancel()
+        workIntervalTask = nil
+        if reset {
+            workIntervalTargetSeconds = 0
+            workIntervalRemaining = 0
+        }
+    }
+
+    private func parseWorkIntervalSeconds(from reps: String?) -> Int? {
+        guard let reps else { return nil }
+        let trimmed = reps.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !trimmed.isEmpty else { return nil }
+        return extractDurationSeconds(from: trimmed)
+    }
+
+    private func extractDurationSeconds(from text: String) -> Int? {
+        let pattern = #"(\d{1,3})\s*(sec|secs|second|seconds|s|min|mins|minute|minutes|m)\b"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = regex.firstMatch(in: text, options: [], range: range),
+              let valueRange = Range(match.range(at: 1), in: text),
+              let unitRange = Range(match.range(at: 2), in: text),
+              let value = Int(text[valueRange]) else {
+            return nil
+        }
+
+        let unit = text[unitRange].lowercased()
+        let seconds = unit.hasPrefix("m") ? value * 60 : value
+        return max(5, min(seconds, 600))
+    }
+
+    private func parsedReps(from value: String, fallbackExercise: PlanExercise?) -> Int? {
+        let sanitized = value.filter(\.isNumber)
+        if let parsed = Int(sanitized), parsed > 0 {
+            return parsed
+        }
+        if let fallback = firstInt(in: fallbackExercise?.reps) {
+            return fallback
+        }
+        return nil
+    }
+
+    private func firstInt(in text: String?) -> Int? {
+        guard let text else { return nil }
+        guard let regex = try? NSRegularExpression(pattern: #"\d{1,3}"#) else { return nil }
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = regex.firstMatch(in: text, options: [], range: range),
+              let valueRange = Range(match.range(at: 0), in: text) else {
+            return nil
+        }
+        return Int(text[valueRange])
+    }
+
+    private func applySmartDefaultsIfNeeded(for exercise: PlanExercise?) {
+        guard let exercise else { return }
+        if currentWeightInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if let lastWeight = currentExerciseLoggedSets.last?.weight {
+                currentWeightInput = String(Int(lastWeight.rounded()))
+            } else if exerciseIndex > 0, let previousWeight = loggedSets[safe: exerciseIndex - 1]?.last?.weight {
+                currentWeightInput = String(Int(previousWeight.rounded()))
+            } else if let targetKg = exercise.target_load_kg, targetKg > 0 {
+                currentWeightInput = String(Int((targetKg * 2.20462).rounded()))
+            }
+        }
+
+        if currentRepsInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if let lastReps = currentExerciseLoggedSets.last?.reps {
+                currentRepsInput = String(lastReps)
+            } else if let targetReps = firstInt(in: exercise.reps) {
+                currentRepsInput = String(targetReps)
+            }
+        }
+    }
+
+    private func applyLastSetDefaults() {
+        if let weight = currentExerciseLoggedSets.last?.weight {
+            currentWeightInput = String(Int(weight.rounded()))
+        }
+        if let reps = currentExerciseLoggedSets.last?.reps {
+            currentRepsInput = String(reps)
+        }
+        HapticEngine.selection()
+    }
+
+    private func applyTargetDefaults(for exercise: PlanExercise) {
+        if let targetKg = exercise.target_load_kg, targetKg > 0 {
+            currentWeightInput = String(Int((targetKg * 2.20462).rounded()))
+        }
+        if let targetReps = firstInt(in: exercise.reps) {
+            currentRepsInput = String(targetReps)
+        }
+        HapticEngine.selection()
+    }
+
+    private func adjustWeight(by delta: Int) {
+        let current = Int(currentWeightInput.filter(\.isNumber)) ?? 0
+        let next = max(current + delta, 0)
+        currentWeightInput = next > 0 ? String(next) : ""
+        HapticEngine.selection()
+    }
+
+    private func adjustReps(by delta: Int, exercise: PlanExercise) {
+        let baseline = Int(currentRepsInput.filter(\.isNumber))
+            ?? firstInt(in: exercise.reps)
+            ?? 8
+        let next = max(1, min(baseline + delta, 40))
+        currentRepsInput = String(next)
+        HapticEngine.selection()
+    }
+
+    private func targetRestSeconds(for exercise: PlanExercise?) -> Int {
+        if let configured = exercise?.rest_seconds_after_set, configured > 0 {
+            return min(max(configured, minimumRestSeconds), maximumRestSeconds)
+        }
+
+        let name = (exercise?.name ?? "").lowercased()
+        let intensity = (exercise?.intensity ?? "").lowercased()
+        if parseWorkIntervalSeconds(from: exercise?.reps) != nil {
+            return 45
+        }
+        if intensity.contains("high") || intensity.contains("rpe 8") || intensity.contains("rpe 9") || name.contains("squat") || name.contains("deadlift") || name.contains("press") {
+            return 90
+        }
+        if name.contains("stretch") || name.contains("mobility") || name.contains("cat-cow") || name.contains("breathing") {
+            return 30
+        }
+        return defaultRestSeconds
+    }
+
+    private func coachAudioDetails(for exercise: PlanExercise?, nameOverride: String? = nil) -> [String: Any] {
+        guard let exercise else { return [:] }
+        var details: [String: Any] = [:]
+        details["name"] = nameOverride ?? exercise.name ?? ""
+        details["reps"] = exercise.reps ?? ""
+        details["intensity"] = exercise.intensity ?? ""
+        details["tempo"] = exercise.tempo ?? ""
+        details["breathing"] = exercise.breathing ?? ""
+        details["intent"] = exercise.intent ?? ""
+        details["notes"] = exercise.notes ?? ""
+        details["rationale"] = exercise.rationale ?? ""
+        details["walkthrough_steps"] = exercise.walkthrough_steps ?? []
+        details["coaching_points"] = exercise.coaching_points ?? []
+        details["setup_checklist"] = exercise.setup_checklist ?? []
+        details["common_mistakes"] = exercise.common_mistakes ?? []
+        details["rest_seconds_after_set"] = targetRestSeconds(for: exercise)
+        details["setIndex"] = setIndex + 1
+        details["totalSets"] = exercise.sets ?? 1
+        details["live_heart_rate_bpm"] = healthKit.currentHeartRate ?? simulatedHeartRate
+        details["today_steps"] = healthKit.todaySteps as Any
+        details["today_hrv_ms"] = healthKit.todayHRV as Any
+        details["hrv_baseline_ms"] = healthKit.hrvBaseline as Any
+        details["hrv_delta_ms"] = healthKit.hrvDelta as Any
+        details["recovery_target_bpm"] = recoveryTarget
+        return details
+    }
+
+    private func coachAudioMetrics(for phase: Phase) -> [String: Any] {
+        var metrics: [String: Any] = [
+            "session_phase": phaseLabel(phase),
+            "current_heart_rate_bpm": healthKit.currentHeartRate ?? simulatedHeartRate,
+            "recovery_target_bpm": recoveryTarget,
+            "rest_seconds_remaining": restRemaining,
+        ]
+
+        if let steps = healthKit.todaySteps {
+            metrics["today_steps"] = steps
+        }
+        if let hrv = healthKit.todayHRV {
+            metrics["today_hrv_ms"] = hrv
+            metrics["hrv"] = hrv
+        }
+        if let baseline = healthKit.hrvBaseline {
+            metrics["hrv_baseline_ms"] = baseline
+        }
+        if let delta = healthKit.hrvDelta {
+            metrics["hrv_delta_ms"] = delta
+        }
+        return metrics
     }
     
 
@@ -1124,6 +2041,58 @@ struct GuidedWorkoutView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
+    private func cueList(title: String, icon: String, items: [String], tint: Color = Brand.Color.accent) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(tint)
+                Text(title.uppercased())
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(tint.opacity(0.9))
+            }
+
+            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                HStack(alignment: .top, spacing: 8) {
+                    Circle()
+                        .fill(tint.opacity(0.8))
+                        .frame(width: 5, height: 5)
+                        .padding(.top, 5)
+                    Text(item)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(10)
+        .background(Color.white.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private func quickActionButton(_ label: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(label, systemImage: systemImage)
+                .font(.system(size: 11, weight: .bold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.08))
+                        .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                )
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.white.opacity(0.9))
+    }
+
+    private func formatTime(_ seconds: Int) -> String {
+        let clamped = max(seconds, 0)
+        let minutes = clamped / 60
+        let remainder = clamped % 60
+        return String(format: "%d:%02d", minutes, remainder)
+    }
+
     private func overviewExerciseRow(index: Int, exercise: PlanExercise) -> some View {
         HStack(alignment: .top, spacing: 14) {
             Text("\(index + 1)")
@@ -1139,34 +2108,34 @@ struct GuidedWorkoutView: View {
                 Text(exercise.name ?? "Exercise \(index + 1)")
                     .font(.headline.weight(.bold))
                     .foregroundStyle(.white)
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) {
-                        workoutInfoPill("\(exercise.sets ?? 0) sets")
-                        workoutInfoPill(exercise.reps ?? "- reps")
-                        if let intensity = exercise.intensity {
-                            workoutInfoPill(intensity)
-                        }
-                    }
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.9)
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        workoutInfoPill("\(exercise.sets ?? 0) sets")
-                        workoutInfoPill(exercise.reps ?? "- reps")
-                        if let intensity = exercise.intensity {
-                            workoutInfoPill(intensity)
-                        }
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 92, maximum: 168), spacing: 8, alignment: .leading)],
+                    alignment: .leading,
+                    spacing: 8
+                ) {
+                    ForEach(Array(overviewInfoItems(for: exercise).enumerated()), id: \.offset) { _, value in
+                        workoutInfoPill(value)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
                 if let rationale = exercise.rationale, !rationale.isEmpty {
                     Text(rationale)
                         .font(.caption)
                         .foregroundStyle(Brand.Color.muted)
+                        .lineLimit(4)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Spacer()
         }
         .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Brand.Color.surfaceRaised.opacity(0.92))
@@ -1177,12 +2146,30 @@ struct GuidedWorkoutView: View {
         )
     }
 
+    private func overviewInfoItems(for exercise: PlanExercise) -> [String] {
+        var items: [String] = []
+        if let sets = exercise.sets, sets > 0 {
+            items.append("\(sets) sets")
+        }
+        if let reps = exercise.reps, !reps.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            items.append(reps)
+        }
+        if let intensity = exercise.intensity, !intensity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            items.append(intensity)
+        }
+        return items.isEmpty ? ["Custom"] : items
+    }
+
     private func workoutInfoPill(_ text: String) -> some View {
         Text(text)
             .font(.caption.weight(.semibold))
             .foregroundStyle(.white)
+            .lineLimit(1)
+            .minimumScaleFactor(0.86)
+            .truncationMode(.tail)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
+            .frame(maxWidth: 168, alignment: .leading)
             .background(
                 Capsule()
                     .fill(Color.white.opacity(0.08))
@@ -1277,6 +2264,9 @@ struct GuidedWorkoutView: View {
     }
 
     private var nextActionLabel: String {
+        if workIntervalTargetSeconds > 0 && workIntervalRemaining > 0 {
+            return "Complete Interval + Log Set"
+        }
         let currentSets = currentExerciseLoggedSets.count + 1
         let targetSets = currentExercise?.sets ?? 1
         if exerciseIndex + 1 >= exercises.count && currentSets >= targetSets {
@@ -1290,6 +2280,10 @@ struct GuidedWorkoutView: View {
 
     private var currentExercise: PlanExercise? {
         exercises[safe: exerciseIndex]
+    }
+
+    private var currentMotionPattern: MotionMovementPattern {
+        MotionMovementPattern.infer(from: currentExercise?.name)
     }
 
     private var primaryExerciseName: String {
@@ -1310,6 +2304,7 @@ struct GuidedWorkoutView: View {
 
     private func buildWorkoutLog() -> WorkoutLog {
         var log = WorkoutLog()
+        log.user_id = auth.currentUserId
         log.date = DateHelpers.todayLocal
         log.workout_type = "Guided"
         log.duration_minutes = sessionDurationMinutes ?? 45
@@ -1319,21 +2314,62 @@ struct GuidedWorkoutView: View {
             let setDetailsStr = exLogs.enumerated().map { j, setLog in
                 "Set \(j+1): \(setLog.weight ?? 0)lbs x \(setLog.reps ?? 0)"
             }.joined(separator: "; ")
-            let finalNotes = ex.notes != nil ? "\(ex.notes!) | Log: \(setDetailsStr)" : "Log: \(setDetailsStr)"
-            return WorkoutExerciseEntry(name: ex.name, sets: ex.sets, reps: ex.reps, weight_kg: maxWeight > 0 ? maxWeight : nil, form_cues: finalNotes)
+            let noteParts = [
+                ex.notes,
+                ex.progression_note.map { "Progression: \($0)" },
+                "Log: \(setDetailsStr)",
+            ].compactMap { value -> String? in
+                guard let value, !value.isEmpty else { return nil }
+                return value
+            }
+            let finalNotes = noteParts.joined(separator: " | ")
+            return WorkoutExerciseEntry(name: ex.name, sets: ex.sets, reps: ex.reps, weight_kg: maxWeight > 0 ? maxWeight : nil, rpe: nil, form_cues: finalNotes)
         }
         return log
     }
+
+    @Environment(\.modelContext) private var modelContext
 
     private func saveAndGetInsight() async {
         guard let ds = dataService else { return }
         // Optimistic: mark saved immediately so the completion screen shows the badge at once.
         await MainActor.run { saved = true }
 
-        var log = buildWorkoutLog()
-        log.log_id = sessionLogId
-        log.notes = nil // clear in-progress marker
-        try? await ds.upsertWorkoutLog(log)
+        let apiLog = buildWorkoutLog()
+
+        // --- OFFLINE-FIRST PERSISTENCE ---
+        let persistentExercises = exercises.enumerated().compactMap { i, ex -> PersistentExerciseLog? in
+            let exLogs = i < loggedSets.count ? loggedSets[i] : []
+            let maxWeight = exLogs.compactMap { $0.weight }.max()
+            let repsStr = ex.reps ?? "0"
+            return PersistentExerciseLog(name: ex.name ?? "Exercise", sets: exLogs.count, reps: repsStr, weight: maxWeight)
+        }
+
+        let localWorkout = PersistentWorkoutLog(
+            userId: auth.currentUserId ?? "anon",
+            date: DateHelpers.todayLocal,
+            workoutType: "Guided",
+            exercises: persistentExercises
+        )
+        localWorkout.logId = sessionLogId
+        localWorkout.notes = apiLog.notes
+
+        modelContext.insert(localWorkout)
+        try? modelContext.save()
+
+        // Attempt immediate sync if connected
+        if NetworkMonitor.shared.isConnected {
+            var log = apiLog
+            log.log_id = sessionLogId
+            try? await ds.upsertWorkoutLog(log)
+            localWorkout.isSynced = true
+            try? modelContext.save()
+        } else {
+            print("Offline mode: workout saved locally for future sync.")
+        }
+
+        // Workout saved — cancel any pending streak-at-risk notification
+        NotificationService.shared.cancelStreakAtRiskNotification()
         _ = try? await api.analyticsProcessPRs()
         _ = try? await api.awardsCheck()
 
@@ -1342,6 +2378,57 @@ struct GuidedWorkoutView: View {
         await MainActor.run {
             postWorkoutInsight = insight?.insight
             insightLoading = false
+        }
+    }
+
+    private func speakCoachCue(for phase: Phase) {
+        guard coachAudio.isEnabled else { return }
+        
+        switch phase {
+        case .overview:
+            coachAudio.playCue(
+                .startWorkout,
+                metrics: coachAudioMetrics(for: phase),
+                details: [
+                    "focus": sessionFocusLabel,
+                    "name": currentExercise?.name ?? "",
+                    "setup_checklist": currentExercise?.setup_checklist ?? [],
+                ],
+                fallbackText: "Your protocol is ready. Review the execution order and let's get to work."
+            )
+        case .work:
+            if let name = currentExercise?.name {
+                coachAudio.playCue(
+                    .startSet,
+                    metrics: coachAudioMetrics(for: phase),
+                    details: coachAudioDetails(for: currentExercise, nameOverride: name),
+                    fallbackText: "Next set: \(name). Focus on quality reps."
+                )
+            }
+        case .rest:
+            coachAudio.playCue(
+                .finishSet,
+                metrics: coachAudioMetrics(for: phase),
+                details: coachAudioDetails(for: currentExercise),
+                fallbackText: "Set complete. Recover and reset."
+            )
+        case .completed:
+            coachAudio.playCue(
+                .finishWorkout,
+                metrics: coachAudioMetrics(for: phase),
+                fallbackText: "Session closed. Insight analysis incoming."
+            )
+        case .exerciseIntro:
+            if let name = currentExercise?.name {
+                coachAudio.playCue(
+                    .startSet,
+                    metrics: coachAudioMetrics(for: phase),
+                    details: coachAudioDetails(for: currentExercise, nameOverride: name),
+                    fallbackText: "Next up: \(name). Here's your execution guide."
+                )
+            }
+        case .loading:
+            break
         }
     }
 

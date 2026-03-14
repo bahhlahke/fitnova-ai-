@@ -15,28 +15,134 @@ export const dynamic = "force-dynamic";
 
 const OPENAI_URL = "https://api.openai.com/v1";
 
+type ExerciseContext = {
+    name?: string;
+    reps?: string;
+    intensity?: string;
+    tempo?: string;
+    breathing?: string;
+    intent?: string;
+    notes?: string;
+    rationale?: string;
+    walkthrough_steps?: string[];
+    coaching_points?: string[];
+    setup_checklist?: string[];
+    common_mistakes?: string[];
+    rest_seconds_after_set?: number | null;
+    setIndex?: number;
+    totalSets?: number;
+    focus?: string;
+};
+
+function toFiniteNumber(value: unknown): number | null {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+    }
+    return null;
+}
+
+function metricNumber(metrics: Record<string, unknown> | undefined, keys: string[]): number | null {
+    if (!metrics) return null;
+    for (const key of keys) {
+        const value = toFiniteNumber(metrics[key]);
+        if (value != null) return value;
+    }
+    return null;
+}
+
 function withTimeout(ms: number) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), ms);
     return { signal: controller.signal, done: () => clearTimeout(id) };
 }
 
-function buildScript(context: string, metrics?: Record<string, unknown>): string {
+function buildScript(
+    context: string,
+    metrics?: Record<string, unknown>,
+    details?: ExerciseContext,
+): string {
+    const setup = details?.setup_checklist?.[0];
+    const walkthrough = details?.walkthrough_steps?.[1] ?? details?.walkthrough_steps?.[0];
+    const coachingPoint = details?.coaching_points?.[0];
+    const commonMistake = details?.common_mistakes?.[0];
+    const liveHeartRate = metricNumber(metrics, [
+        "current_heart_rate_bpm",
+        "live_heart_rate_bpm",
+        "heart_rate_bpm",
+        "currentHeartRate",
+    ]);
+    const recoveryTarget = metricNumber(metrics, [
+        "recovery_target_bpm",
+        "recoveryTargetHeartRate",
+    ]);
+    const hrv = metricNumber(metrics, ["today_hrv_ms", "hrv", "todayHRV"]);
+    const hrvDelta = metricNumber(metrics, ["hrv_delta_ms", "hrv_delta", "hrvDelta"]);
+    const todaySteps = metricNumber(metrics, ["today_steps", "steps"]);
+
     // Vivid, personality-filled scripts — warm, fun, encouraging, a little flirty
     switch (context) {
         case "start_workout":
+            if (details?.focus) {
+                const openingExercise = details?.name ? `We open with ${details.name}.` : "";
+                const openingSetup = setup ? `${setup}` : "Get your setup organized before the countdown starts.";
+                return `Okay, let's go. Today's session is about ${details.focus}. ${openingExercise} ${openingSetup} Stay locked in, move with intention, and let me coach you through each effort.`.replace(/\s+/g, " ").trim();
+            }
             return "Okay, let's GO. You showed up, and that already puts you ahead of most people. I'm going to push you today — but I promise you'll love what you see on the other side. Let's build something.";
-        case "start_set":
-            return "Alright, this is your moment. Every rep matters. Stay focused, stay present — let's make this set count.";
+        case "start_set": {
+            const exercise = details?.name ?? "this movement";
+            const setLabel = details?.setIndex && details?.totalSets
+                ? `set ${details.setIndex} of ${details.totalSets}`
+                : "this set";
+            const reps = details?.reps ? `Target ${details.reps}.` : "";
+            const intensity = details?.intensity ? `${details.intensity} effort.` : "";
+            const readinessLine =
+                hrvDelta != null && hrvDelta <= -8
+                    ? "Recovery signal is a little suppressed today, so stay smooth and technical."
+                    : liveHeartRate != null && recoveryTarget != null && liveHeartRate > recoveryTarget + 15
+                        ? `Heart rate is still up at ${Math.round(liveHeartRate)}; take two deep breaths before rep one.`
+                        : "";
+            const technique = [setup, walkthrough, details?.tempo, details?.breathing, details?.intent, coachingPoint]
+                .filter(Boolean)
+                .join(" ");
+            const reminder = details?.notes ?? details?.rationale ?? commonMistake ?? "";
+
+            return `Alright, ${setLabel} on ${exercise}. ${reps} ${intensity} ${readinessLine} ${technique} ${reminder}`.replace(/\s+/g, " ").trim();
+        }
         case "finish_set": {
-            const hrv = typeof metrics?.hrv === "number" ? metrics.hrv : null;
+            const nextCue = details?.name ? `Stay ready for ${details.name}.` : "";
+            const restCue =
+                typeof details?.rest_seconds_after_set === "number" && details.rest_seconds_after_set > 0
+                    ? `Take about ${details.rest_seconds_after_set} seconds before the next effort.`
+                    : "Take enough rest to come back crisp.";
+            const strainSignal =
+                liveHeartRate != null && recoveryTarget != null && liveHeartRate > recoveryTarget + 18
+                    ? `Heart rate is ${Math.round(liveHeartRate)} and still above the ${Math.round(recoveryTarget)} target, so keep recovery strict.`
+                    : "";
+            const lowReadinessSignal =
+                hrvDelta != null && hrvDelta <= -8
+                    ? "HRV trend is down versus baseline, so prioritize quality over load on the next set."
+                    : "";
+            const movementSignal =
+                todaySteps != null && todaySteps < 3000
+                    ? "After this block, add a short cooldown walk to support recovery."
+                    : "";
+            const highReadiness = hrvDelta != null && hrvDelta >= 8;
+
+            if (strainSignal || lowReadinessSignal) {
+                return `Good set. ${strainSignal} ${lowReadinessSignal} ${restCue} ${nextCue} ${movementSignal}`.replace(/\s+/g, " ").trim();
+            }
             if (hrv && hrv >= 80) {
-                return `Nice work! Your recovery is looking great — ${hrv} on the HRV. You've got plenty in the tank. Take a full breath, then let's hit the next one even harder.`;
+                return `Nice work! Your recovery is looking great — ${Math.round(hrv)} on the HRV. You've got plenty in the tank. ${restCue} ${nextCue}`.replace(/\s+/g, " ").trim();
             }
             if (hrv && hrv < 70) {
-                return `Good set! Your body is working hard today — keep that rest period full so you can come back strong. Quality over ego.`;
+                return `Good set! Your body is working hard today — keep that rest period full so you can come back strong. Quality over ego. ${restCue} ${nextCue} ${movementSignal}`.replace(/\s+/g, " ").trim();
             }
-            return "That's what I'm talking about! Take a real breath, shake it out, let the muscles reload. You earned this rest.";
+            if (highReadiness) {
+                return `Strong set. HRV trend is elevated versus baseline, so stay sharp and keep execution clean while you press the pace. ${restCue} ${nextCue}`.replace(/\s+/g, " ").trim();
+            }
+            return `That's what I'm talking about! Take a real breath, shake it out, let the muscles reload. You earned this rest. ${restCue} ${nextCue} ${movementSignal}`.replace(/\s+/g, " ").trim();
         }
         case "finish_workout":
             return "That's a wrap — and you absolute CRUSHED it today. Seriously, every set, every rep — you were dialed in. Go get your protein in, hydrate, and let that body recover. I'm proud of you.";
@@ -53,11 +159,16 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const body = (await req.json()) as { context?: string; metrics?: Record<string, unknown> };
+        const body = (await req.json()) as {
+            context?: string;
+            metrics?: Record<string, unknown>;
+            details?: ExerciseContext;
+        };
         const context = body.context ?? "default";
         const metrics = body.metrics;
+        const details = body.details;
 
-        const script = buildScript(context, metrics);
+        const script = buildScript(context, metrics, details);
 
         const apiKey = process.env.OPENAI_API_KEY;
 

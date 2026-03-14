@@ -1,23 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toLocalDateString } from "@/lib/date/local-date";
 import { emitDataRefresh, useDataRefresh } from "@/lib/ui/data-sync";
 import { DEFAULT_UNIT_SYSTEM, type UnitSystem, readUnitSystemFromProfile } from "@/lib/units";
-import { Card, CardHeader, Button, LoadingState } from "@/components/ui";
-import { DashboardHero } from "@/components/dashboard/DashboardHero";
-import { SocialFeed } from "@/components/social/SocialFeed";
+import { toPlainFitnessLanguage, toTitleCaseLabel } from "@/lib/ui/plain-language";
+import { Card, Button, LoadingState } from "@/components/ui";
 import { AiCoachPanel } from "@/components/ai/AiCoachPanel";
+import { SpotifyMiniPlayer } from "@/components/music/SpotifyMiniPlayer";
+import { SpotifyProvider } from "@/lib/music/SpotifyProvider";
 import {
-  DashboardPlanSection,
   type DashboardTodayPlan,
 } from "@/components/dashboard/DashboardPlanSection";
-import { DashboardReadinessSection } from "@/components/dashboard/DashboardReadinessSection";
 import {
-  DashboardProgressSection,
   type DashboardProjection,
 } from "@/components/dashboard/DashboardProgressSection";
 import { calculateReadiness, type MuscleReadiness } from "@/lib/workout/recovery";
@@ -31,16 +28,13 @@ export type DailyCheckIn = {
   soreness_notes?: string | null;
 };
 import {
-  DashboardAnalyticsSection,
   type DashboardPerformanceAnalytics,
   type DashboardWeeklyPlanSummary,
 } from "@/components/dashboard/DashboardAnalyticsSection";
 import {
-  DashboardRetentionSection,
   type DashboardNudge,
   type DashboardRetentionRisk,
 } from "@/components/dashboard/DashboardRetentionSection";
-import { SpotifyMiniPlayer } from "@/components/music/SpotifyMiniPlayer";
 
 function getWeekStart(date: Date): string {
   const day = date.getDay();
@@ -48,6 +42,16 @@ function getWeekStart(date: Date): string {
   const monday = new Date(date);
   monday.setDate(diff);
   return toLocalDateString(monday);
+}
+
+function simplifyCoachInsightTitle(title?: string): string {
+  const normalized = title?.toLowerCase() ?? "";
+  if (normalized.includes("overreach")) return "Recovery warning";
+  if (normalized.includes("protein")) return "Protein target check";
+  if (normalized.includes("sleep")) return "Sleep reminder";
+  if (normalized.includes("hydration")) return "Hydration reminder";
+  if (normalized.includes("fatigue")) return "Fatigue warning";
+  return toTitleCaseLabel(toPlainFitnessLanguage(title));
 }
 
 export default function HomePage() {
@@ -515,12 +519,34 @@ export default function HomePage() {
             </p>
 
             <div className="mt-12 flex flex-col gap-4 sm:flex-row">
-              <Link href="/start">
+              <Link href="/start" aria-label="Set Up My iPhone Coach">
                 <Button className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white text-black hover:bg-white/90">Set Up My iPhone Coach</Button>
               </Link>
-              <Link href="/auth">
-                <Button variant="secondary" className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 hover:bg-white/10 text-white">Member Access</Button>
+              <Link href="/auth" aria-label="Member Access">
+                <Button variant="secondary" className="h-touch-lg px-8 text-xs font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 hover:bg-white/10 text-white">Sign In</Button>
               </Link>
+            </div>
+
+            {/* Proof-First: The First 7 Days Preview */}
+            <div className="mt-20 border-t border-white/10 pt-12">
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-6">What Your First Week Looks Like</p>
+              <h2 className="font-display text-4xl font-black uppercase italic tracking-tighter text-white sm:text-5xl mb-10">Your First 7 Days</h2>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  { day: "D1", title: "Starting Point", desc: "Koda learns your goals, schedule, and current baseline.", icon: "target" },
+                  { day: "D3", title: "Plan Tune-Up", desc: "Your workout and food targets adjust to early feedback.", icon: "zap" },
+                  { day: "D5", title: "Progress Check", desc: "Koda spots what is working and where you may need a lighter day.", icon: "activity" },
+                  { day: "D7", title: "Week 1 Review", desc: "You get a simple recap and a better plan for week two.", icon: "trending-up" },
+                ].map((item, i) => (
+                  <div key={item.day} className="relative p-6 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] transition-all group">
+                    <div className="absolute -top-4 -left-4 h-10 w-10 rounded-full bg-fn-accent flex items-center justify-center text-black font-black text-xs shadow-[0_0_15px_rgba(10,217,196,0.5)]">
+                      {item.day}
+                    </div>
+                    <p className="text-sm font-black text-white uppercase tracking-widest mb-2 mt-2">{item.title}</p>
+                    <p className="text-xs text-fn-muted leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="mt-12 flex items-center gap-6">
@@ -531,7 +557,7 @@ export default function HomePage() {
                   <span className="text-[10px] font-black text-fn-accent">+10k</span>
                 </div>
               </div>
-              <p className="text-sm font-semibold text-fn-muted leading-tight">Training protocols calibrated from<br /><span className="text-white">50,000+ scientific data points</span></p>
+              <p className="text-sm font-semibold text-fn-muted leading-tight">Plans informed by<br /><span className="text-white">50,000+ training and nutrition signals</span></p>
             </div>
           </div>
         </section>
@@ -581,33 +607,33 @@ export default function HomePage() {
             {
               src: "/images/refined/athletic_female_gym_2.png",
               alt: "AI Coaching Interface",
-              label: "Command Surface",
-              title: "Dashboard AI",
-              desc: "Log meals, workouts, and vitals via natural language — AI routes the data and syncs the entire app.",
+              label: "Daily Coaching",
+              title: "Clear Next Step",
+              desc: "See today’s workout, meal targets, and coach guidance in one place.",
               accent: "border-fn-accent/30",
             },
             {
               src: "/images/refined/scanner.png",
               alt: "Hormonal Cycle Tracking",
-              label: "Female Physiology",
-              title: "Cycle AI Coach",
-              desc: "Adaptive volume and intensity prescription based on menstrual phase (Luteal vs Follicular).",
+              label: "Women’s Health",
+              title: "Cycle-Aware Coaching",
+              desc: "Training and recovery guidance can adapt around menstrual-cycle needs.",
               accent: "border-fn-accent/30",
             },
             {
               src: "/images/refined/athletic_female_lifting.png",
               alt: "Progression Intelligence",
-              label: "Predictive Models",
-              title: "Progression Engine",
-              desc: "1RM tracking and automatic verified PR recognition. Never guess your working weight again.",
+              label: "Strength Progress",
+              title: "Progress Tracking",
+              desc: "Track PRs and estimated strength changes without guessing what to lift next.",
               accent: "border-fn-accent/30",
             },
             {
               src: "/images/refined/motion.png",
               alt: "Wearable Sync",
-              label: "Systemic Recovery",
-              title: "Biometric Sync",
-              desc: "Connect Oura, Garmin, or Apple Watch to feed HRV, Deep Sleep, and SpO2 back into your coach.",
+              label: "Recovery Data",
+              title: "Wearable Sync",
+              desc: "Connect wearables so Koda can factor in sleep, recovery, and activity data.",
               accent: "border-fn-accent/30",
             },
           ].map(({ src, alt, label, title, desc, accent }) => (
@@ -644,12 +670,12 @@ export default function HomePage() {
             </svg>
           </div>
           <div className="relative z-10 max-w-3xl">
-            <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">The Science of Legend</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.5em] text-fn-accent">Why People Trust Koda</p>
             <h2 className="mt-6 font-display text-4xl font-black uppercase italic tracking-tighter text-white sm:text-6xl">
-              50 Million+ Biometric Points Analyzed Daily
+              Daily coaching built from real training and recovery data
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-fn-muted">
-              Koda AI is built on a proprietary LLM fine-tuned on longitudinal athletic data. We don&apos;t just track steps; we analyze HRV, SpO2, and muscle fatigue recovery curves from your wearables to predict your optimal training window.
+              Koda combines your workouts, check-ins, food logs, and optional wearable data so it can recommend when to push, when to maintain, and when to back off.
             </p>
             <div className="mt-10 grid grid-cols-2 gap-8 border-t border-fn-accent/20 pt-10">
               <div>
@@ -743,14 +769,14 @@ export default function HomePage() {
 
         {/* Final CTA Strip */}
         <section className="mt-20 text-center py-20 bg-fn-accent text-black rounded-xl3 mb-10">
-          <h2 className="font-display text-5xl font-black uppercase italic tracking-tighter sm:text-7xl">Ready for Protocol Launch?</h2>
-          <p className="mt-6 text-xl font-bold uppercase tracking-tight opacity-80 max-w-xl mx-auto">Join the elite few. Start your 7-day free trial today.</p>
+          <h2 className="font-display text-5xl font-black uppercase italic tracking-tighter sm:text-7xl">Ready To Start?</h2>
+          <p className="mt-6 text-xl font-bold uppercase tracking-tight opacity-80 max-w-xl mx-auto">Start your free assessment and get your first personalized plan.</p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
             <Link href="/start">
-              <Button className="!bg-black !text-white hover:!bg-black/90 border-0 h-16 px-10 text-sm font-black uppercase tracking-widest">Start 7-Day Trial</Button>
+              <Button className="bg-black text-white hover:bg-black/90 border-0 h-16 px-10 text-sm font-black uppercase tracking-widest">Start Free Assessment</Button>
             </Link>
             <Link href="/pricing">
-              <Button variant="secondary" className="bg-black/10 border-black/20 text-black hover:bg-black/20 h-16 px-10 text-sm font-black uppercase tracking-widest">View Protocols</Button>
+              <Button variant="secondary" className="bg-black/10 border-black/20 text-black hover:bg-black/20 h-16 px-10 text-sm font-black uppercase tracking-widest">View Plans</Button>
             </Link>
           </div>
         </section>
@@ -775,7 +801,7 @@ export default function HomePage() {
       )
     },
     {
-      href: "/check-in", label: "Check In", color: "from-violet-500/20 to-violet-600/5 border-violet-500/20", iconColor: "text-violet-400", icon: (
+      href: "/check-in", label: "Check In", color: "from-amber-500/20 to-orange-500/5 border-amber-500/20", iconColor: "text-amber-300", icon: (
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -790,63 +816,202 @@ export default function HomePage() {
     },
   ];
 
+  const readyForTodayPercent = (() => {
+    if (checkIn?.energy_score != null) {
+      const energy = (checkIn.energy_score / 5.0) * 0.7;
+      const adherence = ((checkIn.adherence_score ?? checkIn.energy_score) / 5.0) * 0.3;
+      return Math.round(Math.min(1.0, Math.max(0.0, energy + adherence)) * 100);
+    }
+    if (readiness.overall_score != null) {
+      return Math.round(readiness.overall_score * 100);
+    }
+    return null;
+  })();
+
+  const readyForTodayGuide =
+    readyForTodayPercent == null
+      ? "Score guide: 85-100% push, 70-84% moderate, below 70% recovery. Add a quick check-in to personalize."
+      : `Score guide: 85-100% push, 70-84% moderate, below 70% recovery. Today: ${readyForTodayPercent}% ${readyForTodayPercent >= 85 ? "(push)" : readyForTodayPercent >= 70 ? "(moderate)" : "(recovery)"}.`;
+
+  const readinessBand =
+    readyForTodayPercent == null
+      ? "Needs check-in"
+      : readyForTodayPercent >= 85
+        ? "Push day"
+        : readyForTodayPercent >= 70
+          ? "Moderate day"
+          : "Recovery day";
+
+  const retentionRiskLabel =
+    typeof retentionRisk?.risk_score === "number"
+      ? `${Math.round(retentionRisk.risk_score * 100)}% risk`
+      : "Risk syncing";
+
   return (
-    <div className="mx-auto flex h-[calc(100vh-100px)] w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-8 md:h-[calc(100vh-40px)]">
-      {/* High-Density Vitals Header */}
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 shrink-0">
+    <div className="relative mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-7xl flex-col gap-4 px-4 py-5 sm:px-8 md:min-h-[calc(100vh-40px)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 bg-[radial-gradient(circle_at_15%_0%,rgba(10,217,196,0.18),transparent_55%),radial-gradient(circle_at_85%_0%,rgba(255,255,255,0.08),transparent_45%)]" />
+
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-5 shadow-[0_20px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:p-7">
+        <div className="absolute -right-16 -top-14 h-48 w-48 rounded-full bg-fn-accent/15 blur-3xl" />
+        <div className="absolute -bottom-20 left-20 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+        <div className="relative grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-fn-accent">Koda premium coach</p>
+            <h1 className="mt-3 max-w-2xl font-display text-4xl font-black italic tracking-tight text-white sm:text-5xl">
+              Your personal trainer brief for today.
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">
+              {hasPlanToday
+                ? "Your guided session, meal targets, and AI coaching are synced. Start the workout and keep execution tight."
+                : "No plan is loaded yet. Generate today’s session and Koda will set exercise flow, coaching cues, and logging targets."}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="rounded-full border border-white/15 bg-white/[0.05] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
+                Readiness: {readyForTodayPercent != null ? `${readyForTodayPercent}%` : "--"}
+              </span>
+              <span className="rounded-full border border-fn-accent/30 bg-fn-accent/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-fn-accent">
+                {readinessBand}
+              </span>
+              <span className="rounded-full border border-white/15 bg-white/[0.05] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75">
+                {hasWorkoutToday ? "Workout logged today" : "No workout logged yet"}
+              </span>
+            </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              {hasPlanToday ? (
+                <>
+                  <Link href="/log/workout/guided">
+                    <Button size="sm">Start Guided Workout</Button>
+                  </Link>
+                  <Link href="/plan#adjust-workout">
+                    <Button size="sm" variant="secondary">Adjust Workout</Button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Button size="sm" loading={planLoading || generating} onClick={() => void handleGeneratePlan()}>
+                    Generate Today&apos;s Plan
+                  </Button>
+                  <Link href="/check-in">
+                    <Button size="sm" variant="secondary">Quick Check-In</Button>
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/[0.12] bg-black/[0.35] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-fn-accent">Execution plan</p>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/60">
+                {retentionRiskLabel}
+              </span>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-fn-muted">{readyForTodayGuide}</p>
+            <div className="mt-4 space-y-2.5">
+              {[
+                "Review readiness and pain level.",
+                hasPlanToday ? "Start guided workout with video cues." : "Generate plan and verify today’s focus.",
+                "Log at least one set and one meal before noon.",
+              ].map((step, idx) => (
+                <div key={step} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                  <span className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-fn-accent/20 text-[10px] font-bold text-fn-accent">
+                    {idx + 1}
+                  </span>
+                  <p className="text-xs leading-relaxed text-white/80">{step}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-white/65">
+              Next best step:{" "}
+              <span className="text-white">
+                {hasPlanToday
+                  ? "Open guided mode and complete the first movement."
+                  : "Generate your plan so Koda can lock today’s workout and nutrition targets."}
+              </span>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: "Readiness", value: (() => {
-            if (checkIn?.energy_score != null) {
-              const energy = (checkIn.energy_score / 5.0) * 0.7;
-              const adherence = ((checkIn.adherence_score ?? checkIn.energy_score) / 5.0) * 0.3;
-              return `${Math.round(Math.min(1.0, Math.max(0.0, energy + adherence)) * 100)}%`;
-            }
-            return readiness.overall_score != null ? `${Math.round(readiness.overall_score * 100)}%` : "...";
-          })(), icon: "⚡", href: "/vitals" },
-          { label: "Streak", value: `${streak} Days`, icon: "🔥", href: "/progress" },
-          { label: "Volume", value: `${weekCount} Szn`, icon: "📊", href: "/history" },
-          { label: "Today", value: todayPlan?.calories ? `${todayPlan.calories} kcal` : "No Protocol", icon: "🧬", href: "/log/nutrition" },
+          { label: "Ready for Today", value: readyForTodayPercent != null ? `${readyForTodayPercent}%` : "Pending", icon: "RT", href: "/vitals", hint: readinessBand },
+          { label: "Current Streak", value: `${streak} days`, icon: "ST", href: "/progress" },
+          { label: "Workouts This Week", value: `${weekCount}`, icon: "WK", href: "/history" },
+          { label: "Food Target Today", value: todayPlan?.calories ? `${todayPlan.calories} kcal` : "Build plan", icon: "KC", href: "/log/nutrition" },
         ].map((item) => (
           <Link key={item.label} href={item.href}>
-            <div className="group rounded-2xl border border-white/[0.05] bg-fn-surface/40 p-4 transition-all hover:bg-fn-surface/60">
-              <div className="flex items-center justify-between opacity-50">
-                <p className="text-[9px] font-black uppercase tracking-wider">{item.label}</p>
-                <span className="text-xs">{item.icon}</span>
+            <div className="group h-full rounded-3xl border border-white/10 bg-white/[0.03] p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.06]">
+              <div className="flex items-center justify-between">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/55">{item.label}</p>
+                <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-bold text-fn-accent">{item.icon}</span>
               </div>
-              <p className="mt-1 font-display text-xl font-black italic uppercase italic tracking-tighter text-white sm:text-2xl">
+              <p className="mt-2 font-display text-2xl font-black italic tracking-tight text-white sm:text-3xl">
                 {item.value}
               </p>
+              {"hint" in item && <p className="mt-1 text-[10px] leading-relaxed text-fn-muted/75">{item.hint}</p>}
             </div>
           </Link>
         ))}
       </section>
 
+      <section className="grid shrink-0 gap-3 md:grid-cols-4">
+        {quickActions.map((action) => (
+          <Link
+            key={action.href}
+            href={action.href}
+            className={`group rounded-2xl border bg-gradient-to-br p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/30 ${action.color}`}
+          >
+            <div className={`inline-flex rounded-xl border border-white/10 bg-black/25 p-2 ${action.iconColor}`}>
+              {action.icon}
+            </div>
+            <p className="mt-3 text-sm font-semibold text-white">{action.label}</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-white/65">
+              {action.label === "Ask Coach"
+                ? "Get a tactical answer and a direct next step."
+                : action.label === "Log Workout"
+                  ? "Record completed sets so progression stays accurate."
+                  : action.label === "Log Meal"
+                    ? "Capture nutrition quickly and update macro targets."
+                    : "Update recovery and soreness for better daily adaptation."}
+            </p>
+          </Link>
+        ))}
+      </section>
+
       {/* Main Command Workspace */}
-      <div className="flex flex-1 gap-6 overflow-hidden">
+      <div className="flex flex-1 gap-5 overflow-hidden">
         {/* Left Signal Stream - Activity Log Feed (Fixed Sidebar) */}
-        <aside className="hidden w-72 flex-col gap-4 overflow-y-auto md:flex pr-2 custom-scrollbar">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-muted/50 border-b border-white/5 pb-2">Active Signal Feed</p>
+        <aside className="hidden w-80 flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar md:flex">
+          <p className="border-b border-white/10 pb-2 text-[9px] font-semibold uppercase tracking-[0.22em] text-white/45">Today&apos;s Coaching Summary</p>
           <div className="space-y-3">
             {/* Today's Protocol Focus */}
-            <div className="rounded-xl bg-fn-accent/5 border border-fn-accent/20 p-4">
-              <p className="text-[9px] font-black uppercase text-fn-accent mb-1">Target Protocol</p>
-              <p className="font-display text-lg font-black italic text-white leading-tight">{todayPlan?.focus ?? "Analyzing Schedule..."}</p>
+            <div className="rounded-2xl border border-fn-accent/30 bg-[linear-gradient(145deg,rgba(10,217,196,0.14),rgba(10,217,196,0.05))] p-4">
+              <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.22em] text-fn-accent">Today&apos;s Focus</p>
+              <p className="font-display text-xl font-black italic tracking-tight text-white leading-tight">{todayPlan?.focus ?? "Building today’s plan..."}</p>
+              <p className="mt-2 text-[11px] leading-relaxed text-fn-muted">
+                {todayPlan
+                  ? "This is the main training priority Koda wants you to complete next."
+                  : "Step 1 is to generate your plan so Koda can show the recommended workout focus."}
+              </p>
               {todayPlan && (
                 <Link href="/log/workout/guided">
-                  <button className="mt-3 text-[10px] font-black uppercase text-fn-accent hover:underline">Execute Now →</button>
+                  <button className="mt-3 rounded-full border border-fn-accent/30 bg-black/25 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-fn-accent transition-colors hover:bg-black/45">
+                    Start Workout
+                  </button>
                 </Link>
               )}
             </div>
 
             {/* Recent Nudge / Insight */}
             {nudges.slice(0, 1).map(n => (
-              <div key={n.nudge_id} className="rounded-xl bg-fn-surface/30 border border-white/5 p-4 italic text-sm text-fn-muted">
+              <div key={n.nudge_id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm italic text-fn-muted">
                 &ldquo;{n.message}&rdquo;
               </div>
             ))}
 
             {/* Elite AI Synthesis Terminal */}
-            <div className="rounded-xl bg-gradient-to-br from-fn-bg to-fn-surface/50 border border-fn-accent/20 p-4 relative overflow-hidden group">
+            <div className="group relative overflow-hidden rounded-2xl border border-white/[0.12] bg-[linear-gradient(150deg,rgba(255,255,255,0.06),rgba(255,255,255,0.01))] p-4">
               <div className="absolute top-0 right-0 w-32 h-32 bg-fn-accent/5 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-fn-accent/10 transition-all duration-700"></div>
 
               <div className="flex items-center gap-2 mb-3">
@@ -854,7 +1019,7 @@ export default function HomePage() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fn-accent opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-fn-accent"></span>
                 </span>
-                <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">AI Synthesis</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-fn-accent">Coach Summary</p>
               </div>
 
               {briefingLoading ? (
@@ -866,12 +1031,12 @@ export default function HomePage() {
               ) : briefing ? (
                 <div className="space-y-4">
                   <p className="text-xs font-medium text-white italic leading-relaxed border-l-2 border-fn-accent/50 pl-2">
-                    &ldquo;{briefing.briefing}&rdquo;
+                    &ldquo;{toPlainFitnessLanguage(briefing.briefing)}&rdquo;
                   </p>
 
-                  <div className="bg-black/40 rounded-lg p-3 border border-white/5 space-y-2">
-                    <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest">Causal Rationale</p>
-                    <p className="text-[10px] text-fn-muted leading-relaxed">{briefing.rationale}</p>
+                  <div className="bg-black/30 rounded-xl p-3 border border-white/10 space-y-2">
+                    <p className="text-[9px] font-semibold text-white/60 uppercase tracking-[0.2em]">Why Koda Is Suggesting This</p>
+                    <p className="text-[10px] text-fn-muted leading-relaxed">{toPlainFitnessLanguage(briefing.rationale)}</p>
                   </div>
 
                   {briefing.inputs && briefing.inputs.length > 0 && (
@@ -885,17 +1050,20 @@ export default function HomePage() {
                   )}
                 </div>
               ) : (
-                <div className="text-xs leading-relaxed text-fn-muted font-mono h-[80px] flex items-center justify-center border border-dashed border-white/10 rounded-lg">
-                  System awaiting initialization.
+                <div className="text-xs leading-relaxed text-fn-muted font-mono h-[80px] flex items-center justify-center border border-dashed border-white/20 rounded-xl">
+                  Step 1: generate today&apos;s plan. Step 2: complete one action. Step 3: return here for your coach summary.
                 </div>
               )}
               {/* Coach's Desk Mastery Insights */}
               {(coachInsights.length > 0 || coachInsightsLoading) && (
-                <div className="rounded-xl bg-fn-accent/5 border border-fn-accent/20 p-4 space-y-3">
+                <div className="rounded-xl bg-fn-accent/[0.07] border border-fn-accent/25 p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">🛡️</span>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Coach&apos;s Desk</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Why This Matters</p>
                   </div>
+                  <p className="text-[10px] leading-relaxed text-fn-muted">
+                    Plain-English rule: if readiness looks low, choose an easier day or ask Coach to adapt the plan before you start.
+                  </p>
                   {coachInsightsLoading ? (
                     <div className="space-y-2 animate-pulse">
                       <div className="h-2 w-full bg-fn-accent/10 rounded"></div>
@@ -913,8 +1081,8 @@ export default function HomePage() {
                             }
                           }}
                         >
-                          <p className="text-[11px] font-black text-white uppercase italic">{insight.title}</p>
-                          <p className="text-[10px] text-fn-ink/60 leading-relaxed line-clamp-2">{insight.message}</p>
+                          <p className="text-[11px] font-black text-white uppercase italic">{simplifyCoachInsightTitle(insight.title)}</p>
+                          <p className="text-[10px] text-fn-ink/60 leading-relaxed line-clamp-2">{toPlainFitnessLanguage(insight.message)}</p>
                         </div>
                       ))}
                     </div>
@@ -923,29 +1091,69 @@ export default function HomePage() {
               )}
             </div>
 
+            {/* Weekly Insight */}
+            {(weeklyInsightLoading || weeklyInsight) && (
+              <div className="rounded-2xl bg-emerald-500/[0.08] border border-emerald-500/30 p-4 space-y-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300">Weekly Insight</p>
+                {weeklyInsightLoading ? (
+                  <div className="space-y-2 animate-pulse">
+                    <div className="h-2.5 w-full bg-emerald-500/10 rounded"></div>
+                    <div className="h-2.5 w-4/5 bg-emerald-500/10 rounded"></div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-white/85 leading-relaxed">{weeklyInsight}</p>
+                )}
+              </div>
+            )}
+
             {/* Spotify Integration */}
-            <SpotifyMiniPlayer />
+            <SpotifyProvider>
+              <SpotifyMiniPlayer />
+            </SpotifyProvider>
+
+            {/* Workout Music */}
+            <div className="rounded-2xl border border-fn-accent/25 bg-gradient-to-br from-fn-accent/[0.12] via-black/[0.35] to-black/70 p-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">🎵</span>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Workout Music</p>
+              </div>
+              <p className="mt-3 text-[10px] leading-relaxed text-fn-muted">
+                Connect Spotify once, then launch guided workouts with device-ready playback controls and fewer interruptions.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link href="/integrations">
+                  <Button size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest">
+                    Connect Spotify
+                  </Button>
+                </Link>
+                <Link href="/log/workout/guided">
+                  <Button size="sm" variant="ghost" className="h-8 border border-white/10 text-[9px] font-black uppercase tracking-widest">
+                    Open Guided Workout
+                  </Button>
+                </Link>
+              </div>
+            </div>
 
             {/* Sensor Sync / Biometrics Status */}
-            <div className="rounded-xl bg-black/40 border border-white/5 p-4 group hover:bg-black/60 transition-all">
+            <div className="group rounded-2xl border border-white/10 bg-black/[0.35] p-4 transition-all hover:bg-black/55">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[9px] font-black uppercase text-fn-accent">Sensor Sync</p>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Connected Tools</p>
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fn-accent opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-fn-accent"></span>
                 </span>
               </div>
               <div className="space-y-2">
-                <Link href="/integrations" className="block p-2 rounded-lg bg-white/5 hover:bg-fn-accent/10 border border-white/5 hover:border-fn-accent/20 transition-all">
+                <Link href="/integrations" className="block p-2 rounded-lg bg-white/5 hover:bg-fn-accent/10 border border-white/10 hover:border-fn-accent/30 transition-all">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">⌚</span>
-                    <span className="text-[10px] font-bold text-white uppercase tracking-tight">Vitals Pipeline</span>
+                    <span className="text-[10px] font-semibold text-white uppercase tracking-[0.16em]">Wearables</span>
                   </div>
                 </Link>
-                <Link href="/log/nutrition/fridge" className="block p-2 rounded-lg bg-white/5 hover:bg-fn-accent/10 border border-white/5 hover:border-fn-accent/20 transition-all">
+                <Link href="/log/nutrition/fridge" className="block p-2 rounded-lg bg-white/5 hover:bg-fn-accent/10 border border-white/10 hover:border-fn-accent/30 transition-all">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">📸</span>
-                    <span className="text-[10px] font-bold text-white uppercase tracking-tight">Fridge Scanner</span>
+                    <span className="text-[10px] font-semibold text-white uppercase tracking-[0.16em]">Photo Food Scan</span>
                   </div>
                 </Link>
               </div>
@@ -954,12 +1162,12 @@ export default function HomePage() {
         </aside>
 
         {/* Centerpiece Agent Interface */}
-        <main className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-hidden relative">
+        <main className="flex flex-1 flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.02] shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+          <div className="relative flex-1 overflow-hidden">
             <AiCoachPanel
               mode="embedded"
               autoFocus={focusAi}
-              className="h-full border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
+              className="h-full border-0 bg-transparent p-4 shadow-none backdrop-blur-none sm:p-5"
             />
           </div>
         </main>

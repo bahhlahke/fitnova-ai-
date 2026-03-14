@@ -12,12 +12,16 @@
     "test:ai-review": "node scripts/ai-test-review.mjs",
     "test:ai-review:coverage": "node scripts/ai-test-review.mjs --coverage",
     "test:ios": "node scripts/run-ios-tests.mjs",
+    "test:web:surfaces": "node scripts/run-web-surface-smoke.mjs",
     "test:ios:surfaces": "node scripts/run-ios-surface-smoke.mjs",
     "test:ai-review:ios": "node scripts/ai-test-review-ios.mjs",
     "test:ios:ready": "node scripts/run-ios-tests.mjs; node scripts/ai-test-review-ios.mjs --fail-if-not-ready",
     "validate": "npm run lint && npm run build && npm run test",
     "workflow:validate:ai": "node scripts/ai-workflow-validator.mjs",
-    "reminders:dispatch": "node scripts/run-reminders-dispatch.mjs"
+    "validate:ui:ai": "node scripts/ai-ui-surface-validator.mjs",
+    "reminders:dispatch": "node scripts/run-reminders-dispatch.mjs",
+    "sit:backtest": "node scripts/run-sit-backtest.mjs",
+    "integrations:reconcile": "node scripts/run-integrations-reconcile.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
@@ -49,6 +53,7 @@
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.35",
     "jsdom": "^28.1.0",
+    "playwright": "^1.58.2",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3",

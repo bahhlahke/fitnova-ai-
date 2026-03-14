@@ -30,7 +30,7 @@ On `/log/workout`, quick-log a session and run one guided flow on `/log/workout/
 12. Motion + body scan:
 Run `/motion` video analysis and `/progress/scan` body-comp scan; confirm results persist and refresh Dashboard/Progress.
 13. Settings:
-Save profile changes (including phone), run Apple Health import (xml/zip), and verify import summary updates.
+Save profile changes (including phone). On web, run Apple Health import (xml/zip). On iOS, validate Apple Health permission + sync flow and verify summary updates.
 14. History deep-links:
 Open `/history?tab=workouts` and `/history?tab=nutrition` and confirm each tab initializes correctly.
 15. Weekly planning + schedule personalization:
@@ -43,3 +43,11 @@ On `/`, verify retention risk card renders and coach nudges appear when risk/rem
 Open `/coach/escalate`, submit a request, and confirm it appears in recent requests.
 19. Reminder dispatch endpoint:
 Call `POST /api/v1/jobs/reminders` (with `x-cron-secret` when configured) and confirm response includes processed/nudges counts.
+20. Coach reliability fallback:
+Force or simulate AI upstream failure for `/api/v1/ai/respond` and verify:
+   - API returns `UPSTREAM_ERROR` (`502/503/504`) rather than generic `INTERNAL_ERROR`.
+   - iOS Coach view shows graceful fallback copy (not raw “AI Service error” text).
+21. Guided workout width safety (iOS):
+On a physical iPhone and iPhone 16e simulator, open `/log/workout/guided` and confirm overview/completion content does not clip or render wider than viewport.
+22. Live wearable coaching loop (iOS):
+Start a guided session and confirm heart rate/steps/HRV signals appear in-session, rest targets adapt, and live snapshots persist to `connected_signals`.

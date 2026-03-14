@@ -222,9 +222,10 @@ export interface AiFeedbackRecord {
 export interface ConnectedAccountRecord {
   account_id: string;
   user_id: string;
-  provider: "whoop";
+  provider: "whoop" | "oura" | "apple_health" | "healthkit" | "fitbit" | "garmin";
   status: "connected" | "disconnected" | "error";
   external_user_id?: string | null;
+  refresh_token?: string | null;
   token_expires_at?: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
@@ -234,16 +235,106 @@ export interface ConnectedAccountRecord {
 export interface ConnectedSignalRecord {
   signal_id: string;
   user_id: string;
-  provider: "whoop";
+  provider: "whoop" | "oura" | "apple_health" | "healthkit" | "fitbit" | "garmin";
   signal_date: string;
   recovery_score?: number | null;
   strain_score?: number | null;
   sleep_hours?: number | null;
   resting_hr?: number | null;
   hrv?: number | null;
+  respiratory_rate_avg?: number | null;
+  spo2_avg?: number | null;
+  blood_glucose_avg?: number | null;
+  steps?: number | null;
   raw_payload: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+}
+
+export interface PolicyVersionRecord {
+  policy_version_id: string;
+  policy_key: string;
+  version: string;
+  is_active: boolean;
+  changelog?: string | null;
+  config: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReadinessSnapshotRecord {
+  snapshot_id: string;
+  user_id: string;
+  snapshot_date: string;
+  pathway: "green" | "amber" | "red";
+  score: number;
+  confidence: number;
+  reason_codes: string[];
+  policy_version: string;
+  features: Record<string, unknown>;
+  canonical_input: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlanMutationRecord {
+  mutation_id: string;
+  user_id: string;
+  date_local: string;
+  policy_version: string;
+  pathway: "green" | "amber" | "red";
+  shadow_mode: boolean;
+  before_plan: Record<string, unknown>;
+  after_plan: Record<string, unknown>;
+  mutation_trace: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface SafetyLedgerRecord {
+  ledger_id: string;
+  user_id: string;
+  date_local: string;
+  policy_version: string;
+  decision_status: "pass" | "modified" | "blocked";
+  reason_codes: string[];
+  input_payload: Record<string, unknown>;
+  output_payload: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface OneRmAnomalyRecord {
+  anomaly_id: string;
+  user_id: string;
+  exercise_name: string;
+  source_row_id?: string | null;
+  decision: "quarantined" | "accepted";
+  reason_codes: string[];
+  input_payload: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ExerciseOntologyRecord {
+  exercise_id: string;
+  canonical_name: string;
+  aliases: string[];
+  contraindications: string[];
+  equivalence_class: string;
+  home_variant: string;
+  gym_variant: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PhysicalHistoryEventRecord {
+  event_id: string;
+  user_id: string;
+  event_type: "symptom_reported" | "substitution_recommended" | "substitution_applied" | "outcome_recorded";
+  symptom_tags: string[];
+  current_exercise?: string | null;
+  replacement_exercise?: string | null;
+  outcome_quality?: number | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface NutritionTargetRecord {

@@ -19,6 +19,8 @@ type NudgeSpec = {
   nudge_type: "daily_plan" | "workout_log" | "weigh_in" | "retention_risk";
   risk_level: "low" | "medium" | "high";
   message: string;
+  cta_route: string;
+  cta_label: string;
 };
 
 function getReminderPrefs(devices: Record<string, unknown> | null | undefined): ReminderPrefs {
@@ -108,6 +110,8 @@ export async function runReminderDispatch(options?: {
         nudge_type: "daily_plan",
         risk_level: "medium",
         message: "Generate your daily plan to lock in your training and nutrition targets.",
+        cta_route: "/plan",
+        cta_label: "View Plan",
       });
     }
 
@@ -116,6 +120,8 @@ export async function runReminderDispatch(options?: {
         nudge_type: "workout_log",
         risk_level: "medium",
         message: "No workout logged yet today. Complete a focused session or recovery protocol.",
+        cta_route: "/log/workout",
+        cta_label: "Log Workout",
       });
     }
 
@@ -130,6 +136,8 @@ export async function runReminderDispatch(options?: {
           nudge_type: "weigh_in",
           risk_level: "low",
           message: "Weekly weigh-in is due. Log progress to keep your projections accurate.",
+          cta_route: "/progress",
+          cta_label: "Log Weight",
         });
       }
     }
@@ -142,6 +150,8 @@ export async function runReminderDispatch(options?: {
           nudge_type: nudge.nudge_type,
           risk_level: nudge.risk_level,
           message: nudge.message,
+          cta_route: nudge.cta_route,
+          cta_label: nudge.cta_label,
           delivered_via_sms: false,
         },
         { onConflict: "user_id,date_local,nudge_type" }
@@ -155,10 +165,12 @@ export async function runReminderDispatch(options?: {
     if (smsEnabled && twilioClient && user.phone_number && nudges.length > 0) {
       const destination = normalizePhoneNumber(user.phone_number) ?? user.phone_number;
       try {
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://koda.ai";
+        const link = `${siteUrl}${nudges[0].cta_route}`;
         await twilioClient.messages.create({
           from: twilioNumber!,
           to: destination,
-          body: `Coach Nova reminder: ${nudges[0].message}`,
+          body: `Coach Koda: ${nudges[0].message} ${link}`,
         });
         smsSent += 1;
 

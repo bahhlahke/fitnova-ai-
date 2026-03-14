@@ -33,18 +33,12 @@ struct TrophyItem: Identifiable {
     }
 }
 
-// Temporary hardcoded achievements for visual demo of the Elite Gamification Protocol
-let mockTrophies: [TrophyItem] = [
-    TrophyItem(id: "t1", name: "Titanium CNS", description: "Logged 10 consecutive workouts.", aiRationale: "Neural analysis detects high neuromuscular efficiency. Your recovery-to-strain ratio remained above 85% despite increasing volume.", dateEarned: Date(), iconSystemName: "bolt.fill", rarity: .epic),
-    TrophyItem(id: "t2", name: "Volume Legend", description: "Moved >10k lbs in a session.", aiRationale: "Synthesis of session 03-05 shows a 12% increase in tonnage. Mechanical tension thresholds reached an all-time record.", dateEarned: Calendar.current.date(byAdding: .day, value: -2, to: Date())!, iconSystemName: "dumbbell.fill", rarity: .legendary),
-    TrophyItem(id: "t3", name: "First Blood", description: "Completed 1st Koda AI protocol.", aiRationale: "Initial baseline established. Biometric sync confirms physiological response matches predicted metabolic expenditure.", dateEarned: Calendar.current.date(byAdding: .day, value: -14, to: Date())!, iconSystemName: "flame.fill", rarity: .common)
-]
-
 struct TrophyRoomView: View {
     @EnvironmentObject var auth: SupabaseService
     @State private var trophies: [TrophyItem] = []
     @State private var loading = true
     @State private var appear = false
+    @State private var errorMessage: String?
 
     private var api: KodaAPIService {
         KodaAPIService(getAccessToken: { auth.accessToken })
@@ -63,9 +57,22 @@ struct TrophyRoomView: View {
             .padding(.horizontal)
             
             if loading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 40)
+                VStack(spacing: 12) {
+                    ShimmerCard(height: 88)
+                    ShimmerCard(height: 88)
+                    ShimmerCard(height: 88)
+                }
+                .padding(.horizontal)
+            } else if let err = errorMessage {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(Brand.Color.danger)
+                    Text(err)
+                        .font(.caption)
+                        .foregroundStyle(Brand.Color.danger)
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 16)
             } else if trophies.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "lock.shield")
@@ -74,6 +81,11 @@ struct TrophyRoomView: View {
                     Text("No protocols unlocked yet.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                    Text("Complete workouts and hit milestones to earn trophies.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 40)
@@ -102,6 +114,12 @@ struct TrophyRoomView: View {
         .task {
             await loadTrophies()
         }
+        .refreshable {
+            loading = true
+            trophies = []
+            appear = false
+            await loadTrophies()
+        }
     }
 
     private func loadTrophies() async {
@@ -124,7 +142,10 @@ struct TrophyRoomView: View {
                 withAnimation { self.appear = true }
             }
         } catch {
-            await MainActor.run { self.loading = false }
+            await MainActor.run {
+                self.loading = false
+                self.errorMessage = error.localizedDescription
+            }
         }
     }
 }

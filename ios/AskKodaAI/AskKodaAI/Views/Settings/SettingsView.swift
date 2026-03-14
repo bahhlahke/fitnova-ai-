@@ -38,14 +38,23 @@ struct SettingsView: View {
                         HStack(spacing: 10) {
                             PremiumMetricPill(label: "Plan", value: profile?.activity_level ?? "Titanium")
                             PremiumMetricPill(label: "Tier", value: (profile?.subscription_status ?? "pro").capitalized)
+                            PremiumMetricPill(label: "Status", value: profile?.email == nil ? "Setup" : "Verified")
                         }
                     }
 
+                    PremiumSectionHeader("Profile Snapshot", eyebrow: "identity")
                     PremiumRowCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Profile")
-                                .font(.headline)
-                                .foregroundStyle(.white)
+                            HStack {
+                                Text("Profile")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                PremiumStatusChip(
+                                    label: profile?.subscription_status ?? "pro",
+                                    tone: .accent
+                                )
+                            }
                             if loading && profile == nil {
                                 HStack {
                                     ProgressView()
@@ -64,6 +73,7 @@ struct SettingsView: View {
                         }
                     }
 
+                    PremiumSectionHeader("Personalization", eyebrow: "preferences")
                     PremiumRowCard {
                         VStack(spacing: 0) {
                             navRow("Edit profile", systemImage: "person.crop.circle") { EditProfileView() }
@@ -72,6 +82,7 @@ struct SettingsView: View {
                         }
                     }
 
+                    PremiumSectionHeader("Data & Devices", eyebrow: "sync and exports")
                     PremiumRowCard {
                         VStack(alignment: .leading, spacing: 0) {
                             Text("Data & devices")
@@ -81,6 +92,19 @@ struct SettingsView: View {
                             navRow("Vitals", systemImage: "waveform.path.ecg") { VitalsView() }
                             divider
                             navRow("Integrations", systemImage: "link") { IntegrationsView() }
+                            divider
+                            HStack {
+                                Label("Export format", systemImage: "doc.text")
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                Picker("Format", selection: $exportFormat) {
+                                    Text("JSON").tag("json")
+                                    Text("CSV").tag("csv")
+                                }
+                                .pickerStyle(.segmented)
+                                .frame(width: 122)
+                            }
+                            .padding(.vertical, 10)
                             divider
                             Button {
                                 Task { await export() }
@@ -96,6 +120,7 @@ struct SettingsView: View {
                         }
                     }
 
+                    PremiumSectionHeader("Account", eyebrow: "membership")
                     PremiumRowCard {
                         VStack(alignment: .leading, spacing: 0) {
                             Text("Account")
@@ -111,7 +136,7 @@ struct SettingsView: View {
                     Button(role: .destructive) {
                         showSignOutConfirm = true
                     } label: {
-                        Text("Sign out")
+                        Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
                     }
                     .buttonStyle(PremiumActionButtonStyle(filled: false))
 

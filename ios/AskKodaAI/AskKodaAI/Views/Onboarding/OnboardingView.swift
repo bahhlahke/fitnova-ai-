@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Auth
 
 struct OnboardingView: View {
     @EnvironmentObject var auth: SupabaseService
@@ -13,10 +14,12 @@ struct OnboardingView: View {
     @State private var name = ""
     @State private var age = ""
     @State private var sex = "male"
+    @State private var phoneNumber = ""
     @State private var heightCm = ""
     @State private var weightKg = ""
     @State private var goals: [String] = []
     @State private var injuries = ""
+    @State private var allergies = ""
     @State private var diet = "balanced"
     @State private var squad = "hypertrophy"
     @State private var experienceLevel = "beginner"
@@ -51,16 +54,14 @@ struct OnboardingView: View {
                         .padding(.top, 8)
 
                         // Header
-                        VStack(alignment: .leading, spacing: 8) {
                             PremiumSectionHeader(
                                 currentStepTitle,
-                                eyebrow: "STEP \(step + 1) OF 6",
+                                eyebrow: "STEP \(step + 1) OF 7",
                                 subtitle: currentStepSubtitle
                             )
-                            ProgressView(value: Double(step + 1), total: 6)
+                            ProgressView(value: Double(step + 1), total: 7)
                                 .tint(Brand.Color.accent)
                                 .animation(.spring(response: 0.5), value: step)
-                        }
                         .padding(.horizontal, 20)
 
                         // Step content
@@ -71,7 +72,8 @@ struct OnboardingView: View {
                             case 2: step2
                             case 3: step3
                             case 4: step4
-                            default: step5
+                            case 5: step5
+                            default: step6
                             }
                         }
                         .transition(.asymmetric(
@@ -101,12 +103,13 @@ struct OnboardingView: View {
                                 .buttonStyle(PremiumActionButtonStyle(filled: false))
                             }
 
-                            if step < 5 {
+                            if step < 6 {
                                 Button("Continue") {
                                     HapticEngine.impact(.light)
                                     step += 1
                                 }
                                 .buttonStyle(PremiumActionButtonStyle(filled: true))
+                                .disabled(continueDisabled)
                             } else {
                                 Button(saving ? "Saving…" : "Activate Protocol") {
                                     HapticEngine.notification(.success)
@@ -122,6 +125,9 @@ struct OnboardingView: View {
                 }
             }
             .navigationBarHidden(true)
+            .onAppear {
+                Task { await Telemetry.track(.onboardingStart) }
+            }
         }
     }
 
@@ -132,6 +138,8 @@ struct OnboardingView: View {
             premiumField(placeholder: "Full name", text: $name, icon: "person.fill")
 
             premiumField(placeholder: "Age", text: $age, icon: "calendar", keyboard: .numberPad)
+            
+            premiumField(placeholder: "Phone number", text: $phoneNumber, icon: "phone.fill", keyboard: .phonePad)
 
             VStack(alignment: .leading, spacing: 8) {
                 fieldLabel("Biological sex")
@@ -244,6 +252,11 @@ struct OnboardingView: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
+                fieldLabel("Allergies")
+                premiumField(placeholder: "e.g. peanuts, shellfish", text: $allergies, icon: "exclamationmark.circle.fill")
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
                 fieldLabel("Dietary preference")
                 let diets: [(String, String, String)] = [
                     ("Balanced", "balanced", "fork.knife"),
@@ -273,6 +286,44 @@ struct OnboardingView: View {
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 12)
                                             .stroke(diet == tag ? Brand.Color.accent : Brand.Color.borderStrong, lineWidth: diet == tag ? 1.5 : 1)
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                fieldLabel("What drives you")
+                let drivers: [(String, String, String)] = [
+                    ("Health & longevity", "health", "heart.fill"),
+                    ("Peak performance", "performance", "flame.fill"),
+                    ("Aesthetics", "aesthetics", "sparkles"),
+                    ("Competition", "competition", "trophy.fill"),
+                ]
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(drivers, id: \.1) { label, tag, icon in
+                        Button {
+                            HapticEngine.selection()
+                            motivationalDriver = tag
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: icon)
+                                    .foregroundStyle(motivationalDriver == tag ? Brand.Color.accent : Brand.Color.muted)
+                                Text(label)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(motivationalDriver == tag ? Brand.Color.accent.opacity(0.12) : Brand.Color.surfaceRaised)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(motivationalDriver == tag ? Brand.Color.accent : Brand.Color.borderStrong, lineWidth: motivationalDriver == tag ? 1.5 : 1)
                                     )
                             )
                         }
@@ -319,7 +370,105 @@ struct OnboardingView: View {
         }
     }
 
+    // MARK: - Step 6: Vitals & Wearables
+
+    private var step6: some View {
+        VStack(spacing: 20) {
+            Text("Sync physiological signals for deterministic plan adaptation.")
+                .font(.caption)
+                .foregroundStyle(Brand.Color.muted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+
+            VStack(spacing: 16) {
+                // Apple Health
+                Button {
+                    Task {
+                        try? await HealthKitService.shared.requestAuthorization()
+                        HapticEngine.notification(.success)
+                    }
+                } label: {
+                    HStack(spacing: 16) {
+                        Image(systemName: "heart.fill")
+                            .font(.title2)
+                            .foregroundStyle(.pink)
+                            .frame(width: 32)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Apple Health")
+                                .font(.headline)
+                            Text("HRV, Sleep, Weight")
+                                .font(.caption)
+                                .foregroundStyle(Brand.Color.muted)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "link")
+                            .foregroundStyle(Brand.Color.accent)
+                    }
+                    .padding(20)
+                    .premiumCard()
+                }
+                .buttonStyle(.plain)
+
+                // Spotify
+                Button {
+                    // Start Spotify OAuth flow
+                    Task {
+                        do {
+                            try await auth.signInWithOAuth(provider: .spotify)
+                        } catch {
+                            errorMessage = "Spotify connection failed: \(error.localizedDescription)"
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 16) {
+                        Image(systemName: "music.note")
+                            .font(.title2)
+                            .foregroundStyle(.green)
+                            .frame(width: 32)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Spotify")
+                                .font(.headline)
+                            Text("Contextual workout audio")
+                                .font(.caption)
+                                .foregroundStyle(Brand.Color.muted)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "link")
+                            .foregroundStyle(Brand.Color.accent)
+                    }
+                    .padding(20)
+                    .premiumCard()
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            
+            Text("You can also configure these later in Settings.")
+                .font(.system(size: 11))
+                .foregroundStyle(Brand.Color.muted)
+                .padding(.top, 8)
+        }
+    }
+
     // MARK: - Helpers
+
+    private var continueDisabled: Bool {
+        switch step {
+        case 0:
+            let ageVal = Int(age) ?? 0
+            return name.trimmingCharacters(in: .whitespaces).isEmpty || ageVal <= 0 || ageVal > 120
+        case 1:
+            let h = Double(heightCm) ?? 0, w = Double(weightKg) ?? 0
+            return h <= 0 || w <= 0
+        default: return false
+        }
+    }
 
     private var currentStepTitle: String {
         switch step {
@@ -328,7 +477,8 @@ struct OnboardingView: View {
         case 2: return "Set the outcome"
         case 3: return "Protect the constraints"
         case 4: return "Choose your squad protocol"
-        default: return "Choose your mastery level"
+        case 5: return "Choose your mastery level"
+        default: return "Ignite the biometrics"
         }
     }
 
@@ -339,7 +489,8 @@ struct OnboardingView: View {
         case 2: return "Define what winning looks like for you."
         case 3: return "Koda protects these limits in every plan it generates."
         case 4: return "Your squad synchronises training philosophy and benchmarks."
-        default: return "Calibrates periodisation logic and progression speed."
+        case 5: return "Calibrates periodisation logic and progression speed."
+        default: return "Connecting vitals allows Koda to detect recovery debt."
         }
     }
 
@@ -375,14 +526,16 @@ struct OnboardingView: View {
         defer { saving = false }
         var profile = UserProfile()
         profile.display_name = name.isEmpty ? nil : name
+        profile.phone_number = phoneNumber.isEmpty ? nil : phoneNumber
         profile.age = Int(age)
         profile.sex = sex
         profile.height_cm = Double(heightCm)
         profile.weight_kg = Double(weightKg)
         profile.goals = goals.isEmpty ? nil : goals
-        profile.injuries_limitations = injuries.isEmpty ? nil : injuries
-        profile.dietary_preferences = [diet]
+        profile.injuries_limitations = AnyCodable(value: injuries.isEmpty ? [:] : ["notes": injuries])
+        profile.dietary_preferences = AnyCodable(value: ["preference": diet, "allergies": allergies.isEmpty ? nil : allergies])
         profile.experience_level = experienceLevel
+        profile.activity_level = squad
         profile.motivational_driver = motivationalDriver
         do {
             try await ds.upsertProfile(profile)
@@ -397,6 +550,7 @@ struct OnboardingView: View {
             ]
             try await ds.upsertOnboarding(onboarding)
             await MainActor.run { onComplete?() }
+            Task { await Telemetry.track(.onboardingComplete) }
         } catch {
             await MainActor.run { errorMessage = error.localizedDescription }
         }

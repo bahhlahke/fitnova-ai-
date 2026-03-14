@@ -10,6 +10,7 @@ import { PageLayout, Card, CardHeader, Button, ErrorMessage, LoadingState, Empty
 import { toLocalDateString } from "@/lib/date/local-date";
 import { emitDataRefresh, useDataRefresh } from "@/lib/ui/data-sync";
 import { BarcodeScanner } from "@/components/tracking/BarcodeScanner";
+import { toPlainFitnessLanguage } from "@/lib/ui/plain-language";
 
 /* ── Types ──────────────────────────────────────────────────────── */
 type NutritionPlanTargets = {
@@ -422,8 +423,8 @@ function SmartMealEntry({
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-black uppercase tracking-widest text-white">Visual Capture</p>
-                  <p className="mt-2 text-[11px] font-medium text-fn-ink/40 uppercase tracking-widest">Supports primary lens intake</p>
+                  <p className="text-sm font-black uppercase tracking-widest text-white">Take a Photo</p>
+                  <p className="mt-2 text-[11px] font-medium text-fn-ink/40 uppercase tracking-widest">Use a clear top-down shot for the best estimate</p>
                 </div>
               </div>
             )}
@@ -441,7 +442,7 @@ function SmartMealEntry({
               <Button disabled={!canAnalyze || analyzing} loading={analyzing} onClick={analyzeWithAI}
                 icon={!analyzing ? <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" /></svg> : undefined}
               >
-                {analyzing ? "Analysing photo…" : "Analyse with AI"}
+                {analyzing ? "Analyzing photo…" : "Analyze with AI"}
               </Button>
             )}
           </div>
@@ -503,8 +504,8 @@ function SmartMealEntry({
           {/* Header */}
           <div className="flex items-start justify-between gap-4 border-b border-white/[0.08] px-6 py-5">
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-fn-accent">Neural Scan Result</span>
+            <div className="flex flex-wrap items-center gap-3">
+                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-fn-accent">AI Meal Estimate</span>
                 <span className={`rounded-lg px-2 py-0.5 text-[9px] font-black uppercase tracking-widest border ${CONFIDENCE_BADGE[estimate.confidence].cls} border-current opacity-80`}>
                   {CONFIDENCE_BADGE[estimate.confidence].label}
                 </span>
@@ -545,16 +546,16 @@ function SmartMealEntry({
           {/* Notes */}
           {estimate.notes && (
             <div className="px-4 py-3">
-              <p className="text-xs text-fn-muted leading-relaxed">{estimate.notes}</p>
+              <p className="text-xs text-fn-muted leading-relaxed">{toPlainFitnessLanguage(estimate.notes)}</p>
               {reliability && (
                 <div className="mt-2 rounded-lg border border-fn-border bg-white px-2 py-2">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-fn-muted">
                     AI confidence {Math.round(reliability.confidence_score * 100)}%
                   </p>
-                  <p className="mt-1 text-[11px] text-fn-muted">{reliability.explanation}</p>
+                  <p className="mt-1 text-[11px] text-fn-muted">{toPlainFitnessLanguage(reliability.explanation)}</p>
                   {reliability.limitations.length > 0 && (
                     <p className="mt-1 text-[10px] text-fn-muted">
-                      Limitation: {reliability.limitations[0]}
+                      Limitation: {toPlainFitnessLanguage(reliability.limitations[0])}
                     </p>
                   )}
                 </div>
@@ -619,6 +620,7 @@ function NutritionLogContent() {
   const [loading, setLoading] = useState(true);
   const [refetch, setRefetch] = useState(0);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [aiInsightLoading, setAiInsightLoading] = useState(false);
   const [mealSuggestions, setMealSuggestions] = useState<Array<{ name: string; calories?: number; protein_g?: number; carbs_g?: number; fat_g?: number; note?: string }>>([]);
@@ -721,6 +723,7 @@ function NutritionLogContent() {
     const { error } = await supabase.from("nutrition_logs").update({ meals: updated, total_calories: totalCal || null }).eq("log_id", logId);
     if (!error) {
       setMeals(updated);
+      setStatusMessage("Meal removed. Today’s targets updated.");
       emitDataRefresh(["dashboard", "nutrition"]);
     }
   }
@@ -743,17 +746,49 @@ function NutritionLogContent() {
       if (data) setLogId((data as { log_id: string }).log_id);
     }
     setMeals(updated);
+    setStatusMessage("Meal slots added from today’s plan.");
     setRefetch(n => n + 1);
     emitDataRefresh(["dashboard", "nutrition"]);
   }
 
   return (
-    <PageLayout title="Metabolic Intake" subtitle={isPastDay ? `Viewing ${targetDate}` : "Meal timeline · macro tracking"}>
+    <PageLayout title="Nutrition" subtitle={isPastDay ? `Viewing ${targetDate}` : "Log meals, track macros, and stay on target"}>
+      <section className="premium-panel animate-panel-rise mb-4 p-5 sm:p-6">
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <p className="premium-kicker">Nutrition execution</p>
+            <h1 className="premium-headline mt-2 text-3xl sm:text-4xl">Log faster, keep targets accurate.</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70">
+              Describe, scan, or photo-log each meal. Koda refreshes calories and macros so training and recovery decisions stay calibrated.
+            </p>
+          </div>
+          <div className="premium-panel-soft p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Coach standard</p>
+            <p className="mt-2 text-xs leading-relaxed text-white/75">
+              Hit protein first, keep meal timing consistent, and review suggestions when you are under target.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr]">
 
         {/* ── Smart entry ─────────────────────────────────────── */}
         <Card>
-          <CardHeader title="Log a meal" subtitle="Describe it or snap a photo — AI fills in the macros" />
+          <CardHeader title="Log a meal" subtitle="Choose one: describe it, take a photo, or scan a barcode" />
+          <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-fn-muted">
+            <ul className="space-y-2">
+              <li>Start with the fastest option: type a short description.</li>
+              <li>Use a photo for the best estimate or a barcode for packaged food.</li>
+              <li>Example entries: &ldquo;Greek yogurt with berries&rdquo; or &ldquo;Chicken wrap and apple.&rdquo;</li>
+              <li>After you save, the meal appears below and today&apos;s targets update.</li>
+            </ul>
+          </div>
+          <div className="mt-3 rounded-2xl border border-fn-accent/10 bg-fn-accent/5 px-4 py-3 text-xs leading-relaxed text-fn-muted">
+            <p><span className="font-semibold text-white">Plain-language note:</span> &ldquo;Macros&rdquo; means protein, carbs, and fat grams.</p>
+            <p className="mt-1">You can skip AI estimates and still save a simple meal entry anytime.</p>
+            <p className="mt-1">After saving, look for the confirmation banner below that says your targets refreshed.</p>
+          </div>
           {planMealStructure.length > 0 && (
             <div className="mt-3">
               <Button type="button" variant="secondary" size="sm" onClick={loadFromPlan}>
@@ -766,6 +801,7 @@ function NutritionLogContent() {
             onAdded={(newLogId, newMeals) => {
               if (newLogId != null) setLogId(newLogId);
               if (newMeals != null) setMeals(newMeals);
+              setStatusMessage(editingIndex !== null ? "Meal updated. Today’s targets refreshed." : "Meal saved. Today’s targets refreshed.");
               setRefetch(n => n + 1);
               emitDataRefresh(["dashboard", "nutrition"]);
               setEditingIndex(null);
@@ -777,6 +813,9 @@ function NutritionLogContent() {
             editIndex={editingIndex}
             onCancelEdit={() => setEditingIndex(null)}
           />
+          <div role="status" className="mt-3 rounded-2xl border border-fn-accent/15 bg-fn-accent/5 px-4 py-3 text-sm leading-relaxed text-fn-muted">
+            {statusMessage ?? "No recent save yet. After you add, update, or delete a meal, confirmation appears here."}
+          </div>
           {pageError && <ErrorMessage className="mt-3" message={pageError} />}
           <div className="mt-4 flex flex-wrap gap-3">
             <Link href="/history?tab=nutrition">
@@ -853,7 +892,9 @@ function NutritionLogContent() {
             {aiInsightLoading ? (
               <div className="mt-3 h-10 shimmer rounded-xl" />
             ) : aiInsight ? (
-              <p className="mt-3 rounded-xl bg-fn-bg-alt px-3 py-2.5 text-xs leading-relaxed text-fn-ink">{aiInsight}</p>
+              <p className="mt-3 rounded-xl bg-fn-bg-alt px-3 py-2.5 text-xs leading-relaxed text-fn-ink">
+                {toPlainFitnessLanguage(aiInsight)}
+              </p>
             ) : null}
 
             {/* Meal suggestions */}

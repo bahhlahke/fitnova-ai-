@@ -40,7 +40,9 @@ Guidelines:
 - ${EXPERIENCE_GUIDANCE[exp] || EXPERIENCE_GUIDANCE.intermediate}
 - ${MOTIVATION_FOCUS[mot] || MOTIVATION_FOCUS.performance}
 - Logic: Synthesize trends across multiple data streams (e.g., HRV vs. Training Intensity, Sleep quality vs. PR performance).
-- Output: Concise and actionable. Use bullet points for structural clarity.
+- Long-term Memory: Always connect current sessions back to historical patterns using the provided "Long-term Memory Insights".
+- Proactive Steering: If historical injuries or PRs are present, proactively steer the conversation toward them.
+- Date Resolution: The user may refer to relative dates (e.g. 'yesterday', 'this past Saturday', 'last Monday'). Always calculate the absolute YYYY-MM-DD based on the 'Current Context' provided in your system prompt and pass it to the logging tools.
 - Next Step: Always end with a concrete, data-backed directive for the next 24 hours.
 - Masterclass Visuals: You have access to a 100+ item "Elite" movement library with 4K cinematic loops.
 - Elite Movement Capabilities: Squats (Back, Front, Goblet, Pistol, Box, Bulgarian), Hinge (Deadlift, RDL, KB Swing), Push (Bench, Incline, Overhead, Dips, Push-up), Pull (Seated Row, Lat Pulldown, Pull-up, Face Pull, Renegade), HIIT (Burpees, Mountain Climbers, Battle Ropes, Sled Push/Pull, Devil Press, Box Jumps), Mobility (Pigeon, 90/90 Switches, Cat-Cow, Scorpion).
@@ -63,7 +65,15 @@ export async function assembleContext(
   const today = toLocalDateString();
   const sevenDaysAgo = new Date(new Date(`${today}T12:00:00`).getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
-  const [profileRes, workoutsRes, nutritionRes, checkInsRes, convoRes, signalsRes, prsRes, squadRes, motionRes, deskRes] = await Promise.all([
+  const signalsQueryBase = supabase
+    .from("connected_signals")
+    .select("signal_date, provider, hrv, resting_hr, spo2_avg, sleep_hours, sleep_deep_hours, recovery_score")
+    .eq("user_id", userId) as any;
+  const signalsQuery = typeof signalsQueryBase.gte === "function"
+    ? signalsQueryBase.gte("signal_date", sevenDaysAgo)
+    : signalsQueryBase;
+
+  const [profileRes, workoutsRes, nutritionRes, checkInsRes, convoRes, signalsRes, prsRes, squadRes, motionRes, deskRes, historyGraphRes, memoryResults] = await Promise.all([
     supabase.from("user_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase
       .from("workout_logs")
@@ -90,11 +100,7 @@ export async function assembleContext(
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabase
-      .from("connected_signals")
-      .select("signal_date, provider, hrv, resting_hr, spo2_avg, sleep_hours, sleep_deep_hours, recovery_score")
-      .eq("user_id", userId)
-      .gte("signal_date", sevenDaysAgo)
+    signalsQuery
       .order("signal_date", { ascending: false })
       .limit(7),
     supabase
@@ -118,9 +124,21 @@ export async function assembleContext(
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(3),
+    supabase
+      .from("physical_history_events")
+      .select("event_type, symptom_tags, current_exercise, replacement_exercise, outcome_quality, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(8),
+    import("@/lib/ai/memory").then(m => m.queryMemory(supabase, userId, "PRs, injuries, and historical performance patterns", 5))
   ]);
 
-  const parts: string[] = [getSystemPrompt(profileRes.data)];
+  const dayOfWeek = new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(new Date());
+  
+  const parts: string[] = [
+    `Current Context: ${dayOfWeek}, ${today}`,
+    getSystemPrompt(profileRes.data)
+  ];
 
   if (profileRes.data) {
     const p = profileRes.data as Record<string, unknown>;
@@ -189,6 +207,32 @@ export async function assembleContext(
     const lines: string[] = ["Recent Coach Inbox Proactive Warnings:"];
     nudges.forEach((n) => {
       lines.push(`- [${n.risk_level.toUpperCase()}] ${n.message} (Type: ${n.nudge_type})`);
+    });
+    parts.push(lines.join("\n"));
+  }
+
+  if (historyGraphRes.data?.length) {
+    const events = historyGraphRes.data as Array<{
+      event_type?: string;
+      symptom_tags?: string[];
+      current_exercise?: string | null;
+      replacement_exercise?: string | null;
+      outcome_quality?: number | null;
+      created_at?: string;
+    }>;
+    const lines: string[] = ["Physical History Graph:"];
+    events.forEach((event) => {
+      lines.push(
+        `- ${event.created_at ?? "recent"} ${event.event_type ?? "event"} symptoms=${(event.symptom_tags ?? []).join(", ") || "none"} current=${event.current_exercise ?? "n/a"} replacement=${event.replacement_exercise ?? "n/a"} outcome=${event.outcome_quality ?? "n/a"}`
+      );
+    });
+    parts.push(lines.join("\n"));
+  }
+
+  if (memoryResults && memoryResults.length > 0) {
+    const lines: string[] = ["Long-term Memory Insights (Discovery):"];
+    (memoryResults as any[]).forEach((m) => {
+      lines.push(`- [${m.metadata.type.toUpperCase()}] ${m.content} (Date: ${m.metadata.date})`);
     });
     parts.push(lines.join("\n"));
   }
@@ -266,4 +310,3 @@ export async function assembleContext(
 
   return { systemPrompt: parts.join("\n\n") };
 }
-

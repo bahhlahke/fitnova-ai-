@@ -63,11 +63,22 @@ export default function HistoryPage() {
         return;
       }
 
-      setAiSummaryLoading(true);
-      fetch("/api/v1/ai/history-summary", { method: "POST" })
-        .then(r => r.json())
-        .then(body => { if (body.summary) setAiSummary(body.summary); })
-        .finally(() => setAiSummaryLoading(false));
+      const summaryUrl =
+        typeof window !== "undefined"
+          ? new URL("/api/v1/ai/history-summary", window.location.origin).toString()
+          : null;
+      if (summaryUrl) {
+        setAiSummaryLoading(true);
+        fetch(summaryUrl, { method: "POST" })
+          .then((r) => r.json())
+          .then((body) => {
+            if (body.summary) setAiSummary(body.summary);
+          })
+          .catch(() => {
+            // Non-blocking enhancement; keep history usable when summary generation is unavailable.
+          })
+          .finally(() => setAiSummaryLoading(false));
+      }
 
       Promise.all([
         supabase
@@ -152,11 +163,27 @@ export default function HistoryPage() {
       backHref={tab === "nutrition" ? "/log/nutrition" : "/log/workout"}
       backLabel={tab === "nutrition" ? "Nutrition" : "Workout"}
     >
+      <section className="premium-panel animate-panel-rise mb-6 p-5 sm:p-6">
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <p className="premium-kicker">Training history</p>
+            <h1 className="premium-headline mt-2 text-3xl sm:text-4xl">Review logs like a coach.</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70">
+              Use this page to audit workouts and meals, edit entries, and catch missed logging details that affect adaptation quality.
+            </p>
+          </div>
+          <div className="premium-panel-soft p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Best workflow</p>
+            <p className="mt-2 text-xs text-white/75">Filter by workout type, expand key sessions, and fix missing duration or notes before planning your next block.</p>
+          </div>
+        </div>
+      </section>
+
       {/* AI Performance Evolutionary Summary */}
       <Card className="mb-8 border-fn-accent/20 bg-fn-accent/5 overflow-hidden">
         <div className="flex items-center gap-2 mb-4 px-1">
           <div className="h-2 w-2 rounded-full bg-fn-accent animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Evolutionary Performance Synthesis</span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-fn-accent">Coach Summary</span>
         </div>
         {aiSummaryLoading ? (
           <div className="space-y-3 animate-pulse">
@@ -166,7 +193,7 @@ export default function HistoryPage() {
           </div>
         ) : (
           <p className="text-sm font-medium italic text-white/80 leading-relaxed border-l border-fn-accent/30 pl-4 py-1">
-            &quot;{aiSummary ?? "Synthesizing longitudinal data strands... Complete at least 5 sessions to establish a stable evolutionary baseline."}&quot;
+            &quot;{aiSummary ?? "Complete at least 5 sessions to establish a stable baseline and unlock stronger trend insights."}&quot;
           </p>
         )}
       </Card>
@@ -178,12 +205,12 @@ export default function HistoryPage() {
             setTab("workouts");
             router.replace("/history?tab=workouts", { scroll: false });
           }}
-          className={`flex items-center gap-2 rounded-lg px-6 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${tab === "workouts"
+          className={`flex items-center gap-2 rounded-lg px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all duration-300 ${tab === "workouts"
             ? "bg-fn-accent/20 text-fn-accent shadow-fn-soft border border-fn-accent/20"
             : "text-fn-ink/40 hover:text-white"
             }`}
         >
-          Session Logs
+          Workout Logs
         </button>
         <button
           type="button"
@@ -191,12 +218,12 @@ export default function HistoryPage() {
             setTab("nutrition");
             router.replace("/history?tab=nutrition", { scroll: false });
           }}
-          className={`flex items-center gap-2 rounded-lg px-6 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${tab === "nutrition"
+          className={`flex items-center gap-2 rounded-lg px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all duration-300 ${tab === "nutrition"
             ? "bg-fn-accent/20 text-fn-accent shadow-fn-soft border border-fn-accent/20"
             : "text-fn-ink/40 hover:text-white"
             }`}
         >
-          Metabolic Intake
+          Nutrition Logs
         </button>
       </div>
 

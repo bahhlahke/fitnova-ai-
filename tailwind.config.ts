@@ -31,7 +31,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["Inter", "var(--font-manrope)", "sans-serif"],
+        sans: ["var(--font-manrope)", "Inter", "sans-serif"],
         display: ["var(--font-fraunces)", "serif"],
         mono: ["ui-monospace", "SFMono-Regular", "monospace"],
       },

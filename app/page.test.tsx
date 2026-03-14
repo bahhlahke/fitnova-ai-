@@ -22,7 +22,8 @@ describe("Home page", () => {
     vi.mocked(createClient).mockReturnValue(null);
 
     render(<HomePage />);
-    expect(await screen.findByRole("link", { name: /Start Assessment/i })).toBeInTheDocument();
+    // screen.debug(); 
+    expect(await screen.findByRole("link", { name: /Preview Your Protocol/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Member Access/i })).toHaveAttribute("href", "/auth");
   });
 

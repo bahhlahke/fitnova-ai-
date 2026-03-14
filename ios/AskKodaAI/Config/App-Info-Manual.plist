@@ -41,6 +41,17 @@
 	<string>$(INFOPLIST_KEY_API_BASE_URL)</string>
 	<key>AUTH_REDIRECT_URL</key>
 	<string>$(INFOPLIST_KEY_AUTH_REDIRECT_URL)</string>
+	<!-- Privacy usage descriptions required for HealthKit, Camera, and Photos -->
+	<key>NSCameraUsageDescription</key>
+	<string>Koda uses the camera to capture body composition scans and form check photos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Koda accesses your photo library to attach form check images and body scan photos.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Koda reads weight, sleep, steps, and heart rate from Apple Health to personalise your training plan and daily coaching brief.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Koda writes workout and nutrition data back to Apple Health to keep your health record complete.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Koda uses motion data to count steps and enhance recovery readiness scores.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
@@ -50,6 +61,10 @@
 		<key>UISceneConfigurations</key>
 		<dict/>
 	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchScreen</key>

@@ -57,6 +57,11 @@ export async function POST() {
       .order("date", { ascending: false })
       .limit(6);
 
+    // Trigger post-session processing (PRs, memory storage)
+    const { processSession } = await import("@/lib/training/process-session");
+    const today = new Date().toISOString().split("T")[0]; // Use current date for session processing
+    processSession(supabase, userId, (workouts as any[])?.[0]?.date || today).catch(e => console.error("process_session_error", e));
+
     const list = (workouts ?? []) as Array<{
       date: string;
       workout_type?: string;

@@ -72,5 +72,16 @@ export async function processPRs(userId: string) {
 
     if (upserts.length > 0) {
         await supabase.from("exercise_prs").upsert(upserts, { onConflict: "user_id, exercise_id" });
+
+        // Store in long-term memory
+        const { storeMemory } = await import("@/lib/ai/memory");
+        for (const pr of upserts) {
+            await storeMemory(
+                supabase,
+                userId,
+                `Achieved a new PR in ${pr.exercise_name}: Est. 1RM of ${Math.round(pr.highest_1rm)}kg (Max weight: ${pr.max_weight}kg).`,
+                { type: "pr", date: new Date().toISOString().split("T")[0], exercise_id: pr.exercise_id }
+            );
+        }
     }
 }

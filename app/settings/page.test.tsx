@@ -107,6 +107,7 @@ describe("Settings page", () => {
 
     const phoneInput = await screen.findByLabelText(/Phone number/i);
     fireEvent.change(phoneInput, { target: { value: "(555) 123-4567" } });
+    fireEvent.click(screen.getByLabelText(/I agree to the/i));
     fireEvent.click(screen.getByRole("button", { name: /Save settings/i }));
 
     await waitFor(() => expect(upsert).toHaveBeenCalledTimes(1));
@@ -127,6 +128,7 @@ describe("Settings page", () => {
 
     const phoneInput = await screen.findByLabelText(/Phone number/i);
     fireEvent.change(phoneInput, { target: { value: "12345" } });
+    fireEvent.click(screen.getByLabelText(/I agree to the/i));
     fireEvent.click(screen.getByRole("button", { name: /Save settings/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Phone number must include 10-15 digits.");

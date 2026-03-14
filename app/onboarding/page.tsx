@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
-import { Button, Card, ErrorMessage } from "@/components/ui";
+import { Button, Card, ErrorMessage, Checkbox } from "@/components/ui";
+import { trackProductEvent } from "@/lib/telemetry/events";
+
 import { clearPreAuthDraft, readPreAuthDraft } from "@/lib/funnel/preauth";
 import {
   DEFAULT_UNIT_SYSTEM,
@@ -17,7 +19,7 @@ import {
 import { normalizePhoneNumber } from "@/lib/phone";
 
 const steps = [
-  { id: "stats", label: "Stats" },
+  { id: "stats", label: "Your body metrics" },
   { id: "goals", label: "Goals" },
   { id: "identity", label: "Identity" },
   { id: "injuries", label: "Injuries" },
@@ -66,6 +68,8 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [resumedFromAssessment, setResumedFromAssessment] = useState(false);
+  const [smsConsent, setSmsConsent] = useState(false);
+
 
   const inputClass =
     "min-h-touch w-full rounded-xl border border-fn-border bg-fn-surface px-4 py-3 text-fn-ink placeholder-fn-muted focus:border-fn-accent focus:outline-none focus:ring-2 focus:ring-fn-accent/10 transition-colors";
@@ -75,6 +79,7 @@ export default function OnboardingPage() {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     setResume(params.get("resume") === "1");
+    trackProductEvent("funnel_onboarding_start", { resume: params.get("resume") === "1" });
   }, []);
 
   useEffect(() => {
@@ -193,6 +198,7 @@ export default function OnboardingPage() {
     }
 
     clearPreAuthDraft(typeof window !== "undefined" ? window.localStorage : null);
+    trackProductEvent("funnel_onboarding_complete");
     setSaving(false);
     setCompleted(true);
   }
@@ -244,7 +250,7 @@ export default function OnboardingPage() {
           <Card padding="lg" className="bg-fn-surface/60 backdrop-blur-xl border-white/10">
             <header className="mb-6">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">Onboarding</p>
-              <h1 className="mt-2 font-display text-4xl text-fn-ink">Build your AI coaching profile</h1>
+              <h1 className="mt-2 font-display text-4xl text-fn-ink">Set up your profile</h1>
               <p className="mt-2 text-fn-muted">This takes about two minutes and helps tailor workouts, nutrition, and safety adjustments.</p>
               {resumedFromAssessment && (
                 <div className="mt-3 inline-flex rounded-full bg-fn-bg-alt px-3 py-1 text-xs font-semibold text-fn-ink">
@@ -279,20 +285,61 @@ export default function OnboardingPage() {
 
               {steps[currentStep].id === "stats" && (
                 <div className="mt-4 space-y-0">
+                  <div className="mb-4 rounded-2xl border border-fn-accent/10 bg-fn-accent/5 px-4 py-3 text-sm leading-relaxed text-fn-muted">
+                    Quick setup: fill in <span className="font-semibold text-white">name, age, height, and weight</span>. Everything else can be skipped and edited later in Settings.
+                  </div>
+                  <div className="mb-4 grid gap-2 text-xs leading-relaxed text-fn-muted md:grid-cols-3">
+                    <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">1. Add your basic body stats.</div>
+                    <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">2. Optional: add phone for text reminders.</div>
+                    <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">3. You can change any of this later.</div>
+                  </div>
+                  <details className="mb-4 rounded-xl border border-white/8 bg-black/15 px-4 py-3">
+                    <summary className="cursor-pointer text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent">
+                      Why we ask these
+                    </summary>
+                    <div className="mt-2 space-y-2 text-xs leading-relaxed text-fn-muted">
+                      <p><span className="font-semibold text-white">Age and sex:</span> helps tune recovery guidance and training ranges.</p>
+                      <p><span className="font-semibold text-white">Height and weight:</span> helps set calorie targets and progress baselines.</p>
+                      <p><span className="font-semibold text-white">Phone number:</span> optional, only used for reminders and alerts if you opt in.</p>
+                    </div>
+                  </details>
                   <label className={labelClass}>Name</label>
                   <input type="text" value={stats.name} onChange={(e) => setStats((s) => ({ ...s, name: e.target.value }))} className={inputClass} placeholder="Your name" />
-                  <label className={labelClass}>Phone number (optional)</label>
+                  <label className={labelClass}>Phone number (optional, for text reminders)</label>
+                  <p className="mt-1 text-xs leading-relaxed text-fn-muted">Add this only if you want workout reminders, accountability nudges, and account alerts by text. You can skip it.</p>
                   <input type="tel" value={stats.phone} onChange={(e) => setStats((s) => ({ ...s, phone: e.target.value }))} className={inputClass} placeholder="+15551234567" />
+
+                  {stats.phone && (
+                    <div className="mt-4 space-y-4 rounded-xl bg-fn-accent/5 border border-fn-accent/10 p-4">
+                      <p className="text-[10px] font-bold text-fn-accent uppercase tracking-widest">SMS Disclosure</p>
+                      <p className="text-xs text-fn-muted leading-relaxed">
+                        By providing your phone number, you consent to receive automated coaching nudges, account alerts, and training reminders from Fitness Nova AI via SMS. Message frequency varies. Message and data rates may apply. Reply STOP to opt-out, HELP for help.
+                      </p>
+                      <Checkbox
+                        id="sms-consent"
+                        checked={smsConsent}
+                        onChange={(e) => setSmsConsent(e.target.checked)}
+                        label={
+                          <span>
+                            I agree to the <Link href="/terms" target="_blank" className="text-fn-accent hover:underline">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="text-fn-accent hover:underline">Privacy Policy</Link>.
+                          </span>
+                        }
+                      />
+                    </div>
+                  )}
+
                   <label className={labelClass}>Age</label>
                   <input type="number" value={stats.age} onChange={(e) => setStats((s) => ({ ...s, age: e.target.value }))} className={inputClass} placeholder="25" min={13} max={120} />
-                  <label className={labelClass}>Sex</label>
+                  <p className="mt-1 text-xs leading-relaxed text-fn-muted">Age helps Koda scale recovery and training recommendations to your stage of life.</p>
+                  <label className={labelClass}>Sex (used to tune training ranges)</label>
                   <select value={stats.sex} onChange={(e) => setStats((s) => ({ ...s, sex: e.target.value }))} className={inputClass}>
                     <option value="">Select</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                     <option value="other">Other</option>
                   </select>
-                  <label className={labelClass}>Units</label>
+                  <p className="mt-1 text-xs leading-relaxed text-fn-muted">This helps Koda choose the right training and nutrition ranges for you.</p>
+                  <label className={labelClass}>How you want to see height and weight</label>
                   <select value={unitSystem} onChange={(e) => setUnitSystem(e.target.value === "metric" ? "metric" : "imperial")} className={inputClass}>
                     <option value="imperial">in / lbs</option>
                     <option value="metric">cm / kg</option>
@@ -315,6 +362,7 @@ export default function OnboardingPage() {
                     className={inputClass}
                     placeholder={unitSystem === "imperial" ? "154" : "70"}
                   />
+                  <p className="mt-1 text-xs leading-relaxed text-fn-muted">Koda uses height and weight to set calorie targets and show progress clearly over time.</p>
                 </div>
               )}
 
@@ -459,9 +507,18 @@ export default function OnboardingPage() {
                     Back
                   </Button>
                 )}
-                <Button type="button" className="flex-1" onClick={handleNext} loading={saving}>
-                  {currentStep < steps.length - 1 ? "Next" : "Finish"}
+                <Button
+                  type="button"
+                  className="flex-1"
+                  onClick={handleNext}
+                  loading={saving}
+                  disabled={steps[currentStep].id === "stats" && stats.phone.trim().length > 0 && !smsConsent}
+                >
+                  {currentStep < steps.length - 1
+                    ? `Continue to ${steps[currentStep + 1].label.toLowerCase()}`
+                    : "Finish setup"}
                 </Button>
+
               </div>
               {saveError && <ErrorMessage className="mt-3" message={saveError} />}
             </div>

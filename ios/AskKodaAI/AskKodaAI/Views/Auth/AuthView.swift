@@ -9,6 +9,7 @@ import AuthenticationServices
 
 struct AuthView: View {
     @EnvironmentObject var auth: SupabaseService
+    var onGuestAccess: (() -> Void)?
     @State private var email = ""
     @State private var message: String?
     @State private var isLoading = false
@@ -56,6 +57,12 @@ struct AuthView: View {
                                 .foregroundStyle(msg.contains("Check") ? Brand.Color.success : Brand.Color.danger)
                         }
 
+                        if !email.isEmpty && !isValidEmail {
+                            Text("Enter a valid email address.")
+                                .font(.caption)
+                                .foregroundStyle(Brand.Color.danger)
+                        }
+
                         Button(action: sendMagicLink) {
                             if isLoading {
                                 ProgressView()
@@ -64,7 +71,7 @@ struct AuthView: View {
                                 Text("Send magic link")
                             }
                         }
-                        .disabled(isLoading || email.isEmpty)
+                        .disabled(isLoading || !isValidEmail)
                         .buttonStyle(PremiumActionButtonStyle())
 
                         VStack(alignment: .leading, spacing: 10) {
@@ -108,6 +115,17 @@ struct AuthView: View {
                             .foregroundStyle(Brand.Color.accent)
                     }
                     #endif
+
+                    Button(action: { 
+                        HapticEngine.impact(.light)
+                        onGuestAccess?() 
+                    }) {
+                        Text("Explore as Guest")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(Brand.Color.muted)
+                            .padding(.top, 12)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 28)
@@ -132,6 +150,11 @@ struct AuthView: View {
         }
     }
 
+    private var isValidEmail: Bool {
+        let pattern = #"[A-Z0-9a-z._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}"#
+        return email.range(of: pattern, options: .regularExpression) != nil
+    }
+
     private func authFeatureRow(_ text: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: "checkmark.circle.fill")
@@ -144,6 +167,7 @@ struct AuthView: View {
     }
 
     private func signInWithGoogle() {
+        Task { await Telemetry.track(.authStart, props: ["method": "google"]) }
         Task {
             do {
                 let url = try await auth.getGoogleSignInURL()
@@ -163,6 +187,7 @@ struct AuthView: View {
             if let appleIDCredential = authResult.credential as? ASAuthorizationAppleIDCredential,
                let tokenData = appleIDCredential.identityToken,
                let token = String(data: tokenData, encoding: .utf8) {
+                Task { await Telemetry.track(.authStart, props: ["method": "apple"]) }
                 Task {
                     do {
                         try await auth.signInWithApple(idToken: token, nonce: currentNonce)
@@ -179,6 +204,7 @@ struct AuthView: View {
     private func sendMagicLink() {
         message = nil
         isLoading = true
+        Task { await Telemetry.track(.authStart, props: ["method": "magic_link"]) }
         Task {
             do {
                 try await auth.signInWithMagicLink(email: email)

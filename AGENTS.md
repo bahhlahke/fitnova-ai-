@@ -22,6 +22,7 @@ This document orients AI coding agents and human contributors to the repo: layou
 | Shared types | `types/` (aligned with Supabase schema) |
 | iOS app source | `ios/AskKodaAI/AskKodaAI/` — `AskKodaAIApp.swift`, `RootView.swift`, `MainTabView.swift`, Config, Core, Models, Services, Views, Components |
 | iOS Xcode project | `ios/AskKodaAI/AskKodaAI.xcodeproj` |
+| iOS entitlements | `ios/AskKodaAI/Config/AskKodaAI.entitlements` (HealthKit capability) |
 | iOS unit tests | `ios/AskKodaAI/AskKodaAITests/` (KodaAITests: DateHelpers, APIModels, DataModels, ProductionReadiness; plus Swift Testing in AskKodaAITests.swift) |
 | Config (shared) | `.env.local` at repo root (web); iOS reads same values via `scripts/generate-ios-env.mjs` → `ios/AskKodaAI/Config/Generated.xcconfig` |
 
@@ -41,6 +42,10 @@ This document orients AI coding agents and human contributors to the repo: layou
 - **Tests:** `npm test` (Vitest)
 - **Validate:** `npm run validate` (lint + build + test)
 - **AI test review:** `npm run test:ai-review` (writes to `docs/reports/ai-test-review-<timestamp>.md`; needs `OPENROUTER_API_KEY` for AI section)
+- **AI coverage review:** `npm run test:ai-review:coverage` (Vitest with coverage + AI review)
+- **Workflow validation:** `npm run workflow:validate:ai` (HTTP workflow checks + AI judgment)
+- **Web surface smoke:** `npm run test:web:surfaces` (desktop + mobile workflow screenshots plus manifest for AI review)
+- **Cross-platform UI validation:** `npm run validate:ui:ai` (web + iOS surface capture plus persona-based AI readiness review)
 
 ---
 
@@ -50,6 +55,8 @@ This document orients AI coding agents and human contributors to the repo: layou
 - **Build:** Open `ios/AskKodaAI/AskKodaAI.xcodeproj` in Xcode, select a simulator (e.g. iPhone 17), **Product → Run** (⌘R). Or from repo root:  
   `xcodebuild -project ios/AskKodaAI/AskKodaAI.xcodeproj -scheme AskKodaAI -destination 'platform=iOS Simulator,name=iPhone 17' build`
 - **Tests:** In Xcode **Product → Test** (⌘U), or from repo root: `npm run test:ios`. The script uses a **single** simulator (iPhone 17); **run only one iOS test job at a time** on resource-limited machines.
+- **Surface smoke pass:** `npm run test:ios:surfaces` (captures screen state matrix on simulator)
+- **Cross-platform surface review:** `npm run validate:ui:ai` (reuses iOS smoke captures together with web screenshots and AI persona review)
 - **Test host:** Unit tests run inside the app (host). If tests crash before running (e.g. “Early unexpected exit” / “signal trap”), ensure `Generated.xcconfig` exists and the app launches when run directly (⌘R); in Debug the app uses placeholder config when keys are missing so the host can start.
 - **AI review / production gate:** `npm run test:ai-review:ios`, `npm run test:ios:ready` (see [docs/RUNBOOK.md](docs/RUNBOOK.md#ios-tests-and-ai-review)).
 
@@ -61,8 +68,9 @@ This document orients AI coding agents and human contributors to the repo: layou
 2. **Simulator:** Scripts use `iPhone 17`; if that device is missing, use another available simulator name in `-destination 'platform=iOS Simulator,name=…'`.
 3. **One simulator at a time:** On constrained machines, do not run multiple iOS test or simulator sessions in parallel.
 4. **App entry and config:** `AskKodaAIApp.swift` → `RootView`; config from `AppConfig` (reads Info.plist keys from Generated.xcconfig). In Debug, missing keys use placeholders so the test host can launch.
-5. **Feature parity:** Web vs iOS screens and APIs are mapped in [docs/IOS-PARITY-MAP.md](docs/IOS-PARITY-MAP.md). iOS implementation status and web-only routes are listed there.
-6. **Production checklist:** See “Production readiness checklist” in [ios/README.md](ios/README.md).
+5. **HealthKit capability:** The AskKodaAI target is wired to `Config/AskKodaAI.entitlements`; keep HealthKit enabled when changing signing/build settings.
+6. **Feature parity:** Web vs iOS screens and APIs are mapped in [docs/IOS-PARITY-MAP.md](docs/IOS-PARITY-MAP.md). iOS implementation status and web-only routes are listed there.
+7. **Production checklist:** See “Production readiness checklist” in [ios/README.md](ios/README.md).
 
 ---
 
@@ -79,5 +87,6 @@ This document orients AI coding agents and human contributors to the repo: layou
 | [ios/README.md](ios/README.md) | iOS setup, config (.env.local → Generated.xcconfig), run/test, production checklist, feature parity summary. |
 | [docs/DESIGN.md](docs/DESIGN.md) | Design system, UI components. |
 | [docs/SMOKE-CHECKLIST.md](docs/SMOKE-CHECKLIST.md) | Pre-launch smoke run. |
+| [docs/AI-UI-SURFACE-VALIDATION.md](docs/AI-UI-SURFACE-VALIDATION.md) | Cross-platform UI surface smoke capture and persona-based AI readiness review. |
 
 When changing iOS app behavior, config, or tests, update **ios/README.md** and, if relevant, **docs/IOS-PARITY-MAP.md** or **AGENTS.md**.

@@ -7,6 +7,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject var auth: SupabaseService
+    @State private var showGuestMode = false
     private let e2eSurface = ProcessInfo.processInfo.environment["E2E_SURFACE"]
 
     var body: some View {
@@ -27,10 +28,14 @@ struct RootView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if auth.isSignedIn || ProcessInfo.processInfo.environment["E2E_AUTO_LOGIN"] == "true" {
-                OnboardingCheckView()
+            } else if auth.isSignedIn || ProcessInfo.processInfo.environment["E2E_AUTO_LOGIN"] == "true" || showGuestMode {
+                OnboardingCheckView(isGuest: showGuestMode)
             } else {
-                AuthView()
+                AuthView(onGuestAccess: {
+                    withAnimation {
+                        showGuestMode = true
+                    }
+                })
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

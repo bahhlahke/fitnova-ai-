@@ -8,14 +8,14 @@ enum DemoContent {
             user_id: DebugUX.demoUserId,
             display_name: "Blake",
             email: "blake@koda.demo",
-            phone: nil,
+            phone_number: nil,
             age: 31,
             sex: "male",
             height_cm: 183,
             weight_kg: 84.2,
             goals: ["Build lean muscle", "Hold 12% body fat", "Improve conditioning"],
-            injuries_limitations: "Managing mild right shoulder tightness after pressing volume.",
-            dietary_preferences: ["high_protein", "balanced"],
+            injuries_limitations: AnyCodable(value: "Managing mild right shoulder tightness after pressing volume."),
+            dietary_preferences: AnyCodable(value: ["high_protein", "balanced"]),
             activity_level: "Titanium Hypertrophy",
             devices: nil,
             subscription_status: "pro",
@@ -347,9 +347,21 @@ enum DemoContent {
 
     static var vision: VisionAnalysisResponse {
         VisionAnalysisResponse(
-            score: 8.9,
+            score: 89,
             critique: "Good bracing and hip drive. The only clear miss is a slightly early chest drop out of the hole.",
-            correction: "Keep rib cage stacked and lead the ascent with the traps for the first third of the rep."
+            correction: "Keep rib cage stacked and lead the ascent with the traps for the first third of the rep.",
+            analysis_source: "server",
+            analysis_mode: "demo_remote_vision",
+            benchmark_ms: 142,
+            frames_analyzed: 3,
+            pose_confidence: 0.84,
+            fallback_reason: nil,
+            movement_pattern: "squat",
+            rep_count: 4,
+            peak_velocity_mps: 0.72,
+            mean_velocity_mps: 0.61,
+            velocity_dropoff_percent: 12.5,
+            benchmark_report_path: nil
         )
     }
 
@@ -360,8 +372,8 @@ enum DemoContent {
                 RecipeGenDay(
                     date: today,
                     meals: [
-                        RecipeGenMeal(name: "High-Protein Overnight Oats", calories: 510, protein: 42, carbs: 58, fat: 12, recipe: "Mix oats, whey, chia, berries, and Greek yogurt.", ingredients: ["oats", "whey", "berries", "Greek yogurt"]),
-                        RecipeGenMeal(name: "Chicken Burrito Bowl", calories: 720, protein: 58, carbs: 71, fat: 18, recipe: "Roast chicken, steam rice, build bowl with salsa and avocado.", ingredients: ["chicken", "rice", "avocado", "salsa"])
+                        RecipeGenMeal(name: "High-Protein Overnight Oats", meal_type: "breakfast", calories: 510, protein: 42, carbs: 58, fat: 12, recipe: "Mix oats, whey, chia, berries, and Greek yogurt.", ingredients: ["oats", "whey", "berries", "Greek yogurt"]),
+                        RecipeGenMeal(name: "Chicken Burrito Bowl", meal_type: "lunch", calories: 720, protein: 58, carbs: 71, fat: 18, recipe: "Roast chicken, steam rice, build bowl with salsa and avocado.", ingredients: ["chicken", "rice", "avocado", "salsa"])
                     ]
                 )
             ],
@@ -393,7 +405,7 @@ enum DemoContent {
                     user_id: "friend-1",
                     display_name: "Jordan",
                     email: nil,
-                    phone: nil,
+                    phone_number: nil,
                     age: nil,
                     sex: nil,
                     height_cm: nil,
@@ -419,7 +431,7 @@ enum DemoContent {
         SocialFriendsResponse(
             friends: [
                 ConnectionRow(connection_id: "conn-1", user_id_1: DebugUX.demoUserId, user_id_2: "friend-1", status: "accepted", created_at: nil, profile_1: profile, profile_2: accountability.partner?.partner_profile),
-                ConnectionRow(connection_id: "conn-2", user_id_1: DebugUX.demoUserId, user_id_2: "friend-2", status: "accepted", created_at: nil, profile_1: profile, profile_2: UserProfile(user_id: "friend-2", display_name: "Avery", email: nil, phone: nil, age: nil, sex: nil, height_cm: nil, weight_kg: nil, goals: nil, injuries_limitations: nil, dietary_preferences: nil, activity_level: nil, devices: nil, subscription_status: nil, stripe_customer_id: nil, role: nil, experience_level: nil, motivational_driver: nil, created_at: nil, updated_at: nil))
+                ConnectionRow(connection_id: "conn-2", user_id_1: DebugUX.demoUserId, user_id_2: "friend-2", status: "accepted", created_at: nil, profile_1: profile, profile_2: UserProfile(user_id: "friend-2", display_name: "Avery", email: nil, phone_number: nil, age: nil, sex: nil, height_cm: nil, weight_kg: nil, goals: nil, injuries_limitations: nil, dietary_preferences: nil, activity_level: nil, devices: nil, subscription_status: nil, stripe_customer_id: nil, role: nil, experience_level: nil, motivational_driver: nil, created_at: nil, updated_at: nil))
             ]
         )
     }
@@ -481,6 +493,28 @@ enum DemoContent {
         )
     }
 
+    static var activeEscalationState: ActiveEscalationStateResponse {
+        let formatter = ISO8601DateFormatter()
+        let dueAt = formatter.string(from: Date().addingTimeInterval(45 * 60))
+        let latestAt = formatter.string(from: Date().addingTimeInterval(-12 * 60))
+        return ActiveEscalationStateResponse(
+            active: ActiveEscalationState(
+                escalation_id: "esc-1",
+                topic: "Shoulder strain management",
+                urgency: "high",
+                status: "assigned",
+                sla_due_at: dueAt,
+                assigned_coach_user_id: "coach-1",
+                created_at: formatter.string(from: Date().addingTimeInterval(-2 * 3600)),
+                latest_message: EscalationLatestMessage(
+                    body: "Coach reviewed your logs and sent a shoulder-safe progression path.",
+                    sender_type: "coach",
+                    created_at: latestAt
+                )
+            )
+        )
+    }
+
     static var stripeCheckout: StripeCheckoutResponse {
         StripeCheckoutResponse(
             url: AppConfig.apiBaseURL.absoluteString,
@@ -514,12 +548,14 @@ enum DemoContent {
         if normalized.contains("workout") || normalized.contains("session") {
             return AIReplyResponse(
                 reply: "You are cleared for the lower-strength session. Open the guided workout, keep the first squat exposure at RPE 7, and save one rep in reserve on hinges.",
-                action: AIAction(type: "plan_daily", payload: AIActionPayload(exercise_name: nil, video_url: nil, training_plan: dailyPlan.training_plan))
+                action: AIAction(type: "plan_daily", payload: AIActionPayload(exercise_name: nil, video_url: nil, training_plan: dailyPlan.training_plan)),
+                actions: nil
             )
         }
         return AIReplyResponse(
             reply: "Today is a high-output day. Keep carbs around training, hold the recovery walk tonight, and message support only if the shoulder pain sharpens during warm-ups.",
-            action: nil
+            action: nil,
+            actions: nil
         )
     }
 

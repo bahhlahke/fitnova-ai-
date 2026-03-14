@@ -17,13 +17,12 @@ The following secrets are required for API functionality. Currently, the site is
 
 ## 2. Database Migrations (Supabase)
 I have pushed several new migrations to the repository. Please ensure these are applied to your production Supabase database:
-- `20260301000006_priority_features.sql` through `20260303000014_rls_policies_fix.sql`.
+- `20260301000006_priority_features.sql` through `20260309000018_consent_and_tos.sql`.
 - These define:
-  - `weekly_plans` table
-  - `coach_nudges` table
-  - `coach_escalations` table
-  - `retention_interventions` table
-  - `progression_snapshots` table
+  - `weekly_plans`, `coach_nudges`, `coach_escalations`
+  - `retention_interventions`, `progression_snapshots`
+  - `user_habits`, `nutrition_targets`
+  - SMS consent and Terms of Service tracking
   - RLS Security Fixes (required for meal logging)
 
 ## 3. Verification
@@ -35,6 +34,7 @@ Once the secrets are added and migrations applied:
    node scripts/ai-workflow-validator.mjs --base-url <YOUR_PRODUCTION_URL>
    ```
    Example: `--base-url https://your-app.vercel.app`
+3. Run a live coach probe (`POST /api/v1/ai/respond`) and verify success responses include `reply` (and optional `actions`). During provider degradation, verify the route returns `UPSTREAM_ERROR` (`502/503/504`) instead of a generic internal failure.
 
 ## 4. iOS app (production)
 
@@ -43,5 +43,7 @@ Once the secrets are added and migrations applied:
 - **Sign in with Apple:** Required if offering other third-party sign-in; implement button and `SupabaseService.signInWithApple(idToken:nonce:)`.
 - **Privacy:** Add Privacy Policy URL; set `NSHealthShareUsageDescription`, `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription` in Info.plist to match actual use.
 - **HealthKit:** Enable HealthKit capability; request only the keys (weight, sleep, steps) the app uses.
+- **HealthKit entitlement wiring:** Confirm the target keeps `CODE_SIGN_ENTITLEMENTS=Config/AskKodaAI.entitlements` and that `ios/AskKodaAI/Config/AskKodaAI.entitlements` includes `com.apple.developer.healthkit`.
+- **Health permission UX:** Validate full-deny, partial-permission, and full-permission flows on physical iPhone. Partial permission should still sync available data and show a settings prompt for missing scopes.
 - **Errors:** API errors surface user-friendly messages (no stack traces or internal codes). Network and auth errors are handled with retries where appropriate.
 - **No dev-only behavior:** No `fatalError` except for missing required config at launch; no force unwraps on URL construction; server `console.log` is guarded with `NODE_ENV === "development"`.

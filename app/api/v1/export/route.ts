@@ -19,9 +19,10 @@ function escapeCsvCell(value: unknown): string {
   return s;
 }
 
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
-  const format = searchParams.get("format") === "csv" ? "csv" : "json";
+  const body = await request.json().catch(() => ({}));
+  const format = (searchParams.get("format") || body.format) === "csv" ? "csv" : "json";
 
   try {
     const supabase = await createClient();

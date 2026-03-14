@@ -1,6 +1,6 @@
 import { toLocalDateString } from "@/lib/date/local-date";
-import { enrichExercise } from "../workout/enrich-exercises";
 import type { DailyPlan, DailyPlanTrainingExercise, PlannerDataSources, PlannerInputs } from "@/lib/plan/types";
+import { normalizeGuidedExercise } from "@/lib/workout/guided-session";
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
@@ -8,6 +8,16 @@ function clamp(n: number, min: number, max: number) {
 
 function normalizeExerciseName(name: string): string {
   return name.toLowerCase().trim().replace(/\s+/g, " ");
+}
+
+function isRecoveryFocus(focus: string): boolean {
+  const normalized = focus.toLowerCase();
+  return (
+    normalized.includes("recovery") ||
+    normalized.includes("mobility") ||
+    normalized.includes("movement quality") ||
+    normalized.includes("stress-relief")
+  );
 }
 
 function getWeekStartLocal(date: Date): string {
@@ -242,7 +252,7 @@ export async function composeDailyPlan(
   const secondarySets = experience === "beginner" ? 2 : experience === "advanced" ? 4 : 3;
 
   const exercises: DailyPlanTrainingExercise[] =
-    focus.includes("Mobility")
+    isRecoveryFocus(focus)
       ? [
         { name: pickFromPool(MOBILITY_POOL, recentExerciseNames), sets: 2, reps: "10", intensity: "Controlled" },
         { name: pickFromPool(MOBILITY_POOL.slice(1), recentExerciseNames), sets: 2, reps: "45s", intensity: "Moderate" },
@@ -257,7 +267,7 @@ export async function composeDailyPlan(
       ];
 
   // Dynamically add accessories if time allows (> 45 min)
-  if (minutesAvailable > 45 && !focus.includes("Mobility")) {
+  if (minutesAvailable > 45 && !isRecoveryFocus(focus)) {
     exercises.push({
       name: pickFromPool(ACCESSORY_POOL, recentExerciseNames),
       sets: 3,
@@ -273,7 +283,7 @@ export async function composeDailyPlan(
   }
 
   // Add HIIT/Finisher
-  if (focus.includes("Fat-loss") || minutesAvailable > 40) {
+  if (!isRecoveryFocus(focus) && (focus.includes("Fat-loss") || minutesAvailable > 40)) {
     exercises.push({
       name: pickFromPool(HIIT_POOL, recentExerciseNames),
       sets: 4,
@@ -295,7 +305,7 @@ export async function composeDailyPlan(
 
   // Metabolic Autopilot: Determine nutrition mode
   let nutritionMode: "Performance" | "Baseline" | "Recovery" = "Baseline";
-  if (energyScore < 5 || sleepHours < 6 || focus.includes("Mobility")) {
+  if (energyScore < 5 || sleepHours < 6 || isRecoveryFocus(focus)) {
     nutritionMode = "Recovery";
   } else if (energyScore >= 8 && sleepHours >= 8 && focus.includes("strength")) {
     nutritionMode = "Performance";
@@ -341,16 +351,13 @@ export async function composeDailyPlan(
   const carbs = clamp(Math.round(((calorieTarget - protein * 4 - fat * 9) / 4) * carbMultiplier), 100, 450);
 
   // Apply Bio-Sync to exercises
-  const adjustedExercises = exercises.map(ex => {
-    const enriched = enrichExercise(ex.name);
-
-    return {
-      ...ex,
-      sets: Math.max(1, Math.round(ex.sets * volumeMultiplier)),
-      notes: (ex.notes || "") + intensityAdjustment,
-      ...enriched,
-    };
-  });
+  const adjustedExercises = exercises.map((exercise) =>
+    normalizeGuidedExercise({
+      ...exercise,
+      sets: Math.max(1, Math.round(exercise.sets * volumeMultiplier)),
+      notes: `${exercise.notes || ""}${intensityAdjustment}`.trim() || undefined,
+    })
+  );
 
   const safetyNotes = [
     "This coach is educational support, not medical diagnosis or treatment.",

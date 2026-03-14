@@ -10,8 +10,13 @@ export type DailyPlanTrainingExercise = {
   breathing?: string;
   intent?: string;
   rationale?: string;
+  walkthrough_steps?: string[];
+  coaching_points?: string[];
+  setup_checklist?: string[];
+  common_mistakes?: string[];
   target_load_kg?: number | null;
   target_rir?: number | null;
+  rest_seconds_after_set?: number | null;
   progression_note?: string | null;
   /** Optional demo image URL for guided workout (e.g. AI-generated move photo). */
   image_url?: string | null;

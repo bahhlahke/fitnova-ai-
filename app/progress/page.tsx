@@ -24,6 +24,7 @@ import { DashboardAnalyticsSection } from "@/components/dashboard/DashboardAnaly
 import { DashboardProgressSection } from "@/components/dashboard/DashboardProgressSection";
 import { TrophyRoom } from "@/components/gamification/TrophyRoom";
 import { toLocalDateString } from "@/lib/date/local-date";
+import { toPlainFitnessLanguage } from "@/lib/ui/plain-language";
 
 type Entry = {
   track_id: string;
@@ -41,6 +42,8 @@ export default function ProgressPage() {
   const [loading, setLoading] = useState(true);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [aiInsightLoading, setAiInsightLoading] = useState(false);
+  const [evolutionaryNarrative, setEvolutionaryNarrative] = useState<string | null>(null);
+  const [evolutionaryNarrativeLoading, setEvolutionaryNarrativeLoading] = useState(false);
   const [analytics, setAnalytics] = useState<{
     workout_days: number;
     workout_minutes: number;
@@ -164,10 +167,26 @@ export default function ProgressPage() {
     : null;
 
   const fallbackNarrative = useMemo(() => {
-    if (!entries.length) return "No trend available yet. Add at least two check-ins to unlock AI narrative insight.";
-    if (trend === "down") return "Weight trend is moving down. Maintain current adherence and preserve protein intake.";
+    if (!entries.length) return "No clear trend yet. Add two check-ins to see your direction and coach summary.";
+    if (trend === "down") return "Weight trend is moving down. Stay consistent and keep protein intake up.";
     if (trend === "up") return "Weight trend is rising. Review weekly calorie average and session consistency.";
     return "Trend is stable. Consider a small plan adjustment if body composition goals are stalled.";
+  }, [entries.length, trend]);
+
+  const nextProgressStep = useMemo(() => {
+    if (entries.length === 0) {
+      return "Best next step: add today’s first check-in, then add another one 3 to 7 days later so Koda can show a real trend.";
+    }
+    if (entries.length === 1) {
+      return "Best next step: add one more check-in after your next workout or later this week to unlock a clearer trend.";
+    }
+    if (trend === "up") {
+      return "Best next step: compare your last few meals and workouts, then decide whether to tighten nutrition or increase activity.";
+    }
+    if (trend === "down") {
+      return "Best next step: keep your current routine steady and protect recovery so progress continues.";
+    }
+    return "Best next step: keep checking in on a regular rhythm so Koda can spot changes earlier.";
   }, [entries.length, trend]);
 
   useEffect(() => {
@@ -180,6 +199,15 @@ export default function ProgressPage() {
       })
       .catch(() => { })
       .finally(() => setAiInsightLoading(false));
+
+    setEvolutionaryNarrativeLoading(true);
+    fetch("/api/v1/ai/evolutionary-narrative", { method: "POST" })
+      .then((r) => r.json())
+      .then((body: { narrative?: string | null }) => {
+        if (body.narrative) setEvolutionaryNarrative(body.narrative);
+      })
+      .catch(() => { })
+      .finally(() => setEvolutionaryNarrativeLoading(false));
   }, [entries.length]);
 
   useEffect(() => {
@@ -218,13 +246,50 @@ export default function ProgressPage() {
   const chartRange = chartMax - chartMin;
 
   return (
-    <PageLayout title="Progress" subtitle="Body composition tracking and AI-powered performance synthesis">
-      {/* Prominent CTAs above the fold */}
+    <PageLayout title="Progress" subtitle="Track check-ins, see trends, and know what to do next">
+      <section className="premium-panel animate-panel-rise mb-6 p-5 sm:p-6">
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <p className="premium-kicker">Progress control center</p>
+            <h1 className="premium-headline mt-2 text-3xl sm:text-4xl">
+              Know what changed, and what to do next.
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70">
+              Check-ins feed trend, strength progression, and coach guidance. Keep a steady rhythm for cleaner signal quality.
+            </p>
+          </div>
+          <div className="premium-panel-soft p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Next step now</p>
+            <p className="mt-2 text-xs leading-relaxed text-white/75">Add today&apos;s check-in so Koda can refresh your trend direction and guidance.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link href="/progress/add">
+                <Button size="sm">Add check-in</Button>
+              </Link>
+              <Link href="/progress/scan">
+                <Button size="sm" variant="secondary">Photo check-in</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="mb-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-fn-accent">How This Page Works</p>
+        <div className="mt-2 grid gap-2 text-sm leading-relaxed text-fn-muted md:grid-cols-3">
+          <div className="rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2">1. Add a check-in with weight, body fat, or notes.</div>
+          <div className="rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2">2. Add another check-in after your next workout or later this week.</div>
+          <div className="rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2">3. Koda updates your trend and coach summary here automatically.</div>
+        </div>
+        <div className="mt-3 rounded-xl border border-fn-accent/10 bg-fn-accent/5 px-4 py-3 text-xs leading-relaxed text-fn-muted">
+          <span className="font-semibold text-white">Glossary:</span> A <span className="font-semibold text-white">check-in</span> is a quick daily status update (energy, sleep, soreness). An <span className="font-semibold text-white">AI body scan</span> is an optional photo-based estimate.
+        </div>
+      </div>
+
       <div className="mb-8 flex flex-wrap gap-4">
         <Link href="/progress/add">
           <Button variant="secondary" size="sm" icon={
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
-          }>Manual Entry</Button>
+          }>Add check-in</Button>
         </Link>
         <Link href="/progress/scan">
           <Button size="sm" className="border-fn-accent/20 bg-fn-accent/5 text-fn-accent hover:bg-fn-accent/10" icon={
@@ -232,26 +297,37 @@ export default function ProgressPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-          }>AI Body Scan</Button>
+          }>Photo check-in</Button>
         </Link>
       </div>
+      <p className="mb-8 text-sm leading-relaxed text-fn-muted">
+        After you save a check-in, this page refreshes with your latest numbers, trend, and coach guidance. Example rhythm: Monday and Friday, or after two key workouts each week.
+      </p>
 
       {loading ? (
         <LoadingState />
       ) : (
         <>
           <div className="grid gap-4 lg:grid-cols-3">
-            {/* AI Narrative — wide */}
-            <Card padding="lg" className="lg:col-span-2 border-fn-accent/20 bg-fn-accent/5">
-              <CardHeader title="AI Performance Synthesis" subtitle="Based on your logged body composition data" />
-              {aiInsightLoading ? (
-                <div className="mt-6 space-y-4 animate-pulse">
+            {/* Evolutionary Narrative — wide */}
+            <Card padding="lg" className="lg:col-span-2 border-fn-accent/20 bg-fn-accent/5 relative overflow-hidden">
+              <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-fn-accent/10 blur-[100px] pointer-events-none" />
+              <CardHeader title="Coach Summary" subtitle="What changed recently and what to do next" />
+              {evolutionaryNarrativeLoading ? (
+                <div className="mt-8 space-y-4 animate-pulse">
                   <div className="h-4 w-full rounded-full bg-white/5" />
                   <div className="h-4 w-4/5 rounded-full bg-white/5" />
                   <div className="h-4 w-3/5 rounded-full bg-white/5" />
                 </div>
               ) : (
-                <p className="mt-6 text-lg text-white leading-relaxed border-l-2 border-fn-accent/30 pl-6 italic font-medium">{aiNarrative}</p>
+                <div className="mt-8">
+                  <p className="text-xl text-white leading-relaxed font-medium italic border-l-4 border-fn-accent/30 pl-8">
+                    {toPlainFitnessLanguage(evolutionaryNarrative || aiNarrative)}
+                  </p>
+                  <div className="mt-4 rounded-2xl border border-white/8 bg-black/15 px-4 py-3 text-sm leading-relaxed text-fn-muted">
+                    {nextProgressStep}
+                  </div>
+                </div>
               )}
             </Card>
 
@@ -289,13 +365,13 @@ export default function ProgressPage() {
                 </div>
               ) : (
                 <div className="mt-6 flex flex-col items-center justify-center text-center pb-4">
-                  <p className="text-sm font-medium text-fn-muted mb-5 leading-relaxed">Log your first weight to unlock<br />your AI trend projection.</p>
+                  <p className="text-sm font-medium text-fn-muted mb-5 leading-relaxed">Add your first check-in to see your weight trend and coach feedback.</p>
                   <div className="w-full max-w-[200px] flex flex-col gap-3">
                     <Link href="/progress/add" className="w-full">
                       <Button className="w-full h-12 shadow-[0_0_20px_rgba(255,255,255,0.1)]">Manual Entry</Button>
                     </Link>
                     <Link href="/progress/scan" className="w-full">
-                      <Button variant="secondary" className="w-full h-12 border-fn-accent/40 bg-fn-accent/10 text-fn-accent hover:bg-fn-accent/20">AI Body Scan</Button>
+                      <Button variant="secondary" className="w-full h-12 border-fn-accent/40 bg-fn-accent/10 text-fn-accent hover:bg-fn-accent/20">Photo Check-in</Button>
                     </Link>
                   </div>
                 </div>
@@ -305,7 +381,7 @@ export default function ProgressPage() {
 
           {/* Weight Trend Chart */}
           <Card className="mt-4" padding="lg">
-            <CardHeader title="Biological Weight Trend" subtitle={chartWeights.length > 1 ? `Last ${chartWeights.length} entries · Y-axis zoomed to ±${Math.round(padding * 2 * 10) / 10} ${unitLabel} range` : "Log entries to see your trend"} />
+            <CardHeader title="Weight Trend" subtitle={chartWeights.length > 1 ? `Last ${chartWeights.length} entries · chart zoomed to show smaller changes clearly` : "Add entries to see your trend"} />
             {chartWeights.length > 1 ? (
               <div className="mt-6">
                 {/* Y-axis labels */}
@@ -354,7 +430,7 @@ export default function ProgressPage() {
                 </div>
               </div>
             ) : (
-              <EmptyState className="mt-4" message="Add at least 2 progress entries to see your biological weight trend." />
+              <EmptyState className="mt-4" message="Add at least 2 check-ins to see your weight trend." />
             )}
           </Card>
 

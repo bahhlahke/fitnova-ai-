@@ -9,6 +9,7 @@ import SwiftUI
 
 struct OnboardingCheckView: View {
     @EnvironmentObject var auth: SupabaseService
+    var isGuest = false
     @State private var needsOnboarding = true
     @State private var checked = false
 
@@ -19,12 +20,12 @@ struct OnboardingCheckView: View {
 
     var body: some View {
         Group {
-            if auth.currentUserId == nil {
+            if auth.currentUserId == nil && !isGuest {
                 // Auth initialised but no valid session — route back to sign-in.
                 AuthView()
-            } else if !checked {
+            } else if !checked && !isGuest {
                 brandedLoadingView
-            } else if needsOnboarding {
+            } else if needsOnboarding && !isGuest {
                 OnboardingView(onComplete: {
                     needsOnboarding = false
                 })
@@ -33,7 +34,10 @@ struct OnboardingCheckView: View {
             }
         }
         .task {
-            if ProcessInfo.processInfo.environment["E2E_AUTO_LOGIN"] == "true" {
+            if isGuest {
+                checked = true
+                needsOnboarding = false
+            } else if ProcessInfo.processInfo.environment["E2E_AUTO_LOGIN"] == "true" {
                 checked = true
                 needsOnboarding = false
             } else {

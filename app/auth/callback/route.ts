@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { insertProductEvent } from "@/lib/telemetry/events";
 
 /** Allow only relative paths or known app schemes to prevent open redirect. */
 function safeRedirectPath(next: string): string {
@@ -18,6 +19,13 @@ export async function GET(request: Request) {
       const supabase = await createClient();
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) throw error;
+
+      if (data.user) {
+        await insertProductEvent(supabase, data.user.id, "funnel_auth_success", {
+          next,
+          auth_provider: data.session?.user.app_metadata.provider || "otp",
+        }, data.session?.access_token);
+      }
 
       // If next is a deep link, we need to pass the tokens back for the app to pick up
       if (next.startsWith("kodaai://") && data.session) {

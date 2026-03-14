@@ -21,6 +21,48 @@ struct LogTabView: View {
                         }
                     }
 
+                    NavigationLink {
+                        MotionLabView()
+                    } label: {
+                        PremiumRowCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text("Featured")
+                                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                                            .foregroundStyle(Brand.Color.accent)
+                                        Text("Realtime Motion Lab")
+                                            .font(.title3.weight(.black))
+                                            .foregroundStyle(.white)
+                                        Text("Get live form cues, rep counting, and camera-derived velocity without breaking the workout flow.")
+                                            .font(.subheadline)
+                                            .foregroundStyle(Brand.Color.muted)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "video.badge.checkmark")
+                                        .font(.system(size: 28, weight: .bold))
+                                        .foregroundStyle(Brand.Color.accent)
+                                }
+
+                                HStack(spacing: 10) {
+                                    PremiumMetricPill(label: "Coach", value: "Live")
+                                    PremiumMetricPill(label: "Rep Count", value: "Auto")
+                                    PremiumMetricPill(label: "Velocity", value: "Tracked")
+                                }
+
+                                HStack {
+                                    Text("Open Motion Lab")
+                                        .font(.subheadline.weight(.bold))
+                                        .foregroundStyle(.white)
+                                    Spacer()
+                                    Image(systemName: "arrow.right")
+                                        .foregroundStyle(Brand.Color.accent)
+                                }
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+
                     logSection(
                         title: "Workout",
                         rows: [

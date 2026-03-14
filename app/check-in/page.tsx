@@ -26,6 +26,8 @@ export default function CheckInPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [existingCheckInId, setExistingCheckInId] = useState<string | null>(null);
+  const [pivotLoading, setPivotLoading] = useState(false);
+  const [pivotMessage, setPivotMessage] = useState<string | null>(null);
   const today = toLocalDateString();
 
   useEffect(() => {
@@ -130,9 +132,31 @@ export default function CheckInPage() {
     emitDataRefresh(["dashboard"]);
   }
 
+  async function handlePivot() {
+    setPivotLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/v1/plan/adapt-day", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userMessage: "Low energy recovery pivot. Adjust for high fatigue.",
+          date_local: today
+        }),
+      });
+      if (!res.ok) throw new Error("Adaptation failed");
+      setPivotMessage("Protocol adapted. Recovery focus initialized.");
+      emitDataRefresh(["dashboard", "workout"]);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setPivotLoading(false);
+    }
+  }
+
   if (loading) {
     return (
-      <PageLayout title="System Scan" subtitle="Initializing Bio-Sync..." backHref="/">
+      <PageLayout title="Daily Check-In" subtitle="Loading your latest check-in..." backHref="/">
         <div className="flex justify-center py-20">
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-fn-accent border-t-transparent" />
         </div>
@@ -142,21 +166,24 @@ export default function CheckInPage() {
 
   return (
     <PageLayout
-      title="Daily Protocol Scan"
-      subtitle="Sync your internal vitals with the machine."
+      title="Daily Check-In"
+      subtitle="Quickly log energy, sleep, and soreness for today."
       backHref="/"
-      backLabel="Cockpit"
+      backLabel="Dashboard"
     >
-      <div className="mx-auto max-w-2xl space-y-12 py-10">
-        <header className="text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4">Readiness Initialization</p>
-          <h1 className="font-display text-5xl font-black text-white italic tracking-tighter uppercase sm:text-7xl">Vital Check</h1>
-        </header>
+      <div className="mx-auto max-w-2xl space-y-8 py-8">
+        <section className="premium-panel animate-panel-rise p-5 sm:p-6">
+          <p className="premium-kicker">Daily readiness check</p>
+          <h1 className="premium-headline mt-2 text-3xl sm:text-4xl">Coach your plan with better recovery data.</h1>
+          <p className="mt-3 text-sm leading-relaxed text-white/70">
+            Enter energy, sleep, and soreness in under one minute. Koda uses this to adjust your workout intensity and recovery guidance.
+          </p>
+        </section>
 
         <form onSubmit={handleSubmit} className="space-y-12">
           <section className="space-y-6">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-black uppercase tracking-widest text-fn-muted">System Energy</Label>
+              <Label className="text-sm font-black uppercase tracking-widest text-fn-muted">Energy</Label>
               <span className="text-xs font-bold text-fn-accent">{energyScore ? ENERGY_LABELS[energyScore - 1] : "Required"}</span>
             </div>
             <div className="grid grid-cols-5 gap-3">
@@ -205,7 +232,7 @@ export default function CheckInPage() {
               <Textarea
                 value={sorenessNotes}
                 onChange={(e) => setSorenessNotes(e.target.value)}
-                placeholder="Inquire specific muscular tension or constraints..."
+                placeholder="Any soreness, stress, or constraints for today?"
                 className="bg-white/[0.02] border-white/5 text-white placeholder-white/20 rounded-xl p-6 focus:ring-fn-accent/20 focus:border-fn-accent/50"
                 rows={4}
               />
@@ -236,18 +263,52 @@ export default function CheckInPage() {
               disabled={saving || !energyScore}
               className="w-full py-6 text-lg mt-4"
             >
-              {saved ? "Protocol Synced" : "Commit to Analysis"}
+              {saved ? "Saved for today" : "Save check-in"}
             </Button>
 
             {saved && (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => router.push("/")}
-                className="w-full py-6"
-              >
-                Back to Cockpit
-              </Button>
+              <div className="space-y-4">
+                <div role="status" className="rounded-xl border border-fn-accent/30 bg-fn-accent/10 p-4">
+                  <p className="text-sm font-semibold text-fn-accent">
+                    Check-in saved. Your dashboard and progress trends are now updated.
+                  </p>
+                </div>
+                {energyScore && energyScore <= 2 && !pivotMessage && (
+                  <div className="rounded-xl border border-fn-accent/30 bg-fn-accent/5 p-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 w-2 rounded-full bg-fn-accent animate-ping" />
+                      <p className="text-xs font-black uppercase tracking-widest text-fn-accent">Recovery Pivot Suggested</p>
+                    </div>
+                    <p className="text-sm text-fn-muted leading-relaxed">
+                      Your energy looks low today. Koda recommends shifting to a lower-intensity recovery-focused session.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handlePivot}
+                      loading={pivotLoading}
+                      className="w-full border-fn-accent/50 text-fn-accent hover:bg-fn-accent/10 py-4"
+                    >
+                      Apply Recovery Pivot
+                    </Button>
+                  </div>
+                )}
+
+                {pivotMessage && (
+                  <div className="rounded-xl border border-fn-accent bg-fn-accent/10 p-4">
+                    <p className="text-sm font-bold text-fn-accent text-center">{pivotMessage}</p>
+                  </div>
+                )}
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => router.push("/")}
+                  className="w-full py-6"
+                >
+                  Back to Cockpit
+                </Button>
+              </div>
             )}
           </div>
         </form>

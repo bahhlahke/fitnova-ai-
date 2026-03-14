@@ -4,20 +4,20 @@
  */
 
 const RAW_PEXELS = {
-  gym_dark: "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4",
-  squat_heavy: "https://videos.pexels.com/video-files/7934710/7934710-hd_1920_1080_25fps.mp4",
-  rdl_sweat: "https://videos.pexels.com/video-files/7674502/7674502-uhd_2732_1440_25fps.mp4",
-  barbell_row: "https://videos.pexels.com/video-files/3129208/3129208-uhd_2560_1440_25fps.mp4",
-  kettlebell_swing: "https://videos.pexels.com/video-files/8056269/8056269-hd_1920_1080_25fps.mp4",
-  battle_ropes: "https://videos.pexels.com/video-files/4761405/4761405-uhd_2560_1440_25fps.mp4",
-  pushups_dark: "https://videos.pexels.com/video-files/5243160/5243160-uhd_2560_1440_25fps.mp4",
-  pullups_intense: "https://videos.pexels.com/video-files/4761793/4761793-uhd_2560_1440_25fps.mp4",
-  deadlift_max: "https://videos.pexels.com/video-files/32239226/13749268_2560_1440_24fps.mp4", // re-using bench press dark aesthetic for now
-  stretching_floor: "https://videos.pexels.com/video-files/4944021/4944021-uhd_2732_1440_24fps.mp4",
-  db_curl: "https://videos.pexels.com/video-files/4754029/4754029-uhd_2560_1440_30fps.mp4",
-  core_crunch: "https://videos.pexels.com/video-files/4753956/4753956-uhd_2560_1440_25fps.mp4",
-  sprint_treadmill: "https://videos.pexels.com/video-files/8055998/8055998-hd_1920_1080_25fps.mp4",
-  box_jumps: "https://videos.pexels.com/video-files/7673998/7673998-uhd_2732_1440_25fps.mp4"
+  gym_dark: "/images/goblet-squat.mp4",
+  squat_heavy: "/images/goblet-squat.mp4",
+  rdl_sweat: "/images/goblet-squat.mp4",
+  barbell_row: "/images/push-ups.mp4",
+  kettlebell_swing: "/images/goblet-squat.mp4",
+  battle_ropes: "/images/push-ups.mp4",
+  pushups_dark: "/images/push-ups.mp4",
+  pullups_intense: "/images/push-ups.mp4",
+  deadlift_max: "/images/goblet-squat.mp4",
+  stretching_floor: "/images/hero.jpg",
+  db_curl: "/images/push-ups.mp4",
+  core_crunch: "/images/push-ups.mp4",
+  sprint_treadmill: "/images/hero.jpg",
+  box_jumps: "/images/goblet-squat.mp4"
 };
 
 const BY_NAME: Record<string, string> = {

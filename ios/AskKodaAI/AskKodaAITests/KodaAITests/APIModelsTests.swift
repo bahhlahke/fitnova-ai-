@@ -105,6 +105,43 @@ final class APIModelsTests: XCTestCase {
         XCTAssertEqual(decoded.plan.nutrition_plan?.protein_g, 150)
     }
 
+    func testDailyPlanExerciseDecodesPremiumGuidedFields() throws {
+        let json = """
+        {
+          "plan": {
+            "date_local": "2026-03-07",
+            "training_plan": {
+              "focus": "Strength",
+              "duration_minutes": 50,
+              "exercises": [{
+                "name": "Back Squat",
+                "sets": 4,
+                "reps": "5",
+                "intensity": "RPE 8",
+                "walkthrough_steps": ["Brace hard", "Sit between heels"],
+                "coaching_points": ["Keep bar path vertical"],
+                "setup_checklist": ["Rack height at sternum"],
+                "common_mistakes": ["Knees collapse inward"],
+                "rest_seconds_after_set": 120,
+                "progression_note": "Add 2.5 kg next week."
+              }]
+            },
+            "nutrition_plan": null,
+            "safety_notes": []
+          }
+        }
+        """
+        let data = Data(json.utf8)
+        let decoded = try decoder.decode(DailyPlanResponse.self, from: data)
+        let exercise = decoded.plan.training_plan?.exercises?.first
+        XCTAssertEqual(exercise?.walkthrough_steps?.first, "Brace hard")
+        XCTAssertEqual(exercise?.coaching_points?.first, "Keep bar path vertical")
+        XCTAssertEqual(exercise?.setup_checklist?.first, "Rack height at sternum")
+        XCTAssertEqual(exercise?.common_mistakes?.first, "Knees collapse inward")
+        XCTAssertEqual(exercise?.rest_seconds_after_set, 120)
+        XCTAssertEqual(exercise?.progression_note, "Add 2.5 kg next week.")
+    }
+
     func testBarcodeResponseDecoding() throws {
         let json = """
         {"nutrition":{"name":"Protein Bar","brand":"Acme","calories":200,"protein":20.0,"carbs":22.0,"fat":8.0}}
@@ -118,13 +155,50 @@ final class APIModelsTests: XCTestCase {
 
     func testVisionAnalysisResponseDecoding() throws {
         let json = """
-        {"score":0.88,"critique":"Good depth.","correction":"Drive through heels."}
+        {"score":0.88,"critique":"Good depth.","correction":"Drive through heels.","analysis_source":"on_device","analysis_mode":"on_device_pose_photo","benchmark_ms":128,"frames_analyzed":3,"pose_confidence":0.81,"movement_pattern":"squat","rep_count":4,"peak_velocity_mps":0.72,"mean_velocity_mps":0.61,"velocity_dropoff_percent":12.5,"benchmark_report_path":"/tmp/report.json"}
         """
         let data = Data(json.utf8)
         let decoded = try decoder.decode(VisionAnalysisResponse.self, from: data)
         XCTAssertEqual(decoded.score, 0.88)
         XCTAssertNotNil(decoded.critique)
         XCTAssertNotNil(decoded.correction)
+        XCTAssertEqual(decoded.analysis_source, "on_device")
+        XCTAssertEqual(decoded.analysis_mode, "on_device_pose_photo")
+        XCTAssertEqual(decoded.benchmark_ms, 128)
+        XCTAssertEqual(decoded.frames_analyzed, 3)
+        XCTAssertEqual(decoded.pose_confidence, 0.81)
+        XCTAssertEqual(decoded.movement_pattern, "squat")
+        XCTAssertEqual(decoded.rep_count, 4)
+        XCTAssertEqual(decoded.peak_velocity_mps, 0.72)
+        XCTAssertEqual(decoded.mean_velocity_mps, 0.61)
+        XCTAssertEqual(decoded.velocity_dropoff_percent, 12.5)
+        XCTAssertEqual(decoded.benchmark_report_path, "/tmp/report.json")
+    }
+
+    func testActiveEscalationStateResponseDecoding() throws {
+        let json = """
+        {
+          "active": {
+            "escalation_id": "esc-1",
+            "topic": "Need coach review",
+            "urgency": "high",
+            "status": "assigned",
+            "sla_due_at": "2026-03-14T14:30:00.000Z",
+            "assigned_coach_user_id": "coach-1",
+            "created_at": "2026-03-14T13:00:00.000Z",
+            "latest_message": {
+              "body": "Coach here. We are on it.",
+              "sender_type": "coach",
+              "created_at": "2026-03-14T13:15:00.000Z"
+            }
+          }
+        }
+        """
+        let data = Data(json.utf8)
+        let decoded = try decoder.decode(ActiveEscalationStateResponse.self, from: data)
+        XCTAssertEqual(decoded.active?.escalation_id, "esc-1")
+        XCTAssertEqual(decoded.active?.status, "assigned")
+        XCTAssertEqual(decoded.active?.latest_message?.sender_type, "coach")
     }
 
     func testBodyCompResponseDecoding() throws {
