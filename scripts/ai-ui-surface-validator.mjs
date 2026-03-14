@@ -597,6 +597,7 @@ function normalizeAiReview(workflow, ai) {
   };
 }
 
+
 function buildWebWorkflowReports(manifest) {
   const entries = Array.isArray(manifest?.results) ? manifest.results : [];
 

@@ -96,9 +96,9 @@ struct PlanView: View {
                     } label: {
                         VStack(spacing: 4) {
                             Text(dayLabel(d.date_local))
-                                .font(.caption2)
-                            Text(d.day_label ?? "—")
-                                .font(.caption)
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            Text(dayNumber(d.date_local))
+                                .font(.system(size: 14, weight: .black, design: .rounded))
                                 .fontWeight(isToday ? .bold : .regular)
                         }
                         .frame(width: 56)
@@ -125,7 +125,13 @@ struct PlanView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEE"
         formatter.timeZone = TimeZone(identifier: "UTC")
-        return formatter.string(from: d)
+        return formatter.string(from: d).uppercased()
+    }
+
+    private func dayNumber(_ dateLocal: String?) -> String {
+        guard let s = dateLocal else { return "—" }
+        let parts = s.components(separatedBy: "-")
+        return parts.last ?? "—"
     }
 
     @ViewBuilder
@@ -136,6 +142,8 @@ struct PlanView: View {
                 .foregroundStyle(.secondary)
             Text(day.focus ?? "Training")
                 .font(.headline)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             if let dur = day.target_duration_minutes {
                 Text("\(dur) min")
                     .font(.subheadline)
@@ -144,6 +152,8 @@ struct PlanView: View {
                 Text(r)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(4)
             }
             if let exercises = day.exercises, !exercises.isEmpty {
                 ForEach(Array(exercises.enumerated()), id: \.offset) { _, ex in

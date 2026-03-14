@@ -269,6 +269,7 @@ struct ExerciseIntroView: View {
                 if let rest = exercise.rest_seconds_after_set, rest > 0 { targetPill(label: "Rest", value: "\(rest)s") }
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder

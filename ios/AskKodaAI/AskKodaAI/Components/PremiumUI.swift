@@ -123,6 +123,9 @@ struct PremiumSectionHeader: View {
             Text(title)
                 .font(.system(size: 28, weight: .black, design: .default))
                 .foregroundStyle(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity, alignment: .leading)
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
                     .font(.subheadline)
@@ -169,6 +172,8 @@ struct PremiumMetricPill: View {
             Text(value)
                 .font(.headline)
                 .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)

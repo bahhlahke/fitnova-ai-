@@ -42,6 +42,9 @@ yarn-error.log*
 next-env.d.ts
 .env*.local
 
+# generated reports
+/docs/reports/
+
 # logs
 *.log
 test-output-ios.log
@@ -63,4 +66,5 @@ ios/build/
 # local Xcode user/state artifacts
 *.xcresult
 *.xcuserstate
+xcuserdata/
 **/xcuserdata/
