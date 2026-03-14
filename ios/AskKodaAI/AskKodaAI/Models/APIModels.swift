@@ -394,10 +394,49 @@ struct FridgeRecipe: Decodable {
 
 // MARK: - Recipe gen / meal plan
 
+/// Preferences sent when generating a meal plan. Mirrors web MealPlanPreferences type.
+struct MealPlanPreferences: Encodable {
+    var duration_days: Int
+    var meals_per_day: Int
+    var dietary_restrictions: [String]
+    var allergies: [String]
+    var cuisine_preferences: [String]
+    var cooking_skill: String          // "beginner" | "intermediate" | "advanced"
+    var prep_time_budget: String       // "quick" | "moderate" | "elaborate"
+    var weekly_budget_usd: Double?
+    var servings_per_meal: Int
+    var meal_prep_mode: Bool
+    var include_snacks: Bool
+
+    static var `default`: MealPlanPreferences {
+        MealPlanPreferences(
+            duration_days: 7,
+            meals_per_day: 3,
+            dietary_restrictions: [],
+            allergies: [],
+            cuisine_preferences: [],
+            cooking_skill: "intermediate",
+            prep_time_budget: "moderate",
+            weekly_budget_usd: nil,
+            servings_per_meal: 1,
+            meal_prep_mode: false,
+            include_snacks: false
+        )
+    }
+}
+
 struct RecipeGenResponse: Decodable {
-    let plan_id: String?
+    let plan: RecipeGenPlan?
+    let planId: String?
+    // Backward-compat: top-level days/grocery_list if server returns them directly
     let days: [RecipeGenDay]?
     let grocery_list: [GroceryItem]?
+}
+
+struct RecipeGenPlan: Decodable {
+    let days: [RecipeGenDay]?
+    let grocery_list: [GroceryItem]?
+    let total_estimated_cost_usd: Double?
 }
 
 struct RecipeGenDay: Decodable {
@@ -407,6 +446,60 @@ struct RecipeGenDay: Decodable {
 
 struct RecipeGenMeal: Decodable {
     let name: String?
+    let meal_type: String?      // "breakfast" | "lunch" | "dinner" | "snack"
+    let calories: Int?
+    let protein: Int?
+    let carbs: Int?
+    let fat: Int?
+    let fiber_g: Double?
+    let sodium_mg: Double?
+    let recipe: String?
+    let ingredients: [String]?  // imperial: "8 oz chicken breast"
+    let prep_time_minutes: Int?
+    let servings: Int?
+    let cuisine_type: String?
+    let estimated_cost_usd: Double?
+}
+
+struct GroceryItem: Codable, Identifiable {
+    var id: String { "\(category ?? "")_\(item ?? "")" }
+    let item: String?
+    let category: String?
+    let quantity: String?
+    let estimated_cost_usd: Double?
+    var checked: Bool
+    var custom: Bool?
+
+    // Allow decoding without checked/custom fields (server may omit them)
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        item = try c.decodeIfPresent(String.self, forKey: .item)
+        category = try c.decodeIfPresent(String.self, forKey: .category)
+        quantity = try c.decodeIfPresent(String.self, forKey: .quantity)
+        estimated_cost_usd = try c.decodeIfPresent(Double.self, forKey: .estimated_cost_usd)
+        checked = try c.decodeIfPresent(Bool.self, forKey: .checked) ?? false
+        custom = try c.decodeIfPresent(Bool.self, forKey: .custom)
+    }
+
+    init(item: String?, category: String?, quantity: String?, estimated_cost_usd: Double? = nil, checked: Bool = false, custom: Bool? = nil) {
+        self.item = item
+        self.category = category
+        self.quantity = quantity
+        self.estimated_cost_usd = estimated_cost_usd
+        self.checked = checked
+        self.custom = custom
+    }
+}
+
+// MARK: - Meal Swap
+
+struct MealSwapResponse: Decodable {
+    let options: [MealSwapOption]?
+}
+
+struct MealSwapOption: Decodable, Identifiable {
+    var id: String { name ?? UUID().uuidString }
+    let name: String?
     let meal_type: String?
     let calories: Int?
     let protein: Int?
@@ -414,12 +507,24 @@ struct RecipeGenMeal: Decodable {
     let fat: Int?
     let recipe: String?
     let ingredients: [String]?
+    let prep_time_minutes: Int?
+    let reason: String?
 }
 
-struct GroceryItem: Decodable {
-    let item: String?
-    let category: String?
-    let quantity: String?
+// MARK: - Eating Out
+
+struct EatingOutLogResponse: Decodable {
+    let log_id: String?
+    let calories: Int?
+    let protein_g: Int?
+    let carbs_g: Int?
+    let fat_g: Int?
+}
+
+// MARK: - Grocery CRUD
+
+struct GroceryPatchResponse: Decodable {
+    let ok: Bool?
 }
 // MARK: - Social / Community
 
