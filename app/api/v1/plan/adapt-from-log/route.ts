@@ -36,11 +36,11 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as RequestBody;
   } catch {
-    return jsonError(400, "BAD_REQUEST", "Invalid JSON body.");
+    return jsonError(400, "INVALID_JSON", "Invalid JSON body.");
   }
 
   if (body.type !== "workout" && body.type !== "nutrition") {
-    return jsonError(400, "BAD_REQUEST", 'body.type must be "workout" or "nutrition".');
+    return jsonError(400, "VALIDATION_ERROR", 'body.type must be "workout" or "nutrition".');
   }
 
   try {
