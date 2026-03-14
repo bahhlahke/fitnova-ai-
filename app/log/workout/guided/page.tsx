@@ -5,38 +5,142 @@ import Link from "next/link";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toLocalDateString } from "@/lib/date/local-date";
-import type { DailyPlan } from "@/lib/plan/types";
+import type { DailyPlan, DailyPlanTrainingExercise } from "@/lib/plan/types";
 import {
   getExerciseImageUrl,
   isExerciseGifUrl,
   isExerciseVideoUrl,
 } from "@/lib/workout/exercise-images";
+import { normalizeGuidedExercise } from "@/lib/workout/guided-session";
+import {
+  getExerciseRestSeconds,
+  getNumericRepPlaceholder,
+  parseTimedWorkSeconds,
+} from "@/lib/workout/guided-metrics";
 import { Button } from "@/components/ui";
 import { emitDataRefresh } from "@/lib/ui/data-sync";
 import { SpotifyProvider, useSpotify } from "@/lib/music/SpotifyProvider";
 import { SpotifyMiniPlayer } from "@/components/music/SpotifyMiniPlayer";
 import { getWorkoutsPlaylists, spotifyFetch } from "@/lib/spotify";
-import { ProBadge, type BadgeType } from "@/components/elite/ProBadge";
+import { ProBadge } from "@/components/elite/ProBadge";
 
-type GuidedExercise = {
+type GuidedExercise = DailyPlanTrainingExercise;
+
+type CoachAudioDetails = {
   name: string;
-  sets: number;
   reps: string;
   intensity: string;
-  notes?: string;
   tempo?: string;
   breathing?: string;
   intent?: string;
+  notes?: string;
   rationale?: string;
-  image_url?: string | null;
-  video_url?: string | null;
-  cinema_video_url?: string | null;
+  walkthrough_steps?: string[];
+  coaching_points?: string[];
+  setup_checklist?: string[];
+  common_mistakes?: string[];
+  rest_seconds_after_set?: number | null;
+  setIndex: number;
+  totalSets: number;
+  focus?: string;
 };
 
+function toGuidedExercise(
+  exercise: Partial<GuidedExercise> & {
+    name?: string;
+    sets?: number;
+    reps?: string | number;
+    intensity?: string | null;
+  }
+): GuidedExercise {
+  return normalizeGuidedExercise({
+    name: typeof exercise.name === "string" && exercise.name.trim() ? exercise.name : "Movement",
+    sets: Number(exercise.sets) > 0 ? Number(exercise.sets) : 1,
+    reps: typeof exercise.reps === "string" ? exercise.reps : String(exercise.reps ?? "8-10"),
+    intensity:
+      typeof exercise.intensity === "string" && exercise.intensity.trim()
+        ? exercise.intensity
+        : "RPE 7",
+    notes: typeof exercise.notes === "string" ? exercise.notes : undefined,
+    tempo: typeof exercise.tempo === "string" ? exercise.tempo : undefined,
+    breathing: typeof exercise.breathing === "string" ? exercise.breathing : undefined,
+    intent: typeof exercise.intent === "string" ? exercise.intent : undefined,
+    rationale: typeof exercise.rationale === "string" ? exercise.rationale : undefined,
+    walkthrough_steps: Array.isArray(exercise.walkthrough_steps)
+      ? exercise.walkthrough_steps.filter((step): step is string => typeof step === "string" && step.trim().length > 0)
+      : undefined,
+    coaching_points: Array.isArray(exercise.coaching_points)
+      ? exercise.coaching_points.filter((point): point is string => typeof point === "string" && point.trim().length > 0)
+      : undefined,
+    setup_checklist: Array.isArray(exercise.setup_checklist)
+      ? exercise.setup_checklist.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+      : undefined,
+    common_mistakes: Array.isArray(exercise.common_mistakes)
+      ? exercise.common_mistakes.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+      : undefined,
+    target_load_kg:
+      typeof exercise.target_load_kg === "number" && Number.isFinite(exercise.target_load_kg)
+        ? exercise.target_load_kg
+        : undefined,
+    target_rir:
+      typeof exercise.target_rir === "number" && Number.isFinite(exercise.target_rir)
+        ? exercise.target_rir
+        : undefined,
+    rest_seconds_after_set:
+      typeof exercise.rest_seconds_after_set === "number" && Number.isFinite(exercise.rest_seconds_after_set)
+        ? exercise.rest_seconds_after_set
+        : undefined,
+    progression_note:
+      typeof exercise.progression_note === "string" ? exercise.progression_note : undefined,
+    image_url: typeof exercise.image_url === "string" ? exercise.image_url : null,
+    video_url: typeof exercise.video_url === "string" ? exercise.video_url : null,
+    cinema_video_url:
+      typeof exercise.cinema_video_url === "string" ? exercise.cinema_video_url : null,
+  });
+}
+
+function buildCoachAudioDetails(
+  exercise: GuidedExercise,
+  setNumber: number,
+  focus?: string,
+): CoachAudioDetails {
+  return {
+    name: exercise.name,
+    reps: exercise.reps,
+    intensity: exercise.intensity,
+    tempo: exercise.tempo,
+    breathing: exercise.breathing,
+    intent: exercise.intent,
+    notes: exercise.notes,
+    rationale: exercise.rationale,
+    walkthrough_steps: exercise.walkthrough_steps,
+    coaching_points: exercise.coaching_points,
+    setup_checklist: exercise.setup_checklist,
+    common_mistakes: exercise.common_mistakes,
+    rest_seconds_after_set: getExerciseRestSeconds(exercise),
+    setIndex: setNumber,
+    totalSets: exercise.sets,
+    focus,
+  };
+}
+
+function mapWeeklyIntensityToTarget(intensity?: string): string {
+  if (intensity === "high") return "RPE 8";
+  if (intensity === "low") return "RPE 6";
+  return "RPE 7";
+}
+
+function formatCountdown(seconds: number): string {
+  const safeSeconds = Math.max(0, seconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = safeSeconds % 60;
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+}
+
 const FALLBACK_EXERCISES: GuidedExercise[] = [
-  { name: "Goblet Squat", sets: 3, reps: "10", intensity: "RPE 6-7" },
-  { name: "Push-up", sets: 3, reps: "8-12", intensity: "RPE 7" },
-  { name: "Dumbbell RDL", sets: 3, reps: "10", intensity: "RPE 7" },
+  toGuidedExercise({ name: "Goblet Squat", sets: 3, reps: "10", intensity: "RPE 6-7" }),
+  toGuidedExercise({ name: "Push-up", sets: 3, reps: "8-12", intensity: "RPE 7" }),
+  toGuidedExercise({ name: "Dumbbell RDL", sets: 3, reps: "10", intensity: "RPE 7" }),
 ];
 
 export default function GuidedWorkoutPage() {
@@ -66,7 +170,6 @@ function GuidedWorkoutScreen() {
   const [coachQuestion, setCoachQuestion] = useState("");
   const [coachReply, setCoachReply] = useState<string | null>(null);
   const [coachLoading, setCoachLoading] = useState(false);
-  const [showExpertCues, setShowExpertCues] = useState(false);
   const [isSwapOptionsVisible, setIsSwapOptionsVisible] = useState(false);
   const [swapInput, setSwapInput] = useState("");
 
@@ -87,13 +190,19 @@ function GuidedWorkoutScreen() {
   const [loggedSets, setLoggedSets] = useState<Array<{ weight?: number; reps?: number }>>([]);
   const [currentWeight, setCurrentWeight] = useState<string>("");
   const [currentReps, setCurrentReps] = useState<string>("");
+  const [workSecondsRemaining, setWorkSecondsRemaining] = useState<number | null>(null);
+  const [isWorkTimerRunning, setIsWorkTimerRunning] = useState(false);
 
   const markMediaFailed = useCallback((url: string | null | undefined) => {
     if (!url) return;
     setFailedMediaUrls((current) => (current.includes(url) ? current : [...current, url]));
   }, []);
 
-  const playCoachAudio = useCallback(async (contextStr: string, metrics?: any) => {
+  const playCoachAudio = useCallback(async (
+    contextStr: string,
+    metrics?: Record<string, unknown>,
+    details?: CoachAudioDetails,
+  ) => {
     if (!audioEnabled) return;
     setAudioNotice(null);
 
@@ -114,7 +223,7 @@ function GuidedWorkoutScreen() {
       const res = await fetch("/api/v1/coach/audio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ context: contextStr, metrics }),
+        body: JSON.stringify({ context: contextStr, metrics, details }),
       });
 
       const contentType = res.headers.get("content-type") ?? "";
@@ -233,8 +342,17 @@ function GuidedWorkoutScreen() {
               plan = {
                 training_plan: {
                   focus: targetDay.focus,
-                  intensity: targetDay.intensity,
-                  exercises: targetDay.exercises,
+                  duration_minutes: targetDay.target_duration_minutes ?? 45,
+                  location_option: "gym",
+                  alternatives: [],
+                  exercises: targetDay.exercises.map((entry: any) => ({
+                    name: entry.name,
+                    sets: entry.sets,
+                    reps: entry.reps,
+                    intensity: mapWeeklyIntensityToTarget(targetDay.intensity),
+                    notes: entry.coaching_cue,
+                    intent: entry.coaching_cue,
+                  })),
                 }
               } as unknown as DailyPlan;
               break;
@@ -243,20 +361,9 @@ function GuidedWorkoutScreen() {
         }
         if (plan?.training_plan?.exercises?.length) {
           setPlanTitle(plan.training_plan.focus || "Personalized session");
-          const newExercises = plan.training_plan.exercises.map((e) => ({
-            name: e.name,
-            sets: e.sets,
-            reps: e.reps,
-            intensity: e.intensity,
-            notes: e.notes,
-            tempo: e.tempo,
-            breathing: e.breathing,
-            intent: e.intent,
-            rationale: e.rationale,
-            image_url: e.image_url ?? null,
-            video_url: e.video_url ?? null,
-            cinema_video_url: e.cinema_video_url ?? null,
-          }));
+          const newExercises = plan.training_plan.exercises.map((exercise) =>
+            toGuidedExercise(exercise)
+          );
           setExercises(newExercises);
 
           const injuries = (profileRes.data as { injuries_limitations?: Record<string, unknown> } | null)?.injuries_limitations;
@@ -315,6 +422,37 @@ function GuidedWorkoutScreen() {
     setIndex +
     (phase === "rest" ? 1 : 0);
   const progressPct = totalSetCount > 0 ? (completedSets / totalSetCount) * 100 : 0;
+  const currentExerciseLogStart = exercises
+    .slice(0, exerciseIndex)
+    .reduce((sum, currentExercise) => sum + currentExercise.sets, 0);
+  const currentExerciseLogs = loggedSets.slice(currentExerciseLogStart, currentExerciseLogStart + setIndex);
+  const timedWorkSeconds = parseTimedWorkSeconds(exercise?.reps);
+
+  useEffect(() => {
+    setIsWorkTimerRunning(false);
+    setWorkSecondsRemaining(timedWorkSeconds);
+  }, [exerciseIndex, setIndex, timedWorkSeconds]);
+
+  useEffect(() => {
+    if (phase !== "work") {
+      setIsWorkTimerRunning(false);
+    }
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "work" || !isWorkTimerRunning || workSecondsRemaining == null) return;
+    if (workSecondsRemaining <= 0) {
+      setIsWorkTimerRunning(false);
+      if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate([150, 80, 150]);
+      }
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setWorkSecondsRemaining((current) => (current == null ? current : current - 1));
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [phase, isWorkTimerRunning, workSecondsRemaining]);
 
   const persistWorkout = useCallback(async () => {
     setSaveError(null);
@@ -352,8 +490,10 @@ function GuidedWorkoutScreen() {
           sets: e.sets,
           reps: e.reps, // planned reps
           weight: maxWeight > 0 ? maxWeight : undefined,
-          rest_seconds_after_set: 90,
-          form_cues: e.notes ? `${e.notes} | Log: ${detailedLog}` : `Log: ${detailedLog}`,
+          rest_seconds_after_set: getExerciseRestSeconds(e),
+          form_cues: [e.notes, e.progression_note, detailedLog ? `Log: ${detailedLog}` : null]
+            .filter(Boolean)
+            .join(" | "),
         };
       }),
       duration_minutes: durationMinutes,
@@ -373,7 +513,7 @@ function GuidedWorkoutScreen() {
     fetch("/api/v1/awards/check", { method: "POST" }).catch(() => { });
     fetch("/api/v1/analytics/process-prs", { method: "POST" }).catch(() => { });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exercises, planTitle]);
+  }, [exercises, loggedSets, planTitle]);
 
   useEffect(() => {
     if (!saved) return;
@@ -397,11 +537,15 @@ function GuidedWorkoutScreen() {
     if (isLastSet && isLastExercise) {
       setPhase("completed");
       void persistWorkout();
-      void playCoachAudio("finish_workout");
+      void playCoachAudio("finish_workout", undefined, exercise ? buildCoachAudioDetails(exercise, setIndex + 1, planTitle) : undefined);
       return;
     }
+
+    const nextExerciseIndex = isLastSet ? exerciseIndex + 1 : exerciseIndex;
+    const nextSetIndex = isLastSet ? 0 : setIndex + 1;
+    const nextExercise = exercises[nextExerciseIndex] ?? exercise;
+
     setPhase("work");
-    void playCoachAudio("start_set");
     if (isLastSet) {
       setExerciseIndex((i) => i + 1);
       setSetIndex(0);
@@ -410,8 +554,15 @@ function GuidedWorkoutScreen() {
     } else {
       setSetIndex((i) => i + 1);
     }
+    if (nextExercise) {
+      void playCoachAudio(
+        "start_set",
+        undefined,
+        buildCoachAudioDetails(nextExercise, nextSetIndex + 1, planTitle)
+      );
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLastSet, isLastExercise, persistWorkout]);
+  }, [exercise, exerciseIndex, exercises, isLastExercise, isLastSet, persistWorkout, planTitle, playCoachAudio, setIndex]);
 
   const swapCurrentExercise = useCallback(
     async (reason: string) => {
@@ -442,10 +593,10 @@ function GuidedWorkoutScreen() {
         setExercises((current) =>
           current.map((entry, index) =>
             index === exerciseIndex
-              ? {
+              ? toGuidedExercise({
                 ...entry,
                 ...body.replacement,
-              }
+              })
               : entry
           )
         );
@@ -467,8 +618,9 @@ function GuidedWorkoutScreen() {
     [exercise, exerciseIndex]
   );
 
-  const askCoach = useCallback(async () => {
-    if (!coachQuestion.trim() || !exercise) return;
+  const askCoach = useCallback(async (prompt?: string) => {
+    const question = (prompt ?? coachQuestion).trim();
+    if (!question || !exercise) return;
     setCoachLoading(true);
     setCoachReply(null);
     try {
@@ -476,12 +628,22 @@ function GuidedWorkoutScreen() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          question: coachQuestion,
+          question,
           exercise: exercise.name,
           context: {
             set: setIndex + 1,
             totalSets: exercise.sets,
-            intensity: exercise.intensity
+            intensity: exercise.intensity,
+            reps: exercise.reps,
+            tempo: exercise.tempo,
+            breathing: exercise.breathing,
+            intent: exercise.intent,
+            rationale: exercise.rationale,
+            walkthrough_steps: exercise.walkthrough_steps,
+            coaching_points: exercise.coaching_points,
+            setup_checklist: exercise.setup_checklist,
+            common_mistakes: exercise.common_mistakes,
+            rest_seconds_after_set: getExerciseRestSeconds(exercise),
           }
         }),
       });
@@ -500,24 +662,33 @@ function GuidedWorkoutScreen() {
     if (isLastSet && isLastExercise) {
       setPhase("completed");
       void persistWorkout();
-      void playCoachAudio("finish_workout");
+      void playCoachAudio("finish_workout", undefined, exercise ? buildCoachAudioDetails(exercise, setIndex + 1, planTitle) : undefined);
       return;
     }
 
     // Save current inputs to state
     const w = parseFloat(currentWeight);
     const r = parseInt(currentReps, 10);
+    const plannedReps = parseInt(getNumericRepPlaceholder(exercise?.reps), 10);
     setLoggedSets(prev => {
       const newLogs = [...prev];
-      newLogs.push({ weight: isNaN(w) ? undefined : w, reps: isNaN(r) ? parseInt(exercise?.reps || "10") : r });
+      newLogs.push({
+        weight: Number.isNaN(w) ? undefined : w,
+        reps: Number.isNaN(r) ? (Number.isNaN(plannedReps) ? undefined : plannedReps) : r,
+      });
       return newLogs;
     });
 
     setPhase("rest");
-    setRestSeconds(90);
-    void playCoachAudio("finish_set", { hrv: 85 });
+    setRestSeconds(exercise ? getExerciseRestSeconds(exercise) : 60);
+    setIsWorkTimerRunning(false);
+    void playCoachAudio(
+      "finish_set",
+      { hrv: 85 },
+      exercise ? buildCoachAudioDetails(exercise, setIndex + 1, planTitle) : undefined
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLastSet, isLastExercise, persistWorkout, playCoachAudio]);
+  }, [currentReps, currentWeight, exercise, isLastExercise, isLastSet, persistWorkout, playCoachAudio, planTitle, setIndex]);
 
   useEffect(() => {
     if (phase !== "rest") return;
@@ -536,7 +707,13 @@ function GuidedWorkoutScreen() {
     workoutStartedAt.current = Date.now();
     setPhase("work");
     setMusicNotice(null);
-    void playCoachAudio("start_workout");
+    if (exercise) {
+      void playCoachAudio(
+        "start_workout",
+        undefined,
+        buildCoachAudioDetails(exercise, 1, planTitle)
+      );
+    }
 
     // Auto-Play Workout Mix
     try {
@@ -553,7 +730,7 @@ function GuidedWorkoutScreen() {
       console.error("Auto-play failed:", err);
       setMusicNotice("Spotify playback is unavailable right now. You can still finish the session with Koda's on-screen coaching.");
     }
-  }, [playCoachAudio]);
+  }, [exercise, planTitle, playCoachAudio]);
 
   if (phase === "loading") {
     return (
@@ -595,13 +772,13 @@ function GuidedWorkoutScreen() {
             {exercises.map((ex, i) => (
               <div key={i} className="group relative overflow-hidden rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 transition-all hover:bg-white/[0.05]">
                 <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4">
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-[10px] font-black text-fn-muted">
                       {i + 1}
                     </span>
                     <div>
                       <h4 className="text-xl font-black text-white uppercase italic">{ex.name}</h4>
-                      <p className="mt-0.5 text-xs font-bold text-fn-muted">{ex.sets} Sets · {ex.reps} Reps</p>
+                      <p className="mt-0.5 text-xs font-bold text-fn-muted">{ex.sets} Sets · {ex.reps} target</p>
                     </div>
                   </div>
                   <div className="h-12 w-12 overflow-hidden rounded-xl bg-black/40">
@@ -638,11 +815,41 @@ function GuidedWorkoutScreen() {
                     })()}
                   </div>
                 </div>
-                {ex.intent && (
-                  <p className="mt-4 text-[11px] font-medium leading-relaxed text-fn-ink/40 line-clamp-1 border-t border-white/5 pt-4">
-                    {ex.intent}
-                  </p>
-                )}
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-white/5 pt-4">
+                  <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                    Rest {getExerciseRestSeconds(ex)}s
+                  </span>
+                  {ex.tempo && (
+                    <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                      Tempo {ex.tempo}
+                    </span>
+                  )}
+                  {typeof ex.target_rir === "number" && (
+                    <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                      {ex.target_rir} RIR
+                    </span>
+                  )}
+                  {typeof ex.target_load_kg === "number" && (
+                    <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                      {Math.round(ex.target_load_kg * 10) / 10} kg
+                    </span>
+                  )}
+                </div>
+                <div className="mt-4 space-y-2">
+                  {(ex.walkthrough_steps ?? []).slice(0, 2).map((step) => (
+                    <p
+                      key={step}
+                      className="text-[11px] font-medium leading-relaxed text-fn-ink/50"
+                    >
+                      {step}
+                    </p>
+                  ))}
+                  {ex.progression_note && (
+                    <p className="text-[11px] font-medium leading-relaxed text-fn-accent/80">
+                      Next time: {ex.progression_note}
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
           </section>
@@ -650,7 +857,7 @@ function GuidedWorkoutScreen() {
           <footer className="mt-12 rounded-3xl bg-fn-accent/5 border border-fn-accent/10 p-6">
             <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent mb-2">Coach Note</p>
             <p className="text-sm font-medium leading-relaxed text-white/60">
-              Focus on the &quot;Intent&quot; cues for each move. This session is designed to optimize movement quality under fatigue.
+              Every movement below is loaded with a demo loop, setup checklist, and live coaching cues. Once the session starts, Koda will carry the exact same plan into the guided flow with countdowns, logging, and recovery timing already set.
             </p>
           </footer>
         </div>
@@ -752,6 +959,10 @@ function GuidedWorkoutScreen() {
   const imageUrl = getExerciseImageUrl(exercise.name, exercise.cinema_video_url || exercise.video_url || exercise.image_url);
   const showMotionFallback = failedMediaUrls.includes(imageUrl);
   const progressLabel = `Move ${exerciseIndex + 1}/${totalExercises} · Set ${setIndex + 1}/${totalSets}`;
+  const restTargetSeconds = getExerciseRestSeconds(exercise);
+  const upcomingExercise = isLastSet ? exercises[exerciseIndex + 1] ?? exercise : exercise;
+  const upcomingSetNumber = isLastSet ? 1 : setIndex + 2;
+  const restProgressRatio = restTargetSeconds > 0 ? restSeconds / restTargetSeconds : 0;
 
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg px-0 py-0">
@@ -897,9 +1108,8 @@ function GuidedWorkoutScreen() {
         )}
 
         {phase === "work" && (
-          <div className="flex flex-col flex-1 pb-6 mt-10">
-            {/* Header Data */}
-            <div className="text-center mb-auto mt-4">
+          <div className="flex flex-1 flex-col overflow-y-auto pb-24 pt-4">
+            <div className="text-center mt-4">
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-2">Set {setIndex + 1} of {totalSets}</p>
               <h2 className="font-display text-5xl sm:text-6xl font-black italic tracking-tighter text-white uppercase drop-shadow-2xl">
                 {exercise.name}
@@ -911,8 +1121,31 @@ function GuidedWorkoutScreen() {
               )}
             </div>
 
-            {/* Target Display and Coaching Details */}
-            <div className="grid grid-cols-2 gap-4 mt-8 mb-6">
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              <span className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                Rest {getExerciseRestSeconds(exercise)}s
+              </span>
+              {exercise.tempo && (
+                <span className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                  Tempo {exercise.tempo}
+                </span>
+              )}
+              {typeof exercise.target_rir === "number" && (
+                <span className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                  Leave {exercise.target_rir} RIR
+                </span>
+              )}
+              {typeof exercise.target_load_kg === "number" && (
+                <span className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                  {Math.round(exercise.target_load_kg * 10) / 10} kg target
+                </span>
+              )}
+              <span className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                {showMotionFallback ? "Cue mode" : "Demo active"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mt-8">
               <div className="rounded-[2rem] border border-white/10 bg-black/40 p-5 shadow-2xl backdrop-blur-xl text-center">
                 <span className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-2 block">Planned Reps</span>
                 <p className="text-3xl font-black text-white">{exercise.reps}</p>
@@ -923,62 +1156,170 @@ function GuidedWorkoutScreen() {
               </div>
             </div>
 
-            {/* Live Input Form for Weight/Reps */}
-            <div className="rounded-[2.5rem] border border-white/15 bg-black/60 p-6 shadow-2xl backdrop-blur-2xl mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Log This Set</p>
-                {/* Simulated Previous History Data point */}
-                <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Focus & Execute</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black uppercase tracking-widest text-fn-muted">Weight</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={currentWeight}
-                    onChange={(e) => setCurrentWeight(e.target.value)}
-                    placeholder="0"
-                    className="w-full rounded-2xl border-2 border-white/10 bg-white/5 py-4 pl-20 pr-4 text-right text-2xl font-black text-white focus:border-fn-accent focus:outline-none transition-colors"
-                  />
-                </div>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black uppercase tracking-widest text-fn-muted">Reps</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={currentReps}
-                    onChange={(e) => setCurrentReps(e.target.value)}
-                    placeholder={exercise.reps.split("-")[0] || "0"}
-                    className="w-full rounded-2xl border-2 border-white/10 bg-white/5 py-4 pl-16 pr-4 text-right text-2xl font-black text-white focus:border-fn-accent focus:outline-none transition-colors"
-                  />
+            {timedWorkSeconds != null && (
+              <div className="mt-6 rounded-[2.5rem] border border-fn-accent/20 bg-black/55 p-6 text-center shadow-2xl backdrop-blur-2xl">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Interval Countdown</p>
+                <p className="mt-4 font-display text-6xl font-black italic tracking-tighter text-white tabular-nums">
+                  {formatCountdown(workSecondsRemaining ?? timedWorkSeconds)}
+                </p>
+                <p className="mt-3 text-xs font-bold uppercase tracking-widest text-white/50">
+                  Run the work interval, then log the set when you finish the effort.
+                </p>
+                <div className="mt-5 flex flex-wrap justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsWorkTimerRunning((current) => !current)}
+                    className="rounded-full bg-fn-accent px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-black transition-all hover:bg-white"
+                  >
+                    {isWorkTimerRunning ? "Pause Timer" : (workSecondsRemaining ?? timedWorkSeconds) === timedWorkSeconds ? "Start Timer" : "Resume Timer"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsWorkTimerRunning(false);
+                      setWorkSecondsRemaining(timedWorkSeconds);
+                    }}
+                    className="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/70 transition-all hover:bg-white/10 hover:text-white"
+                  >
+                    Reset
+                  </button>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Large gym-friendly actions */}
-            <div className="mt-2 text-center">
-              <button
-                type="button"
-                onClick={startRest}
-                disabled={isPlayingAudio}
-                className="w-full max-w-sm mx-auto rounded-[2rem] bg-fn-accent py-6 text-xl font-black uppercase tracking-wider text-black shadow-[0_0_40px_rgba(10,217,196,0.3)] transition-transform active:scale-[0.98] hover:bg-white disabled:opacity-80 disabled:scale-100"
-              >
-                {isPlayingAudio ? (
-                  <div className="flex items-center justify-center gap-1">
-                    <div className="w-1.5 h-4 bg-black rounded-full animate-[pulse_1s_ease-in-out_infinite]" />
-                    <div className="w-1.5 h-6 bg-black rounded-full animate-[pulse_1s_ease-in-out_infinite_0.2s]" />
-                    <div className="w-1.5 h-3 bg-black rounded-full animate-[pulse_1s_ease-in-out_infinite_0.4s]" />
-                    <span className="ml-3 font-black italic tracking-widest">Coaching...</span>
+            <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="space-y-4">
+                <div className="rounded-[2.5rem] border border-white/15 bg-black/55 p-6 shadow-2xl backdrop-blur-2xl">
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Premium Walkthrough</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Coach-grade cues</p>
                   </div>
-                ) : (
-                  "Log Set"
+                  <div className="mt-5 space-y-3">
+                    {(exercise.walkthrough_steps ?? []).slice(0, 3).map((step, index) => (
+                      <div
+                        key={step}
+                        className="flex items-start gap-3 rounded-2xl border border-white/5 bg-white/[0.03] p-4"
+                      >
+                        <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-fn-accent/15 text-[10px] font-black text-fn-accent">
+                          {index + 1}
+                        </span>
+                        <p className="text-sm font-medium leading-relaxed text-white/80">{step}</p>
+                      </div>
+                    ))}
+                    {(exercise.walkthrough_steps ?? []).length === 0 && (
+                      <p className="text-sm font-medium leading-relaxed text-white/70">
+                        Koda is coaching this one like a top trainer would: stable setup, clean tempo, strong finish on every rep.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-[2.5rem] border border-white/15 bg-black/55 p-6 shadow-2xl backdrop-blur-2xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Log This Set</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Focus & Execute</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black uppercase tracking-widest text-fn-muted">Weight</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={currentWeight}
+                        onChange={(e) => setCurrentWeight(e.target.value)}
+                        placeholder={typeof exercise.target_load_kg === "number" ? String(Math.round(exercise.target_load_kg * 10) / 10) : "0"}
+                        className="w-full rounded-2xl border-2 border-white/10 bg-white/5 py-4 pl-20 pr-4 text-right text-2xl font-black text-white focus:border-fn-accent focus:outline-none transition-colors"
+                      />
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black uppercase tracking-widest text-fn-muted">Reps</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        value={currentReps}
+                        onChange={(e) => setCurrentReps(e.target.value)}
+                        placeholder={getNumericRepPlaceholder(exercise.reps)}
+                        className="w-full rounded-2xl border-2 border-white/10 bg-white/5 py-4 pl-16 pr-4 text-right text-2xl font-black text-white focus:border-fn-accent focus:outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={startRest}
+                    disabled={isPlayingAudio}
+                    className="mt-5 w-full rounded-[2rem] bg-fn-accent py-6 text-xl font-black uppercase tracking-wider text-black shadow-[0_0_40px_rgba(10,217,196,0.3)] transition-transform active:scale-[0.98] hover:bg-white disabled:opacity-80 disabled:scale-100"
+                  >
+                    {isPlayingAudio ? (
+                      <div className="flex items-center justify-center gap-1">
+                        <div className="w-1.5 h-4 bg-black rounded-full animate-[pulse_1s_ease-in-out_infinite]" />
+                        <div className="w-1.5 h-6 bg-black rounded-full animate-[pulse_1s_ease-in-out_infinite_0.2s]" />
+                        <div className="w-1.5 h-3 bg-black rounded-full animate-[pulse_1s_ease-in-out_infinite_0.4s]" />
+                        <span className="ml-3 font-black italic tracking-widest">Coaching...</span>
+                      </div>
+                    ) : (
+                      "Log Set"
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-[2.5rem] border border-white/15 bg-black/55 p-6 shadow-2xl backdrop-blur-2xl">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Setup Checklist</p>
+                  <div className="mt-4 space-y-3">
+                    {(exercise.setup_checklist ?? []).slice(0, 3).map((item) => (
+                      <div key={item} className="flex items-start gap-3">
+                        <span className="mt-1 h-2.5 w-2.5 rounded-full bg-fn-accent" />
+                        <p className="text-sm font-medium leading-relaxed text-white/75">{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-[2.5rem] border border-white/15 bg-black/55 p-6 shadow-2xl backdrop-blur-2xl">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Coach&apos;s Eye</p>
+                  <div className="mt-4 space-y-3">
+                    {(exercise.coaching_points ?? []).slice(0, 2).map((point) => (
+                      <p key={point} className="text-sm font-medium leading-relaxed text-white/80">
+                        {point}
+                      </p>
+                    ))}
+                    {(exercise.common_mistakes ?? []).slice(0, 1).map((mistake) => (
+                      <div key={mistake} className="rounded-2xl border border-amber-300/15 bg-amber-300/5 p-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-100/70">Avoid this</p>
+                        <p className="mt-2 text-sm font-medium leading-relaxed text-amber-50/90">{mistake}</p>
+                      </div>
+                    ))}
+                    {exercise.progression_note && (
+                      <div className="rounded-2xl border border-fn-accent/20 bg-fn-accent/5 p-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">Progression note</p>
+                        <p className="mt-2 text-sm font-medium leading-relaxed text-white/75">{exercise.progression_note}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {currentExerciseLogs.length > 0 && (
+                  <div className="rounded-[2.5rem] border border-white/15 bg-black/55 p-6 shadow-2xl backdrop-blur-2xl">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Logged So Far</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {currentExerciseLogs.map((log, index) => (
+                        <span
+                          key={`${log.weight ?? "bodyweight"}-${log.reps ?? "na"}-${index}`}
+                          className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white/70"
+                        >
+                          Set {index + 1}: {log.weight ? `${log.weight} kg` : "BW"}{log.reps ? ` x ${log.reps}` : ""}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 )}
-              </button>
+              </div>
             </div>
 
-            <div className="mt-6 flex flex-col items-center gap-2">
+            <div className="mt-6 flex flex-col items-center gap-2 text-center">
               <button
                 type="button"
                 onClick={() => setIsSwapOptionsVisible(true)}
@@ -1020,7 +1361,7 @@ function GuidedWorkoutScreen() {
                       disabled={swapLoading}
                       autoFocus
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && swapInput.trim() && !swapLoading) {
+                        if (e.key === "Enter" && swapInput.trim() && !swapLoading) {
                           void swapCurrentExercise(swapInput);
                         }
                       }}
@@ -1037,7 +1378,7 @@ function GuidedWorkoutScreen() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {["No Equipment", "Too Hard", "Knee Pain"].map(quickAction => (
+                    {["No Equipment", "Too Hard", "Knee Pain"].map((quickAction) => (
                       <button
                         key={quickAction}
                         onClick={() => setSwapInput(quickAction)}
@@ -1058,7 +1399,7 @@ function GuidedWorkoutScreen() {
             <div className="relative flex items-center justify-center w-72 h-72 mb-10 mt-10 drop-shadow-2xl">
               <svg className="absolute inset-0 w-full h-full transform -rotate-90">
                 <circle cx="144" cy="144" r="136" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-white/10" />
-                <circle cx="144" cy="144" r="136" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={854} strokeDashoffset={854 - (854 * (restSeconds / 90))} className="text-fn-accent transition-all duration-1000 ease-linear shadow-[0_0_30px_rgba(10,217,196,0.5)]" />
+                <circle cx="144" cy="144" r="136" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={854} strokeDashoffset={854 - (854 * restProgressRatio)} className="text-fn-accent transition-all duration-1000 ease-linear shadow-[0_0_30px_rgba(10,217,196,0.5)]" />
               </svg>
               <div className="flex flex-col items-center">
                 <span className="text-xs font-black uppercase tracking-[0.4em] text-white/50 mb-2">Rest Phase</span>
@@ -1072,11 +1413,21 @@ function GuidedWorkoutScreen() {
             <div className="mb-auto rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10 p-8 shadow-2xl w-full max-w-sm mx-auto">
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent mb-3 block">Preparing Next Set</p>
               <p className="text-3xl font-black text-white italic uppercase drop-shadow-md">
-                {exercise.name}
+                {upcomingExercise.name}
               </p>
               <div className="mt-4 flex justify-between items-center border-t border-white/10 pt-4">
-                <span className="text-xs font-bold text-white/50 uppercase tracking-widest">Set {setIndex + 2} of {totalSets}</span>
-                <span className="text-xs font-bold text-white/50 uppercase tracking-widest">Target: {exercise.reps} Reps</span>
+                <span className="text-xs font-bold text-white/50 uppercase tracking-widest">Set {upcomingSetNumber} of {upcomingExercise.sets}</span>
+                <span className="text-xs font-bold text-white/50 uppercase tracking-widest">Target: {upcomingExercise.reps}</span>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                  {upcomingExercise.intensity}
+                </span>
+                {upcomingExercise.tempo && (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white/60">
+                    Tempo {upcomingExercise.tempo}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1103,7 +1454,7 @@ function GuidedWorkoutScreen() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Live Expert Coaching</p>
-              <h3 className="font-display text-3xl font-black italic uppercase text-white">Ask Nova</h3>
+              <h3 className="font-display text-3xl font-black italic uppercase text-white">Ask Koda</h3>
             </div>
             <button
               onClick={() => setIsCoachOpen(false)}
@@ -1129,16 +1480,15 @@ function GuidedWorkoutScreen() {
                 <div className="space-y-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted">Suggested for {exercise.name}</p>
                   {[
-                    "How should my form look?",
-                    "What if this feels too light?",
-                    "I'm feeling discomfort in my joints",
-                    "Explain the science of this move"
-                  ].map(q => (
+                    "Talk me through the setup.",
+                    "What load should I choose for this set?",
+                    "I need a pain-free swap.",
+                    "Why is this in today's plan?"
+                  ].map((q) => (
                     <button
                       key={q}
                       onClick={() => {
-                        setCoachQuestion(q);
-                        void askCoach();
+                        void askCoach(q);
                       }}
                       className="w-full text-left rounded-2xl border border-white/5 bg-white/5 p-4 text-xs font-bold text-white hover:bg-white/10 transition-colors"
                     >

@@ -181,9 +181,7 @@ describe("POST /api/v1/ai/respond", () => {
       content: "Successfully logged 185 lbs and 12% body fat.",
     };
 
-    vi.stubGlobal(
-      "fetch",
-      vi.fn()
+    const fetchMock = vi.fn()
         .mockImplementationOnce(() =>
           Promise.resolve({
             ok: true,
@@ -201,8 +199,8 @@ describe("POST /api/v1/ai/respond", () => {
                 choices: [{ message: { content: mockFinalResponse.content } }],
               }),
           } as Response)
-        )
-    );
+        );
+    vi.stubGlobal("fetch", fetchMock);
 
     const req = new Request("http://localhost/api/v1/ai/respond", {
       method: "POST",
@@ -413,6 +411,167 @@ describe("POST /api/v1/ai/respond", () => {
       energy_score: 4,
       sleep_hours: 8
     }));
+  });
+
+  it("updates today's workout plan with guided-coach-ready exercise details", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const dailyPlanUpsert = vi.fn().mockResolvedValue({ error: null });
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "daily_plans") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: {
+              plan_json: {
+                date_local: "2026-03-13",
+                training_plan: {
+                  focus: "Existing Plan",
+                  duration_minutes: 45,
+                  location_option: "gym",
+                  exercises: [],
+                  alternatives: ["Swap to dumbbells if needed"],
+                },
+                nutrition_plan: {
+                  calorie_target: 2200,
+                  macros: { protein_g: 180, carbs_g: 220, fat_g: 70 },
+                  meal_structure: [],
+                  hydration_goal_liters: 3,
+                },
+                safety_notes: [],
+              },
+            },
+            error: null,
+          }),
+          upsert: dailyPlanUpsert,
+        };
+      }
+
+      if (table === "ai_conversations") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          insert: vi.fn().mockResolvedValue({ error: null }),
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+        };
+      }
+
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      };
+    });
+
+    const fetchMock = vi.fn()
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ data: [{ embedding: [0.12, 0.34, 0.56] }] }),
+        } as Response)
+      )
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              choices: [{
+                message: {
+                  content: "",
+                  tool_calls: [{
+                    id: "c5",
+                    type: "function",
+                    function: {
+                      name: "update_workout_plan",
+                      arguments: JSON.stringify({
+                        focus: "Lower Body Strength",
+                        duration_minutes: 55,
+                        exercises: [{
+                          name: "Back Squat",
+                          sets: 4,
+                          reps: "5",
+                          intensity: "RPE 8",
+                          notes: "Treat every rep like a competition setup.",
+                          rest_seconds_after_set: 120,
+                          target_rir: 2,
+                          target_load_kg: 102.5,
+                          progression_note: "Add 2.5 kg next week if bar speed stays crisp.",
+                        }],
+                      }),
+                    },
+                  }],
+                },
+              }],
+            }),
+        } as Response)
+      )
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ choices: [{ message: { content: "Updated your guided session." } }] }),
+        } as Response)
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const req = new Request("http://localhost/api/v1/ai/respond", {
+      method: "POST",
+      body: JSON.stringify({
+        message: "Build me a lower body strength session for today.",
+        localDate: "2026-03-13",
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(dailyPlanUpsert).toHaveBeenCalledTimes(1);
+
+    const data = await res.json();
+    expect(data.actions).toEqual([
+      expect.objectContaining({
+        type: "plan_daily",
+        targetRoute: "/log/workout/guided?date=2026-03-13",
+        summary: "Open Guided Workout",
+      }),
+    ]);
+
+    const [payload, options] = dailyPlanUpsert.mock.calls[0];
+    expect(options).toEqual({ onConflict: "user_id,date_local" });
+    expect(payload.user_id).toBe("u1");
+    expect(payload.date_local).toBe("2026-03-13");
+    expect(payload.plan_json.training_plan.focus).toBe("Lower Body Strength");
+    expect(payload.plan_json.training_plan.exercises[0]).toEqual(
+      expect.objectContaining({
+        name: "Back Squat",
+        sets: 4,
+        reps: "5",
+        intensity: "RPE 8",
+        rest_seconds_after_set: 120,
+        target_rir: 2,
+        target_load_kg: 102.5,
+        progression_note: "Add 2.5 kg next week if bar speed stays crisp.",
+        walkthrough_steps: expect.any(Array),
+        coaching_points: expect.any(Array),
+        setup_checklist: expect.any(Array),
+        common_mistakes: expect.any(Array),
+      })
+    );
+    expect(
+      payload.plan_json.training_plan.exercises[0].video_url ||
+      payload.plan_json.training_plan.exercises[0].image_url
+    ).toBeTruthy();
   });
 
   afterEach(() => {
