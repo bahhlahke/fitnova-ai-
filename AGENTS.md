@@ -22,6 +22,7 @@ This document orients AI coding agents and human contributors to the repo: layou
 | Shared types | `types/` (aligned with Supabase schema) |
 | iOS app source | `ios/AskKodaAI/AskKodaAI/` — `AskKodaAIApp.swift`, `RootView.swift`, `MainTabView.swift`, Config, Core, Models, Services, Views, Components |
 | iOS Xcode project | `ios/AskKodaAI/AskKodaAI.xcodeproj` |
+| iOS entitlements | `ios/AskKodaAI/Config/AskKodaAI.entitlements` (HealthKit capability) |
 | iOS unit tests | `ios/AskKodaAI/AskKodaAITests/` (KodaAITests: DateHelpers, APIModels, DataModels, ProductionReadiness; plus Swift Testing in AskKodaAITests.swift) |
 | Config (shared) | `.env.local` at repo root (web); iOS reads same values via `scripts/generate-ios-env.mjs` → `ios/AskKodaAI/Config/Generated.xcconfig` |
 
@@ -67,8 +68,9 @@ This document orients AI coding agents and human contributors to the repo: layou
 2. **Simulator:** Scripts use `iPhone 17`; if that device is missing, use another available simulator name in `-destination 'platform=iOS Simulator,name=…'`.
 3. **One simulator at a time:** On constrained machines, do not run multiple iOS test or simulator sessions in parallel.
 4. **App entry and config:** `AskKodaAIApp.swift` → `RootView`; config from `AppConfig` (reads Info.plist keys from Generated.xcconfig). In Debug, missing keys use placeholders so the test host can launch.
-5. **Feature parity:** Web vs iOS screens and APIs are mapped in [docs/IOS-PARITY-MAP.md](docs/IOS-PARITY-MAP.md). iOS implementation status and web-only routes are listed there.
-6. **Production checklist:** See “Production readiness checklist” in [ios/README.md](ios/README.md).
+5. **HealthKit capability:** The AskKodaAI target is wired to `Config/AskKodaAI.entitlements`; keep HealthKit enabled when changing signing/build settings.
+6. **Feature parity:** Web vs iOS screens and APIs are mapped in [docs/IOS-PARITY-MAP.md](docs/IOS-PARITY-MAP.md). iOS implementation status and web-only routes are listed there.
+7. **Production checklist:** See “Production readiness checklist” in [ios/README.md](ios/README.md).
 
 ---
 

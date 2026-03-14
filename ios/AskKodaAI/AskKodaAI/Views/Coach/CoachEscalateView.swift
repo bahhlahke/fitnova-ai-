@@ -162,43 +162,107 @@ struct CoachEscalateView: View {
         }
     }
 
+    private func urgencyOption(_ value: String, label: String) -> some View {
+        let active = createUrgency == value
+        return Button {
+            createUrgency = value
+            HapticEngine.selection()
+        } label: {
+            Text(label)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(active ? .black : .white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .background(
+                    Capsule()
+                        .fill(active ? urgencyColor(value) : Brand.Color.surfaceRaised)
+                        .overlay(Capsule().stroke(Brand.Color.borderStrong, lineWidth: 1))
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: - Create Sheet
 
     private var createEscalationSheet: some View {
         NavigationStack {
-            Form {
-                Section("Topic") {
-                    TextField("Brief description of your issue", text: $createTopic)
-                }
-                Section("Urgency") {
-                    Picker("Urgency", selection: $createUrgency) {
-                        Text("Low").tag("low")
-                        Text("Normal").tag("normal")
-                        Text("High — needs immediate attention").tag("high")
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    PremiumHeroCard(
+                        title: "Coach Support Request",
+                        subtitle: "Escalate blockers that need direct coach intervention and include context so you get faster responses.",
+                        eyebrow: "Escalation"
+                    ) {
+                        HStack(spacing: 10) {
+                            PremiumMetricPill(label: "Urgency", value: createUrgency.capitalized)
+                            PremiumMetricPill(label: "Status", value: "Draft")
+                        }
+                    }
+
+                    PremiumRowCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Topic")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(Brand.Color.muted)
+                            TextField("Brief description of your issue", text: $createTopic)
+                                .padding(12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(Brand.Color.surfaceRaised)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                .stroke(Brand.Color.borderStrong, lineWidth: 1)
+                                        )
+                                )
+
+                            Text("Urgency")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(Brand.Color.muted)
+                            HStack(spacing: 8) {
+                                urgencyOption("low", label: "Low")
+                                urgencyOption("normal", label: "Normal")
+                                urgencyOption("high", label: "High")
+                            }
+
+                            Text("Details (optional)")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(Brand.Color.muted)
+                            TextField("Describe the situation in more detail…", text: $createDetails, axis: .vertical)
+                                .lineLimit(3...8)
+                                .padding(12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(Brand.Color.surfaceRaised)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                .stroke(Brand.Color.borderStrong, lineWidth: 1)
+                                        )
+                                )
+                        }
+                    }
+
+                    HStack(spacing: 10) {
+                        Button("Cancel") {
+                            showCreate = false
+                            createTopic = ""
+                            createDetails = ""
+                        }
+                        .buttonStyle(PremiumActionButtonStyle(filled: false))
+
+                        Button(saving ? "Sending…" : "Send request") {
+                            Task { await createEscalation() }
+                        }
+                        .buttonStyle(PremiumActionButtonStyle(filled: true))
+                        .disabled(saving || createTopic.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
                 }
-                Section("Details (optional)") {
-                    TextField("Describe the situation in more detail…", text: $createDetails, axis: .vertical)
-                        .lineLimit(3...8)
-                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 18)
             }
+            .fnBackground()
             .navigationTitle("New request")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        showCreate = false
-                        createTopic = ""
-                        createDetails = ""
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(saving ? "Sending…" : "Send") {
-                        Task { await createEscalation() }
-                    }
-                    .disabled(saving || createTopic.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-            }
         }
     }
 
@@ -219,30 +283,41 @@ struct CoachEscalateView: View {
                     .padding()
                 }
 
-                List {
-                    if messages.isEmpty && messagesError == nil {
-                        Text("No messages yet. Send the first one below.")
-                            .font(.caption).foregroundStyle(.secondary)
-                            .listRowBackground(Color.clear)
-                    }
-                    ForEach(messages, id: \.escalation_message_id) { m in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(m.sender_type == "coach" ? "Coach" : "You")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(m.sender_type == "coach" ? Brand.Color.accent : .white)
-                                Spacer()
-                                if let ts = m.created_at {
-                                    Text(formattedTimestamp(ts))
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(.secondary)
+                ScrollView {
+                    VStack(spacing: 10) {
+                        if messages.isEmpty && messagesError == nil {
+                            PremiumRowCard {
+                                Text("No messages yet. Send the first one below.")
+                                    .font(.caption)
+                                    .foregroundStyle(Brand.Color.muted)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                        ForEach(messages, id: \.escalation_message_id) { m in
+                            PremiumRowCard {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        PremiumStatusChip(
+                                            label: m.sender_type == "coach" ? "Coach" : "You",
+                                            tone: m.sender_type == "coach" ? .accent : .muted
+                                        )
+                                        Spacer()
+                                        if let ts = m.created_at {
+                                            Text(formattedTimestamp(ts))
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(Brand.Color.muted)
+                                        }
+                                    }
+                                    Text(m.body ?? "")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.white)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
                                 }
                             }
-                            Text(m.body ?? "")
-                                .font(.subheadline)
                         }
-                        .padding(.vertical, 4)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
                 }
 
                 if let err = sendError {

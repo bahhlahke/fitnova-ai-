@@ -13,7 +13,7 @@ This repository includes a cross-platform UI validator that combines determinist
 ## What it does
 
 1. Captures signed-out and signed-in web workflow surfaces on desktop and mobile.
-2. Captures deterministic iOS workflow surfaces in demo mode on the simulator matrix.
+2. Captures deterministic iOS workflow surfaces in demo mode on the simulator matrix, including a narrower-device layout sanity pass.
 3. Groups those surfaces into product workflows.
 4. Sends representative screenshots plus deterministic evidence to an AI judge.
 5. Evaluates the app through three personas:
@@ -77,4 +77,5 @@ node scripts/ai-ui-surface-validator.mjs --ios-manifest docs/reports/ios-surface
 
 - If `OPENROUTER_API_KEY` is missing, the validator still captures evidence and writes the report, but it cannot confirm production readiness.
 - The iOS capture uses deterministic demo-mode fixtures to focus on layout, hierarchy, and state handling.
+- The iOS smoke runner includes an `iPhone 16e` layout check to catch clipping/overflow issues that can be hidden on larger simulators.
 - The web capture treats redirects to `/auth`, runtime exceptions, and suspiciously low-content renders as deterministic failures.

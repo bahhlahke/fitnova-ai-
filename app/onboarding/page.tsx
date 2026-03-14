@@ -250,7 +250,7 @@ export default function OnboardingPage() {
           <Card padding="lg" className="bg-fn-surface/60 backdrop-blur-xl border-white/10">
             <header className="mb-6">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fn-muted">Onboarding</p>
-              <h1 className="mt-2 font-display text-4xl text-fn-ink">Build your AI coaching profile</h1>
+              <h1 className="mt-2 font-display text-4xl text-fn-ink">Set up your profile</h1>
               <p className="mt-2 text-fn-muted">This takes about two minutes and helps tailor workouts, nutrition, and safety adjustments.</p>
               {resumedFromAssessment && (
                 <div className="mt-3 inline-flex rounded-full bg-fn-bg-alt px-3 py-1 text-xs font-semibold text-fn-ink">
@@ -286,29 +286,23 @@ export default function OnboardingPage() {
               {steps[currentStep].id === "stats" && (
                 <div className="mt-4 space-y-0">
                   <div className="mb-4 rounded-2xl border border-fn-accent/10 bg-fn-accent/5 px-4 py-3 text-sm leading-relaxed text-fn-muted">
-                    These details help Koda size your workouts, nutrition targets, and recovery guidance correctly. You can update them later in Settings.
+                    Quick setup: fill in <span className="font-semibold text-white">name, age, height, and weight</span>. Everything else can be skipped and edited later in Settings.
                   </div>
-                  <div className="mb-4 grid gap-3 sm:grid-cols-3">
-                    {[
-                      {
-                        title: "Age and sex",
-                        detail: "Used to tune recovery guidance, safety ranges, and training adjustments.",
-                      },
-                      {
-                        title: "Height and weight",
-                        detail: "Used to estimate calorie targets, strength ranges, and progress trends.",
-                      },
-                      {
-                        title: "Phone number",
-                        detail: "Optional. Only add it if you want text reminders and account alerts.",
-                      },
-                    ].map((item) => (
-                      <div key={item.title} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent">{item.title}</p>
-                        <p className="mt-2 text-xs leading-relaxed text-fn-muted">{item.detail}</p>
-                      </div>
-                    ))}
+                  <div className="mb-4 grid gap-2 text-xs leading-relaxed text-fn-muted md:grid-cols-3">
+                    <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">1. Add your basic body stats.</div>
+                    <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">2. Optional: add phone for text reminders.</div>
+                    <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">3. You can change any of this later.</div>
                   </div>
+                  <details className="mb-4 rounded-xl border border-white/8 bg-black/15 px-4 py-3">
+                    <summary className="cursor-pointer text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent">
+                      Why we ask these
+                    </summary>
+                    <div className="mt-2 space-y-2 text-xs leading-relaxed text-fn-muted">
+                      <p><span className="font-semibold text-white">Age and sex:</span> helps tune recovery guidance and training ranges.</p>
+                      <p><span className="font-semibold text-white">Height and weight:</span> helps set calorie targets and progress baselines.</p>
+                      <p><span className="font-semibold text-white">Phone number:</span> optional, only used for reminders and alerts if you opt in.</p>
+                    </div>
+                  </details>
                   <label className={labelClass}>Name</label>
                   <input type="text" value={stats.name} onChange={(e) => setStats((s) => ({ ...s, name: e.target.value }))} className={inputClass} placeholder="Your name" />
                   <label className={labelClass}>Phone number (optional, for text reminders)</label>
@@ -337,7 +331,7 @@ export default function OnboardingPage() {
                   <label className={labelClass}>Age</label>
                   <input type="number" value={stats.age} onChange={(e) => setStats((s) => ({ ...s, age: e.target.value }))} className={inputClass} placeholder="25" min={13} max={120} />
                   <p className="mt-1 text-xs leading-relaxed text-fn-muted">Age helps Koda scale recovery and training recommendations to your stage of life.</p>
-                  <label className={labelClass}>Sex used for plan adjustments</label>
+                  <label className={labelClass}>Sex (used to tune training ranges)</label>
                   <select value={stats.sex} onChange={(e) => setStats((s) => ({ ...s, sex: e.target.value }))} className={inputClass}>
                     <option value="">Select</option>
                     <option value="male">Male</option>
@@ -520,7 +514,9 @@ export default function OnboardingPage() {
                   loading={saving}
                   disabled={steps[currentStep].id === "stats" && stats.phone.trim().length > 0 && !smsConsent}
                 >
-                  {currentStep < steps.length - 1 ? "Next" : "Finish"}
+                  {currentStep < steps.length - 1
+                    ? `Continue to ${steps[currentStep + 1].label.toLowerCase()}`
+                    : "Finish setup"}
                 </Button>
 
               </div>

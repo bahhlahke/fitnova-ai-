@@ -134,6 +134,24 @@ export default function IntegrationsPage() {
             title="Integrations & Devices"
             subtitle="Connect your wearables to supercharge your AI Coach with real biometric data"
         >
+            <section className="premium-panel animate-panel-rise mb-6 p-5 sm:p-6">
+                <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+                    <div>
+                        <p className="premium-kicker">Signal stack setup</p>
+                        <h1 className="premium-headline mt-2 text-3xl sm:text-4xl">Connect devices for smarter adaptation.</h1>
+                        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70">
+                            Koda uses sleep, recovery, and activity signals to improve readiness scoring and workout adaptation quality.
+                        </p>
+                    </div>
+                    <div className="premium-panel-soft p-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Connection path</p>
+                        <p className="mt-2 text-xs leading-relaxed text-white/75">
+                            Copy Koda ID, connect provider, then verify the Active Sync badge after real data arrives.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             {/* Setup steps */}
             <Card padding="lg" className="mb-6 border-fn-accent/20 bg-fn-accent/5">
                 <CardHeader

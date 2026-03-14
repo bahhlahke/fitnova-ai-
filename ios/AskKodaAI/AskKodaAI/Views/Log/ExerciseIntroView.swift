@@ -123,9 +123,11 @@ struct ExerciseIntroView: View {
             VStack(alignment: .leading, spacing: 18) {
                 exerciseHeader
                 kodaIntroSection
+                setupChecklistSection
                 formCuesSection
                 targetPillsRow
                 commonMistakeSection
+                progressionSection
                 readyButton
             }
             .padding(20)
@@ -195,35 +197,50 @@ struct ExerciseIntroView: View {
 
     @ViewBuilder
     private var formCuesSection: some View {
-        let cues: [Any] = catalogEntry.map { Array($0.formCues) } ?? []
-        let planCues = planCuePairs
-
-        if !cues.isEmpty || !planCues.isEmpty {
+        if !introCuePairs.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 Text("FORM CUES")
                     .font(.system(size: 10, weight: .black, design: .monospaced))
                     .tracking(1.2)
                     .foregroundStyle(.white.opacity(0.45))
 
-                if let entry = catalogEntry {
-                    ForEach(Array(entry.formCues.enumerated()), id: \.offset) { i, cue in
-                        if i <= cueRevealIndex {
-                            formCueRow(icon: cue.icon, text: cue.cue)
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .bottom).combined(with: .opacity),
-                                    removal: .opacity
-                                ))
-                        }
-                    }
-                } else {
-                    ForEach(planCues, id: \.0) { icon, text in
-                        if planCues.firstIndex(where: { $0.0 == icon && $0.1 == text }).map({ $0 <= cueRevealIndex }) == true {
-                            formCueRow(icon: icon, text: text)
-                        }
+                ForEach(Array(introCuePairs.enumerated()), id: \.offset) { i, cue in
+                    if i <= cueRevealIndex {
+                        formCueRow(icon: cue.0, text: cue.1)
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .bottom).combined(with: .opacity),
+                                removal: .opacity
+                            ))
                     }
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var setupChecklistSection: some View {
+        let setupItems = (exercise.setup_checklist ?? []).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        if !setupItems.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("SETUP CHECKLIST")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(.white.opacity(0.45))
+                ForEach(Array(setupItems.prefix(3).enumerated()), id: \.offset) { _, item in
+                    formCueRow(icon: "checkmark.circle.fill", text: item)
+                }
+            }
+        }
+    }
+
+    private var introCuePairs: [(String, String)] {
+        var pairs: [(String, String)] = catalogEntry?.formCues.map { ($0.icon, $0.cue) } ?? []
+        pairs.append(contentsOf: planCuePairs)
+        pairs = pairs.filter { !$0.1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        if pairs.count > 6 {
+            return Array(pairs.prefix(6))
+        }
+        return pairs
     }
 
     private var planCuePairs: [(String, String)] {
@@ -232,6 +249,12 @@ struct ExerciseIntroView: View {
         if let breathing = exercise.breathing, !breathing.isEmpty { pairs.append(("lungs", breathing)) }
         if let intent = exercise.intent, !intent.isEmpty { pairs.append(("target", intent)) }
         if let notes = exercise.notes, !notes.isEmpty { pairs.append(("note.text", notes)) }
+        for cue in (exercise.coaching_points ?? []).prefix(2) {
+            pairs.append(("waveform", cue))
+        }
+        for step in (exercise.walkthrough_steps ?? []).prefix(2) {
+            pairs.append(("figure.strengthtraining.traditional", step))
+        }
         return pairs
     }
 
@@ -243,6 +266,7 @@ struct ExerciseIntroView: View {
                 if let intensity = exercise.intensity { targetPill(label: "Intensity", value: intensity) }
                 if let rir = exercise.target_rir { targetPill(label: "RIR", value: "\(rir)") }
                 if let load = exercise.target_load_kg { targetPill(label: "Target", value: "\(Int(load)) kg") }
+                if let rest = exercise.rest_seconds_after_set, rest > 0 { targetPill(label: "Rest", value: "\(rest)s") }
             }
         }
         .frame(maxWidth: .infinity)
@@ -250,7 +274,8 @@ struct ExerciseIntroView: View {
 
     @ViewBuilder
     private var commonMistakeSection: some View {
-        if let mistake = catalogEntry?.commonMistake {
+        let mistake = catalogEntry?.commonMistake ?? (exercise.common_mistakes ?? []).first
+        if let mistake, !mistake.isEmpty {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.caption)
@@ -268,6 +293,31 @@ struct ExerciseIntroView: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .stroke(Brand.Color.warning.opacity(0.18), lineWidth: 1)
+                    )
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var progressionSection: some View {
+        if let progression = exercise.progression_note, !progression.isEmpty {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.caption)
+                    .foregroundStyle(Brand.Color.success)
+                    .padding(.top, 1)
+                Text(progression)
+                    .font(.caption)
+                    .foregroundStyle(Brand.Color.success.opacity(0.95))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Brand.Color.success.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(Brand.Color.success.opacity(0.2), lineWidth: 1)
                     )
             )
         }
@@ -330,7 +380,7 @@ struct ExerciseIntroView: View {
         }
 
         // Reveal form cues one by one with stagger
-        let cueCount = catalogEntry?.formCues.count ?? planCuePairs.count
+        let cueCount = introCuePairs.count
         for i in 0..<cueCount {
             let delay = UInt64(350_000_000 + i * 200_000_000)
             try? await Task.sleep(nanoseconds: delay)

@@ -898,7 +898,9 @@ struct LogNutritionView: View {
         do {
             let res = try await api.aiMealSuggestions()
             await MainActor.run { suggestions = res.suggestions ?? [] }
-        } catch { }
+        } catch {
+            print("[Koda] aiMealSuggestions: \(error)")
+        }
     }
 
     private func openEditMeal(at index: Int) {

@@ -562,6 +562,24 @@ export default function SettingsPage() {
 
   return (
     <PageLayout title="Settings" subtitle="Profile, AI preferences, and data sources">
+      <section className="premium-panel animate-panel-rise mb-6 p-5 sm:p-6">
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <p className="premium-kicker">Personalization controls</p>
+            <h1 className="premium-headline mt-2 text-3xl sm:text-4xl">Configure your coaching system.</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70">
+              This is your control layer for profile accuracy, coaching tone, reminders, equipment, and data integrations.
+            </p>
+          </div>
+          <div className="premium-panel-soft p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Suggested order</p>
+            <p className="mt-2 text-xs leading-relaxed text-white/75">
+              Update body metrics and goals first, then schedule and equipment, then reminders and integrations.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <AuthSettings />
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-5">

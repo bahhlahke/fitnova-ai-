@@ -16,7 +16,7 @@ final class DataModelsTests: XCTestCase {
         decoder = JSONDecoder()
     }
 
-    func testUserProfileDecoding() throws {
+    func testUserProfileDecodingLegacyKeys() throws {
         let json = """
         {"user_id":"u1","display_name":"Test","email":"test@example.com","age":30,"sex":"male","height_cm":180,"weight_kg":80,"goals":["build_muscle"],"activity_level":"moderate"}
         """
@@ -27,6 +27,36 @@ final class DataModelsTests: XCTestCase {
         XCTAssertEqual(decoded.age, 30)
         XCTAssertEqual(decoded.weight_kg, 80)
         XCTAssertEqual(decoded.goals?.first, "build_muscle")
+    }
+
+    func testUserProfileDecodingCanonicalSchemaKeys() throws {
+        let json = """
+        {"user_id":"u1","name":"Taylor","email":"test@example.com","age":30,"sex":"male","height":182,"weight":82.5,"goals":["build_muscle"],"activity_level":"moderate"}
+        """
+        let data = Data(json.utf8)
+        let decoded = try decoder.decode(UserProfile.self, from: data)
+        XCTAssertEqual(decoded.user_id, "u1")
+        XCTAssertEqual(decoded.display_name, "Taylor")
+        XCTAssertEqual(decoded.height_cm, 182)
+        XCTAssertEqual(decoded.weight_kg, 82.5)
+    }
+
+    func testUserProfileEncodingUsesCanonicalSchemaKeys() throws {
+        var profile = UserProfile()
+        profile.user_id = "u1"
+        profile.display_name = "Jordan"
+        profile.height_cm = 180
+        profile.weight_kg = 80
+
+        let data = try JSONEncoder().encode(profile)
+        let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+
+        XCTAssertEqual(payload?["name"] as? String, "Jordan")
+        XCTAssertEqual(payload?["height"] as? Double, 180)
+        XCTAssertEqual(payload?["weight"] as? Double, 80)
+        XCTAssertNil(payload?["display_name"])
+        XCTAssertNil(payload?["height_cm"])
+        XCTAssertNil(payload?["weight_kg"])
     }
 
     func testWorkoutLogDecoding() throws {

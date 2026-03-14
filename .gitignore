@@ -55,6 +55,16 @@ test-results-final.log
 
 ios/build/
 
-# Xcode user state
+# generated report outputs (timestamped runs)
+/docs/reports/ai-test-review-20*.md
+/docs/reports/ai-test-review-ios-20*.md
+/docs/reports/ai-workflow-validation-20*.md
+/docs/reports/web-surface-smoke-20*/
+/docs/reports/ios-surface-smoke-20*/
+/docs/reports/ai-ui-surface-validation-20*/
+
+# local Xcode user/state artifacts
+*.xcresult
 *.xcuserstate
 xcuserdata/
+**/xcuserdata/

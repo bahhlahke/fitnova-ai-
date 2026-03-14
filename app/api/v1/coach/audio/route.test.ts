@@ -95,4 +95,38 @@ describe("POST /api/v1/coach/audio", () => {
     expect(body.script).toContain("105 seconds");
     expect(body.script).toContain("Romanian Deadlift");
   });
+
+  it("adapts finish-set coaching from live heart rate, HRV delta, and step context", async () => {
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }) },
+    } as any);
+
+    const response = await POST(
+      new Request("http://localhost/api/v1/coach/audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          context: "finish_set",
+          metrics: {
+            current_heart_rate_bpm: 152,
+            recovery_target_bpm: 120,
+            hrv_delta_ms: -12,
+            today_steps: 1800,
+          },
+          details: {
+            name: "Dumbbell Split Squat",
+            rest_seconds_after_set: 90,
+          },
+        }),
+      })
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.script).toContain("Heart rate is 152");
+    expect(body.script).toContain("120 target");
+    expect(body.script).toContain("HRV trend is down versus baseline");
+    expect(body.script).toContain("short cooldown walk");
+    expect(body.script).toContain("90 seconds");
+  });
 });

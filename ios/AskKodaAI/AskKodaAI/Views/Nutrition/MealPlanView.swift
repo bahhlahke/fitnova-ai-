@@ -55,6 +55,8 @@ struct MealPlanView: View {
                                         )
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityLabel("\(d)-day meal plan")
+                                .accessibilityAddTraits(durationDays == d ? .isSelected : [])
                             }
                         }
                     }

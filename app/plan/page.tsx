@@ -227,13 +227,48 @@ export default function PlanPage() {
 
     return (
         <PageLayout title="Training Plan" subtitle={`Week of ${plan?.week_start_local ?? "—"} · Aligned to your schedule`}>
+            <section className="premium-panel animate-panel-rise mb-6 overflow-hidden p-5 sm:p-6">
+                <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+                    <div>
+                        <p className="premium-kicker">Weekly execution map</p>
+                        <h1 className="premium-headline mt-2 text-3xl sm:text-4xl">
+                            Your trainer-grade weekly plan.
+                        </h1>
+                        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70">
+                            Select today’s card, run the guided session, and adapt only when your constraints change.
+                            Koda preserves the core training goal when adapting.
+                        </p>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                            {goals.slice(0, 3).map((goal) => (
+                                <span key={goal} className="premium-badge">{goal}</span>
+                            ))}
+                            {plan?.cycle_goal ? <span className="premium-badge">{plan.cycle_goal}</span> : null}
+                        </div>
+                    </div>
+                    <div className="premium-panel-soft p-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent">How to execute this week</p>
+                        <div className="mt-3 space-y-2">
+                            {[
+                                "1. Open the selected day and review focus + cues.",
+                                "2. Start guided workout and log all main sets.",
+                                "3. Use Adjust Workout only for constraints.",
+                            ].map((item) => (
+                                <p key={item} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/75">
+                                    {item}
+                                </p>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* Header Bar */}
-            <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+            <div className="mb-6 flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                 <div>
                     {goals.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                             {goals.map(g => (
-                                <span key={g} className="text-[9px] font-black uppercase tracking-[0.25em] bg-fn-accent/10 border border-fn-accent/20 text-fn-accent px-2.5 py-1 rounded-full">
+                                <span key={g} className="text-[9px] font-semibold uppercase tracking-[0.2em] bg-fn-accent/10 border border-fn-accent/20 text-fn-accent px-2.5 py-1 rounded-full">
                                     {g}
                                 </span>
                             ))}
@@ -306,13 +341,30 @@ export default function PlanPage() {
                 )}
             </Card>
 
+            {selectedDay && (
+                <Card padding="lg" className="mb-6 border-white/[0.08] bg-white/[0.03]">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Next Step Now</p>
+                    <p className="mt-2 text-sm leading-relaxed text-fn-muted">
+                        Open today&apos;s session and follow the exercise list. If your time, equipment, or soreness changed, use <span className="font-semibold text-white">Adjust Today&apos;s Workout</span> first.
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                        <Link href={`/log/workout/guided?date=${selectedDay.date_local}`}>
+                            <Button>{isToday(selectedDay.date_local) ? "Start today&apos;s session" : "Open selected day session"}</Button>
+                        </Link>
+                        <Link href="#adjust-workout">
+                            <Button variant="secondary">Adjust today&apos;s workout</Button>
+                        </Link>
+                    </div>
+                </Card>
+            )}
+
             <Card padding="lg" className="mb-6 border-white/[0.08] bg-white/[0.03]">
                 <CardHeader title="How To Use This Plan" subtitle="A quick guide for adjusting the week without losing momentum" />
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
                     {[
                         "1. Pick today’s card to see the full session and coaching cues.",
                         "2. If the title sounds unfamiliar, open the planned session below. Koda shows the exact exercises.",
-                        "3. Use Tailor This Workout if you need lower impact, less time, or different equipment.",
+                        "3. Use Adjust Today's Workout (Tailor This Workout) if you need lower impact, less time, or different equipment.",
                     ].map((item) => (
                         <div key={item} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm leading-relaxed text-fn-muted">
                             {item}
@@ -504,8 +556,11 @@ export default function PlanPage() {
                                 })()}
 
                                 {/* AI Constraint Chat */}
-                                <div className="rounded-2xl border border-white/[0.07] bg-fn-surface/40 p-4">
-                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-fn-muted mb-2">Tailor This Workout</p>
+                                <div id="adjust-workout" className="rounded-2xl border border-white/[0.07] bg-fn-surface/40 p-4">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-fn-muted mb-2">Adjust Today&apos;s Workout</p>
+                                    <p className="text-[10px] text-fn-muted/50 mb-3 leading-relaxed">
+                                        &ldquo;Tailor This Workout&rdquo; means Koda rewrites this session for your constraints while preserving the training goal.
+                                    </p>
                                     <p className="text-[10px] text-fn-muted/50 mb-3 leading-relaxed">
                                         Tell Koda what changed today: time limit, equipment, soreness, or anything else that affects the session.
                                     </p>

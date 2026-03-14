@@ -18,6 +18,8 @@ vi.mock("@/lib/supabase/server", () => ({
 describe("POST /api/v1/ai/respond", () => {
   const originalEnv = process.env.OPENROUTER_API_KEY;
   const originalAllowAnon = process.env.ALLOW_DEV_ANON_AI;
+  const originalOpenRouterModel = process.env.OPENROUTER_MODEL;
+  const originalOpenRouterFallbackModels = process.env.OPENROUTER_FALLBACK_MODELS;
 
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -25,6 +27,8 @@ describe("POST /api/v1/ai/respond", () => {
     mockSupabase.from.mockReset();
     process.env.OPENROUTER_API_KEY = "test-key";
     process.env.ALLOW_DEV_ANON_AI = "false";
+    delete process.env.OPENROUTER_MODEL;
+    delete process.env.OPENROUTER_FALLBACK_MODELS;
   });
 
   it("returns 400 when body is not valid JSON", async () => {
@@ -52,6 +56,22 @@ describe("POST /api/v1/ai/respond", () => {
     expect(res.status).toBe(401);
     const data = await res.json();
     expect(data.code).toBe("AUTH_REQUIRED");
+  });
+
+  it("returns UPSTREAM_ERROR for unexpected runtime failures", async () => {
+    mockSupabase.auth.getUser.mockRejectedValue(new Error("db unavailable"));
+
+    const req = new Request("http://localhost/api/v1/ai/respond", {
+      method: "POST",
+      body: JSON.stringify({ message: "hello coach" }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(503);
+    const data = await res.json();
+    expect(data.code).toBe("UPSTREAM_ERROR");
+    expect(data.error).toContain("temporarily unavailable");
   });
 
   it("returns 400 when message exceeds max length", async () => {
@@ -125,6 +145,109 @@ describe("POST /api/v1/ai/respond", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.reply).toBe(mockReply);
+  });
+
+  it("returns UPSTREAM_ERROR when provider is rate limited", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "ai_conversations") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+          insert: vi.fn().mockResolvedValue({ error: null }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+      };
+    });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 429,
+          text: () => Promise.resolve(JSON.stringify({ error: { message: "Rate limit exceeded" } })),
+        } as Response)
+      )
+    );
+
+    const req = new Request("http://localhost/api/v1/ai/respond", {
+      method: "POST",
+      body: JSON.stringify({ message: "Help me train today." }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(503);
+    const data = await res.json();
+    expect(data.code).toBe("UPSTREAM_ERROR");
+    expect(data.error).toContain("busy");
+  });
+
+  it("falls back to backup model when primary model fails", async () => {
+    process.env.OPENROUTER_MODEL = "broken/model";
+    process.env.OPENROUTER_FALLBACK_MODELS = "openai/gpt-4o-mini";
+
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "ai_conversations") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+          insert: vi.fn().mockResolvedValue({ error: null }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+      };
+    });
+
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: false,
+          status: 400,
+          text: () => Promise.resolve(JSON.stringify({ error: { message: "Unknown model" } })),
+        } as Response)
+      )
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              choices: [{ message: { content: "Fallback model succeeded." } }],
+            }),
+        } as Response)
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const req = new Request("http://localhost/api/v1/ai/respond", {
+      method: "POST",
+      body: JSON.stringify({ message: "Build me a plan." }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.reply).toBe("Fallback model succeeded.");
+
+    const firstPayload = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const secondPayload = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(firstPayload.model).toBe("broken/model");
+    expect(secondPayload.model).toBe("openai/gpt-4o-mini");
   });
 
   it("processes tool calls and logs biometrics successfully", async () => {
@@ -574,8 +697,96 @@ describe("POST /api/v1/ai/respond", () => {
     ).toBeTruthy();
   });
 
+  it("injects wearable context into AI prompt and persists live signals", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const connectedSignalsUpsert = vi.fn().mockResolvedValue({ error: null });
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "connected_signals") {
+        return {
+          upsert: connectedSignalsUpsert,
+        };
+      }
+      if (table === "ai_conversations") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          insert: vi.fn().mockResolvedValue({ error: null }),
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      };
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: "Live context received. Keep rest at 105 bpm." } }],
+        }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const req = new Request("http://localhost/api/v1/ai/respond", {
+      method: "POST",
+      body: JSON.stringify({
+        message: "Should I push hard right now?",
+        localDate: "2026-03-14",
+        wearableContext: {
+          provider: "apple_health",
+          current_heart_rate: 132,
+          today_steps: 9102,
+          today_hrv: 54.2,
+          hrv_baseline: 61.5,
+          hrv_delta: -7.3,
+          session_phase: "guided_rest",
+          recovery_target_heart_rate: 105,
+          signal_captured_at: "2026-03-14T10:00:00.000Z",
+        },
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    expect(connectedSignalsUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: "u1",
+        provider: "apple_health",
+        signal_date: "2026-03-14",
+        steps: 9102,
+        hrv: 54.2,
+      }),
+      { onConflict: "user_id,provider,signal_date" }
+    );
+
+    const openRouterPayload = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const systemPrompt = openRouterPayload.messages[0].content as string;
+    expect(systemPrompt).toContain("Live wearable context");
+    expect(systemPrompt).toContain("Current heart rate: 132 bpm");
+    expect(systemPrompt).toContain("Today's step count: 9102");
+    expect(systemPrompt).toContain("Today's HRV: 54.2 ms");
+    expect(systemPrompt).toContain("Session phase: guided_rest");
+  });
+
   afterEach(() => {
     process.env.OPENROUTER_API_KEY = originalEnv;
     process.env.ALLOW_DEV_ANON_AI = originalAllowAnon;
+    process.env.OPENROUTER_MODEL = originalOpenRouterModel;
+    process.env.OPENROUTER_FALLBACK_MODELS = originalOpenRouterFallbackModels;
   });
 });
