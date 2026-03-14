@@ -6,6 +6,7 @@ export interface DashboardProjection {
   current: number;
   projected_4w: number;
   projected_12w: number;
+  rate?: number;
   confidence: number;
 }
 
@@ -13,6 +14,83 @@ export interface DashboardProgressSectionProps {
   last7Days: number[];
   projection: DashboardProjection | null;
   unitSystem: UnitSystem;
+}
+
+function ProjectionChart({ projection, unitSystem }: { projection: DashboardProjection; unitSystem: UnitSystem }) {
+  const W = 300;
+  const H = 120;
+  const PAD = { top: 20, right: 20, bottom: 20, left: 36 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const pts = [
+    { label: "Now", week: 0, val: projection.current },
+    { label: "+4w", week: 4, val: projection.projected_4w },
+    { label: "+12w", week: 12, val: projection.projected_12w },
+  ];
+  const vals = pts.map((p) => p.val);
+  const minV = Math.min(...vals) * 0.99;
+  const maxV = Math.max(...vals) * 1.01;
+  const xScale = (w: number) => PAD.left + (w / 12) * chartW;
+  const yScale = (v: number) => PAD.top + chartH - ((v - minV) / (maxV - minV)) * chartH;
+
+  const linePath = pts.map((p, i) => `${i === 0 ? "M" : "L"}${xScale(p.week)},${yScale(p.val)}`).join(" ");
+
+  // Confidence band (simple upper/lower offset)
+  const band = (1 - projection.confidence) * 0.04;
+  const bandPath =
+    pts.map((p, i) => `${i === 0 ? "M" : "L"}${xScale(p.week)},${yScale(p.val * (1 + band))}`).join(" ") +
+    " " +
+    [...pts].reverse().map((p, i) => `${i === 0 ? "L" : "L"}${xScale(p.week)},${yScale(p.val * (1 - band))}`).join(" ") +
+    " Z";
+
+  const rateSign = (projection.rate ?? 0) >= 0 ? "+" : "";
+  const rateLabel = `${rateSign}${(projection.rate ?? 0).toFixed(2)} ${weightUnitLabel(unitSystem)}/week avg. rate`;
+
+  return (
+    <div className="mt-4">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" aria-label="12-week weight projection chart">
+        {/* Confidence band */}
+        <path d={bandPath} fill="rgba(10,217,196,0.10)" />
+        {/* Trend line */}
+        <path d={linePath} fill="none" stroke="#0AD9C4" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        {/* Data points + labels */}
+        {pts.map((p) => (
+          <g key={p.label}>
+            <circle cx={xScale(p.week)} cy={yScale(p.val)} r={4} fill="#0AD9C4" />
+            <text
+              x={xScale(p.week)}
+              y={yScale(p.val) - 10}
+              textAnchor="middle"
+              fontSize="9"
+              fill="white"
+              fontFamily="monospace"
+              fontWeight="700"
+            >
+              {formatDisplayNumber(toDisplayWeight(p.val, unitSystem), 1)}
+            </text>
+            <text
+              x={xScale(p.week)}
+              y={H - 4}
+              textAnchor="middle"
+              fontSize="8"
+              fill="rgba(255,255,255,0.4)"
+              fontFamily="monospace"
+              fontWeight="900"
+            >
+              {p.label}
+            </text>
+          </g>
+        ))}
+      </svg>
+      <div className="flex items-center justify-between mt-2">
+        <p className="text-[10px] font-mono font-semibold text-fn-muted">{rateLabel}</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-fn-accent">
+          {Math.round(projection.confidence * 100)}% confidence
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export function DashboardProgressSection({
@@ -56,18 +134,7 @@ export function DashboardProgressSection({
           AI Projection
         </p>
         {projection ? (
-          <>
-            <p className="mt-8 text-6xl font-black italic tracking-tighter text-white leading-none">
-              {formatDisplayNumber(toDisplayWeight(projection.projected_12w, unitSystem), 1)}
-              <span className="text-xl ml-2 font-black uppercase tracking-widest text-fn-ink/40">{weightUnitLabel(unitSystem)}</span>
-            </p>
-            <p className="mt-4 text-[11px] font-black uppercase tracking-[0.3em] text-fn-accent">
-              {Math.round(projection.confidence * 100)}% Precision Confidence
-            </p>
-            <p className="mt-8 text-base font-medium leading-relaxed text-fn-muted">
-              4-week projection: {formatDisplayNumber(toDisplayWeight(projection.projected_4w, unitSystem), 1)} {weightUnitLabel(unitSystem)}. Data will refresh after subsequent biometric calibration.
-            </p>
-          </>
+          <ProjectionChart projection={projection} unitSystem={unitSystem} />
         ) : (
           <div className="mt-6 flex flex-col items-center justify-center text-center">
             <p className="text-sm font-medium leading-relaxed text-fn-muted mb-5">

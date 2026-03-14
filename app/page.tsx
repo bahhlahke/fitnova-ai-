@@ -889,6 +889,21 @@ export default function HomePage() {
               )}
             </div>
 
+            {/* Weekly Insight */}
+            {(weeklyInsightLoading || weeklyInsight) && (
+              <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-4 space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400 font-mono">Weekly Insight</p>
+                {weeklyInsightLoading ? (
+                  <div className="space-y-2 animate-pulse">
+                    <div className="h-2.5 w-full bg-emerald-500/10 rounded"></div>
+                    <div className="h-2.5 w-4/5 bg-emerald-500/10 rounded"></div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-white/85 leading-relaxed">{weeklyInsight}</p>
+                )}
+              </div>
+            )}
+
             {/* Spotify Integration */}
             <SpotifyMiniPlayer />
 

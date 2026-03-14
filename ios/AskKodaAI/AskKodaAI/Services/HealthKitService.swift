@@ -103,7 +103,7 @@ final class HealthKitService: ObservableObject {
     }
     #endif
 
-    /// Request authorization for weight, sleep, step count. Call before syncing.
+    /// Request authorization for weight, sleep, step count, heart rate, and HRV. Call before syncing.
     func requestAuthorization() async throws {
         #if canImport(HealthKit)
         guard HKHealthStore.isHealthDataAvailable() else {
@@ -113,12 +113,51 @@ final class HealthKitService: ObservableObject {
             HKQuantityType(.bodyMass),
             HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
             HKQuantityType(.stepCount),
-            HKQuantityType(.heartRate)
+            HKQuantityType(.heartRate),
+            HKQuantityType(.heartRateVariabilitySDNN)
         ]
         try await store.requestAuthorization(toShare: Set<HKSampleType>(), read: typesToRead)
         #else
         throw HealthKitError.notAvailable
         #endif
+    }
+
+    // MARK: - HRV
+
+    /// Fetch the last `days` days of HRV (SDNN) samples.
+    func fetchHRVSamples(days: Int = 7) async -> [(date: Date, hrv: Double)] {
+        #if canImport(HealthKit)
+        guard HKHealthStore.isHealthDataAvailable() else { return [] }
+        let hrvType = HKQuantityType(.heartRateVariabilitySDNN)
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: Date(), options: .strictStartDate)
+        let samples: [HKQuantitySample] = (try? await withCheckedThrowingContinuation { cont in
+            let q = HKSampleQuery(
+                sampleType: hrvType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
+            ) { _, s, err in
+                if let err { return cont.resume(throwing: err) }
+                cont.resume(returning: (s as? [HKQuantitySample]) ?? [])
+            }
+            store.execute(q)
+        }) ?? []
+        return samples.map { ($0.startDate, $0.quantity.doubleValue(for: HKUnit(from: "ms"))) }
+        #else
+        return []
+        #endif
+    }
+
+    /// Returns today's HRV and the 7-day baseline average.
+    /// Returns `(nil, nil)` when no HRV data is available.
+    func computeHRVStatus() async -> (todayHRV: Double?, baseline: Double?) {
+        let samples = await fetchHRVSamples(days: 7)
+        guard !samples.isEmpty else { return (nil, nil) }
+        let baseline = samples.map(\.hrv).reduce(0, +) / Double(samples.count)
+        let todaySamples = samples.filter { Calendar.current.isDateInToday($0.date) }
+        let todayHRV = todaySamples.isEmpty ? nil : todaySamples.map(\.hrv).reduce(0, +) / Double(todaySamples.count)
+        return (todayHRV, baseline)
     }
 
     /// Read weight, sleep, steps from HealthKit and push to Koda (progress_tracking, check_ins).

@@ -184,6 +184,8 @@ struct CheckInView: View {
                     step: 1
                 )
                 .tint(energyColor)
+                .accessibilityLabel("Energy level")
+                .accessibilityValue("\(energyScore) out of 10")
 
                 HStack {
                     Text("Exhausted")
@@ -348,6 +350,8 @@ struct CheckInView: View {
                     step: 1
                 )
                 .tint(adherenceColor)
+                .accessibilityLabel("Adherence score")
+                .accessibilityValue("\(adherenceScore) out of 10")
 
                 HStack {
                     Text("Off track")

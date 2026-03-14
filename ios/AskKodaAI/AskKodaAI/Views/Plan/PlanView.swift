@@ -286,7 +286,9 @@ struct PlanView: View {
         do {
             let res = try await api.aiWeeklyInsight()
             await MainActor.run { weeklyInsight = res.insight }
-        } catch { }
+        } catch {
+            print("[Koda] \(#function): \(error)")
+        }
     }
     
     private func adaptDay() async {
