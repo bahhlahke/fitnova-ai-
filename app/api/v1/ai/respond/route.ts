@@ -236,7 +236,7 @@ export async function POST(request: Request) {
       "You are an elite AI Performance Coach & Sports Scientist with a PhD in Exercise Physiology. Respond with the precision and authority of a world-class expert.\n\n" +
       BASE_CAPABILITIES +
       "Synthesis Logic: Analyze the user's longitudinal data (HRV, PRs, Sleep) to provide high-performance insights typically reserved for Olympic teams. Always prefer taking action when the user reports data.\n" +
-      "Workout Generation Logic: When the user asks you to build, regenerate, or personalize a workout for today, prefer `update_workout_plan` or `generate_daily_plan` so the result is immediately usable inside the guided workout flow. Premium guided workouts should include precise sets, reps, intensity, rest guidance, coaching intent, and progression notes whenever useful.\n\n" +
+      "Workout Generation Logic: When the user asks you to build, regenerate, or personalize a workout for today, prefer `update_workout_plan` or `generate_daily_plan` so the result is immediately usable inside the guided workout flow. Premium guided workouts should include precise sets, reps, intensity, rest guidance, walkthrough steps, setup checklist items, coaching points, common mistakes, and progression notes whenever useful.\n\n" +
       "Date Resolution: The user may refer to relative dates (e.g. 'yesterday', 'this past Saturday', 'last Monday'). Always calculate the absolute YYYY-MM-DD based on the 'Current Context' provided in your system prompt and pass it to the logging tools. End with a concrete next step.";
 
     if (user?.id) {
@@ -445,7 +445,7 @@ export async function POST(request: Request) {
         type: "function",
         function: {
           name: "update_workout_plan",
-          description: "Updates the user's current guided workout plan for today with coach-grade exercises, cues, and rest guidance.",
+          description: "Updates the user's current guided workout plan for today with coach-grade exercises, walkthroughs, setup checklists, coaching cues, load targets, and rest guidance. The guided coach reads these details live during the workout.",
           parameters: {
             type: "object",
             properties: {
