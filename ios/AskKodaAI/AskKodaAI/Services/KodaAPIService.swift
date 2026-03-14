@@ -11,6 +11,12 @@ struct KodaAPIService {
     let baseURL: URL
     let getAccessToken: () async -> String?
 
+    private struct AdaptDayPayload: Decodable {
+        let plan: DailyPlan?
+        let exercises: [PlanExercise]?
+        let adaptation_note: String?
+    }
+
     private var isDemoMode: Bool {
         DebugUX.isDemoMode
     }
@@ -184,7 +190,24 @@ struct KodaAPIService {
             "current_exercises": AnyCodable(value: currentExercises),
             "date_local": AnyCodable(value: dateLocal)
         ]
-        return try await post("api/v1/plan/adapt-day", body: body)
+        let payload: AdaptDayPayload = try await post("api/v1/plan/adapt-day", body: body)
+        if let plan = payload.plan {
+            return AdaptDayResponse(plan: plan)
+        }
+        if let exercises = payload.exercises {
+            let synthesizedPlan = DailyPlan(
+                date_local: dateLocal,
+                training_plan: TrainingPlan(
+                    focus: focus,
+                    duration_minutes: targetDuration,
+                    exercises: exercises
+                ),
+                nutrition_plan: nil,
+                safety_notes: payload.adaptation_note.map { [$0] }
+            )
+            return AdaptDayResponse(plan: synthesizedPlan)
+        }
+        return AdaptDayResponse(plan: nil)
     }
 
     /// POST /api/v1/stripe/checkout

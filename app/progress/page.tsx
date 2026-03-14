@@ -254,6 +254,22 @@ export default function ProgressPage() {
           <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">2. Add another check-in after your next workout or later this week.</div>
           <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">3. Koda updates your trend and coach summary here automatically.</div>
         </div>
+        <div className="mt-3 rounded-xl border border-fn-accent/10 bg-fn-accent/5 px-4 py-3 text-xs leading-relaxed text-fn-muted">
+          <span className="font-semibold text-white">Glossary:</span> A <span className="font-semibold text-white">check-in</span> is a quick daily status update (energy, sleep, soreness). An <span className="font-semibold text-white">AI body scan</span> is an optional photo-based estimate.
+        </div>
+        <div className="mt-3 rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+          <p className="text-xs leading-relaxed text-fn-muted">
+            <span className="font-semibold text-white">Next step now:</span> add today&apos;s check-in so Koda can update your trend.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href="/progress/add">
+              <Button size="sm">Add today&apos;s check-in</Button>
+            </Link>
+            <Link href="/progress/scan">
+              <Button size="sm" variant="secondary">Photo check-in</Button>
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Prominent CTAs above the fold */}
@@ -269,7 +285,7 @@ export default function ProgressPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-          }>AI body scan</Button>
+          }>Photo check-in</Button>
         </Link>
       </div>
       <p className="mb-8 text-sm leading-relaxed text-fn-muted">
@@ -343,7 +359,7 @@ export default function ProgressPage() {
                       <Button className="w-full h-12 shadow-[0_0_20px_rgba(255,255,255,0.1)]">Manual Entry</Button>
                     </Link>
                     <Link href="/progress/scan" className="w-full">
-                      <Button variant="secondary" className="w-full h-12 border-fn-accent/40 bg-fn-accent/10 text-fn-accent hover:bg-fn-accent/20">AI Body Scan</Button>
+                      <Button variant="secondary" className="w-full h-12 border-fn-accent/40 bg-fn-accent/10 text-fn-accent hover:bg-fn-accent/20">Photo Check-in</Button>
                     </Link>
                   </div>
                 </div>

@@ -13,7 +13,7 @@ import UIKit
 import UserNotifications
 
 @MainActor
-final class NotificationService: NSObject, ObservableObject {
+final class NotificationService: NSObject {
     static let shared = NotificationService()
 
     private let center = UNUserNotificationCenter.current()

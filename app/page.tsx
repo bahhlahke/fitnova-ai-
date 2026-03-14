@@ -10,6 +10,7 @@ import { toPlainFitnessLanguage, toTitleCaseLabel } from "@/lib/ui/plain-languag
 import { Card, CardHeader, Button, LoadingState } from "@/components/ui";
 import { AiCoachPanel } from "@/components/ai/AiCoachPanel";
 import { SpotifyMiniPlayer } from "@/components/music/SpotifyMiniPlayer";
+import { SpotifyProvider } from "@/lib/music/SpotifyProvider";
 import {
   type DashboardTodayPlan,
 } from "@/components/dashboard/DashboardPlanSection";
@@ -759,19 +760,29 @@ export default function HomePage() {
     },
   ];
 
+  const readyForTodayPercent = (() => {
+    if (checkIn?.energy_score != null) {
+      const energy = (checkIn.energy_score / 5.0) * 0.7;
+      const adherence = ((checkIn.adherence_score ?? checkIn.energy_score) / 5.0) * 0.3;
+      return Math.round(Math.min(1.0, Math.max(0.0, energy + adherence)) * 100);
+    }
+    if (readiness.overall_score != null) {
+      return Math.round(readiness.overall_score * 100);
+    }
+    return null;
+  })();
+
+  const readyForTodayGuide =
+    readyForTodayPercent == null
+      ? "Score guide: 85-100% push, 70-84% moderate, below 70% recovery. Add a quick check-in to personalize."
+      : `Score guide: 85-100% push, 70-84% moderate, below 70% recovery. Today: ${readyForTodayPercent}% ${readyForTodayPercent >= 85 ? "(push)" : readyForTodayPercent >= 70 ? "(moderate)" : "(recovery)"}.`;
+
   return (
     <div className="mx-auto flex h-[calc(100vh-100px)] w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-8 md:h-[calc(100vh-40px)]">
       {/* High-Density Vitals Header */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 shrink-0">
         {[
-          { label: "Ready For Today", value: (() => {
-            if (checkIn?.energy_score != null) {
-              const energy = (checkIn.energy_score / 5.0) * 0.7;
-              const adherence = ((checkIn.adherence_score ?? checkIn.energy_score) / 5.0) * 0.3;
-              return `${Math.round(Math.min(1.0, Math.max(0.0, energy + adherence)) * 100)}%`;
-            }
-            return readiness.overall_score != null ? `${Math.round(readiness.overall_score * 100)}%` : "...";
-          })(), icon: "⚡", href: "/vitals" },
+          { label: "Ready For Today", value: readyForTodayPercent != null ? `${readyForTodayPercent}%` : "...", icon: "⚡", href: "/vitals", hint: readyForTodayGuide },
           { label: "Current Streak", value: `${streak} days`, icon: "🔥", href: "/progress" },
           { label: "Workouts This Week", value: `${weekCount}`, icon: "📊", href: "/history" },
           { label: "Food Target Today", value: todayPlan?.calories ? `${todayPlan.calories} kcal` : "Build plan", icon: "🥗", href: "/log/nutrition" },
@@ -785,13 +796,16 @@ export default function HomePage() {
               <p className="mt-1 font-display text-xl font-black italic uppercase italic tracking-tighter text-white sm:text-2xl">
                 {item.value}
               </p>
+              {"hint" in item ? (
+                <p className="mt-1 text-[10px] leading-relaxed text-fn-muted/70">{item.hint}</p>
+              ) : null}
             </div>
           </Link>
         ))}
       </section>
 
       <section className="shrink-0 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Start Here Today</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Today In 3 Steps</p>
         <p className="mt-2 text-sm leading-relaxed text-fn-muted">
           {hasPlanToday
             ? "Check how ready you are, then complete one key action: start today's workout, log a meal, or ask Coach to adapt the plan."
@@ -800,6 +814,20 @@ export default function HomePage() {
         <p className="mt-2 text-xs leading-relaxed text-fn-muted/80">
           Ready For Today combines your recent training, check-ins, and recovery signals so you know whether to push, maintain, or take it easier.
         </p>
+        <p className="mt-2 text-xs leading-relaxed text-fn-muted/80">
+          Readiness score guide: <span className="text-white">85-100% = push</span>, <span className="text-white">70-84% = moderate</span>, <span className="text-white">below 70% = recovery or adapt</span>.
+        </p>
+        <div className="mt-3 rounded-xl border border-fn-accent/20 bg-fn-accent/5 px-3 py-2 text-xs leading-relaxed text-fn-muted">
+          <span className="font-semibold text-white">Next best step right now:</span>{" "}
+          {hasPlanToday
+            ? "Start your guided workout. If your energy feels low, run a quick check-in first and adapt."
+            : "Generate today's plan, then start your first action (workout, meal log, or check-in)."}
+        </div>
+        {!hasPlanToday ? (
+          <p className="mt-2 text-xs text-fn-muted/80">
+            New here? Press the Step 1 button below first.
+          </p>
+        ) : null}
         <div className="mt-3 grid gap-2 text-xs text-fn-muted sm:grid-cols-3">
           {[
             "1. Review your energy today.",
@@ -815,7 +843,7 @@ export default function HomePage() {
           {hasPlanToday ? (
             <>
               <Link href="/log/workout/guided">
-                <Button size="sm">Start today&apos;s workout</Button>
+                <Button size="sm">Step 2: Start today&apos;s workout</Button>
               </Link>
               <Link href="/check-in">
                 <Button size="sm" variant="secondary">Quick check-in</Button>
@@ -824,7 +852,7 @@ export default function HomePage() {
           ) : (
             <>
               <Button size="sm" loading={planLoading || generating} onClick={() => void handleGeneratePlan()}>
-                Generate today&apos;s plan
+                Step 1: Generate today&apos;s plan
               </Button>
               <Link href="/check-in">
                 <Button size="sm" variant="secondary">Quick check-in first</Button>
@@ -960,7 +988,9 @@ export default function HomePage() {
             )}
 
             {/* Spotify Integration */}
-            <SpotifyMiniPlayer />
+            <SpotifyProvider>
+              <SpotifyMiniPlayer />
+            </SpotifyProvider>
 
             {/* Workout Music */}
             <div className="rounded-xl border border-fn-accent/20 bg-gradient-to-br from-fn-accent/10 via-black/40 to-black/70 p-4">

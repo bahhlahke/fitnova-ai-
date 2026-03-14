@@ -166,10 +166,10 @@ export default function CheckInPage() {
 
   return (
     <PageLayout
-      title="Daily Protocol Scan"
-      subtitle="Sync your internal vitals with the machine."
+      title="Daily Check-In"
+      subtitle="Quickly log energy, sleep, and soreness for today."
       backHref="/"
-      backLabel="Cockpit"
+      backLabel="Dashboard"
     >
       <div className="mx-auto max-w-2xl space-y-12 py-10">
         <header className="text-center">
@@ -229,7 +229,7 @@ export default function CheckInPage() {
               <Textarea
                 value={sorenessNotes}
                 onChange={(e) => setSorenessNotes(e.target.value)}
-                placeholder="Inquire specific muscular tension or constraints..."
+                placeholder="Any soreness, stress, or constraints for today?"
                 className="bg-white/[0.02] border-white/5 text-white placeholder-white/20 rounded-xl p-6 focus:ring-fn-accent/20 focus:border-fn-accent/50"
                 rows={4}
               />
@@ -260,11 +260,16 @@ export default function CheckInPage() {
               disabled={saving || !energyScore}
               className="w-full py-6 text-lg mt-4"
             >
-              {saved ? "Protocol Synced" : "Commit to Analysis"}
+              {saved ? "Saved for today" : "Save check-in"}
             </Button>
 
             {saved && (
               <div className="space-y-4">
+                <div role="status" className="rounded-xl border border-fn-accent/30 bg-fn-accent/10 p-4">
+                  <p className="text-sm font-semibold text-fn-accent">
+                    Check-in saved. Your dashboard and progress trends are now updated.
+                  </p>
+                </div>
                 {energyScore && energyScore <= 2 && !pivotMessage && (
                   <div className="rounded-xl border border-fn-accent/30 bg-fn-accent/5 p-6 space-y-4">
                     <div className="flex items-center gap-3">

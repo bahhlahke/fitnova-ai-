@@ -762,8 +762,14 @@ function NutritionLogContent() {
             <ul className="space-y-2">
               <li>Start with the fastest option: type a short description.</li>
               <li>Use a photo for the best estimate or a barcode for packaged food.</li>
+              <li>Example entries: &ldquo;Greek yogurt with berries&rdquo; or &ldquo;Chicken wrap and apple.&rdquo;</li>
               <li>After you save, the meal appears below and today&apos;s targets update.</li>
             </ul>
+          </div>
+          <div className="mt-3 rounded-2xl border border-fn-accent/10 bg-fn-accent/5 px-4 py-3 text-xs leading-relaxed text-fn-muted">
+            <p><span className="font-semibold text-white">Plain-language note:</span> &ldquo;Macros&rdquo; means protein, carbs, and fat grams.</p>
+            <p className="mt-1">You can skip AI estimates and still save a simple meal entry anytime.</p>
+            <p className="mt-1">After saving, look for the confirmation banner below that says your targets refreshed.</p>
           </div>
           {planMealStructure.length > 0 && (
             <div className="mt-3">
@@ -789,11 +795,9 @@ function NutritionLogContent() {
             editIndex={editingIndex}
             onCancelEdit={() => setEditingIndex(null)}
           />
-          {statusMessage && (
-            <div className="mt-3 rounded-2xl border border-fn-accent/15 bg-fn-accent/5 px-4 py-3 text-sm leading-relaxed text-fn-muted">
-              {statusMessage}
-            </div>
-          )}
+          <div role="status" className="mt-3 rounded-2xl border border-fn-accent/15 bg-fn-accent/5 px-4 py-3 text-sm leading-relaxed text-fn-muted">
+            {statusMessage ?? "No recent save yet. After you add, update, or delete a meal, confirmation appears here."}
+          </div>
           {pageError && <ErrorMessage className="mt-3" message={pageError} />}
           <div className="mt-4 flex flex-wrap gap-3">
             <Link href="/history?tab=nutrition">
@@ -870,7 +874,9 @@ function NutritionLogContent() {
             {aiInsightLoading ? (
               <div className="mt-3 h-10 shimmer rounded-xl" />
             ) : aiInsight ? (
-              <p className="mt-3 rounded-xl bg-fn-bg-alt px-3 py-2.5 text-xs leading-relaxed text-fn-ink">{aiInsight}</p>
+              <p className="mt-3 rounded-xl bg-fn-bg-alt px-3 py-2.5 text-xs leading-relaxed text-fn-ink">
+                {toPlainFitnessLanguage(aiInsight)}
+              </p>
             ) : null}
 
             {/* Meal suggestions */}

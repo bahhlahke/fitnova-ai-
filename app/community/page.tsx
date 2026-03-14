@@ -110,12 +110,20 @@ export default function CommunityPage() {
                     <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">3. Your standing updates as your activity is recorded.</div>
                 </div>
                 <div className="mt-3 rounded-xl border border-fn-accent/10 bg-fn-accent/5 px-4 py-3 text-sm leading-relaxed text-fn-muted">
-                    <span className="font-semibold text-white">Challenge</span> means a shared goal you can join today.
-                    <span className="mx-2 text-fn-muted/50">•</span>
-                    <span className="font-semibold text-white">Group</span> means a longer-term community of people with a similar style or routine.
+                    <div className="flex flex-wrap gap-2">
+                        <span className="rounded-full border border-white/15 bg-black/20 px-3 py-1 text-xs">
+                            <span className="font-semibold text-white">Challenge:</span> short event you can join today
+                        </span>
+                        <span className="rounded-full border border-white/15 bg-black/20 px-3 py-1 text-xs">
+                            <span className="font-semibold text-white">Group:</span> ongoing crew with a shared training style
+                        </span>
+                    </div>
+                </div>
+                <div className="mt-3 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-relaxed text-fn-muted">
+                    <span className="font-semibold text-white">Next step now:</span> join one challenge first. Your workouts and logs will automatically count toward the leaderboard.
                 </div>
                 <div className="mt-4 flex flex-wrap gap-3">
-                    <Link href="#community-challenges"><Button size="sm">Get started with a challenge</Button></Link>
+                    <Link href="#community-challenges"><Button size="sm">Join a challenge now</Button></Link>
                     <Link href="#community-groups"><Button size="sm" variant="secondary">Browse groups</Button></Link>
                 </div>
             </div>
@@ -167,7 +175,7 @@ export default function CommunityPage() {
                                             onClick={() => handleJoin(group.group_id)}
                                             loading={joining === group.group_id}
                                         >
-                                            Join group
+                                            Join this group
                                         </Button>
                                     </div>
                                 )}

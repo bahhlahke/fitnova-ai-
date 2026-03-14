@@ -499,15 +499,28 @@ struct HomeView: View {
         isAdaptingPlan = true
         defer { isAdaptingPlan = false }
         do {
+            let currentExercises = (dailyPlan?.training_plan?.exercises ?? []).map { exercise in
+                AnyCodable(value: [
+                    "name": exercise.name ?? "Exercise",
+                    "equipment": "bodyweight",
+                    "sets": exercise.sets ?? 3,
+                    "reps": exercise.reps ?? "10",
+                    "coaching_cue": exercise.notes ?? "Maintain controlled tempo and stop before form breaks."
+                ])
+            }
             let res = try await api.planAdaptDay(
-                minutesAvailable: nil,
-                location: nil,
-                soreness: "Elevated recovery demand (low HRV: \(Int(today))ms vs \(Int(base))ms baseline)",
+                userMessage: "Elevated recovery demand (low HRV: \(Int(today))ms vs \(Int(base))ms baseline). Build a lower-impact session with excellent movement quality cues.",
+                focus: dailyPlan?.training_plan?.focus ?? "Recovery Session",
                 intensity: "recovery",
-                equipmentContext: nil
+                targetDuration: dailyPlan?.training_plan?.duration_minutes ?? 35,
+                goals: ["recovery", "consistency"],
+                currentExercises: currentExercises,
+                dateLocal: DateHelpers.todayLocal
             )
             await MainActor.run {
-                dailyPlan = res.plan
+                if let adaptedPlan = res.plan {
+                    dailyPlan = adaptedPlan
+                }
                 adaptiveReason = "HRV is \(Int(today))ms (\(Int((today / base) * 100))% of baseline). Your plan has been adapted for recovery."
             }
         } catch {
