@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>API_BASE_URL</key>
+	<string>$(INFOPLIST_KEY_API_BASE_URL)</string>
+	<key>AUTH_REDIRECT_URL</key>
+	<string>$(INFOPLIST_KEY_AUTH_REDIRECT_URL)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>
@@ -33,27 +37,22 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
-	<key>SUPABASE_URL</key>
-	<string>$(INFOPLIST_KEY_SUPABASE_URL)</string>
-	<key>SUPABASE_ANON_KEY</key>
-	<string>$(INFOPLIST_KEY_SUPABASE_ANON_KEY)</string>
-	<key>API_BASE_URL</key>
-	<string>$(INFOPLIST_KEY_API_BASE_URL)</string>
-	<key>AUTH_REDIRECT_URL</key>
-	<string>$(INFOPLIST_KEY_AUTH_REDIRECT_URL)</string>
-	<!-- Privacy usage descriptions required for HealthKit, Camera, and Photos -->
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Koda uses the camera to capture body composition scans and form check photos.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Koda accesses your photo library to attach form check images and body scan photos.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Koda reads weight, sleep, steps, and heart rate from Apple Health to personalise your training plan and daily coaching brief.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Koda writes workout and nutrition data back to Apple Health to keep your health record complete.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Koda uses motion data to count steps and enhance recovery readiness scores.</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Koda accesses your photo library to attach form check images and body scan photos.</string>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>$(INFOPLIST_KEY_SUPABASE_ANON_KEY)</string>
+	<key>SUPABASE_URL</key>
+	<string>$(INFOPLIST_KEY_SUPABASE_URL)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

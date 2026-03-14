@@ -333,6 +333,7 @@ struct GuidedWorkoutView: View {
                                 }
                             }
                         }
+                        .frame(maxWidth: .infinity)
                     }
 
                     PremiumRowCard {
@@ -486,6 +487,7 @@ struct GuidedWorkoutView: View {
                                 PremiumMetricPill(label: "Status", value: saved ? "Saved" : "Pending")
                             }
                         }
+                        .frame(maxWidth: .infinity)
                     }
                     if saved {
                         VStack(spacing: 24) {
@@ -566,6 +568,7 @@ struct GuidedWorkoutView: View {
                     .italic()
                     .foregroundStyle(.white)
                     .lineLimit(2)
+                    .minimumScaleFactor(0.6)
 
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
@@ -1530,6 +1533,9 @@ struct GuidedWorkoutView: View {
                 Text(exercise.name ?? "Exercise \(index + 1)")
                     .font(.headline.weight(.bold))
                     .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 8) {
                         workoutInfoPill("\(exercise.sets ?? 0) sets")
@@ -1549,9 +1555,10 @@ struct GuidedWorkoutView: View {
                 }
                 if let rationale = exercise.rationale, !rationale.isEmpty {
                     Text(rationale)
-                        .font(.caption)
-                        .foregroundStyle(Brand.Color.muted)
-                        .fixedSize(horizontal: false, vertical: true)
+                    .font(.caption)
+                    .foregroundStyle(Brand.Color.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(3)
                 }
             }
 
@@ -1559,25 +1566,27 @@ struct GuidedWorkoutView: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Brand.Color.surfaceRaised.opacity(0.92))
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Brand.Color.surfaceRaised.opacity(0.8))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .stroke(Brand.Color.borderStrong, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(index == 0 ? Brand.Color.accent.opacity(0.3) : Brand.Color.borderStrong, lineWidth: 1)
                 )
         )
+        .shadow(color: index == 0 ? Brand.Color.accent.opacity(0.1) : Color.clear, radius: 10, x: 0, y: 4)
     }
 
     private func workoutInfoPill(_ text: String) -> some View {
         Text(text)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.white)
+            .font(.system(size: 10, weight: .black, design: .monospaced))
+            .textCase(.uppercase)
+            .foregroundStyle(.white.opacity(0.8))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(
                 Capsule()
-                    .fill(Color.white.opacity(0.08))
-                    .overlay(Capsule().stroke(Color.white.opacity(0.08), lineWidth: 1))
+                    .fill(Color.white.opacity(0.06))
+                    .overlay(Capsule().stroke(Color.white.opacity(0.1), lineWidth: 1))
             )
     }
 
@@ -1589,6 +1598,8 @@ struct GuidedWorkoutView: View {
             Text(value)
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)

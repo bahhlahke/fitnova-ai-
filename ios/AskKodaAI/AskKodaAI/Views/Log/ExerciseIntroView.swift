@@ -245,6 +245,7 @@ struct ExerciseIntroView: View {
                 if let load = exercise.target_load_kg { targetPill(label: "Target", value: "\(Int(load)) kg") }
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder

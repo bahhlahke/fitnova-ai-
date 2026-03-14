@@ -47,11 +47,21 @@ struct CoachView: View {
                                     if messages.isEmpty {
                                         coachPromptStrip
                                     } else {
-                                        HStack(spacing: 12) {
-                                            coachStat(label: "Messages", value: "\(messages.count)")
-                                            coachStat(label: "Assistant", value: "\(messages.filter { $0.role != "user" }.count)")
-                                            coachStat(label: "Routes", value: "\(messages.filter { $0.action != nil }.count)")
+                                    ViewThatFits(in: .horizontal) {
+                                        HStack(spacing: 8) {
+                                            coachStat(label: "LOG", value: "\(messages.count)")
+                                            coachStat(label: "OPS", value: "\(messages.filter { $0.role != "user" }.count)")
+                                            coachStat(label: "MAP", value: "\(messages.filter { $0.action != nil }.count)")
                                         }
+                                        .padding(.top, 4)
+
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            coachStat(label: "LOG", value: "\(messages.count)")
+                                            coachStat(label: "OPS", value: "\(messages.filter { $0.role != "user" }.count)")
+                                            coachStat(label: "MAP", value: "\(messages.filter { $0.action != nil }.count)")
+                                        }
+                                        .padding(.top, 4)
+                                    }
                                     }
                                 }
                             }
@@ -327,21 +337,23 @@ struct CoachView: View {
     }
 
     private func coachStat(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label.uppercased())
-                .font(.system(size: 9, weight: .black, design: .monospaced))
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.system(size: 8, weight: .black, design: .monospaced))
                 .foregroundStyle(Brand.Color.muted)
             Text(value)
-                .font(.headline.weight(.bold))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Brand.Color.surfaceRaised.opacity(0.8))
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Brand.Color.surfaceRaised.opacity(0.6))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke(Brand.Color.borderStrong, lineWidth: 1)
                 )
         )
@@ -497,19 +509,19 @@ struct CoachMarkdownText: View {
             ForEach(Array(parsedLines.enumerated()), id: \.offset) { _, line in
                 switch line.kind {
                 case .heading:
-                    Text(line.text)
+                    Text(.init(line.text))
                         .font(.headline.weight(.bold))
                         .foregroundStyle(isUser ? Color.black : .white)
                 case .bullet:
                     HStack(alignment: .top, spacing: 8) {
                         Text("•")
                             .foregroundStyle(isUser ? Color.black.opacity(0.72) : Brand.Color.accent)
-                        Text(line.text)
+                        Text(.init(line.text))
                             .foregroundStyle(isUser ? Color.black : .white)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 case .body:
-                    Text(line.text)
+                    Text(.init(line.text))
                         .foregroundStyle(isUser ? Color.black : .white)
                 }
             }
@@ -571,21 +583,6 @@ struct CoachMarkdownText: View {
 
     private func cleanedInlineMarkdown(_ value: String) -> String {
         value
-            .replacingOccurrences(
-                of: #"\*\*(.*?)\*\*"#,
-                with: "$1",
-                options: .regularExpression
-            )
-            .replacingOccurrences(
-                of: #"__(.*?)__"#,
-                with: "$1",
-                options: .regularExpression
-            )
-            .replacingOccurrences(
-                of: #"`([^`]+)`"#,
-                with: "$1",
-                options: .regularExpression
-            )
             .replacingOccurrences(
                 of: #"(?m)^#{1,6}\s*"#,
                 with: "",
