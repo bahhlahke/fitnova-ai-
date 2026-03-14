@@ -244,6 +244,11 @@ struct CoachView: View {
         return orderedActions.first
     }
 
+    /// Serialise the last N conversation turns into the format the API expects.
+    private var conversationHistoryPayload: [[String: String]] {
+        messages.suffix(8).map { ["role": $0.role, "content": $0.text] }
+    }
+
     private func requestCoachReply(
         message: String,
         wearableContext: AIWearableContextPayload?
@@ -253,6 +258,8 @@ struct CoachView: View {
             do {
                 return try await api.aiRespond(
                     message: message,
+                    localDate: DateHelpers.todayLocal,
+                    conversationHistory: conversationHistoryPayload,
                     wearableContext: wearableContext
                 )
             } catch let error as KodaAPIError {
@@ -288,7 +295,12 @@ struct CoachView: View {
         print("coach_fallback_triggered: \(error.localizedDescription)")
         #endif
         let lowercased = userMessage.lowercased()
-        let workoutIntentKeywords = ["workout", "train", "training", "session", "lift", "guided"]
+        let workoutIntentKeywords = [
+            "workout", "train", "training", "session", "lift", "guided",
+            "crossfit", "cross fit", "hiit", "cardio", "strength", "circuit",
+            "tabata", "metcon", "bootcamp", "wod", "i want to do", "build me",
+            "generate", "create a", "make me a", "let's work out", "let's train"
+        ]
         let requestedWorkoutFlow = workoutIntentKeywords.contains { lowercased.contains($0) }
 
         if requestedWorkoutFlow,
