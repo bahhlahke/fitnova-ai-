@@ -192,21 +192,21 @@ export function AiCoachPanel({
 
   return (
     <section
-      className={`flex flex-col rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 shadow-2xl backdrop-blur-3xl ${className}`.trim()}
+      className={`flex flex-col rounded-[2rem] border border-white/10 bg-white/[0.02] p-6 shadow-2xl backdrop-blur-3xl ${className}`.trim()}
       aria-label="Nova AI"
     >
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-5 sr-only">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.35em] text-fn-accent">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-fn-accent">
             Command Center
           </p>
-          <h2 className="mt-2 font-display text-3xl font-black uppercase italic tracking-tighter text-white sm:text-4xl">
+          <h2 className="mt-2 font-display text-3xl font-black italic tracking-tight text-white sm:text-4xl">
             Koda AI
           </h2>
         </div>
         <p className="max-w-md text-sm font-medium leading-relaxed text-fn-muted">
-          Ask questions, log data, or adjust today&apos;s plan. Logged actions will
-          update the relevant tab automatically.
+          Ask questions, log workouts or meals, and adapt your plan in real time.
+          Koda applies actions instantly to the right surface.
         </p>
       </div>
 
@@ -217,7 +217,7 @@ export function AiCoachPanel({
               key={action}
               type="button"
               onClick={() => void submitMessage(action)}
-              className="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-left text-[10px] font-black uppercase tracking-widest text-white/70 transition-all hover:border-fn-accent/30 hover:bg-white/10 hover:text-white"
+              className="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-left text-[10px] font-semibold uppercase tracking-[0.16em] text-white/75 transition-all hover:border-fn-accent/30 hover:bg-white/10 hover:text-white"
               disabled={loading}
             >
               {action}
@@ -228,9 +228,9 @@ export function AiCoachPanel({
 
       <div className="mt-4 max-h-none flex-1 space-y-5 overflow-y-auto pr-1">
         {messages.length === 0 && (
-          <div className="rounded-3xl border border-white/5 bg-black/20 p-6 text-center">
-            <p className="text-lg font-black uppercase italic tracking-tighter text-white">
-              Ready for input
+          <div className="rounded-3xl border border-white/10 bg-black/20 p-6 text-center">
+            <p className="text-lg font-black italic tracking-tight text-white">
+              Ready when you are
             </p>
             <p className="mt-3 text-sm font-medium leading-relaxed text-fn-muted">
               You can ask Koda to do anything — build a guided workout, log your meals, adapt today&apos;s plan, or analyze your progress. Koda will automatically process your data or move you into the right flow.
@@ -246,7 +246,7 @@ export function AiCoachPanel({
             <div
               className={`max-w-[88%] rounded-3xl px-5 py-4 text-sm font-medium leading-relaxed shadow-2xl ${message.role === "user"
                 ? "rounded-tr-none bg-white text-black"
-                : "rounded-tl-none border border-white/5 bg-fn-surface text-fn-ink"
+                : "rounded-tl-none border border-white/10 bg-fn-surface text-fn-ink"
                 }`}
             >
               <div className={`prose prose-sm max-w-none ${message.role === "user" ? "" : "prose-invert"}`}>

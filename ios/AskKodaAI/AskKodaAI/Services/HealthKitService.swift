@@ -11,6 +11,18 @@ import Combine
 import HealthKit
 #endif
 
+struct HealthLiveSnapshot {
+    let provider: String
+    let currentHeartRate: Int?
+    let todaySteps: Int?
+    let todayHRV: Double?
+    let hrvBaseline: Double?
+    let hrvDelta: Double?
+    let sessionPhase: String?
+    let recoveryTargetHeartRate: Int?
+    let signalCapturedAt: Date
+}
+
 @MainActor
 final class HealthKitService: ObservableObject {
     static let shared = HealthKitService()
@@ -22,10 +34,55 @@ final class HealthKitService: ObservableObject {
     @Published private(set) var isSyncing = false
     @Published private(set) var currentHeartRate: Int?
     @Published private(set) var todaySteps: Int?
+    @Published private(set) var todayHRV: Double?
+    @Published private(set) var hrvBaseline: Double?
+    @Published private(set) var liveSignalsUpdatedAt: Date?
+
+    var hrvDelta: Double? {
+        guard let todayHRV, let hrvBaseline else { return nil }
+        return todayHRV - hrvBaseline
+    }
 
     #if canImport(HealthKit)
     private let store = HKHealthStore()
     private static let maxDaysToSync = 90
+
+    private static var coreReadRequirements: [(type: HKObjectType, label: String)] {
+        [
+            (HKQuantityType(.bodyMass), "weight"),
+            (HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!, "sleep"),
+            (HKQuantityType(.stepCount), "step count")
+        ]
+    }
+
+    private static var optionalReadRequirements: [HKObjectType] {
+        [
+            HKQuantityType(.heartRate),
+            HKQuantityType(.heartRateVariabilitySDNN)
+        ]
+    }
+
+    private var unauthorizedCoreReadLabels: [String] {
+        Self.coreReadRequirements.compactMap { entry in
+            switch store.authorizationStatus(for: entry.type) {
+            case .sharingAuthorized:
+                return nil
+            case .notDetermined, .sharingDenied:
+                return entry.label
+            @unknown default:
+                return entry.label
+            }
+        }
+    }
+
+    private var authorizedCoreReadCount: Int {
+        Self.coreReadRequirements.count - unauthorizedCoreReadLabels.count
+    }
+
+    private static func rounded(_ value: Double, places: Int = 1) -> Double {
+        let multiplier = pow(10.0, Double(places))
+        return (value * multiplier).rounded() / multiplier
+    }
     #endif
 
     private init() {
@@ -99,26 +156,106 @@ final class HealthKitService: ObservableObject {
         let hr = Int(last.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute())))
         Task { @MainActor in
             self.currentHeartRate = hr
+            self.liveSignalsUpdatedAt = Date()
         }
     }
     #endif
 
-    /// Request authorization for weight, sleep, step count. Call before syncing.
+    /// Pulls the latest lightweight health signals used in guided coaching and AI context.
+    func refreshLiveCoachingSignals() async {
+        #if canImport(HealthKit)
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        await fetchTodaySteps()
+        let hrv = await computeHRVStatus()
+        todayHRV = hrv.todayHRV.map { Self.rounded($0, places: 1) }
+        hrvBaseline = hrv.baseline.map { Self.rounded($0, places: 1) }
+        liveSignalsUpdatedAt = Date()
+        #else
+        liveSignalsUpdatedAt = Date()
+        #endif
+    }
+
+    func liveSnapshot(
+        sessionPhase: String? = nil,
+        recoveryTargetHeartRate: Int? = nil
+    ) -> HealthLiveSnapshot? {
+        let hasSignal =
+            currentHeartRate != nil ||
+            todaySteps != nil ||
+            todayHRV != nil ||
+            hrvBaseline != nil
+        guard hasSignal else { return nil }
+
+        return HealthLiveSnapshot(
+            provider: "apple_health",
+            currentHeartRate: currentHeartRate,
+            todaySteps: todaySteps,
+            todayHRV: todayHRV,
+            hrvBaseline: hrvBaseline,
+            hrvDelta: hrvDelta,
+            sessionPhase: sessionPhase,
+            recoveryTargetHeartRate: recoveryTargetHeartRate,
+            signalCapturedAt: liveSignalsUpdatedAt ?? Date()
+        )
+    }
+
+    /// Request authorization for weight, sleep, step count, heart rate, and HRV. Call before syncing.
     func requestAuthorization() async throws {
         #if canImport(HealthKit)
         guard HKHealthStore.isHealthDataAvailable() else {
             throw HealthKitError.notAvailable
         }
-        let typesToRead: Set<HKObjectType> = [
-            HKQuantityType(.bodyMass),
-            HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
-            HKQuantityType(.stepCount),
-            HKQuantityType(.heartRate)
-        ]
+        let typesToRead = Set(Self.coreReadRequirements.map(\.type) + Self.optionalReadRequirements)
         try await store.requestAuthorization(toShare: Set<HKSampleType>(), read: typesToRead)
+
+        let unauthorizedCore = unauthorizedCoreReadLabels
+        if unauthorizedCore.count == Self.coreReadRequirements.count {
+            throw HealthKitError.permissionDenied(dataTypes: unauthorizedCore)
+        }
+        if !unauthorizedCore.isEmpty && authorizedCoreReadCount > 0 {
+            throw HealthKitError.partialPermissionDenied(dataTypes: unauthorizedCore)
+        }
         #else
         throw HealthKitError.notAvailable
         #endif
+    }
+
+    // MARK: - HRV
+
+    /// Fetch the last `days` days of HRV (SDNN) samples.
+    func fetchHRVSamples(days: Int = 7) async -> [(date: Date, hrv: Double)] {
+        #if canImport(HealthKit)
+        guard HKHealthStore.isHealthDataAvailable() else { return [] }
+        let hrvType = HKQuantityType(.heartRateVariabilitySDNN)
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: Date(), options: .strictStartDate)
+        let samples: [HKQuantitySample] = (try? await withCheckedThrowingContinuation { cont in
+            let q = HKSampleQuery(
+                sampleType: hrvType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
+            ) { _, s, err in
+                if let err { return cont.resume(throwing: err) }
+                cont.resume(returning: (s as? [HKQuantitySample]) ?? [])
+            }
+            store.execute(q)
+        }) ?? []
+        return samples.map { ($0.startDate, $0.quantity.doubleValue(for: HKUnit(from: "ms"))) }
+        #else
+        return []
+        #endif
+    }
+
+    /// Returns today's HRV and the 7-day baseline average.
+    /// Returns `(nil, nil)` when no HRV data is available.
+    func computeHRVStatus() async -> (todayHRV: Double?, baseline: Double?) {
+        let samples = await fetchHRVSamples(days: 7)
+        guard !samples.isEmpty else { return (nil, nil) }
+        let baseline = samples.map(\.hrv).reduce(0, +) / Double(samples.count)
+        let todaySamples = samples.filter { Calendar.current.isDateInToday($0.date) }
+        let todayHRV = todaySamples.isEmpty ? nil : todaySamples.map(\.hrv).reduce(0, +) / Double(todaySamples.count)
+        return (todayHRV, baseline)
     }
 
     /// Read weight, sleep, steps from HealthKit and push to Koda (progress_tracking, check_ins).
@@ -221,6 +358,21 @@ final class HealthKitService: ObservableObject {
                 stepCount += 1
             }
 
+            // 4) HRV (today snapshot) → connected_signals for readiness context.
+            let hrvStatus = await computeHRVStatus()
+            if let today = hrvStatus.todayHRV {
+                var signal = ConnectedSignal()
+                signal.provider = "apple_health"
+                signal.signal_date = dateFormatter.string(from: endDate)
+                signal.hrv = Self.rounded(today, places: 1)
+                signal.updated_at = ISO8601DateFormatter().string(from: Date())
+                try? await dataService.upsertConnectedSignal(signal)
+            }
+
+            todayHRV = hrvStatus.todayHRV.map { Self.rounded($0, places: 1) }
+            hrvBaseline = hrvStatus.baseline.map { Self.rounded($0, places: 1) }
+            liveSignalsUpdatedAt = Date()
+
             lastSyncDate = Date()
             lastSyncSummary = "Synced \(weightCount) weight entries, \(sleepCount) sleep days, and \(stepCount) step days."
         } catch {
@@ -234,9 +386,25 @@ final class HealthKitService: ObservableObject {
 
 enum HealthKitError: LocalizedError {
     case notAvailable
+    case permissionDenied(dataTypes: [String])
+    case partialPermissionDenied(dataTypes: [String])
+
+    private static func formattedList(_ values: [String]) -> String {
+        guard !values.isEmpty else { return "required data types" }
+        if values.count == 1 { return values[0] }
+        if values.count == 2 { return "\(values[0]) and \(values[1])" }
+        let head = values.dropLast().joined(separator: ", ")
+        return "\(head), and \(values.last ?? "")"
+    }
+
     var errorDescription: String? {
         switch self {
-        case .notAvailable: return "Health data is not available on this device."
+        case .notAvailable:
+            return "Health data is not available on this device."
+        case let .permissionDenied(dataTypes):
+            return "Apple Health access was not granted for \(Self.formattedList(dataTypes))."
+        case let .partialPermissionDenied(dataTypes):
+            return "Apple Health access is limited. Missing access for \(Self.formattedList(dataTypes))."
         }
     }
 }

@@ -1,6 +1,106 @@
 import SwiftUI
 import UIKit
 
+struct PremiumTabItem: Identifiable, Hashable {
+    let id: String
+    let title: String
+    var detail: String? = nil
+}
+
+struct PremiumTabSwitcher: View {
+    let items: [PremiumTabItem]
+    @Binding var selectedId: String
+    @Namespace private var activeTabNamespace
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(items) { item in
+                let isActive = selectedId == item.id
+                Button {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
+                        selectedId = item.id
+                    }
+                    HapticEngine.selection()
+                } label: {
+                    VStack(spacing: 2) {
+                        Text(item.title)
+                            .font(.system(size: 13, weight: .black))
+                            .foregroundStyle(isActive ? .white : Brand.Color.muted)
+                        if let detail = item.detail, !detail.isEmpty {
+                            Text(detail.uppercased())
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .tracking(0.8)
+                                .foregroundStyle(isActive ? Brand.Color.accent.opacity(0.95) : Brand.Color.muted.opacity(0.75))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background {
+                        if isActive {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Brand.Color.surfaceHover)
+                                .matchedGeometryEffect(id: "active-tab", in: activeTabNamespace)
+                        }
+                    }
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(isActive ? Brand.Color.accent.opacity(0.4) : Color.clear, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(6)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Brand.Color.surfaceRaised.opacity(0.95))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Brand.Color.borderStrong, lineWidth: 1)
+                )
+        )
+    }
+}
+
+struct PremiumStatusChip: View {
+    enum Tone {
+        case accent
+        case success
+        case warning
+        case danger
+        case muted
+    }
+
+    let label: String
+    var tone: Tone = .accent
+
+    private var foreground: Color {
+        switch tone {
+        case .accent: return Brand.Color.accent
+        case .success: return Brand.Color.success
+        case .warning: return Brand.Color.warning
+        case .danger: return Brand.Color.danger
+        case .muted: return Brand.Color.muted
+        }
+    }
+
+    var body: some View {
+        Text(label.uppercased())
+            .font(.system(size: 9, weight: .black, design: .monospaced))
+            .tracking(0.8)
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(foreground.opacity(0.15))
+                    .overlay(
+                        Capsule().stroke(foreground.opacity(0.25), lineWidth: 1)
+                    )
+            )
+    }
+}
+
 struct PremiumSectionHeader: View {
     let eyebrow: String?
     let title: String

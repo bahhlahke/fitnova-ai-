@@ -102,20 +102,46 @@ export default function CommunityPage() {
 
     return (
         <PageLayout title="Community" subtitle="Join challenges, find your group, and stay motivated with other members">
+            <section className="premium-panel animate-panel-rise mb-6 p-5 sm:p-6">
+                <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+                    <div>
+                        <p className="premium-kicker">Community momentum</p>
+                        <h1 className="premium-headline mt-2 text-3xl sm:text-4xl">Train with accountability.</h1>
+                        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70">
+                            Join one challenge and one group. Your workout and nutrition logs automatically update standing and streak context.
+                        </p>
+                    </div>
+                    <div className="premium-panel-soft p-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Fast start</p>
+                        <p className="mt-2 text-xs leading-relaxed text-white/75">
+                            Pick a challenge first for immediate momentum, then join a long-term group aligned to your training style.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             <div className="mb-8 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">How Community Works</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-fn-accent">How Community Works</p>
                 <div className="mt-2 grid gap-2 text-sm leading-relaxed text-fn-muted md:grid-cols-3">
-                    <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">1. Join a challenge or group that matches your style.</div>
-                    <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">2. Keep logging workouts, meals, or steps as usual.</div>
-                    <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">3. Your standing updates as your activity is recorded.</div>
+                    <div className="rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2">1. Join a challenge or group that matches your style.</div>
+                    <div className="rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2">2. Keep logging workouts, meals, or steps as usual.</div>
+                    <div className="rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2">3. Your standing updates as your activity is recorded.</div>
                 </div>
                 <div className="mt-3 rounded-xl border border-fn-accent/10 bg-fn-accent/5 px-4 py-3 text-sm leading-relaxed text-fn-muted">
-                    <span className="font-semibold text-white">Challenge</span> means a shared goal you can join today.
-                    <span className="mx-2 text-fn-muted/50">•</span>
-                    <span className="font-semibold text-white">Group</span> means a longer-term community of people with a similar style or routine.
+                    <div className="flex flex-wrap gap-2">
+                        <span className="rounded-full border border-white/15 bg-black/20 px-3 py-1 text-xs">
+                            <span className="font-semibold text-white">Challenge:</span> short event you can join today
+                        </span>
+                        <span className="rounded-full border border-white/15 bg-black/20 px-3 py-1 text-xs">
+                            <span className="font-semibold text-white">Group:</span> ongoing crew with a shared training style
+                        </span>
+                    </div>
+                </div>
+                <div className="mt-3 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-relaxed text-fn-muted">
+                    <span className="font-semibold text-white">Next step now:</span> join one challenge first. Your workouts and logs will automatically count toward the leaderboard.
                 </div>
                 <div className="mt-4 flex flex-wrap gap-3">
-                    <Link href="#community-challenges"><Button size="sm">Get started with a challenge</Button></Link>
+                    <Link href="#community-challenges"><Button size="sm">Join a challenge now</Button></Link>
                     <Link href="#community-groups"><Button size="sm" variant="secondary">Browse groups</Button></Link>
                 </div>
             </div>
@@ -167,7 +193,7 @@ export default function CommunityPage() {
                                             onClick={() => handleJoin(group.group_id)}
                                             loading={joining === group.group_id}
                                         >
-                                            Join group
+                                            Join this group
                                         </Button>
                                     </div>
                                 )}

@@ -98,19 +98,42 @@ export default function WorkoutLogPage() {
 
   return (
     <PageLayout title="Workout" subtitle="Capture sessions and keep progression visible">
+      <section className="premium-panel animate-panel-rise mb-4 p-5 sm:p-6">
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <p className="premium-kicker">Daily training execution</p>
+            <h1 className="premium-headline mt-2 text-3xl sm:text-4xl">
+              Choose guided mode or quick log.
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70">
+              Guided mode gives you walkthroughs, demo media, timers, and set logging. Quick log is best
+              when you already trained and need to keep progression data accurate.
+            </p>
+          </div>
+          <div className="premium-panel-soft p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Coach standard</p>
+            <div className="mt-3 space-y-2">
+              <p className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/75">1. Start guided workout for today&apos;s main lift plan.</p>
+              <p className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/75">2. Log completed sets and load.</p>
+              <p className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/75">3. Review coach recap after save.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
         <Link href="/log/workout/guided" className="block">
-          <Card padding="lg" className="h-full border-fn-accent relative overflow-hidden transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(10,217,196,0.2)] backdrop-blur-md bg-fn-accent/[0.03]">
+          <Card padding="lg" className="h-full border-fn-accent/30 relative overflow-hidden transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(10,217,196,0.2)] backdrop-blur-md bg-fn-accent/[0.03]">
             <div className="absolute top-0 right-0 p-6 opacity-20">
               <svg className="w-24 h-24 text-fn-accent" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14.5l-3.47-2.02L7 16l.66-3.81L5 9.5l3.81-.55L10.5 5.5l1.69 3.45L16 9.5l-2.66 2.69.66 3.81z" />
               </svg>
             </div>
-            <p className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent">Coaching Protocol</p>
-            <h2 className="mt-4 font-display text-4xl font-black text-white uppercase italic tracking-tighter leading-none">Initiate Coached Session</h2>
-            <p className="mt-4 text-base font-medium text-fn-ink/40 leading-relaxed uppercase tracking-widest">Plan-aware sequence flow with neural guidance.</p>
-            <p className="mt-8 text-[11px] font-black uppercase tracking-[0.3em] text-fn-accent flex items-center gap-2">
-              Begin Guided Experience
+            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-fn-accent">Guided Trainer Mode</p>
+            <h2 className="mt-4 font-display text-4xl font-black text-white italic tracking-tight leading-none">Start Guided Session</h2>
+            <p className="mt-4 text-sm font-medium text-fn-ink/60 leading-relaxed">Plan-aware sequence flow with walkthroughs, timers, media demos, and live coach cues.</p>
+            <p className="mt-8 text-[11px] font-semibold uppercase tracking-[0.2em] text-fn-accent flex items-center gap-2">
+              Open Guided Workout
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
             </p>
           </Card>
@@ -118,7 +141,7 @@ export default function WorkoutLogPage() {
 
         <Card>
           <CardHeader title="Coach&apos;s Take" subtitle="Plain-English guidance for today&apos;s session" />
-          <p className="mt-4 text-base font-medium text-fn-ink/40 leading-relaxed uppercase tracking-widest">Keep the main lifts steady today, then finish with one shorter hard effort if your energy still feels good.</p>
+          <p className="mt-4 text-base font-medium text-fn-ink/60 leading-relaxed">Keep the main lifts steady today, then finish with one shorter hard effort if your energy still feels good.</p>
           <div className="mt-8 flex flex-wrap gap-4">
             <Link href="/motion">
               <Button variant="secondary" size="sm">Motion Lab</Button>

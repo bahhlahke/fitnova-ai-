@@ -493,6 +493,28 @@ enum DemoContent {
         )
     }
 
+    static var activeEscalationState: ActiveEscalationStateResponse {
+        let formatter = ISO8601DateFormatter()
+        let dueAt = formatter.string(from: Date().addingTimeInterval(45 * 60))
+        let latestAt = formatter.string(from: Date().addingTimeInterval(-12 * 60))
+        return ActiveEscalationStateResponse(
+            active: ActiveEscalationState(
+                escalation_id: "esc-1",
+                topic: "Shoulder strain management",
+                urgency: "high",
+                status: "assigned",
+                sla_due_at: dueAt,
+                assigned_coach_user_id: "coach-1",
+                created_at: formatter.string(from: Date().addingTimeInterval(-2 * 3600)),
+                latest_message: EscalationLatestMessage(
+                    body: "Coach reviewed your logs and sent a shoulder-safe progression path.",
+                    sender_type: "coach",
+                    created_at: latestAt
+                )
+            )
+        )
+    }
+
     static var stripeCheckout: StripeCheckoutResponse {
         StripeCheckoutResponse(
             url: AppConfig.apiBaseURL.absoluteString,

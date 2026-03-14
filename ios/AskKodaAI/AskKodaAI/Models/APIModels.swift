@@ -71,6 +71,21 @@ struct ProjectionResponse: Decodable {
     let confidence: Double?
 }
 
+struct WorkoutParityGuard: Codable {
+    let requires_approval: Bool?
+    let summary: String?
+    let divergence_count: Int?
+    let diffs: [WorkoutParityDiff]?
+}
+
+struct WorkoutParityDiff: Codable {
+    let exercise_index: Int?
+    let exercise_name: String?
+    let changed_fields: [String]?
+    let baseline_summary: String?
+    let candidate_summary: String?
+}
+
 /// GET /api/v1/ai/projection — flat response: current, projected_4w, projected_12w, rate, confidence
 typealias DashboardProjectionResponse = ProjectionResponse
 
@@ -263,7 +278,80 @@ struct ActiveEscalationResponse: Decodable {
 struct ActiveEscalation: Decodable {
     let escalation_id: String?
     let topic: String?
+    let urgency: String?
     let status: String?
+    let sla_due_at: String?
+    let assigned_coach_user_id: String?
+    let created_at: String?
+
+    init(
+        escalation_id: String? = nil,
+        topic: String? = nil,
+        urgency: String? = nil,
+        status: String? = nil,
+        sla_due_at: String? = nil,
+        assigned_coach_user_id: String? = nil,
+        created_at: String? = nil
+    ) {
+        self.escalation_id = escalation_id
+        self.topic = topic
+        self.urgency = urgency
+        self.status = status
+        self.sla_due_at = sla_due_at
+        self.assigned_coach_user_id = assigned_coach_user_id
+        self.created_at = created_at
+    }
+}
+
+struct ActiveEscalationStateResponse: Decodable {
+    let active: ActiveEscalationState?
+
+    init(active: ActiveEscalationState?) {
+        self.active = active
+    }
+}
+
+struct ActiveEscalationState: Decodable {
+    let escalation_id: String?
+    let topic: String?
+    let urgency: String?
+    let status: String?
+    let sla_due_at: String?
+    let assigned_coach_user_id: String?
+    let created_at: String?
+    let latest_message: EscalationLatestMessage?
+
+    init(
+        escalation_id: String? = nil,
+        topic: String? = nil,
+        urgency: String? = nil,
+        status: String? = nil,
+        sla_due_at: String? = nil,
+        assigned_coach_user_id: String? = nil,
+        created_at: String? = nil,
+        latest_message: EscalationLatestMessage? = nil
+    ) {
+        self.escalation_id = escalation_id
+        self.topic = topic
+        self.urgency = urgency
+        self.status = status
+        self.sla_due_at = sla_due_at
+        self.assigned_coach_user_id = assigned_coach_user_id
+        self.created_at = created_at
+        self.latest_message = latest_message
+    }
+}
+
+struct EscalationLatestMessage: Decodable {
+    let body: String?
+    let sender_type: String?
+    let created_at: String?
+
+    init(body: String? = nil, sender_type: String? = nil, created_at: String? = nil) {
+        self.body = body
+        self.sender_type = sender_type
+        self.created_at = created_at
+    }
 }
 
 // MARK: - Export, telemetry, awards

@@ -4,7 +4,7 @@
 
 ## POST `/api/v1/ai/respond`
 
-Chat endpoint for the AI coach. Uses OpenRouter; when the user is signed in, context (profile, recent workouts, nutrition, conversation history) is assembled and injected into the system prompt.
+Chat endpoint for the AI coach. Uses OpenRouter; when the user is signed in, context (profile, recent workouts, nutrition, conversation history, live wearable signal context) is assembled and injected into the system prompt.
 
 ### Request
 
@@ -16,11 +16,32 @@ Chat endpoint for the AI coach. Uses OpenRouter; when the user is signed in, con
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `message` | string | Yes | User message; must be non-empty after trim. |
+| `localDate` | string (`YYYY-MM-DD`) | No | Local date override for logs/tool actions. |
+| `conversationHistory` | array | No | Prior turns for continuity; each turn is `{ "role": "user" \| "assistant", "content": string }`. |
+| `wearableContext` | object | No | Live coaching signals (heart rate, steps, HRV, HRV baseline/delta, session phase, recovery target). |
 
 **Example**
 
 ```json
-{ "message": "What should I do for upper body today?" }
+{
+  "message": "What should I do for upper body today?",
+  "localDate": "2026-03-14",
+  "conversationHistory": [
+    { "role": "user", "content": "I slept poorly." },
+    { "role": "assistant", "content": "We'll keep volume moderate." }
+  ],
+  "wearableContext": {
+    "provider": "apple_health",
+    "current_heart_rate": 128,
+    "today_steps": 8120,
+    "today_hrv": 52.4,
+    "hrv_baseline": 60.2,
+    "hrv_delta": -7.8,
+    "session_phase": "coach_chat",
+    "recovery_target_heart_rate": 105,
+    "signal_captured_at": "2026-03-14T12:00:00.000Z"
+  }
+}
 ```
 
 ### Response
@@ -28,8 +49,15 @@ Chat endpoint for the AI coach. Uses OpenRouter; when the user is signed in, con
 **Success (200)**
 
 ```json
-{ "reply": "..." }
+{
+  "reply": "...",
+  "action": { "type": "plan_daily", "targetRoute": "/log/workout/guided?date=2026-03-14" },
+  "actions": [{ "type": "plan_daily", "targetRoute": "/log/workout/guided?date=2026-03-14" }],
+  "refreshScopes": ["dashboard", "plan"]
+}
 ```
+
+`action` is kept for legacy/native compatibility; `actions` is the preferred action list.
 
 **Errors**
 
@@ -38,17 +66,38 @@ Chat endpoint for the AI coach. Uses OpenRouter; when the user is signed in, con
 | 400 | `{ "error": "...", "code": "INVALID_JSON" \| "VALIDATION_ERROR" }` | Malformed or invalid body. |
 | 401 | `{ "error": "...", "code": "AUTH_REQUIRED" }` | No signed-in user. |
 | 429 | `{ "error": "...", "code": "RATE_LIMITED" }` | User exceeded request limit. |
-| 500 | `{ "error": "...", "code": "INTERNAL_ERROR" }` | Internal error. |
-| 502 | `{ "error": "...", "code": "UPSTREAM_ERROR" }` | Provider failure. |
-| 503 | `{ "error": "...", "code": "SERVICE_UNAVAILABLE" }` | `OPENROUTER_API_KEY` not set. |
+| 502 | `{ "error": "...", "code": "UPSTREAM_ERROR" }` | Provider returned invalid response or non-retryable upstream failure. |
+| 503 | `{ "error": "...", "code": "UPSTREAM_ERROR" \| "SERVICE_UNAVAILABLE" }` | AI network/provider unavailable, unhandled runtime failure, or `OPENROUTER_API_KEY` missing. |
+| 504 | `{ "error": "...", "code": "UPSTREAM_ERROR" }` | AI provider timeout. |
 
 ### Behavior
 
 - The handler loads profile, recent workout/nutrition logs, biometric signals (HRV, Sleep trends), Exercise PRs, and latest conversation from Supabase.
 - Builds a system prompt via `lib/ai/assemble-context.ts` embodying a PhD-level Performance Coach persona.
+- Sanitizes live `wearableContext` and injects it as high-priority real-time guidance context.
+- Persists signal snapshots (`steps`, `hrv`) to `connected_signals` when supplied by authenticated clients.
 - Safety policy is balanced: no diagnosis, injury-aware, escalation guidance.
-- The request is sent to OpenRouter (`openai/gpt-4o`); reply is returned and appended to `ai_conversations`.
+- The request is sent to OpenRouter with retries and fallback models; reply is returned and appended to `ai_conversations`.
 - Synthesis Logic: Correlates physiological signals with training intensity for high-performance insights.
+
+## POST `/api/v1/coach/audio`
+
+Generates coach voice scripts for guided sessions (start workout, start set, finish set, finish workout).
+
+### Request
+
+- **Method:** `POST`
+- **Headers:** `Content-Type: application/json`
+- **Auth:** Session cookie or `Authorization: Bearer <access_token>`.
+- **Body fields:**
+  - `context`: `start_workout` | `start_set` | `finish_set` | `finish_workout`
+  - `details`: optional exercise/session payload (name, reps, tempo, rest, coaching cues)
+  - `metrics`: optional live telemetry (`current_heart_rate_bpm`, `recovery_target_bpm`, `today_hrv_ms`/`hrv_delta_ms`, `today_steps`, etc.)
+
+### Behavior
+
+- Script generation adapts to readiness and recovery metrics (heart rate vs recovery target, HRV trend, and movement context).
+- If AI generation fails, the route returns a deterministic fallback script so guided sessions are never blocked by voice generation failures.
 
 ## GET `/api/v1/ai/history`
 

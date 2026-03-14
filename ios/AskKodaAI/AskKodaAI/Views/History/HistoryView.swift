@@ -44,17 +44,49 @@ struct HistoryView: View {
         case nutrition = "Nutrition"
     }
 
+    private var historyTabs: [PremiumTabItem] {
+        [
+            PremiumTabItem(
+                id: HistoryTab.workouts.rawValue,
+                title: "Workouts",
+                detail: "\(workouts.count)"
+            ),
+            PremiumTabItem(
+                id: HistoryTab.nutrition.rawValue,
+                title: "Nutrition",
+                detail: "\(nutritionLogs.count)"
+            ),
+        ]
+    }
+
+    private var selectedTabId: Binding<String> {
+        Binding(
+            get: { tab.rawValue },
+            set: { newValue in
+                tab = HistoryTab(rawValue: newValue) ?? .workouts
+            }
+        )
+    }
+
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Custom tab picker
-            HStack(spacing: 20) {
-                HistoryTabButton(title: "Workouts", isActive: tab == .workouts) { tab = .workouts }
-                HistoryTabButton(title: "Nutrition", isActive: tab == .nutrition) { tab = .nutrition }
+        VStack(spacing: 14) {
+            PremiumHeroCard(
+                title: "Training Archive",
+                subtitle: "Review completed sessions, nutrition consistency, and edit logs so every coaching decision stays accurate.",
+                eyebrow: "History"
+            ) {
+                HStack(spacing: 10) {
+                    PremiumMetricPill(label: "Workout logs", value: "\(workouts.count)")
+                    PremiumMetricPill(label: "Nutrition logs", value: "\(nutritionLogs.count)")
+                }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 10)
+            .padding(.top, 12)
+
+            PremiumTabSwitcher(items: historyTabs, selectedId: selectedTabId)
+                .padding(.horizontal, 16)
 
             if loading && workouts.isEmpty && nutritionLogs.isEmpty {
                 ScrollView {
@@ -73,6 +105,7 @@ struct HistoryView: View {
         }
         .fnBackground()
         .navigationTitle("History")
+        .navigationBarTitleDisplayMode(.inline)
         .refreshable { await load() }
         .task { await load() }
     }
@@ -82,6 +115,8 @@ struct HistoryView: View {
     private var workoutsTab: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
+                PremiumSectionHeader("Workout Sessions", eyebrow: "strength, cardio, recovery")
+
                 if let err = errorMessage {
                     errorBanner(err)
                 }
@@ -103,7 +138,8 @@ struct HistoryView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 16)
+            .padding(.top, 2)
+            .padding(.bottom, 20)
         }
     }
 
@@ -259,6 +295,8 @@ struct HistoryView: View {
     private var nutritionTab: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
+                PremiumSectionHeader("Nutrition Logs", eyebrow: "macros and meal quality")
+
                 if let err = errorMessage {
                     errorBanner(err)
                 }
@@ -280,7 +318,8 @@ struct HistoryView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 16)
+            .padding(.top, 2)
+            .padding(.bottom, 20)
         }
     }
 
@@ -533,25 +572,6 @@ struct HistoryView: View {
             }
         } catch {
             await MainActor.run { errorMessage = error.localizedDescription }
-        }
-    }
-}
-
-private struct HistoryTabButton: View {
-    let title: String
-    let isActive: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Text(title)
-                    .font(.system(size: 13, weight: .black))
-                    .foregroundStyle(isActive ? .white : .white.opacity(0.4))
-                Rectangle()
-                    .fill(isActive ? Brand.Color.accent : Color.clear)
-                    .frame(height: 2)
-            }
         }
     }
 }

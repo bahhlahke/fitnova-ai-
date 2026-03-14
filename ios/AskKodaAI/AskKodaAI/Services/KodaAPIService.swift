@@ -11,6 +11,12 @@ struct KodaAPIService {
     let baseURL: URL
     let getAccessToken: () async -> String?
 
+    private struct AdaptDayPayload: Decodable {
+        let plan: DailyPlan?
+        let exercises: [PlanExercise]?
+        let adaptation_note: String?
+    }
+
     private var isDemoMode: Bool {
         DebugUX.isDemoMode
     }
@@ -21,7 +27,11 @@ struct KodaAPIService {
     }
 
     /// POST /api/v1/ai/respond — AI coach chat.
-    func aiRespond(message: String, localDate: String? = nil) async throws -> AIReplyResponse {
+    func aiRespond(
+        message: String,
+        localDate: String? = nil,
+        wearableContext: AIWearableContextPayload? = nil
+    ) async throws -> AIReplyResponse {
         if isDemoMode {
             return try await DebugUX.resolve(
                 primary: DemoContent.aiReply(for: message),
@@ -32,6 +42,9 @@ struct KodaAPIService {
         let body: [String: Any] = {
             var b: [String: Any] = ["message": message]
             if let d = localDate, !d.isEmpty { b["localDate"] = d }
+            if let wearableContext, wearableContext.hasAnySignal {
+                b["wearableContext"] = wearableContext.asJSON
+            }
             return b
         }()
         return try await post("api/v1/ai/respond", body: body)
@@ -184,7 +197,24 @@ struct KodaAPIService {
             "current_exercises": AnyCodable(value: currentExercises),
             "date_local": AnyCodable(value: dateLocal)
         ]
-        return try await post("api/v1/plan/adapt-day", body: body)
+        let payload: AdaptDayPayload = try await post("api/v1/plan/adapt-day", body: body)
+        if let plan = payload.plan {
+            return AdaptDayResponse(plan: plan)
+        }
+        if let exercises = payload.exercises {
+            let synthesizedPlan = DailyPlan(
+                date_local: dateLocal,
+                training_plan: TrainingPlan(
+                    focus: focus,
+                    duration_minutes: targetDuration,
+                    exercises: exercises
+                ),
+                nutrition_plan: nil,
+                safety_notes: payload.adaptation_note.map { [$0] }
+            )
+            return AdaptDayResponse(plan: synthesizedPlan)
+        }
+        return AdaptDayResponse(plan: nil)
     }
 
     /// POST /api/v1/stripe/checkout
@@ -476,6 +506,18 @@ struct KodaAPIService {
         return try await post("api/v1/coach/escalate/create", body: body)
     }
 
+    /// GET /api/v1/coach/escalate/active
+    func coachEscalateActive() async throws -> ActiveEscalationStateResponse {
+        if isDemoMode {
+            return try await DebugUX.resolve(
+                primary: DemoContent.activeEscalationState,
+                empty: ActiveEscalationStateResponse(active: nil),
+                label: "escalation active"
+            )
+        }
+        return try await get("api/v1/coach/escalate/active")
+    }
+
     /// GET /api/v1/coach/escalate/messages
     func coachEscalateMessages(escalationId: String) async throws -> EscalationMessagesResponse {
         if isDemoMode {
@@ -670,6 +712,41 @@ struct APIErrorBody: Decodable {
     let code: String?
 }
 
+struct AIWearableContextPayload {
+    let provider: String
+    let currentHeartRate: Int?
+    let todaySteps: Int?
+    let todayHRV: Double?
+    let hrvBaseline: Double?
+    let hrvDelta: Double?
+    let sessionPhase: String?
+    let recoveryTargetHeartRate: Int?
+    let signalCapturedAt: Date
+
+    var hasAnySignal: Bool {
+        currentHeartRate != nil ||
+        todaySteps != nil ||
+        todayHRV != nil ||
+        hrvBaseline != nil ||
+        hrvDelta != nil
+    }
+
+    var asJSON: [String: Any] {
+        var payload: [String: Any] = [
+            "provider": provider,
+            "signal_captured_at": ISO8601DateFormatter().string(from: signalCapturedAt),
+        ]
+        if let currentHeartRate { payload["current_heart_rate"] = currentHeartRate }
+        if let todaySteps { payload["today_steps"] = todaySteps }
+        if let todayHRV { payload["today_hrv"] = todayHRV }
+        if let hrvBaseline { payload["hrv_baseline"] = hrvBaseline }
+        if let hrvDelta { payload["hrv_delta"] = hrvDelta }
+        if let sessionPhase, !sessionPhase.isEmpty { payload["session_phase"] = sessionPhase }
+        if let recoveryTargetHeartRate { payload["recovery_target_heart_rate"] = recoveryTargetHeartRate }
+        return payload
+    }
+}
+
 struct AIReplyResponse: Decodable {
     let reply: String
     let action: AIAction?
@@ -679,12 +756,39 @@ struct AIReplyResponse: Decodable {
 struct AIAction: Decodable {
     let type: String
     let payload: AIActionPayload?
+    let targetRoute: String?
+    let summary: String?
+
+    init(
+        type: String,
+        payload: AIActionPayload? = nil,
+        targetRoute: String? = nil,
+        summary: String? = nil
+    ) {
+        self.type = type
+        self.payload = payload
+        self.targetRoute = targetRoute
+        self.summary = summary
+    }
 }
 
 struct AIActionPayload: Codable {
     let exercise_name: String?
     let video_url: String?
     let training_plan: TrainingPlan?
+    let parity_guard: WorkoutParityGuard?
+
+    init(
+        exercise_name: String? = nil,
+        video_url: String? = nil,
+        training_plan: TrainingPlan? = nil,
+        parity_guard: WorkoutParityGuard? = nil
+    ) {
+        self.exercise_name = exercise_name
+        self.video_url = video_url
+        self.training_plan = training_plan
+        self.parity_guard = parity_guard
+    }
 }
 
 struct HistoryResponse: Decodable {
@@ -723,11 +827,61 @@ struct PlanExercise: Codable {
     let breathing: String?
     let intent: String?
     let rationale: String?
+    let walkthrough_steps: [String]?
+    let coaching_points: [String]?
+    let setup_checklist: [String]?
+    let common_mistakes: [String]?
     let target_rir: Int?
     let target_load_kg: Double?
+    let rest_seconds_after_set: Int?
+    let progression_note: String?
     let video_url: String?
     let cinema_video_url: String?
     let image_url: String?
+
+    init(
+        name: String? = nil,
+        sets: Int? = nil,
+        reps: String? = nil,
+        intensity: String? = nil,
+        notes: String? = nil,
+        tempo: String? = nil,
+        breathing: String? = nil,
+        intent: String? = nil,
+        rationale: String? = nil,
+        walkthrough_steps: [String]? = nil,
+        coaching_points: [String]? = nil,
+        setup_checklist: [String]? = nil,
+        common_mistakes: [String]? = nil,
+        target_rir: Int? = nil,
+        target_load_kg: Double? = nil,
+        rest_seconds_after_set: Int? = nil,
+        progression_note: String? = nil,
+        video_url: String? = nil,
+        cinema_video_url: String? = nil,
+        image_url: String? = nil
+    ) {
+        self.name = name
+        self.sets = sets
+        self.reps = reps
+        self.intensity = intensity
+        self.notes = notes
+        self.tempo = tempo
+        self.breathing = breathing
+        self.intent = intent
+        self.rationale = rationale
+        self.walkthrough_steps = walkthrough_steps
+        self.coaching_points = coaching_points
+        self.setup_checklist = setup_checklist
+        self.common_mistakes = common_mistakes
+        self.target_rir = target_rir
+        self.target_load_kg = target_load_kg
+        self.rest_seconds_after_set = rest_seconds_after_set
+        self.progression_note = progression_note
+        self.video_url = video_url
+        self.cinema_video_url = cinema_video_url
+        self.image_url = image_url
+    }
 }
 
 struct NutritionPlan: Codable {
@@ -813,6 +967,13 @@ extension KodaAPIError: LocalizedError {
         case .http(let status, let message):
             if status == 401 { return "Please sign in again." }
             if status == 429 { return "Too many requests. Please try again in a minute." }
+            if status >= 500 {
+                let lowercased = message.lowercased()
+                if lowercased.contains("timed out") {
+                    return "Coach is taking longer than expected. Please try again."
+                }
+                return "Coach AI is temporarily unavailable. Please try again in a moment."
+            }
             return message.isEmpty ? "Something went wrong (\(status))." : message
         case .noAuth: return "Please sign in to continue."
         case .invalidResponse, .invalidURL: return "Network error. Please try again."

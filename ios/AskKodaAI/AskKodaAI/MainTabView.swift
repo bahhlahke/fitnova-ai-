@@ -60,8 +60,13 @@ struct MainTabView: View {
         .onOpenURL { url in
             handleDeepLink(url)
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SwitchToTab"))) { note in
+            if let tab = note.userInfo?["tab"] as? Int {
+                withAnimation { selectedTab = tab }
+            }
+        }
     }
-    
+
     private func handleDeepLink(_ url: URL) {
         let path = url.path.lowercased()
         if path.contains("/plan") {
