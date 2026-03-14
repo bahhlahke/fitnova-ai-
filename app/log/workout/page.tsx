@@ -21,6 +21,7 @@ export default function WorkoutLogPage() {
   const [refetch, setRefetch] = useState(0);
   const [postWorkoutInsight, setPostWorkoutInsight] = useState<string | null>(null);
   const [postWorkoutInsightLoading, setPostWorkoutInsightLoading] = useState(false);
+  const [planAdaptationNote, setPlanAdaptationNote] = useState<string | null>(null);
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [editWorkoutData, setEditWorkoutData] = useState<{ type: string; duration: string; notes: string }>({ type: "strength", duration: "", notes: "" });
   const [workoutSaveStatus, setWorkoutSaveStatus] = useState<"idle" | "saving" | "error">("idle");
@@ -174,6 +175,7 @@ export default function WorkoutLogPage() {
             setRefetch((n) => n + 1);
             emitDataRefresh(["dashboard", "workout"]);
             setPostWorkoutInsight(null);
+            setPlanAdaptationNote(null);
             setPostWorkoutInsightLoading(true);
             setFeedback({ tone: "success", message: "Workout saved. Koda is updating your dashboard and recap now." });
             fetch("/api/v1/ai/post-workout-insight", { method: "POST" })
@@ -189,6 +191,21 @@ export default function WorkoutLogPage() {
               })
               .finally(() => setPostWorkoutInsightLoading(false));
             fetch("/api/v1/analytics/process-prs", { method: "POST" }).catch(() => { });
+            // Re-evaluate remaining days in the weekly plan based on what was actually logged
+            fetch("/api/v1/plan/adapt-from-log", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ type: "workout" }),
+            })
+              .then((r) => r.json())
+              .then((body: { adaptation_summary?: string; updated_days?: string[] }) => {
+                if (body.adaptation_summary) {
+                  setPlanAdaptationNote(body.adaptation_summary);
+                }
+              })
+              .catch(() => {
+                // Adaptation is best-effort — don't surface errors to the user
+              });
           }}
         />
         {postWorkoutInsightLoading && (
@@ -200,6 +217,15 @@ export default function WorkoutLogPage() {
             <p className="mt-4 text-base font-medium italic leading-relaxed text-fn-ink/60">{postWorkoutInsight}</p>
             <button type="button" onClick={() => setPostWorkoutInsight(null)} className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent hover:text-white transition-all">
               Acknowledge Insight
+            </button>
+          </div>
+        )}
+        {planAdaptationNote && (
+          <div className="mt-4 rounded-xl border border-fn-accent/15 bg-fn-accent/[0.04] p-5 animate-in fade-in zoom-in-95 duration-500">
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-fn-accent">Plan Adapted</p>
+            <p className="mt-2 text-sm leading-relaxed text-fn-ink/60">{planAdaptationNote}</p>
+            <button type="button" onClick={() => setPlanAdaptationNote(null)} className="mt-4 text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent hover:text-white transition-all">
+              Dismiss
             </button>
           </div>
         )}
