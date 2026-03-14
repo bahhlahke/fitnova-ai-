@@ -67,6 +67,7 @@ struct GuidedWorkoutView: View {
 
     // Resolved CDN demo video URL for the current exercise (nil until fetched).
     @State private var resolvedDemoURL: URL?
+    @State private var fullscreenDemoItem: FullscreenDemoItem?
 
     // Exercise intro: set when transitioning to a new exercise after rest
     @State private var isNewExerciseAfterRest = false
@@ -261,6 +262,45 @@ struct GuidedWorkoutView: View {
         .onDisappear {
             stopNeuralMastery()
         }
+        .fullScreenCover(item: $fullscreenDemoItem) { item in
+            ZStack {
+                Color.black.ignoresSafeArea()
+                CinemaPlayerView(videoURL: item.url)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .ignoresSafeArea()
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.75)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button { fullscreenDemoItem = nil } label: {
+                            Image(systemName: "xmark")
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 42, height: 42)
+                                .background(
+                                    Circle()
+                                        .fill(Color.black.opacity(0.55))
+                                        .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                                )
+                        }
+                        .padding(.top, 60)
+                        .padding(.trailing, 24)
+                    }
+                    Spacer()
+                    Text(item.name)
+                        .font(.system(size: 28, weight: .black, design: .rounded).italic())
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 60)
+                }
+            }
+        }
         .sheet(isPresented: $showRealtimeFormCheck) {
             RealtimeMotionLabSessionView(
                 capability: motionAnalysis.capability,
@@ -444,6 +484,37 @@ struct GuidedWorkoutView: View {
             // Gradient Overlay
             LinearGradient(colors: [.black.opacity(phase == .rest ? 0.8 : 0.4), .black.opacity(0.8), .black], startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
+
+            // View Demo button (only during work phase when a video is available)
+            if phase == .work, let url = resolveAssetUrl(ex: ex) {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button {
+                            fullscreenDemoItem = FullscreenDemoItem(name: ex.name ?? "Exercise", url: url)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("View Demo")
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            }
+                            .foregroundStyle(.white.opacity(0.8))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(
+                                Capsule()
+                                    .fill(Color.black.opacity(0.45))
+                                    .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                            )
+                        }
+                        .padding(.top, 60)
+                        .padding(.trailing, 20)
+                    }
+                    Spacer()
+                }
+                .ignoresSafeArea(edges: .top)
+            }
 
             VStack(spacing: 0) {
                 workoutHeader(exercise: ex)
@@ -1477,6 +1548,18 @@ struct GuidedWorkoutView: View {
 
     // MARK: - Helpers
     
+    /// Resolves a demo URL for any exercise without relying on the CDN-prefetched `resolvedDemoURL`.
+    private func resolveStaticURL(for exercise: PlanExercise) -> URL? {
+        let assetStr = exercise.cinema_video_url ?? exercise.video_url ?? exercise.image_url
+        let finalStr = ExerciseImages.getExerciseImageUrl(exerciseName: exercise.name ?? "", overrideUrl: assetStr)
+        if finalStr.hasPrefix("http") {
+            return URL(string: finalStr)
+        } else {
+            let path = finalStr.hasPrefix("/") ? String(finalStr.dropFirst()) : finalStr
+            return AppConfig.apiBaseURL.appendingPathComponent(path)
+        }
+    }
+
     private func resolveAssetUrl(ex: PlanExercise) -> URL? {
         // CDN-resolved URL takes priority (bundle or Supabase Storage).
         if let cdn = resolvedDemoURL { return cdn }
@@ -1562,7 +1645,24 @@ struct GuidedWorkoutView: View {
                 }
             }
 
-            Spacer()
+            Button {
+                if let url = resolveStaticURL(for: exercise) {
+                    fullscreenDemoItem = FullscreenDemoItem(name: exercise.name ?? "Exercise", url: url)
+                }
+            } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.white.opacity(0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(Brand.Color.accent.opacity(0.3), lineWidth: 1)
+                        )
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Brand.Color.accent)
+                }
+                .frame(width: 40, height: 40)
+            }
         }
         .padding(16)
         .background(
@@ -1882,6 +1982,12 @@ struct GuidedWorkoutView: View {
                 )
         }
     }
+}
+
+private struct FullscreenDemoItem: Identifiable {
+    let id = UUID()
+    let name: String
+    let url: URL
 }
 
 private extension Array {
