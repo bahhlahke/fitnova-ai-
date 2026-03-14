@@ -193,6 +193,8 @@ function GuidedWorkoutScreen() {
   const [workSecondsRemaining, setWorkSecondsRemaining] = useState<number | null>(null);
   const [isWorkTimerRunning, setIsWorkTimerRunning] = useState(false);
 
+  const [fullscreenDemo, setFullscreenDemo] = useState<{ url: string; name: string } | null>(null);
+
   const markMediaFailed = useCallback((url: string | null | undefined) => {
     if (!url) return;
     setFailedMediaUrls((current) => (current.includes(url) ? current : [...current, url]));
@@ -788,39 +790,51 @@ function GuidedWorkoutScreen() {
                       <p className="mt-0.5 text-xs font-semibold text-fn-muted">{ex.sets} sets · {ex.reps} target</p>
                     </div>
                   </div>
-                  <div className="h-12 w-12 overflow-hidden rounded-xl bg-black/40">
-                    {(() => {
-                      const mediaUrl = getExerciseImageUrl(ex.name, ex.video_url || ex.image_url);
-                      if (failedMediaUrls.includes(mediaUrl)) {
-                        return (
+                  {(() => {
+                    const mediaUrl = getExerciseImageUrl(ex.name, ex.video_url || ex.image_url);
+                    const canExpand = !failedMediaUrls.includes(mediaUrl);
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => canExpand && setFullscreenDemo({ url: mediaUrl, name: ex.name })}
+                        className="relative h-12 w-12 overflow-hidden rounded-xl bg-black/40 flex-shrink-0 transition-transform active:scale-95"
+                        title="Tap to view exercise demo"
+                      >
+                        {failedMediaUrls.includes(mediaUrl) ? (
                           <div className="flex h-full w-full items-center justify-center bg-white/5 text-lg">
                             <span>🏋️</span>
                           </div>
-                        );
-                      }
-                      return isExerciseVideoUrl(mediaUrl) ? (
-                        <video
-                          src={mediaUrl}
-                          muted
-                          autoPlay
-                          loop
-                          playsInline
-                          className="h-full w-full object-cover opacity-50 transition-opacity group-hover:opacity-100"
-                          onError={() => markMediaFailed(mediaUrl)}
-                        />
-                      ) : (
-                        <Image
-                          src={mediaUrl}
-                          alt={ex.name}
-                          width={48}
-                          height={48}
-                          className="h-full w-full object-cover opacity-50 transition-opacity group-hover:opacity-100"
-                          unoptimized={isExerciseGifUrl(mediaUrl)}
-                          onError={() => markMediaFailed(mediaUrl)}
-                        />
-                      );
-                    })()}
-                  </div>
+                        ) : isExerciseVideoUrl(mediaUrl) ? (
+                          <video
+                            src={mediaUrl}
+                            muted
+                            autoPlay
+                            loop
+                            playsInline
+                            className="h-full w-full object-cover opacity-50 transition-opacity group-hover:opacity-100"
+                            onError={() => markMediaFailed(mediaUrl)}
+                          />
+                        ) : (
+                          <Image
+                            src={mediaUrl}
+                            alt={ex.name}
+                            width={48}
+                            height={48}
+                            className="h-full w-full object-cover opacity-50 transition-opacity group-hover:opacity-100"
+                            unoptimized={isExerciseGifUrl(mediaUrl)}
+                            onError={() => markMediaFailed(mediaUrl)}
+                          />
+                        )}
+                        {canExpand && (
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                            <svg className="h-4 w-4 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                            </svg>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })()}
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2 border-t border-white/5 pt-4">
                   <span className="rounded-full border border-white/15 bg-black/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
@@ -1034,6 +1048,18 @@ function GuidedWorkoutScreen() {
             />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/20" />
+          {!showMotionFallback && !failedMediaUrls.includes(imageUrl) && (
+            <button
+              type="button"
+              onClick={() => setFullscreenDemo({ url: imageUrl, name: exercise.name })}
+              className="absolute top-4 right-4 z-10 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70 backdrop-blur-sm transition-all hover:bg-white/10 hover:text-white"
+            >
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+              View Demo
+            </button>
+          )}
         </div>
       )}
 
@@ -1533,6 +1559,49 @@ function GuidedWorkoutScreen() {
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Exercise Demo Modal */}
+      {fullscreenDemo && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black animate-in fade-in duration-200"
+          onClick={() => setFullscreenDemo(null)}
+        >
+          {isExerciseVideoUrl(fullscreenDemo.url) ? (
+            <video
+              src={fullscreenDemo.url}
+              className="h-full w-full object-contain"
+              loop
+              muted
+              autoPlay
+              playsInline
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <Image
+              src={fullscreenDemo.url}
+              alt={fullscreenDemo.name}
+              fill
+              className="object-contain"
+              unoptimized={isExerciseGifUrl(fullscreenDemo.url)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-6 pb-10 pt-16 pointer-events-none">
+            <p className="text-center text-xl font-black italic uppercase tracking-tight text-white drop-shadow-2xl">
+              {fullscreenDemo.name}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFullscreenDemo(null)}
+            className="absolute top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-white/10"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Floating Ask Coach Button */}
       {phase === "work" && !isCoachOpen && (
