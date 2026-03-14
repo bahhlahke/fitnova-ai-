@@ -51,12 +51,15 @@ For AI agents and new contributors: see [AGENTS.md](../AGENTS.md) for project la
 - **`npm run test:ai-review:coverage`** — Same as above but runs Vitest with `--coverage` and includes the coverage summary in the AI context for better gap analysis.
 - Optional flags: `--no-ai` (skip LLM call), `--output path/report.md` (custom report path). Model can be overridden with `AI_TEST_REVIEW_MODEL` (default: `openai/gpt-4o-mini`).
 - **Workflow validation:** `npm run workflow:validate:ai` runs HTTP workflow checks against a running app (default `http://localhost:3000`) and uses the same OpenRouter key to AI-judge each workflow (verdict, friction points, recommendations). Reports go to `docs/reports/ai-workflow-validation-<timestamp>.md`.
+- **Web UI surface smoke:** `npm run test:web:surfaces` captures the core signed-out and signed-in web surfaces on desktop and mobile, writes screenshots plus `manifest.json` to `docs/reports/web-surface-smoke-<timestamp>/`, and fails when routes redirect unexpectedly, render too little content, or hit runtime errors. For signed-in screens, run against `npm run dev` with `SUPABASE_SERVICE_ROLE_KEY` available so `/api/v1/auth/mock-login` can bootstrap the test session.
+- **Cross-platform AI UI validation:** `npm run validate:ui:ai` orchestrates `test:web:surfaces` and `test:ios:surfaces`, then asks a multimodal AI judge to review workflow screenshots as multiple user personas with different proficiency levels. The report lands at `docs/reports/ai-ui-surface-validation-<timestamp>/SUMMARY.md`. Use `--fail-if-not-ready` to turn it into a release gate.
 
 ### iOS tests and AI review
 
 - **`npm run test:ios`** — Finds any `.xcodeproj` under `ios/` (e.g. `ios/AskKodaAI/AskKodaAI.xcodeproj`), runs `xcodebuild test` with that project and its scheme (e.g. **AskKodaAI**). If no project is found, exits 0. Requires Xcode and a **Unit Testing Bundle** target that includes the `ios/KodaAITests` sources (see `ios/README.md`).
 - **`npm run test:ai-review:ios`** — Discovers iOS test files under `ios/`, runs `xcodebuild test` when a project exists, then sends the test file list and run output to OpenRouter for an AI review (verdict, coverage gaps, suggested tests, assertion risks, **production readiness**). Report: `docs/reports/ai-test-review-ios-<timestamp>.md`. Set `OPENROUTER_API_KEY` for the AI section; use `--no-ai` to skip the LLM. Model override: `AI_TEST_REVIEW_MODEL`.
 - **`npm run test:ios:ready`** — **Production gate.** Runs `test:ios` then `test:ai-review:ios --fail-if-not-ready`. Exits with code 1 if tests failed or the AI reports not production ready (verdict critical or production_ready false). Use in CI or before release to block when the suite does not meet the production-readiness rubric.
+- **`npm run test:ios:surfaces`** — Builds the app, captures deterministic simulator screenshots for the core iOS workflow matrix, and writes both a Markdown summary and `manifest.json` so the UI validator can inspect exact surfaces.
 
 **When is the iOS app production ready?** The AI review uses a strict rubric: (1) tests ran and passed, (2) auth/session or equivalent covered, (3) API response decoding covered, (4) critical data models (workout, nutrition, progress, nudges) covered, (5) no P0 gaps, (6) no critical assertion risks. Only when all are satisfied does the report show **Production readiness: PASS**. Run `npm run test:ios:ready` (with `OPENROUTER_API_KEY` set) to gate releases.
 
@@ -102,6 +105,7 @@ Before each production deploy:
 3. **iOS:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `API_BASE_URL` set via xcconfig or CI; HTTPS in release. Privacy Policy and usage descriptions in Info.plist.
 4. **Logging:** Server `console.log` in `lib/supabase/server.ts` is dev-only. API routes use `console.error` for failures; avoid logging PII.
 5. **Validate:** `npm run validate` (lint, build, test). Optionally run `node scripts/ai-workflow-validator.mjs --base-url <production-url>` after deploy.
+6. **Surface readiness:** Run `npm run validate:ui:ai --fail-if-not-ready` against local/staging before release to catch UI clarity, state, and layout regressions across both web and iOS.
 
 ## Troubleshooting
 

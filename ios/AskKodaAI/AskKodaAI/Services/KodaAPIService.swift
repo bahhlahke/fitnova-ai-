@@ -25,7 +25,7 @@ struct KodaAPIService {
         if isDemoMode {
             return try await DebugUX.resolve(
                 primary: DemoContent.aiReply(for: message),
-                empty: AIReplyResponse(reply: "Coach channel is quiet in the empty scenario.", action: nil),
+                empty: AIReplyResponse(reply: "Coach channel is quiet in the empty scenario.", action: nil, actions: nil),
                 label: "coach reply"
             )
         }
@@ -166,7 +166,8 @@ struct KodaAPIService {
                     duration_minutes: targetDuration,
                     exercises: Array(DemoContent.sampleExercises.prefix(2))
                 ),
-                adaptation_note: "Adapted to: \(userMessage)"
+                nutrition_plan: DemoContent.dailyPlan.nutrition_plan,
+                safety_notes: ["Adapted to: \(userMessage)"]
             )
             return try await DebugUX.resolve(
                 primary: AdaptDayResponse(plan: adaptedPlan),

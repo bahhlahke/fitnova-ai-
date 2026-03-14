@@ -1,6 +1,6 @@
 import { toLocalDateString } from "@/lib/date/local-date";
-import { enrichExercise } from "../workout/enrich-exercises";
 import type { DailyPlan, DailyPlanTrainingExercise, PlannerDataSources, PlannerInputs } from "@/lib/plan/types";
+import { normalizeGuidedExercise } from "@/lib/workout/guided-session";
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
@@ -351,16 +351,13 @@ export async function composeDailyPlan(
   const carbs = clamp(Math.round(((calorieTarget - protein * 4 - fat * 9) / 4) * carbMultiplier), 100, 450);
 
   // Apply Bio-Sync to exercises
-  const adjustedExercises = exercises.map(ex => {
-    const enriched = enrichExercise(ex.name);
-
-    return {
-      ...ex,
-      sets: Math.max(1, Math.round(ex.sets * volumeMultiplier)),
-      notes: (ex.notes || "") + intensityAdjustment,
-      ...enriched,
-    };
-  });
+  const adjustedExercises = exercises.map((exercise) =>
+    normalizeGuidedExercise({
+      ...exercise,
+      sets: Math.max(1, Math.round(exercise.sets * volumeMultiplier)),
+      notes: `${exercise.notes || ""}${intensityAdjustment}`.trim() || undefined,
+    })
+  );
 
   const safetyNotes = [
     "This coach is educational support, not medical diagnosis or treatment.",

@@ -7,7 +7,10 @@ final class KodaSyncService {
     static let shared = KodaSyncService()
     
     private var modelContext: ModelContext?
-    private let apiService = KodaAPIService.shared
+    private var dataService: KodaDataService? {
+        guard let userId = SupabaseService.shared.currentUserId else { return nil }
+        return KodaDataService(client: SupabaseService.shared.supabaseClient, userId: userId)
+    }
     private var isSyncing = false
     
     func setup(modelContext: ModelContext) {
@@ -33,7 +36,7 @@ final class KodaSyncService {
                 do {
                     // Attempt to sync to remote
                     let log = workout.toAPIWorkoutLog()
-                    try await KodaAPIService.shared.insertWorkoutLog(log)
+                    try await dataService?.insertWorkoutLog(log)
                     
                     // Mark as synced
                     workout.isSynced = true

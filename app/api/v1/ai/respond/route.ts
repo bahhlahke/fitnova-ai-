@@ -18,6 +18,7 @@ import {
   selectDeterministicSubstitution,
 } from "@/lib/sit/substitutions";
 import { insertProductEvent } from "@/lib/telemetry/events";
+import { normalizeGuidedExercise } from "@/lib/workout/guided-session";
 import type { AiActionResult, RefreshScope } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -234,7 +235,8 @@ export async function POST(request: Request) {
     let systemPrompt =
       "You are an elite AI Performance Coach & Sports Scientist with a PhD in Exercise Physiology. Respond with the precision and authority of a world-class expert.\n\n" +
       BASE_CAPABILITIES +
-      "Synthesis Logic: Analyze the user's longitudinal data (HRV, PRs, Sleep) to provide high-performance insights typically reserved for Olympic teams. Always prefer taking action when the user reports data.\n\n" +
+      "Synthesis Logic: Analyze the user's longitudinal data (HRV, PRs, Sleep) to provide high-performance insights typically reserved for Olympic teams. Always prefer taking action when the user reports data.\n" +
+      "Workout Generation Logic: When the user asks you to build, regenerate, or personalize a workout for today, prefer `update_workout_plan` or `generate_daily_plan` so the result is immediately usable inside the guided workout flow. Premium guided workouts should include precise sets, reps, intensity, rest guidance, coaching intent, and progression notes whenever useful.\n\n" +
       "Date Resolution: The user may refer to relative dates (e.g. 'yesterday', 'this past Saturday', 'last Monday'). Always calculate the absolute YYYY-MM-DD based on the 'Current Context' provided in your system prompt and pass it to the logging tools. End with a concrete next step.";
 
     if (user?.id) {
@@ -385,7 +387,7 @@ export async function POST(request: Request) {
         type: "function",
         function: {
           name: "generate_daily_plan",
-          description: "Triggers a new daily plan generation with optional constraints.",
+          description: "Triggers a new guided-workout-ready daily plan generation with optional constraints.",
           parameters: {
             type: "object",
             properties: {
@@ -443,7 +445,7 @@ export async function POST(request: Request) {
         type: "function",
         function: {
           name: "update_workout_plan",
-          description: "Updates the user's current training plan for today with a specific set of exercises and focus.",
+          description: "Updates the user's current guided workout plan for today with coach-grade exercises, cues, and rest guidance.",
           parameters: {
             type: "object",
             properties: {
@@ -462,7 +464,15 @@ export async function POST(request: Request) {
                     tempo: { type: "string" },
                     breathing: { type: "string" },
                     intent: { type: "string" },
-                    rationale: { type: "string" }
+                    rationale: { type: "string" },
+                    walkthrough_steps: { type: "array", items: { type: "string" } },
+                    coaching_points: { type: "array", items: { type: "string" } },
+                    setup_checklist: { type: "array", items: { type: "string" } },
+                    common_mistakes: { type: "array", items: { type: "string" } },
+                    target_load_kg: { type: "number" },
+                    target_rir: { type: "number" },
+                    rest_seconds_after_set: { type: "number" },
+                    progression_note: { type: "string" }
                   },
                   required: ["name", "sets", "reps"]
                 }
@@ -838,19 +848,52 @@ export async function POST(request: Request) {
 
                 if (fetchErr) throw new Error(fetchErr.message);
 
+                let basePlan = (existingPlan?.plan_json as any) ?? null;
+                if (!basePlan) {
+                  const { composeDailyPlan } = await import("@/lib/plan/compose-daily-plan");
+                  basePlan = await composeDailyPlan({ supabase, userId }, {});
+                }
+
+                const normalizedExercises = Array.isArray(args.exercises)
+                  ? args.exercises.map((exercise: any) =>
+                    normalizeGuidedExercise({
+                      name: exercise.name,
+                      sets: Number(exercise.sets) || 1,
+                      reps: typeof exercise.reps === "string" ? exercise.reps : String(exercise.reps ?? "8-10"),
+                      intensity: typeof exercise.intensity === "string" ? exercise.intensity : "RPE 7",
+                      notes: typeof exercise.notes === "string" ? exercise.notes : undefined,
+                      tempo: typeof exercise.tempo === "string" ? exercise.tempo : undefined,
+                      breathing: typeof exercise.breathing === "string" ? exercise.breathing : undefined,
+                      intent: typeof exercise.intent === "string" ? exercise.intent : undefined,
+                      rationale: typeof exercise.rationale === "string" ? exercise.rationale : undefined,
+                      walkthrough_steps: Array.isArray(exercise.walkthrough_steps) ? exercise.walkthrough_steps : undefined,
+                      coaching_points: Array.isArray(exercise.coaching_points) ? exercise.coaching_points : undefined,
+                      setup_checklist: Array.isArray(exercise.setup_checklist) ? exercise.setup_checklist : undefined,
+                      common_mistakes: Array.isArray(exercise.common_mistakes) ? exercise.common_mistakes : undefined,
+                      target_load_kg: Number.isFinite(Number(exercise.target_load_kg)) ? Number(exercise.target_load_kg) : undefined,
+                      target_rir: Number.isFinite(Number(exercise.target_rir)) ? Number(exercise.target_rir) : undefined,
+                      rest_seconds_after_set: Number.isFinite(Number(exercise.rest_seconds_after_set)) ? Number(exercise.rest_seconds_after_set) : undefined,
+                      progression_note: typeof exercise.progression_note === "string" ? exercise.progression_note : undefined,
+                    })
+                  )
+                  : [];
+
                 const newTrainingPlan = {
                   focus: args.focus,
                   duration_minutes: args.duration_minutes || 45,
-                  exercises: (args.exercises || []).map((ex: any) => ({
-                    ...ex,
-                    // Ensure enriched fields are mapped if possible or left to default
-                  })),
-                  location_option: (existingPlan?.plan_json as any)?.training_plan?.location_option || "gym",
-                  alternatives: (existingPlan?.plan_json as any)?.training_plan?.alternatives || []
+                  exercises: normalizedExercises,
+                  location_option:
+                    basePlan?.training_plan?.location_option ||
+                    (existingPlan?.plan_json as any)?.training_plan?.location_option ||
+                    "gym",
+                  alternatives:
+                    basePlan?.training_plan?.alternatives ||
+                    (existingPlan?.plan_json as any)?.training_plan?.alternatives ||
+                    []
                 };
 
                 const updatedPlanJson = {
-                  ...(existingPlan?.plan_json as any || {}),
+                  ...(basePlan || {}),
                   date_local: logDate,
                   training_plan: newTrainingPlan
                 };
@@ -868,8 +911,8 @@ export async function POST(request: Request) {
                 resultStr = `Successfully updated today's workout plan: ${args.focus}.`;
                 actions.push({
                   type: "plan_daily", // iOS expects plan_daily for steering
-                  targetRoute: "/log/workout/guided",
-                  summary: "Start Guided Workout",
+                  targetRoute: `/log/workout/guided?date=${logDate}`,
+                  summary: "Open Guided Workout",
                   payload: {
                     training_plan: newTrainingPlan
                   }

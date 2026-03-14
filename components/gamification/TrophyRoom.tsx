@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardHeader, LoadingState, EmptyState } from "@/components/ui";
+import { Card, CardHeader, EmptyState, LoadingState } from "@/components/ui";
 
 interface Trophy {
     id: string;
@@ -47,13 +47,17 @@ const MOCK_TROPHIES: Trophy[] = [
 export function TrophyRoom() {
     const [trophies, setTrophies] = useState<Trophy[]>([]);
     const [loading, setLoading] = useState(true);
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchTrophies = async () => {
             try {
                 const res = await fetch("/api/v1/user/trophies");
                 const data = await res.json();
-                if (data.trophies) {
+                if (!res.ok) {
+                    throw new Error(data.error || "Could not load achievements.");
+                }
+                if (Array.isArray(data.trophies)) {
                     setTrophies(data.trophies.map((t: any) => ({
                         id: t.id,
                         name: t.name,
@@ -64,8 +68,11 @@ export function TrophyRoom() {
                         rarity: t.rarity
                     })));
                 }
+                setStatusMessage(data.degraded ? data.message || "Achievements are still syncing." : null);
             } catch (e) {
                 console.error("Failed to fetch trophies:", e);
+                setTrophies([]);
+                setStatusMessage("Achievements are temporarily unavailable. Your progress tracking is still up to date.");
             } finally {
                 setLoading(false);
             }
@@ -84,6 +91,12 @@ export function TrophyRoom() {
                 title="Elite Protocols"
                 subtitle="Your unlocked classified achievements and prestige ranks"
             />
+
+            {statusMessage && (
+                <div className="relative z-10 mt-6 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm leading-relaxed text-fn-muted">
+                    {statusMessage}
+                </div>
+            )}
 
             {trophies.length > 0 ? (
                 <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">

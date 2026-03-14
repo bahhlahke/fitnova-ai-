@@ -318,7 +318,7 @@ struct PlanView: View {
                         focus: updatedPlan.training_plan?.focus ?? day.focus,
                         intensity: day.intensity,
                         target_duration_minutes: updatedPlan.training_plan?.duration_minutes ?? day.target_duration_minutes,
-                        rationale: updatedPlan.adaptation_note ?? day.rationale,
+                        rationale: updatedPlan.safety_notes?.joined(separator: ". ") ?? day.rationale,
                         equipment_context: day.equipment_context,
                         exercises: updatedPlan.training_plan?.exercises?.map { ex in
                             WeeklyPlanExercise(name: ex.name, equipment: nil, sets: ex.sets, reps: ex.reps, coaching_cue: ex.notes)

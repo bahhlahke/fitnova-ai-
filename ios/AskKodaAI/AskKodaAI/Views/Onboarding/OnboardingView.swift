@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Auth
 
 struct OnboardingView: View {
     @EnvironmentObject var auth: SupabaseService
@@ -61,7 +62,6 @@ struct OnboardingView: View {
                             ProgressView(value: Double(step + 1), total: 7)
                                 .tint(Brand.Color.accent)
                                 .animation(.spring(response: 0.5), value: step)
-                        }
                         .padding(.horizontal, 20)
 
                         // Step content
@@ -126,7 +126,7 @@ struct OnboardingView: View {
             }
             .navigationBarHidden(true)
             .onAppear {
-                Telemetry.track(.onboardingStart)
+                Task { await Telemetry.track(.onboardingStart) }
             }
         }
     }
@@ -415,7 +415,13 @@ struct OnboardingView: View {
                 // Spotify
                 Button {
                     // Start Spotify OAuth flow
-                    auth.signInWithOAuth(provider: .spotify)
+                    Task {
+                        do {
+                            try await auth.signInWithOAuth(provider: .spotify)
+                        } catch {
+                            errorMessage = "Spotify connection failed: \(error.localizedDescription)"
+                        }
+                    }
                 } label: {
                     HStack(spacing: 16) {
                         Image(systemName: "music.note")
@@ -544,7 +550,7 @@ struct OnboardingView: View {
             ]
             try await ds.upsertOnboarding(onboarding)
             await MainActor.run { onComplete?() }
-            Telemetry.track(.onboardingComplete)
+            Task { await Telemetry.track(.onboardingComplete) }
         } catch {
             await MainActor.run { errorMessage = error.localizedDescription }
         }

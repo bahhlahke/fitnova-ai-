@@ -12,7 +12,7 @@ final class PersistentWorkoutLog: Identifiable {
     var notes: String?
     var exercises: [PersistentExerciseLog]
     var createdAt: Date
-    var isSynced: Boolean = false
+    var isSynced: Bool = false
 
     init(id: UUID = UUID(), userId: String, date: String, workoutType: String, exercises: [PersistentExerciseLog] = []) {
         self.id = id
@@ -50,15 +50,15 @@ extension PersistentWorkoutLog {
             user_id: userId,
             date: date,
             workout_type: workoutType,
-            duration_minutes: durationMinutes,
             exercises: exercises.map { ex in
-                WorkoutLog.Exercise(
+                WorkoutExerciseEntry(
                     name: ex.name,
                     sets: ex.sets,
                     reps: ex.reps,
-                    weight: ex.weight
+                    weight_kg: ex.weight
                 )
             },
+            duration_minutes: durationMinutes,
             notes: notes
         )
     }

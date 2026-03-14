@@ -13,7 +13,7 @@ import {
 } from "@/lib/workout/exercise-images";
 import { Button } from "@/components/ui";
 import { emitDataRefresh } from "@/lib/ui/data-sync";
-import { useSpotify } from "@/lib/music/SpotifyProvider";
+import { SpotifyProvider, useSpotify } from "@/lib/music/SpotifyProvider";
 import { SpotifyMiniPlayer } from "@/components/music/SpotifyMiniPlayer";
 import { getWorkoutsPlaylists, spotifyFetch } from "@/lib/spotify";
 import { ProBadge, type BadgeType } from "@/components/elite/ProBadge";
@@ -40,6 +40,14 @@ const FALLBACK_EXERCISES: GuidedExercise[] = [
 ];
 
 export default function GuidedWorkoutPage() {
+  return (
+    <SpotifyProvider>
+      <GuidedWorkoutScreen />
+    </SpotifyProvider>
+  );
+}
+
+function GuidedWorkoutScreen() {
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [setIndex, setSetIndex] = useState(0);
   const [phase, setPhase] = useState<"loading" | "overview" | "work" | "rest" | "completed">("loading");
@@ -69,6 +77,9 @@ export default function GuidedWorkoutPage() {
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isMusicPanelOpen, setIsMusicPanelOpen] = useState(false);
+  const [audioNotice, setAudioNotice] = useState<string | null>(null);
+  const [musicNotice, setMusicNotice] = useState<string | null>(null);
+  const [failedMediaUrls, setFailedMediaUrls] = useState<string[]>([]);
   const { setVolume, volume: spotifyVolume } = useSpotify();
   const workoutStartedAt = useRef<number | null>(null);
 
@@ -77,8 +88,14 @@ export default function GuidedWorkoutPage() {
   const [currentWeight, setCurrentWeight] = useState<string>("");
   const [currentReps, setCurrentReps] = useState<string>("");
 
+  const markMediaFailed = useCallback((url: string | null | undefined) => {
+    if (!url) return;
+    setFailedMediaUrls((current) => (current.includes(url) ? current : [...current, url]));
+  }, []);
+
   const playCoachAudio = useCallback(async (contextStr: string, metrics?: any) => {
     if (!audioEnabled) return;
+    setAudioNotice(null);
 
     // Audio Ducking: Lower Spotify volume
     const originalVolume = spotifyVolume;
@@ -120,12 +137,17 @@ export default function GuidedWorkoutPage() {
 
       // ── Fallback: browser SpeechSynthesis with improved voice ─────────────
       if (!("speechSynthesis" in window)) {
+        setAudioNotice("Voice cues are unavailable on this device. Keep going with the on-screen coaching cues.");
         restoreVolume();
         return;
       }
 
       const data = await res.json();
-      if (!data.script) { restoreVolume(); return; }
+      if (!res.ok || !data.script) {
+        setAudioNotice("Voice cues are temporarily unavailable. Keep going with the on-screen coaching cues.");
+        restoreVolume();
+        return;
+      }
 
       const speak = (voices: SpeechSynthesisVoice[]) => {
         const utterance = new SpeechSynthesisUtterance(data.script);
@@ -163,6 +185,7 @@ export default function GuidedWorkoutPage() {
       }
     } catch (e) {
       console.error("Audio playback error:", e);
+      setAudioNotice("Voice cues are temporarily unavailable. Keep going with the on-screen coaching cues.");
       restoreVolume();
     }
   }, [audioEnabled, setVolume, spotifyVolume]);
@@ -294,6 +317,7 @@ export default function GuidedWorkoutPage() {
   const progressPct = totalSetCount > 0 ? (completedSets / totalSetCount) * 100 : 0;
 
   const persistWorkout = useCallback(async () => {
+    setSaveError(null);
     const supabase = createClient();
     if (!supabase) {
       setSaveError("Supabase is not configured.");
@@ -343,6 +367,7 @@ export default function GuidedWorkoutPage() {
       return;
     }
     setSaved(true);
+    setSaveError(null);
     emitDataRefresh(["dashboard", "workout"]);
     // Trigger award check and PR calculation
     fetch("/api/v1/awards/check", { method: "POST" }).catch(() => { });
@@ -510,6 +535,7 @@ export default function GuidedWorkoutPage() {
   const startWorkout = useCallback(async () => {
     workoutStartedAt.current = Date.now();
     setPhase("work");
+    setMusicNotice(null);
     void playCoachAudio("start_workout");
 
     // Auto-Play Workout Mix
@@ -525,6 +551,7 @@ export default function GuidedWorkoutPage() {
       }
     } catch (err) {
       console.error("Auto-play failed:", err);
+      setMusicNotice("Spotify playback is unavailable right now. You can still finish the session with Koda's on-screen coaching.");
     }
   }, [playCoachAudio]);
 
@@ -568,7 +595,7 @@ export default function GuidedWorkoutPage() {
             {exercises.map((ex, i) => (
               <div key={i} className="group relative overflow-hidden rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 transition-all hover:bg-white/[0.05]">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4">
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-[10px] font-black text-fn-muted">
                       {i + 1}
                     </span>
@@ -580,6 +607,13 @@ export default function GuidedWorkoutPage() {
                   <div className="h-12 w-12 overflow-hidden rounded-xl bg-black/40">
                     {(() => {
                       const mediaUrl = getExerciseImageUrl(ex.name, ex.video_url || ex.image_url);
+                      if (failedMediaUrls.includes(mediaUrl)) {
+                        return (
+                          <div className="flex h-full w-full items-center justify-center bg-white/5 text-lg">
+                            <span>🏋️</span>
+                          </div>
+                        );
+                      }
                       return isExerciseVideoUrl(mediaUrl) ? (
                         <video
                           src={mediaUrl}
@@ -588,6 +622,7 @@ export default function GuidedWorkoutPage() {
                           loop
                           playsInline
                           className="h-full w-full object-cover opacity-50 transition-opacity group-hover:opacity-100"
+                          onError={() => markMediaFailed(mediaUrl)}
                         />
                       ) : (
                         <Image
@@ -597,6 +632,7 @@ export default function GuidedWorkoutPage() {
                           height={48}
                           className="h-full w-full object-cover opacity-50 transition-opacity group-hover:opacity-100"
                           unoptimized={isExerciseGifUrl(mediaUrl)}
+                          onError={() => markMediaFailed(mediaUrl)}
                         />
                       );
                     })()}
@@ -658,6 +694,12 @@ export default function GuidedWorkoutPage() {
             {saved ? "Neural Data Synchronized" : saveError ?? "Intensity Captured"}
           </p>
 
+          {!saved && saveError && (
+            <p className="max-w-md text-sm leading-relaxed text-white/60 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
+              Your session is complete, but we could not save the workout yet. Retry once before leaving so your dashboard and progression stay accurate.
+            </p>
+          )}
+
           {(postWorkoutInsight || postWorkoutInsightLoading) && (
             <div className="w-full max-w-md rounded-[2.5rem] border border-white/5 bg-white/[0.02] p-8 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-fn-accent mb-4">Neural Recalibration</p>
@@ -676,10 +718,19 @@ export default function GuidedWorkoutPage() {
           )}
         </div>
 
-        <div className="pb-12 pt-12">
+        <div className="space-y-3 pb-12 pt-12">
+          {!saved && (
+            <button
+              type="button"
+              onClick={() => void persistWorkout()}
+              className="w-full rounded-full border border-fn-accent/20 bg-fn-accent/10 py-4 text-sm font-black uppercase tracking-widest text-fn-accent transition-all hover:bg-fn-accent/20"
+            >
+              Retry Save Workout
+            </button>
+          )}
           <Link href="/log/workout" className="block w-full">
             <button className="w-full rounded-full bg-white py-5 text-sm font-black uppercase tracking-widest text-black transition-all hover:bg-fn-accent hover:text-black hover:scale-[1.02] active:scale-[0.98]">
-              Return to Nexus
+              {saved ? "Return to Nexus" : "Continue to Workout Log"}
             </button>
           </Link>
         </div>
@@ -699,6 +750,7 @@ export default function GuidedWorkoutPage() {
   }
 
   const imageUrl = getExerciseImageUrl(exercise.name, exercise.cinema_video_url || exercise.video_url || exercise.image_url);
+  const showMotionFallback = failedMediaUrls.includes(imageUrl);
   const progressLabel = `Move ${exerciseIndex + 1}/${totalExercises} · Set ${setIndex + 1}/${totalSets}`;
 
   return (
@@ -734,7 +786,16 @@ export default function GuidedWorkoutPage() {
       {/* Optional: Add Full Screen Video Background for 'work' and 'rest' phases */}
       {(phase === "work" || phase === "rest") && (
         <div className="fixed inset-0 z-0 bg-black">
-          {isExerciseVideoUrl(imageUrl) ? (
+          {showMotionFallback ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(10,217,196,0.14),_transparent_55%)] px-6">
+              <div className="max-w-sm rounded-3xl border border-white/10 bg-black/55 p-6 text-center shadow-2xl backdrop-blur-md">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Movement Cues Active</p>
+                <p className="mt-3 text-sm leading-relaxed text-white/70">
+                  Demo media is unavailable for this move right now. Use the exercise name, reps, and coaching cues below to keep the session moving.
+                </p>
+              </div>
+            </div>
+          ) : isExerciseVideoUrl(imageUrl) ? (
             <video
               src={imageUrl}
               className="absolute inset-0 h-full w-full object-cover opacity-40 transition-opacity duration-1000"
@@ -742,6 +803,7 @@ export default function GuidedWorkoutPage() {
               muted
               autoPlay
               playsInline
+              onError={() => markMediaFailed(imageUrl)}
             />
           ) : (
             <Image
@@ -750,6 +812,7 @@ export default function GuidedWorkoutPage() {
               fill
               className="object-cover opacity-40 transition-opacity duration-1000"
               unoptimized={isExerciseGifUrl(imageUrl)}
+              onError={() => markMediaFailed(imageUrl)}
             />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/20" />
@@ -811,6 +874,21 @@ export default function GuidedWorkoutPage() {
             </div>
           </div>
         </header>
+
+        {(audioNotice || musicNotice) && (
+          <div className="mb-4 space-y-2">
+            {audioNotice && (
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-[11px] font-medium leading-relaxed text-amber-100">
+                {audioNotice}
+              </div>
+            )}
+            {musicNotice && (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-[11px] font-medium leading-relaxed text-white/70">
+                {musicNotice}
+              </div>
+            )}
+          </div>
+        )}
 
         {isMusicPanelOpen && (
           <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-300">

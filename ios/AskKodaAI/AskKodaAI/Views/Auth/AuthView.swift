@@ -167,7 +167,7 @@ struct AuthView: View {
     }
 
     private func signInWithGoogle() {
-        Telemetry.track(.authStart, props: ["method": "google"])
+        Task { await Telemetry.track(.authStart, props: ["method": "google"]) }
         Task {
             do {
                 let url = try await auth.getGoogleSignInURL()
@@ -187,7 +187,7 @@ struct AuthView: View {
             if let appleIDCredential = authResult.credential as? ASAuthorizationAppleIDCredential,
                let tokenData = appleIDCredential.identityToken,
                let token = String(data: tokenData, encoding: .utf8) {
-                Telemetry.track(.authStart, props: ["method": "apple"])
+                Task { await Telemetry.track(.authStart, props: ["method": "apple"]) }
                 Task {
                     do {
                         try await auth.signInWithApple(idToken: token, nonce: currentNonce)
@@ -204,7 +204,7 @@ struct AuthView: View {
     private func sendMagicLink() {
         message = nil
         isLoading = true
-        Telemetry.track(.authStart, props: ["method": "magic_link"])
+        Task { await Telemetry.track(.authStart, props: ["method": "magic_link"]) }
         Task {
             do {
                 try await auth.signInWithMagicLink(email: email)

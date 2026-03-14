@@ -9,6 +9,7 @@ import SwiftUI
 import Supabase
 import Realtime
 import PhotosUI
+import SwiftData
 
 struct GuidedWorkoutView: View {
     @EnvironmentObject var auth: SupabaseService
@@ -269,7 +270,7 @@ struct GuidedWorkoutView: View {
             ) { summary in
                 formCheckResult = summary.response
                 Task {
-                    await Telemetry.track("ios_guided_form_check_realtime_completed", props: realtimeFormCheckTelemetry(for: summary))
+                    await Telemetry.track(.guidedFormCheckRealtimeCompleted, props: realtimeFormCheckTelemetry(for: summary))
                 }
             }
             .ignoresSafeArea()
@@ -1384,14 +1385,14 @@ struct GuidedWorkoutView: View {
                     images: capturedPhotos,
                     configuration: MotionSessionConfiguration(pattern: currentMotionPattern)
                 )
-                await Telemetry.track("ios_guided_form_check_completed", props: formCheckTelemetry(for: res))
+                await Telemetry.track(.guidedFormCheckCompleted, props: formCheckTelemetry(for: res))
                 await MainActor.run {
                     formCheckResult = res
                     formCheckLoading = false
                 }
             } catch {
-                await Telemetry.track("ios_guided_form_check_failed", props: [
-                    "requested_frames": capturedPhotos.count,
+                await Telemetry.track(.guidedFormCheckFailed, props: [
+                    "exercise": currentExercise?.name ?? "unknown",
                     "error": (error as? LocalizedError)?.errorDescription ?? error.localizedDescription,
                 ])
                 await MainActor.run { formCheckLoading = false }

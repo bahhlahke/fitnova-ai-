@@ -25,8 +25,8 @@ type AiResponse = {
 };
 
 const QUICK_ACTIONS = [
+  "Build today's guided workout for 45 minutes",
   "I just ate 3 eggs and toast",
-  "Log a heavy leg day workout",
   "Update my body weight to 185lbs",
   "How am I doing this week?",
 ];
@@ -233,7 +233,7 @@ export function AiCoachPanel({
               Ready for input
             </p>
             <p className="mt-3 text-sm font-medium leading-relaxed text-fn-muted">
-              You can ask Koda to do anything — log your meals, track a workout, adapt a daily plan, or analyze your progress. Koda will automatically process your data or seamlessly navigate you to the relevant part of the app.
+              You can ask Koda to do anything — build a guided workout, log your meals, adapt today&apos;s plan, or analyze your progress. Koda will automatically process your data or move you into the right flow.
             </p>
           </div>
         )}
@@ -314,15 +314,15 @@ export function AiCoachPanel({
         className="mt-6 border-t border-white/5 pt-5"
       >
         <div className="flex gap-3">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="Log activity or ask a question..."
-            className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder-white/30 transition-all focus:border-fn-accent/50 focus:outline-none focus:ring-4 focus:ring-fn-accent/10"
-            disabled={loading}
-          />
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="Ask Koda to build, coach, or log..."
+              className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder-white/30 transition-all focus:border-fn-accent/50 focus:outline-none focus:ring-4 focus:ring-fn-accent/10"
+              disabled={loading}
+            />
           <Button type="submit" disabled={loading || !input.trim()}>
             Send
           </Button>

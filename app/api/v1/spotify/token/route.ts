@@ -38,9 +38,12 @@ export async function GET() {
 
     if (!token) {
         return NextResponse.json({
-            error: "No Spotify token found. User may need to reconnect Spotify."
-        }, { status: 404 });
+            connected: false,
+            token: null,
+            access_token: null,
+            message: "No Spotify connection found. Connect Spotify in Integrations to unlock workout playback controls.",
+        });
     }
 
-    return NextResponse.json({ access_token: token, token });
+    return NextResponse.json({ connected: true, access_token: token, token });
 }

@@ -24,6 +24,11 @@ type ExerciseContext = {
     intent?: string;
     notes?: string;
     rationale?: string;
+    walkthrough_steps?: string[];
+    coaching_points?: string[];
+    setup_checklist?: string[];
+    common_mistakes?: string[];
+    rest_seconds_after_set?: number | null;
     setIndex?: number;
     totalSets?: number;
     focus?: string;
@@ -40,11 +45,18 @@ function buildScript(
     metrics?: Record<string, unknown>,
     details?: ExerciseContext,
 ): string {
+    const setup = details?.setup_checklist?.[0];
+    const walkthrough = details?.walkthrough_steps?.[1] ?? details?.walkthrough_steps?.[0];
+    const coachingPoint = details?.coaching_points?.[0];
+    const commonMistake = details?.common_mistakes?.[0];
+
     // Vivid, personality-filled scripts — warm, fun, encouraging, a little flirty
     switch (context) {
         case "start_workout":
             if (details?.focus) {
-                return `Okay, let's go. Today's session is about ${details.focus}. Stay locked in, move with intention, and let me coach you through each effort.`;
+                const openingExercise = details?.name ? `We open with ${details.name}.` : "";
+                const openingSetup = setup ? `${setup}` : "Get your setup organized before the countdown starts.";
+                return `Okay, let's go. Today's session is about ${details.focus}. ${openingExercise} ${openingSetup} Stay locked in, move with intention, and let me coach you through each effort.`.replace(/\s+/g, " ").trim();
             }
             return "Okay, let's GO. You showed up, and that already puts you ahead of most people. I'm going to push you today — but I promise you'll love what you see on the other side. Let's build something.";
         case "start_set": {
@@ -54,23 +66,27 @@ function buildScript(
                 : "this set";
             const reps = details?.reps ? `Target ${details.reps}.` : "";
             const intensity = details?.intensity ? `${details.intensity} effort.` : "";
-            const technique = [details?.tempo, details?.breathing, details?.intent]
+            const technique = [setup, walkthrough, details?.tempo, details?.breathing, details?.intent, coachingPoint]
                 .filter(Boolean)
                 .join(" ");
-            const reminder = details?.notes ?? details?.rationale ?? "";
+            const reminder = details?.notes ?? details?.rationale ?? commonMistake ?? "";
 
             return `Alright, ${setLabel} on ${exercise}. ${reps} ${intensity} ${technique} ${reminder}`.replace(/\s+/g, " ").trim();
         }
         case "finish_set": {
             const hrv = typeof metrics?.hrv === "number" ? metrics.hrv : null;
             const nextCue = details?.name ? `Stay ready for ${details.name}.` : "";
+            const restCue =
+                typeof details?.rest_seconds_after_set === "number" && details.rest_seconds_after_set > 0
+                    ? `Take about ${details.rest_seconds_after_set} seconds before the next effort.`
+                    : "Take enough rest to come back crisp.";
             if (hrv && hrv >= 80) {
-                return `Nice work! Your recovery is looking great — ${hrv} on the HRV. You've got plenty in the tank. Take a full breath, then let's hit the next one even harder. ${nextCue}`.trim();
+                return `Nice work! Your recovery is looking great — ${hrv} on the HRV. You've got plenty in the tank. ${restCue} ${nextCue}`.replace(/\s+/g, " ").trim();
             }
             if (hrv && hrv < 70) {
-                return `Good set! Your body is working hard today — keep that rest period full so you can come back strong. Quality over ego. ${nextCue}`.trim();
+                return `Good set! Your body is working hard today — keep that rest period full so you can come back strong. Quality over ego. ${restCue} ${nextCue}`.replace(/\s+/g, " ").trim();
             }
-            return `That's what I'm talking about! Take a real breath, shake it out, let the muscles reload. You earned this rest. ${nextCue}`.trim();
+            return `That's what I'm talking about! Take a real breath, shake it out, let the muscles reload. You earned this rest. ${restCue} ${nextCue}`.replace(/\s+/g, " ").trim();
         }
         case "finish_workout":
             return "That's a wrap — and you absolute CRUSHED it today. Seriously, every set, every rep — you were dialed in. Go get your protein in, hydrate, and let that body recover. I'm proud of you.";
