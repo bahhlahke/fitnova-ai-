@@ -94,8 +94,14 @@ The Next.js API accepts **cookie** (web) or **Authorization: Bearer &lt;access_t
 
 ## 7. Apple Health (HealthKit)
 
-- In Xcode, add the **HealthKit** capability (Signing & Capabilities → + Capability → HealthKit). Enable **Clinical Health Records** only if needed.
-- Add `NSHealthShareUsageDescription` to Info.plist (see Info.plist.example). Request read access for weight, sleep, and step count. The app syncs the last 90 days of weight to `progress_tracking`, sleep to `check_ins`, and sleep plus steps to `connected_signals`.
+- HealthKit capability is preconfigured for the AskKodaAI target via `ios/AskKodaAI/Config/AskKodaAI.entitlements` (`com.apple.developer.healthkit = true`).
+- If signing settings change, verify `CODE_SIGN_ENTITLEMENTS = Config/AskKodaAI.entitlements` remains set in the project build settings.
+- Add `NSHealthShareUsageDescription` to Info.plist (see Info.plist.example). Request read access for weight, sleep, and step count (core), with heart rate + HRV as optional enrichments.
+- The app syncs the last 90 days of weight to `progress_tracking`, sleep to `check_ins`, and sleep/steps/HRV snapshots to `connected_signals`.
+- Integrations UI now differentiates:
+  - full denial (core permissions missing),
+  - partial access (sync what is available, then prompt for missing types),
+  - missing entitlement builds (“Build Missing HealthKit Capability”).
 - HealthKit requires a physical iPhone for realistic validation. Simulator smoke tests only confirm the screen launches and permission flow code paths compile.
 
 ## 8. Spotify
@@ -122,6 +128,7 @@ Before release or CI “production ready” gate:
 5. **Surface QA:** `npm run test:ios:surfaces` completes, the generated screenshots do not show blank, clipped, or obviously broken screens, and `manifest.json` is present for downstream review tooling.
 6. **Cross-platform UX QA:** `npm run validate:ui:ai --fail-if-not-ready` does not report blocked workflows for iOS or web.
 7. **Device validations:** Validate Apple Health permissions/sync on a physical iPhone, validate Spotify playback controls with a linked account and active playback device, and verify Motion Lab realtime local pose analysis on supported hardware with Low Power Mode off.
+   Also validate partial Apple Health permissions (allow some, deny some) and confirm the app keeps syncing available metrics while prompting for missing access.
 8. **Secrets:** No real keys committed; `ios/AskKodaAI/Config/Generated.xcconfig` is in `.gitignore`.
 9. **HTTPS:** Production builds use HTTPS for API and Supabase URLs.
 10. **Feature parity:** See “Feature parity with web” and `docs/IOS-PARITY-MAP.md` for coverage.
@@ -133,7 +140,7 @@ The iOS app matches the web app for core flows:
 - **Dashboard (Home):** Briefing, today's plan, 14-day performance, coach nudges, generate plan.
 - **Plan:** Weekly plan, day selector, adapt day, weekly AI insight.
 - **Coach:** AI chat; Support (escalate) with list/create/messages.
-- **Log:** Workouts (list, quick log, **guided workout**, **Form check (Motion Lab)** with realtime on-device pose tracking, photo analysis, and server fallback); Nutrition (meals, targets, analyze meal, fridge scanner, meal plan/recipe gen); **History** (workouts & nutrition tabs, expand, edit workout).
+- **Log:** Workouts (list, quick log, **guided workout** with live HR/steps/HRV coaching context, adaptive rest targets, rich walkthrough overlays, and resilient layout on narrow iPhone widths, **Form check (Motion Lab)** with realtime on-device pose tracking, photo analysis, and server fallback); Nutrition (meals, targets, analyze meal, fridge scanner, meal plan/recipe gen); **History** (workouts & nutrition tabs, expand, edit workout).
 - **Progress:** List entries, add entry, **body comp scan** (3 photos → API → save).
 - **Check-in:** Daily energy, sleep, soreness, adherence.
 - **Community:** Friends, requests, accountability partner, challenges (join).
@@ -149,11 +156,13 @@ Additional iOS notes:
 - Guided workout voice cues now announce the next exercise during the intro step so coached sessions stay continuous between cards and set execution.
 - Guided workout now consumes rich coach metadata from plan payloads (setup checklist, walkthrough steps, coaching points, common mistakes, progression notes, per-exercise rest targets) and adds timed work intervals plus one-tap smart logging actions for between-set speed.
 - Coach chat now surfaces trust signals (weekly recap, plan rationale, progress loop, escalation SLA) and enforces a Koda-vs-coach parity approval checkpoint when a generated workout diverges from guarded baseline constraints.
+- Coach chat now injects live wearable telemetry into `/api/v1/ai/respond` and degrades gracefully when AI upstream is unavailable (including fallback guided-plan generation for workout intents).
 - Recipe generation response models decode `meal_type` so breakfast/lunch/dinner labels coming from the API are preserved in native UI fixtures and production payloads.
 - Motion Lab now offers a reusable realtime session sheet with on-device pose tracking, skeleton overlay, squat/hinge/press/pull rep segmentation, live cueing, camera-derived velocity summaries, and benchmark report capture for Motion Lab and Guided Workout form checks.
 - Motion Lab now includes a conversion-oriented access funnel: one free realtime scan per month for non-Pro accounts, stronger setup/preflight guidance before the live session starts, and direct in-flow upgrade prompts after valuable results.
 - Photo-based Motion Lab checks still prefer on-device pose analysis on supported devices and automatically fall back to the server vision API when thermal state, Low Power Mode, or pose-tracking quality makes the local path unreliable.
 - Realtime sessions persist benchmark JSON artifacts under the app documents directory (`MotionLabReports/<pattern>/...json`) and surface the saved filename in the native result cards so operators can collect evidence after device runs.
+- `UserProfile` decoding supports canonical schema keys (`name`, `height`, `weight`) and legacy keys (`display_name`, `height_cm`, `weight_kg`) to avoid onboarding/profile failures during schema transitions.
 
 ## Simulator QA launch contract
 

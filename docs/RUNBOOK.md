@@ -76,7 +76,7 @@ For AI agents and new contributors: see [AGENTS.md](../AGENTS.md) for project la
 ## Health checks
 
 - **App:** `GET /` — should return 200 and the dashboard.
-- **AI route:** `POST /api/v1/ai/respond` requires session and body `{ "message": "Hi" }`; returns `{ "reply": "..." }` on success.
+- **AI route:** `POST /api/v1/ai/respond` requires session and body `{ "message": "Hi" }`; returns `{ "reply": "...", "actions": [...] }` on success. Temporary provider/network issues return `UPSTREAM_ERROR` (`502/503/504`) instead of generic internal errors.
 - **Daily plan route:** `POST /api/v1/plan/daily` requires session; returns `{ "plan": { ... } }` and persists to `daily_plans`.
 - **Weekly plan route:** `GET /api/v1/plan/weekly` requires session; returns `{ "plan": { ... } }` and persists to `weekly_plans`.
 - **Nutrition targets:** `GET /api/v1/nutrition/targets` returns user calorie/macro goals.
@@ -92,6 +92,7 @@ For AI agents and new contributors: see [AGENTS.md](../AGENTS.md) for project la
 ## iOS app (production)
 
 - **Config:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `API_BASE_URL` in Info.plist or xcconfig (see `ios/README.md`). For release builds use HTTPS for both API and Supabase.
+- **Capabilities:** HealthKit is wired via `ios/AskKodaAI/Config/AskKodaAI.entitlements`. If signing/build settings are changed, confirm `CODE_SIGN_ENTITLEMENTS=Config/AskKodaAI.entitlements` remains set.
 - **API auth:** Next.js API accepts `Authorization: Bearer <access_token>`; iOS sends Supabase `access_token` via `KodaAPIService`. No extra backend config.
 - **Magic link:** Set `AUTH_REDIRECT_URL` (e.g. `kodaai://auth/callback`) and add to Supabase Redirect URLs; handle URL in app with `SupabaseService.setSessionFrom(url:)`.
 - **App Store:** Sign in with Apple required if offering other social sign-in; Privacy Policy and usage descriptions for Health/camera/photos.
@@ -110,7 +111,10 @@ Before each production deploy:
 ## Troubleshooting
 
 - **Auth not working:** Ensure Supabase URL and anon key are set and that the Supabase project has Auth enabled. For Google sign-in, enable Google provider in Supabase Auth settings. Redirect after login is validated (relative path only) in `app/auth/callback/route.ts`.
-- **AI returns 503:** Set `OPENROUTER_API_KEY` in Vercel (and locally in `.env.local`). Key is server-only and must not be exposed to the client.
+- **AI returns `SERVICE_UNAVAILABLE` (503):** Set `OPENROUTER_API_KEY` in Vercel (and locally in `.env.local`). Key is server-only and must not be exposed to the client.
+- **AI returns `UPSTREAM_ERROR` (502/503/504):** Provider/network is degraded or timed out. Retry first, then confirm OpenRouter account health/limits and `OPENROUTER_MODEL`/`OPENROUTER_FALLBACK_MODELS` configuration.
 - **AI returns 401:** User is not signed in. Authenticate first (magic link flow).
+- **iOS shows “Build Missing HealthKit Capability”:** The app was signed without HealthKit entitlement. Re-enable HealthKit capability, confirm entitlements file binding, rebuild, reinstall.
+- **Schema-cache errors mentioning `display_name`/`height_cm`/`weight_kg`:** Current canonical `user_profile` columns are `name`, `height`, `weight`. Refresh Supabase schema cache and ensure API queries/migrations target canonical keys (iOS model decoding remains backward-compatible).
 - **RLS errors:** Ensure migrations have been run and policies use `auth.uid()`.
 - **Stuck loading on dashboard/settings/progress/log:** Check browser console and network; Supabase or auth failures are caught and loading state is cleared. Verify env vars and that the schema matches `supabase/migrations/`.

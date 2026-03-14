@@ -7,11 +7,13 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 - **Adaptive Home** — Signed-out users see a premium conversion funnel; signed-in users see a coaching cockpit.
 - **Assessment Funnel** — `/start` quiz-first flow saves a draft before auth and resumes onboarding.
 - **AI Coach (PhD Level)** — An elite performance scientist with a PhD in Exercise Physiology. Context includes biometrics (HRV, sleep), historic PRs, workout logs, and nutrition. Supports multi-intent requests and site navigation.
+- **Live Wearable Coaching Loop** — Coach and guided sessions consume live Apple Health signals (heart rate, steps, HRV/baseline delta) for recovery-aware pacing, rest control, and coaching cues.
 - **Daily Plan Engine** — Generate a personalized day plan (training + calories/macros + safety notes) informed by recovery signals.
 - **Evolutionary Performance Synthesis** — Longitudinal analysis of training, biometrics, and nutrition trends injected into History and Progress surfaces.
 - **Elite Protocols & Trophy Room** — Native achievement system with "Neural Rationale" justifying honors based on specific user data strands.
 - **Community Hub & Synapse Pulses** — Real-time social engagement and elite squad cohort tracking.
 - **AI Workout Adaptation** — On-the-fly workout modifications (`/api/v1/plan/adapt-day` and `adapt-session`) based on user constraints.
+- **Resilient Coach Reliability** — `/api/v1/ai/respond` uses retries + model fallback + explicit upstream error mapping; iOS coach degrades gracefully with trainer-style fallback messaging and workout-plan rescue when AI is unavailable.
 
 ## Stack
 
@@ -129,6 +131,8 @@ AI-first fitness and nutrition coaching with a premium assessment funnel, adapti
 ## iOS app
 
 A production-ready **native iOS app** (SwiftUI) lives in `ios/`. It uses the same Supabase backend and Next.js API; the API accepts **cookie** (web) or **Authorization: Bearer &lt;access_token&gt;** (mobile). See [ios/README.md](ios/README.md) for Xcode setup, configuration, and App Store notes.
+
+HealthKit support is configured in-project via `ios/AskKodaAI/Config/AskKodaAI.entitlements` (`com.apple.developer.healthkit`), so device builds can request Apple Health reads for weight, sleep, steps, heart rate, and HRV.
 
 ## Milestones
 
