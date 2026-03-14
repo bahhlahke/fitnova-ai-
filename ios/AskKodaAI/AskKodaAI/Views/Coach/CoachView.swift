@@ -7,6 +7,7 @@ import SwiftUI
 
 struct CoachView: View {
     @EnvironmentObject var auth: SupabaseService
+    @StateObject private var healthKit = HealthKitService.shared
     @State private var input = ""
     @State private var messages: [MessageContent] = []
     @State private var isLoading = false
@@ -18,6 +19,7 @@ struct CoachView: View {
     @State private var progressInsight: String?
     @State private var activeEscalation: ActiveEscalationState?
     @State private var trustSignalsLoaded = false
+    @State private var liveSignalTask: Task<Void, Never>?
 
     struct MessageContent: Identifiable {
         let id = UUID()
@@ -47,6 +49,7 @@ struct CoachView: View {
                                         PremiumMetricPill(label: "Mode", value: "Adaptive")
                                         PremiumMetricPill(label: "Focus", value: "Daily Loop")
                                         PremiumMetricPill(label: "Response", value: isLoading ? "Live" : "Ready")
+                                        PremiumMetricPill(label: "Wearables", value: liveWearableStatusLabel)
                                     }
 
                                     if messages.isEmpty {
@@ -138,19 +141,21 @@ struct CoachView: View {
             }
         }
         .task {
+            await startLiveCoachSignals()
             if !hasLoadedHistory {
                 hasLoadedHistory = true
                 await fetchHistory()
                 await loadTrustSignals()
             }
         }
+        .onDisappear {
+            stopLiveCoachSignals()
+        }
         .fullScreenCover(isPresented: $showingGuidedWorkout) {
-            if let plan = launchTrainingPlan {
-                NavigationStack {
-                    GuidedWorkoutView(trainingPlan: plan)
-                }
-                .ignoresSafeArea()
+            NavigationStack {
+                GuidedWorkoutView(trainingPlan: launchTrainingPlan)
             }
+            .ignoresSafeArea()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StartGuidedWorkoutFromCoach"))) { note in
             if let trainingPlan = note.userInfo?["trainingPlan"] as? TrainingPlan {
@@ -158,6 +163,9 @@ struct CoachView: View {
                 showingGuidedWorkout = true
             } else if let exercises = note.userInfo?["exercises"] as? [PlanExercise], !exercises.isEmpty {
                 launchTrainingPlan = TrainingPlan(focus: "Coach Session", duration_minutes: 45, exercises: exercises)
+                showingGuidedWorkout = true
+            } else {
+                launchTrainingPlan = nil
                 showingGuidedWorkout = true
             }
         }
@@ -176,13 +184,31 @@ struct CoachView: View {
         isLoading = true
         Task {
             do {
-                let response = try await api.aiRespond(message: text)
+                await healthKit.refreshLiveCoachingSignals()
+                let wearableContext = wearableContextPayload(sessionPhase: "coach_chat")
+                let response = try await requestCoachReply(
+                    message: text,
+                    wearableContext: wearableContext
+                )
                 await MainActor.run {
-                    messages.append(MessageContent(role: "assistant", text: response.reply, action: response.action))
+                    messages.append(
+                        MessageContent(
+                            role: "assistant",
+                            text: response.reply,
+                            action: preferredCoachAction(from: response)
+                        )
+                    )
                 }
             } catch {
+                let fallback = await fallbackCoachReply(for: text, error: error)
                 await MainActor.run {
-                    messages.append(MessageContent(role: "assistant", text: "Sorry, something went wrong: \(error.localizedDescription)", action: nil))
+                    messages.append(
+                        MessageContent(
+                            role: "assistant",
+                            text: fallback.reply,
+                            action: preferredCoachAction(from: fallback)
+                        )
+                    )
                 }
             }
             await MainActor.run { isLoading = false }
@@ -191,6 +217,86 @@ struct CoachView: View {
 
     private func sendSuggestion(_ suggestion: String) {
         send(text: suggestion)
+    }
+
+    private func preferredCoachAction(from response: AIReplyResponse) -> AIAction? {
+        var orderedActions: [AIAction] = []
+        if let action = response.action {
+            orderedActions.append(action)
+        }
+        if let actions = response.actions {
+            orderedActions.append(contentsOf: actions)
+        }
+
+        if let guidedAction = orderedActions.first(where: { $0.isGuidedWorkoutLaunchAction }) {
+            return guidedAction
+        }
+        return orderedActions.first
+    }
+
+    private func requestCoachReply(
+        message: String,
+        wearableContext: AIWearableContextPayload?
+    ) async throws -> AIReplyResponse {
+        var lastError: Error?
+        for attempt in 0..<2 {
+            do {
+                return try await api.aiRespond(
+                    message: message,
+                    wearableContext: wearableContext
+                )
+            } catch let error as KodaAPIError {
+                lastError = error
+                let shouldRetry: Bool
+                switch error {
+                case .http(let status, _) where status >= 500:
+                    shouldRetry = true
+                case .invalidResponse, .unknown:
+                    shouldRetry = true
+                default:
+                    shouldRetry = false
+                }
+                if shouldRetry && attempt == 0 {
+                    try? await Task.sleep(nanoseconds: 600_000_000)
+                    continue
+                }
+                throw error
+            } catch {
+                lastError = error
+                if attempt == 0 {
+                    try? await Task.sleep(nanoseconds: 600_000_000)
+                    continue
+                }
+                throw error
+            }
+        }
+        throw lastError ?? KodaAPIError.unknown
+    }
+
+    private func fallbackCoachReply(for userMessage: String, error: Error) async -> AIReplyResponse {
+        #if DEBUG
+        print("coach_fallback_triggered: \(error.localizedDescription)")
+        #endif
+        let lowercased = userMessage.lowercased()
+        let workoutIntentKeywords = ["workout", "train", "training", "session", "lift", "guided"]
+        let requestedWorkoutFlow = workoutIntentKeywords.contains { lowercased.contains($0) }
+
+        if requestedWorkoutFlow,
+           let fallbackPlan = try? await api.planDaily(todayConstraints: nil).plan.training_plan,
+           let exercises = fallbackPlan.exercises,
+           !exercises.isEmpty {
+            return AIReplyResponse(
+                reply: "Coach channel is temporarily unavailable, but I generated today's guided workout so you can keep moving. Tap below to start.",
+                action: AIAction(type: "plan_daily", payload: AIActionPayload(training_plan: fallbackPlan)),
+                actions: nil
+            )
+        }
+
+        return AIReplyResponse(
+            reply: "Coach channel is temporarily unavailable right now. Retry in a moment. If it keeps happening, open Support and we'll escalate immediately.",
+            action: nil,
+            actions: nil
+        )
     }
     
     private func fetchHistory() async {
@@ -226,6 +332,72 @@ struct CoachView: View {
         }
     }
 
+    private var liveWearableStatusLabel: String {
+        if let hr = healthKit.currentHeartRate {
+            return "\(hr)bpm"
+        }
+        if let steps = healthKit.todaySteps {
+            return "\(steps / 1000)k steps"
+        }
+        return "Idle"
+    }
+
+    private var liveWearableSummary: String? {
+        var parts: [String] = []
+        if let hr = healthKit.currentHeartRate {
+            parts.append("Live HR \(hr)bpm")
+        }
+        if let steps = healthKit.todaySteps {
+            parts.append("Steps \(steps)")
+        }
+        if let hrv = healthKit.todayHRV {
+            if let delta = healthKit.hrvDelta {
+                let sign = delta >= 0 ? "+" : ""
+                parts.append("HRV \(Int(hrv.rounded()))ms (\(sign)\(Int(delta.rounded())) vs 7d)")
+            } else {
+                parts.append("HRV \(Int(hrv.rounded()))ms")
+            }
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " • ")
+    }
+
+    private func wearableContextPayload(sessionPhase: String) -> AIWearableContextPayload? {
+        guard let snapshot = healthKit.liveSnapshot(sessionPhase: sessionPhase) else {
+            return nil
+        }
+
+        return AIWearableContextPayload(
+            provider: snapshot.provider,
+            currentHeartRate: snapshot.currentHeartRate,
+            todaySteps: snapshot.todaySteps,
+            todayHRV: snapshot.todayHRV,
+            hrvBaseline: snapshot.hrvBaseline,
+            hrvDelta: snapshot.hrvDelta,
+            sessionPhase: snapshot.sessionPhase,
+            recoveryTargetHeartRate: snapshot.recoveryTargetHeartRate,
+            signalCapturedAt: snapshot.signalCapturedAt
+        )
+    }
+
+    private func startLiveCoachSignals() async {
+        healthKit.startHeartRateStreaming()
+        await healthKit.refreshLiveCoachingSignals()
+        liveSignalTask?.cancel()
+        liveSignalTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 45_000_000_000)
+                guard !Task.isCancelled else { break }
+                await healthKit.refreshLiveCoachingSignals()
+            }
+        }
+    }
+
+    private func stopLiveCoachSignals() {
+        liveSignalTask?.cancel()
+        liveSignalTask = nil
+        healthKit.stopHeartRateStreaming()
+    }
+
     @ViewBuilder
     private var trustSignalCards: some View {
         if weeklyInsight != nil || briefingRationale != nil || progressInsight != nil || activeEscalation != nil {
@@ -253,6 +425,14 @@ struct CoachView: View {
                             body: progressInsight,
                             symbol: "chart.line.uptrend.xyaxis",
                             accent: Brand.Color.success
+                        )
+                    }
+                    if let liveWearableSummary {
+                        trustSignalCard(
+                            title: "Live Wearable Signal",
+                            body: liveWearableSummary,
+                            symbol: "heart.text.square",
+                            accent: Brand.Color.warning
                         )
                     }
                     if let escalation = activeEscalation {
@@ -585,10 +765,11 @@ struct MessageBubble: View {
                 .padding(.top, 4)
             }
 
-            if let action = message.action, action.type == "plan_daily" {
+            if let action = message.action, action.isGuidedWorkoutLaunchAction {
                 WorkoutSteeringButton(
                     trainingPlan: action.payload?.training_plan,
-                    parityGuard: action.payload?.parity_guard
+                    parityGuard: action.payload?.parity_guard,
+                    allowFallbackLaunch: true
                 )
                     .padding(.leading, message.role == "assistant" ? 58 : 0)
             }
@@ -621,6 +802,7 @@ struct MessageBubble: View {
 struct WorkoutSteeringButton: View {
     let trainingPlan: TrainingPlan?
     let parityGuard: WorkoutParityGuard?
+    let allowFallbackLaunch: Bool
     @State private var showingParityApproval = false
 
     private var requiresApproval: Bool {
@@ -668,6 +850,24 @@ struct WorkoutSteeringButton: View {
             .sheet(isPresented: $showingParityApproval) {
                 parityApprovalSheet(trainingPlan: trainingPlan, exercises: exercises)
             }
+        } else if allowFallbackLaunch {
+            Button {
+                startFallbackWorkout()
+            } label: {
+                HStack {
+                    Image(systemName: "play.fill")
+                    Text("Open Guided Workout")
+                }
+                .font(.system(size: 13, weight: .black))
+                .padding(.horizontal, 18)
+                .padding(.vertical, 14)
+                .frame(maxWidth: .infinity)
+                .background(Brand.Color.accent)
+                .foregroundStyle(.black)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
+            .padding(.horizontal, 2)
+            .padding(.top, 8)
         }
     }
 
@@ -676,6 +876,13 @@ struct WorkoutSteeringButton: View {
             name: NSNotification.Name("StartGuidedWorkoutFromCoach"),
             object: nil,
             userInfo: ["trainingPlan": trainingPlan, "exercises": exercises]
+        )
+    }
+
+    private func startFallbackWorkout() {
+        NotificationCenter.default.post(
+            name: NSNotification.Name("StartGuidedWorkoutFromCoach"),
+            object: nil
         )
     }
 
@@ -749,6 +956,24 @@ struct WorkoutSteeringButton: View {
                 }
             }
         }
+    }
+}
+
+private extension AIAction {
+    var isGuidedWorkoutLaunchAction: Bool {
+        if type == "plan_daily" || type == "plan_generated" || type == "update_workout_plan" {
+            return true
+        }
+
+        if let route = targetRoute?.lowercased(), route.contains("/log/workout/guided") {
+            return true
+        }
+
+        if let exercises = payload?.training_plan?.exercises, !exercises.isEmpty {
+            return true
+        }
+
+        return false
     }
 }
 

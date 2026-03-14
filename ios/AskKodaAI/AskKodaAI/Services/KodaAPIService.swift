@@ -27,7 +27,11 @@ struct KodaAPIService {
     }
 
     /// POST /api/v1/ai/respond — AI coach chat.
-    func aiRespond(message: String, localDate: String? = nil) async throws -> AIReplyResponse {
+    func aiRespond(
+        message: String,
+        localDate: String? = nil,
+        wearableContext: AIWearableContextPayload? = nil
+    ) async throws -> AIReplyResponse {
         if isDemoMode {
             return try await DebugUX.resolve(
                 primary: DemoContent.aiReply(for: message),
@@ -38,6 +42,9 @@ struct KodaAPIService {
         let body: [String: Any] = {
             var b: [String: Any] = ["message": message]
             if let d = localDate, !d.isEmpty { b["localDate"] = d }
+            if let wearableContext, wearableContext.hasAnySignal {
+                b["wearableContext"] = wearableContext.asJSON
+            }
             return b
         }()
         return try await post("api/v1/ai/respond", body: body)
@@ -705,6 +712,41 @@ struct APIErrorBody: Decodable {
     let code: String?
 }
 
+struct AIWearableContextPayload {
+    let provider: String
+    let currentHeartRate: Int?
+    let todaySteps: Int?
+    let todayHRV: Double?
+    let hrvBaseline: Double?
+    let hrvDelta: Double?
+    let sessionPhase: String?
+    let recoveryTargetHeartRate: Int?
+    let signalCapturedAt: Date
+
+    var hasAnySignal: Bool {
+        currentHeartRate != nil ||
+        todaySteps != nil ||
+        todayHRV != nil ||
+        hrvBaseline != nil ||
+        hrvDelta != nil
+    }
+
+    var asJSON: [String: Any] {
+        var payload: [String: Any] = [
+            "provider": provider,
+            "signal_captured_at": ISO8601DateFormatter().string(from: signalCapturedAt),
+        ]
+        if let currentHeartRate { payload["current_heart_rate"] = currentHeartRate }
+        if let todaySteps { payload["today_steps"] = todaySteps }
+        if let todayHRV { payload["today_hrv"] = todayHRV }
+        if let hrvBaseline { payload["hrv_baseline"] = hrvBaseline }
+        if let hrvDelta { payload["hrv_delta"] = hrvDelta }
+        if let sessionPhase, !sessionPhase.isEmpty { payload["session_phase"] = sessionPhase }
+        if let recoveryTargetHeartRate { payload["recovery_target_heart_rate"] = recoveryTargetHeartRate }
+        return payload
+    }
+}
+
 struct AIReplyResponse: Decodable {
     let reply: String
     let action: AIAction?
@@ -714,6 +756,20 @@ struct AIReplyResponse: Decodable {
 struct AIAction: Decodable {
     let type: String
     let payload: AIActionPayload?
+    let targetRoute: String?
+    let summary: String?
+
+    init(
+        type: String,
+        payload: AIActionPayload? = nil,
+        targetRoute: String? = nil,
+        summary: String? = nil
+    ) {
+        self.type = type
+        self.payload = payload
+        self.targetRoute = targetRoute
+        self.summary = summary
+    }
 }
 
 struct AIActionPayload: Codable {
@@ -911,6 +967,13 @@ extension KodaAPIError: LocalizedError {
         case .http(let status, let message):
             if status == 401 { return "Please sign in again." }
             if status == 429 { return "Too many requests. Please try again in a minute." }
+            if status >= 500 {
+                let lowercased = message.lowercased()
+                if lowercased.contains("timed out") {
+                    return "Coach is taking longer than expected. Please try again."
+                }
+                return "Coach AI is temporarily unavailable. Please try again in a moment."
+            }
             return message.isEmpty ? "Something went wrong (\(status))." : message
         case .noAuth: return "Please sign in to continue."
         case .invalidResponse, .invalidURL: return "Network error. Please try again."

@@ -11,11 +11,18 @@ import Supabase
 import Auth
 
 struct IntegrationsView: View {
+    private struct HealthAccessAlert: Identifiable {
+        let id = UUID()
+        let title: String
+        let message: String
+        let showsSettingsAction: Bool
+    }
+
     @EnvironmentObject var auth: SupabaseService
     @StateObject private var healthKit = HealthKitService.shared
     @StateObject private var spotify = SpotifyService.shared
     @State private var errorMessage: String?
-    @State private var showAuthAlert = false
+    @State private var healthAccessAlert: HealthAccessAlert?
     @State private var spotifyConnectError: String?
 
     private var dataService: KodaDataService? {
@@ -45,10 +52,22 @@ struct IntegrationsView: View {
             .navigationTitle("Integrations")
             .task { await refreshIntegrations() }
             .refreshable { await refreshIntegrations() }
-            .alert("Apple Health Access", isPresented: $showAuthAlert) {
-                Button("OK") { }
-            } message: {
-                Text("Allow read access for Weight, Sleep, and Step Count so Koda can keep your progress, check-ins, and wearable signal timeline current.")
+            .alert(
+                healthAccessAlert?.title ?? "Apple Health Access",
+                isPresented: Binding(
+                    get: { healthAccessAlert != nil },
+                    set: { if !$0 { healthAccessAlert = nil } }
+                ),
+                presenting: healthAccessAlert
+            ) { alert in
+                if alert.showsSettingsAction {
+                    Button("Open Settings") { openAppSettings() }
+                    Button("Not Now", role: .cancel) { }
+                } else {
+                    Button("OK", role: .cancel) { }
+                }
+            } message: { alert in
+                Text(alert.message)
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AppEnteredForeground"))) { _ in
                 Task { await refreshIntegrations() }
@@ -305,14 +324,72 @@ struct IntegrationsView: View {
             errorMessage = "Sign in to sync."
             return
         }
+
+        errorMessage = nil
         do {
             try await healthKit.requestAuthorization()
             await healthKit.syncToKoda(dataService: ds)
+        } catch let healthError as HealthKitError {
+            switch healthError {
+            case .notAvailable:
+                await MainActor.run {
+                    errorMessage = healthError.localizedDescription
+                    healthAccessAlert = HealthAccessAlert(
+                        title: "Apple Health Unavailable",
+                        message: "Health data is not available on this device.",
+                        showsSettingsAction: false
+                    )
+                }
+            case let .permissionDenied(dataTypes):
+                await MainActor.run {
+                    errorMessage = healthError.localizedDescription
+                    let denied = dataTypes.map(\.capitalized).joined(separator: ", ")
+                    healthAccessAlert = HealthAccessAlert(
+                        title: "Apple Health Access Needed",
+                        message: "Allow read access for \(denied) so Koda can keep your progress, check-ins, and wearable signal timeline current.",
+                        showsSettingsAction: true
+                    )
+                }
+            case let .partialPermissionDenied(dataTypes):
+                await healthKit.syncToKoda(dataService: ds)
+                await MainActor.run {
+                    let denied = dataTypes.map(\.capitalized).joined(separator: ", ")
+                    healthAccessAlert = HealthAccessAlert(
+                        title: "Limited Apple Health Access",
+                        message: "Koda synced what it could, but \(denied) is still blocked. Open Settings to allow full read access.",
+                        showsSettingsAction: true
+                    )
+                }
+            }
         } catch {
             await MainActor.run {
-                errorMessage = error.localizedDescription
-                showAuthAlert = true
+                if isMissingHealthKitEntitlement(error) {
+                    errorMessage = "This build is missing the HealthKit entitlement."
+                    healthAccessAlert = HealthAccessAlert(
+                        title: "Build Missing HealthKit Capability",
+                        message: "This iOS build was signed without HealthKit capability. Rebuild from Xcode with HealthKit enabled in Signing & Capabilities to connect Apple Health.",
+                        showsSettingsAction: false
+                    )
+                } else {
+                    errorMessage = error.localizedDescription
+                    healthAccessAlert = HealthAccessAlert(
+                        title: "Apple Health Access",
+                        message: "Could not connect to Apple Health right now. Please try again, then open Settings if it still fails.",
+                        showsSettingsAction: true
+                    )
+                }
             }
         }
+    }
+
+    private func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString),
+              UIApplication.shared.canOpenURL(url) else { return }
+        UIApplication.shared.open(url)
+    }
+
+    private func isMissingHealthKitEntitlement(_ error: Error) -> Bool {
+        let description = error.localizedDescription.lowercased()
+        return description.contains("healthkit") && description.contains("entitlement")
     }
 }

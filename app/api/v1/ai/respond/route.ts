@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { assembleContext } from "@/lib/ai/assemble-context";
 import { jsonError, makeRequestId } from "@/lib/api/errors";
 import { consumeToken } from "@/lib/api/rate-limit";
-import { callModel } from "@/lib/ai/model";
+import { AIProviderError, callModel } from "@/lib/ai/model";
 import {
   ensureSitArtifacts,
   loadPhysicalHistoryEvents,
@@ -40,11 +40,45 @@ type ConversationTurn = {
   content: string;
 };
 
+type WearableContextInput = {
+  provider?: unknown;
+  currentHeartRate?: unknown;
+  current_heart_rate?: unknown;
+  todaySteps?: unknown;
+  today_steps?: unknown;
+  todayHRV?: unknown;
+  today_hrv?: unknown;
+  hrvBaseline?: unknown;
+  hrv_baseline?: unknown;
+  hrvDelta?: unknown;
+  hrv_delta?: unknown;
+  sessionPhase?: unknown;
+  session_phase?: unknown;
+  recoveryTargetHeartRate?: unknown;
+  recovery_target_heart_rate?: unknown;
+  signalCapturedAt?: unknown;
+  signal_captured_at?: unknown;
+};
+
 type RequestBody = {
   message?: string;
   localDate?: string;
   /** Optional prior conversation turns for multi-turn continuity (iOS persistent chat). */
   conversationHistory?: ConversationTurn[];
+  /** Optional live wearable context from the iOS session layer. */
+  wearableContext?: WearableContextInput;
+};
+
+type SanitizedWearableContext = {
+  provider: string;
+  currentHeartRate?: number;
+  todaySteps?: number;
+  todayHRV?: number;
+  hrvBaseline?: number;
+  hrvDelta?: number;
+  sessionPhase?: string;
+  recoveryTargetHeartRate?: number;
+  signalCapturedAtIso: string;
 };
 
 function isValidLocalDate(value: string): boolean {
@@ -66,6 +100,101 @@ function resolveLogDate(localDate: string | undefined): string | null {
 
 function toKgFromLbs(lbs: number): number {
   return Math.round(lbs * 0.45359237 * 10) / 10;
+}
+
+function toFiniteNumber(value: unknown): number | undefined {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  return parsed;
+}
+
+function sanitizeWearableContext(input: WearableContextInput | undefined): SanitizedWearableContext | null {
+  if (!input || typeof input !== "object") return null;
+
+  const providerRaw = typeof input.provider === "string" ? input.provider.trim().toLowerCase() : "apple_health";
+  const provider = providerRaw.length > 0 ? providerRaw.slice(0, 32) : "apple_health";
+
+  const currentHeartRate = toFiniteNumber(input.currentHeartRate ?? input.current_heart_rate);
+  const todaySteps = toFiniteNumber(input.todaySteps ?? input.today_steps);
+  const todayHRV = toFiniteNumber(input.todayHRV ?? input.today_hrv);
+  const hrvBaseline = toFiniteNumber(input.hrvBaseline ?? input.hrv_baseline);
+  const hrvDelta = toFiniteNumber(input.hrvDelta ?? input.hrv_delta);
+  const recoveryTargetHeartRate = toFiniteNumber(
+    input.recoveryTargetHeartRate ?? input.recovery_target_heart_rate
+  );
+  const sessionPhaseRaw =
+    typeof (input.sessionPhase ?? input.session_phase) === "string"
+      ? String(input.sessionPhase ?? input.session_phase).trim().toLowerCase()
+      : undefined;
+
+  const boundedHeartRate =
+    currentHeartRate != null ? clampNumber(Math.round(currentHeartRate), 30, 230) : undefined;
+  const boundedSteps =
+    todaySteps != null ? clampNumber(Math.round(todaySteps), 0, 120_000) : undefined;
+  const boundedTodayHRV =
+    todayHRV != null ? Number(clampNumber(todayHRV, 5, 300).toFixed(1)) : undefined;
+  const boundedBaselineHRV =
+    hrvBaseline != null ? Number(clampNumber(hrvBaseline, 5, 300).toFixed(1)) : undefined;
+  const boundedHRVDelta =
+    hrvDelta != null ? Number(clampNumber(hrvDelta, -150, 150).toFixed(1)) : undefined;
+  const boundedRecoveryTarget =
+    recoveryTargetHeartRate != null
+      ? clampNumber(Math.round(recoveryTargetHeartRate), 70, 170)
+      : undefined;
+
+  const signalCapturedAtRaw = input.signalCapturedAt ?? input.signal_captured_at;
+  const signalCapturedAtDate =
+    typeof signalCapturedAtRaw === "string" && !Number.isNaN(Date.parse(signalCapturedAtRaw))
+      ? new Date(signalCapturedAtRaw)
+      : new Date();
+  const signalCapturedAtIso = signalCapturedAtDate.toISOString();
+
+  const hasMetric =
+    boundedHeartRate != null ||
+    boundedSteps != null ||
+    boundedTodayHRV != null ||
+    boundedBaselineHRV != null ||
+    boundedHRVDelta != null ||
+    boundedRecoveryTarget != null;
+
+  if (!hasMetric && !sessionPhaseRaw) {
+    return null;
+  }
+
+  return {
+    provider,
+    currentHeartRate: boundedHeartRate,
+    todaySteps: boundedSteps,
+    todayHRV: boundedTodayHRV,
+    hrvBaseline: boundedBaselineHRV,
+    hrvDelta: boundedHRVDelta,
+    sessionPhase: sessionPhaseRaw?.slice(0, 32),
+    recoveryTargetHeartRate: boundedRecoveryTarget,
+    signalCapturedAtIso,
+  };
+}
+
+function buildWearableContextPrompt(context: SanitizedWearableContext): string {
+  const lines: string[] = [];
+  lines.push(
+    `Live wearable context (provider: ${context.provider}, captured: ${context.signalCapturedAtIso}):`
+  );
+  if (context.currentHeartRate != null) lines.push(`- Current heart rate: ${context.currentHeartRate} bpm`);
+  if (context.recoveryTargetHeartRate != null) {
+    lines.push(`- Recovery target heart rate: ${context.recoveryTargetHeartRate} bpm`);
+  }
+  if (context.todaySteps != null) lines.push(`- Today's step count: ${context.todaySteps}`);
+  if (context.todayHRV != null) lines.push(`- Today's HRV: ${context.todayHRV} ms`);
+  if (context.hrvBaseline != null) lines.push(`- HRV baseline (7d): ${context.hrvBaseline} ms`);
+  if (context.hrvDelta != null) {
+    const sign = context.hrvDelta >= 0 ? "+" : "";
+    lines.push(`- HRV delta vs baseline: ${sign}${context.hrvDelta} ms`);
+  }
+  if (context.sessionPhase) lines.push(`- Session phase: ${context.sessionPhase}`);
+  lines.push(
+    "Use this as high-priority real-time context for intensity, rest guidance, and recovery recommendations."
+  );
+  return lines.join("\n");
 }
 
 function detectExerciseMention(
@@ -307,6 +436,7 @@ export async function POST(request: Request) {
 
   const message = typeof body.message === "string" ? body.message.trim() : "";
   const logDate = resolveLogDate(body.localDate) || new Date().toISOString().slice(0, 10);
+  const wearableContext = sanitizeWearableContext(body.wearableContext);
   // Sanitise and cap conversation history to last 10 turns
   const conversationHistory: ConversationTurn[] = Array.isArray(body.conversationHistory)
     ? body.conversationHistory
@@ -350,6 +480,35 @@ export async function POST(request: Request) {
           headers: { "Retry-After": String(limiter.retryAfterSeconds) },
         }
       );
+    }
+
+    if (user?.id && wearableContext) {
+      const hasPersistableSignal =
+        wearableContext.todaySteps != null || wearableContext.todayHRV != null;
+      if (hasPersistableSignal) {
+        try {
+          await supabase.from("connected_signals").upsert(
+            {
+              user_id: user.id,
+              provider: wearableContext.provider,
+              signal_date: logDate,
+              steps: wearableContext.todaySteps ?? null,
+              hrv: wearableContext.todayHRV ?? null,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,provider,signal_date" }
+          );
+        } catch (wearablePersistError) {
+          console.warn("ai_wearable_context_upsert_failed", {
+            requestId,
+            userId: user.id,
+            error:
+              wearablePersistError instanceof Error
+                ? wearablePersistError.message
+                : "unknown wearable upsert error",
+          });
+        }
+      }
     }
 
     if (user?.id) {
@@ -454,6 +613,10 @@ export async function POST(request: Request) {
       }
     } else {
       systemPrompt = `${systemPrompt}\n\n${SAFETY_POLICY}`;
+    }
+
+    if (wearableContext) {
+      systemPrompt = `${systemPrompt}\n\n${buildWearableContextPrompt(wearableContext)}`;
     }
 
     const OMNI_TOOLS: any[] = [
@@ -1200,10 +1363,39 @@ export async function POST(request: Request) {
         refreshScopes.size > 0 ? Array.from(refreshScopes) : undefined,
     });
   } catch (error) {
+    if (error instanceof AIProviderError) {
+      console.error("ai_respond_upstream_error", {
+        requestId,
+        code: error.code,
+        status: error.status,
+        model: error.model,
+        providerMessage: error.providerMessage,
+        retryable: error.retryable,
+      });
+
+      if (error.code === "AI_TIMEOUT") {
+        return jsonError(504, "UPSTREAM_ERROR", "AI coach timed out. Please try again.");
+      }
+      if (error.status === 429) {
+        return jsonError(503, "UPSTREAM_ERROR", "AI coach is busy right now. Please try again in a moment.");
+      }
+      if (error.code === "AI_NETWORK") {
+        return jsonError(503, "UPSTREAM_ERROR", "AI network is temporarily unavailable. Please retry.");
+      }
+      if (error.code === "AI_INVALID_RESPONSE") {
+        return jsonError(502, "UPSTREAM_ERROR", "AI provider returned an invalid response. Please retry.");
+      }
+      return jsonError(502, "UPSTREAM_ERROR", "AI provider request failed. Please retry.");
+    }
+
     console.error("ai_respond_unhandled", {
       requestId,
       error: error instanceof Error ? error.message : "unknown",
     });
-    return jsonError(500, "INTERNAL_ERROR", "AI service error.");
+    return jsonError(
+      503,
+      "UPSTREAM_ERROR",
+      "Coach service is temporarily unavailable. Please try again."
+    );
   }
 }

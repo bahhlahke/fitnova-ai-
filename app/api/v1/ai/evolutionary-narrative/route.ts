@@ -78,7 +78,7 @@ export async function POST(req: Request) {
         .eq("user_id", user.id)
         .order("date_local", { ascending: false })
         .limit(14),
-      supabase.from("user_profile").select("display_name, goals, activity_level, experience_level").eq("user_id", user.id).maybeSingle(),
+      supabase.from("user_profile").select("name, goals, activity_level, experience_level").eq("user_id", user.id).maybeSingle(),
       supabase
         .from("connected_signals")
         .select("signal_date, hrv, resting_hr, recovery_score, sleep_hours")
@@ -99,6 +99,7 @@ export async function POST(req: Request) {
     const nutrition = (nutritionRes.data ?? []) as any[];
     const checkIns = (checkInsRes.data ?? []) as any[];
     const profile = profileRes.data;
+    const profileName = profile?.name || "Athlete";
     const signals = (signalsRes.data ?? []) as any[];
     const prs = (prsRes.data ?? []) as any[];
 
@@ -119,11 +120,11 @@ Structure:
 Instructions:
 - Keep it to 3 short paragraphs.
 - Reference specific names of exercises and dates.
-- Use the athlete's name (${profile?.display_name || "Athlete"}) occasionally.
+- Use the athlete's name (${profileName}) occasionally.
 - Output ONLY the narrative text.`;
 
     const dataBlock = [
-      "Athlete: " + (profile?.display_name || "Unknown"),
+      "Athlete: " + profileName,
       "Goals: " + (profile?.goals?.length ? profile.goals.join(", ") : "Growth"),
       "Experience: " + (profile?.experience_level || "Intermediate"),
       "Recent Weights: " + progress.filter(p => p.weight).slice(0, 5).map((p) => `${p.date}:${p.weight}kg`).join("; "),
