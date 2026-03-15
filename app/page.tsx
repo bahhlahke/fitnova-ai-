@@ -19,7 +19,7 @@ import {
 import {
   type DashboardProjection,
 } from "@/components/dashboard/DashboardProgressSection";
-import { calculateReadiness, type MuscleReadiness } from "@/lib/workout/recovery";
+import { calculateReadiness, type MuscleReadiness, RECOVERY_WINDOW_DAYS, getRecoverySuggestion as getSharedRecoverySuggestion } from "@/lib/workout/recovery";
 import type { User } from "@supabase/supabase-js";
 import type { DailyPlan } from "@/lib/plan/types";
 
@@ -69,6 +69,7 @@ export default function HomePage() {
   const [isPro, setIsPro] = useState(false);
   const [weeklyInsight, setWeeklyInsight] = useState<string | null>(null);
   const [weeklyInsightLoading, setWeeklyInsightLoading] = useState(false);
+  const [recoverySuggestion, setRecoverySuggestion] = useState<string | null>(null);
   const [readinessInsight, setReadinessInsight] = useState<string | null>(null);
   const [readinessInsightLoading, setReadinessInsightLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -152,9 +153,9 @@ export default function HomePage() {
             .from("workout_logs")
             .select("*")
             .eq("user_id", user.id)
-            .gte("date", new Date(new Date().setDate(new Date().getDate() - 28)).toISOString().split("T")[0])
+            .gte("date", toLocalDateString(new Date(new Date().setDate(new Date().getDate() - RECOVERY_WINDOW_DAYS))))
             .lte("date", today)
-            .order("date", { ascending: true }),
+            .order("date", { ascending: false }),
           supabase
             .from("daily_plans")
             .select("plan_json")
@@ -192,7 +193,10 @@ export default function HomePage() {
       }
 
       if (last28Res.data) {
-        setReadiness(calculateReadiness(last28Res.data));
+        const calculated = calculateReadiness(last28Res.data);
+        setReadiness(calculated);
+        setLastWorkoutDate(last28Res.data.length ? last28Res.data[0].date : null);
+        setRecoverySuggestion(getSharedRecoverySuggestion(last28Res.data));
       }
 
       const byDate: Record<string, number> = {};
@@ -433,24 +437,7 @@ export default function HomePage() {
     return count;
   }, [last7Days]);
 
-  const recoverySuggestion = useMemo(() => {
-    if (!lastWorkoutDate) return null;
-
-    const today = toLocalDateString();
-    const daysSinceLastWorkout = Math.floor(
-      (new Date(today).setHours(0, 0, 0, 0) -
-        new Date(lastWorkoutDate).setHours(0, 0, 0, 0)) /
-      (24 * 60 * 60 * 1000)
-    );
-
-    if (daysSinceLastWorkout === 0) {
-      return "You already trained today. Keep recovery and nutrition clean.";
-    }
-    if (daysSinceLastWorkout === 1) {
-      return "You trained yesterday. Consider lighter loading or active recovery.";
-    }
-    return null;
-  }, [lastWorkoutDate]);
+  // recoverySuggestion is now a state updated during load
 
   async function handleGeneratePlan() {
     setPlanLoading(true);

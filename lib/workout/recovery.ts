@@ -3,6 +3,7 @@ import { getMuscleGroup, MUSCLE_GROUPS, type MuscleGroup } from "./muscle-groups
 export type MuscleReadiness = Record<MuscleGroup, number> & { overall_score?: number };
 
 // Decays: 28 days for fitness, 7 days for fatigue
+export const RECOVERY_WINDOW_DAYS = 28;
 const CHRONIC_DECAY = 28;
 const ACUTE_DECAY = 7;
 
@@ -101,5 +102,30 @@ export function calculateReadiness(logs: any[]): MuscleReadiness {
     readiness.overall_score = Math.round(totalScore / MUSCLE_GROUPS.length) / 100;
 
     return readiness;
+}
+
+export function getRecoverySuggestion(logs: any[]): string | null {
+    if (!logs || logs.length === 0) return null;
+    
+    // Assumes logs are sorted DESC by date. If not, we should sort or find the latest.
+    const sortedLogs = [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const latestLog = sortedLogs[0];
+    const lastWorkoutDate = latestLog.date;
+    if (!lastWorkoutDate) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const lastDate = new Date(lastWorkoutDate);
+    lastDate.setHours(0, 0, 0, 0);
+
+    const daysSinceLast = Math.floor((today.getTime() - lastDate.getTime()) / (24 * 60 * 60 * 1000));
+
+    if (daysSinceLast === 0) {
+        return "You developed intensity today. Prioritize active recovery and deep sleep.";
+    }
+    if (daysSinceLast === 1) {
+        return "Trained yesterday. System is in peak recovery - localized soreness may peak.";
+    }
+    return null;
 }
 

@@ -7,7 +7,7 @@ import { toLocalDateString } from "@/lib/date/local-date";
 import Link from "next/link";
 import { PageLayout, LoadingState, Card, CardHeader, Button } from "@/components/ui";
 import { DashboardReadinessSection } from "@/components/dashboard/DashboardReadinessSection";
-import { calculateReadiness, type MuscleReadiness } from "@/lib/workout/recovery";
+import { calculateReadiness, type MuscleReadiness, RECOVERY_WINDOW_DAYS, getRecoverySuggestion as getSharedRecoverySuggestion } from "@/lib/workout/recovery";
 import { 
     Activity, 
     Zap, 
@@ -62,8 +62,8 @@ export default function VitalsPage() {
                     .from("workout_logs")
                     .select("*")
                     .eq("user_id", user.id)
-                    .order("date", { ascending: false })
-                    .limit(28),
+                    .gte("date", toLocalDateString(new Date(new Date().setDate(new Date().getDate() - RECOVERY_WINDOW_DAYS))))
+                    .order("date", { ascending: false }),
                 supabase
                     .from("connected_signals")
                     .select("*")
@@ -89,16 +89,7 @@ export default function VitalsPage() {
             if (recentWorkouts) {
                 const calculated = calculateReadiness(recentWorkouts);
                 setReadiness(calculated);
-
-                const lastWorkoutDate = recentWorkouts[0]?.date;
-                if (lastWorkoutDate) {
-                    const daysSinceLast = Math.floor(
-                        (new Date(today).setHours(0, 0, 0, 0) - new Date(lastWorkoutDate).setHours(0, 0, 0, 0)) /
-                        (24 * 60 * 60 * 1000)
-                    );
-                    if (daysSinceLast === 0) setRecoverySuggestion("You trained today. Prioritize nutrition and sleep.");
-                    else if (daysSinceLast === 1) setRecoverySuggestion("Trained yesterday. Active recovery recommended.");
-                }
+                setRecoverySuggestion(getSharedRecoverySuggestion(recentWorkouts));
             }
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to load vitals.");
