@@ -43,7 +43,7 @@ const STATUS_LABEL: Record<ReturnType<typeof getStatus>, string> = {
     fatigued: "Fatigued",
 };
 
-// Refined anatomical paths for a more premium look
+// High-fidelity anatomical paths for a pro-level aesthetic
 const MUSCLE_CONFIG: Array<{
     key: MuscleGroup;
     label: string;
@@ -52,63 +52,63 @@ const MUSCLE_CONFIG: Array<{
 }> = [
     {
         key: "Chest",
-        label: "Chest",
+        label: "Pectorals",
         side: "front",
-        path: "M40,50 C30,50 22,55 22,65 L22,80 C22,85 30,90 50,90 C70,90 78,85 78,80 L78,65 C78,55 70,50 60,50 C55,50 50,52 50,52 C50,52 45,50 40,50 Z",
+        path: "M50,55 C45,55 35,58 30,65 C28,70 30,85 50,85 C70,85 72,70 70,65 C65,58 55,55 50,55 Z M50,55 C52,55 58,56 62,59 C65,62 66,70 65,75 M50,55 C48,55 42,56 38,59 C35,62 34,70 35,75",
     },
     {
         key: "Core",
-        label: "Core",
+        label: "Abdominals",
         side: "front",
-        path: "M35,95 L65,95 L62,130 C60,140 55,145 50,145 C45,145 40,140 38,130 Z M42,100 L42,110 M58,100 L58,110 M42,120 L42,130 M58,120 L58,130",
+        path: "M38,90 L62,90 L60,110 L40,110 Z M40,115 L60,115 L58,135 C55,142 45,142 42,135 Z",
     },
     {
         key: "Shoulders",
-        label: "Shoulders",
+        label: "Deltoids",
         side: "front",
-        path: "M15,45 C8,45 5,52 5,60 C5,68 12,75 20,75 L25,55 Z M85,45 C92,45 95,52 95,60 C95,68 88,75 80,75 L75,55 Z",
+        path: "M25,50 C20,50 15,55 12,65 C10,75 15,82 22,80 L28,60 Z M75,50 C80,50 85,55 88,65 C90,75 85,82 78,80 L72,60 Z",
     },
     {
         key: "Biceps",
         label: "Biceps",
         side: "front",
-        path: "M5,80 C3,80 1,85 1,95 L3,115 C5,122 12,125 18,120 L20,95 C20,85 12,80 5,80 Z M95,80 C97,80 99,85 99,95 L97,115 C95,122 88,125 82,120 L80,95 C80,85 88,80 95,80 Z",
+        path: "M10,85 C8,85 5,90 5,100 L7,120 C9,128 15,128 20,122 L22,100 C22,90 15,85 10,85 Z M90,85 C92,85 95,90 95,100 L93,120 C91,128 85,128 80,122 L78,100 C78,90 85,85 90,85 Z",
     },
     {
         key: "Quads",
-        label: "Quads",
+        label: "Quadriceps",
         side: "front",
-        path: "M25,150 L48,150 L48,210 L35,210 C28,210 25,200 25,185 Z M52,150 L75,150 L75,185 C75,200 72,210 65,210 L52,210 Z",
+        path: "M28,150 L48,150 L48,220 L38,220 C32,220 28,210 28,190 Z M52,150 L72,150 L72,190 C72,210 68,220 62,220 L52,220 Z",
     },
     {
         key: "Back",
-        label: "Back",
+        label: "Latissimus",
         side: "back",
-        path: "M20,45 C20,35 35,30 50,30 C65,30 80,35 80,45 L78,95 C75,105 60,110 50,110 C40,110 25,105 22,95 Z",
+        path: "M50,40 C40,40 25,45 22,60 L20,90 C25,105 40,110 50,110 C60,110 75,105 78,90 L80,60 C75,45 60,40 50,40 Z M50,45 L50,105",
     },
     {
         key: "Glutes",
-        label: "Glutes",
+        label: "Gluteals",
         side: "back",
-        path: "M25,135 C25,125 35,120 50,120 C65,120 75,125 75,135 L72,160 C68,170 55,175 50,175 C45,175 32,170 28,160 Z",
+        path: "M28,125 C28,115 40,110 50,110 C60,110 72,115 72,125 L70,165 C65,175 55,180 50,180 C45,180 35,175 30,165 Z",
     },
     {
         key: "Hamstrings",
-        label: "Hams",
+        label: "Hamstrings",
         side: "back",
-        path: "M28,175 L48,175 L48,225 C45,235 32,235 28,225 Z M52,175 L72,175 L72,225 C68,235 55,235 52,225 Z",
+        path: "M28,185 L48,185 L48,235 C45,245 32,245 28,235 Z M52,185 L72,185 L72,235 C68,245 55,245 52,235 Z",
     },
     {
         key: "Triceps",
         label: "Triceps",
         side: "back",
-        path: "M8,75 C5,75 2,80 2,90 L5,115 C8,122 15,125 20,118 L22,90 C22,80 15,75 8,75 Z M92,75 C95,75 98,80 98,90 L95,115 C92,122 85,125 80,118 L78,90 C78,80 85,75 92,75 Z",
+        path: "M15,65 C12,65 8,70 8,80 L10,120 C12,128 18,128 22,122 L24,90 C24,80 20,65 15,65 Z M85,65 C88,65 92,70 92,80 L90,120 C88,128 82,128 78,122 L76,90 C76,80 80,65 85,65 Z",
     },
     {
         key: "Calves",
-        label: "Calves",
+        label: "Gastroc",
         side: "back",
-        path: "M30,230 L46,230 L46,260 C42,270 34,270 30,260 Z M54,230 L70,230 L70,260 C66,270 58,270 54,260 Z",
+        path: "M32,240 L46,240 L46,275 C42,285 34,285 32,275 Z M54,240 L68,240 L68,275 C64,285 56,285 54,275 Z",
     },
 ];
 
@@ -123,17 +123,17 @@ function MusclePanel({ muscles, readiness, view, title }: MusclePanelProps) {
     const panelMuscles = muscles.filter((m) => m.side === view);
 
     return (
-        <div className="flex flex-col items-center gap-4 relative w-full h-full min-h-[400px]">
-            <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mb-2">{title}</p>
-            <div className="relative w-full h-full max-w-[200px] group flex justify-center">
-                {/* Holographic background grid */}
-                <div className="absolute inset-0 z-0 opacity-10">
-                    <div className="w-full h-full" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+        <div className="flex flex-col items-center gap-6 relative w-full h-full min-h-[450px]">
+            <p className="text-[11px] font-black uppercase italic tracking-[0.6em] text-white/30 mb-2">{title}</p>
+            <div className="relative w-full h-full max-w-[220px] group flex justify-center">
+                {/* Holographic context grid - Purely visual premium layer */}
+                <div className="absolute inset-0 z-0 opacity-[0.03]">
+                    <div className="w-full h-full" style={{ backgroundImage: 'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
                 </div>
 
                 <svg
-                    viewBox="0 0 100 280"
-                    className="relative z-10 w-full h-full drop-shadow-[0_0_40px_rgba(0,0,0,0.8)] transition-all duration-700 group-hover:scale-[1.05]"
+                    viewBox="0 0 100 300"
+                    className="relative z-10 w-full h-full drop-shadow-[0_0_50px_rgba(0,0,0,0.9)] transition-all duration-1000 ease-out group-hover:scale-[1.08] group-hover:-translate-y-2"
                     preserveAspectRatio="xMidYMid meet"
                 >
                     <defs>
@@ -143,7 +143,7 @@ function MusclePanel({ muscles, readiness, view, title }: MusclePanelProps) {
                             const opacity = getGlowOpacity(score);
                             return (
                                 <filter key={`glow-${key}-${view}`} id={`glow-${key}-${view}`} x="-50%" y="-50%" width="200%" height="200%">
-                                    <feGaussianBlur stdDeviation="6" result="blur" />
+                                    <feGaussianBlur stdDeviation="8" result="blur" />
                                     <feComposite in="blur" in2="SourceGraphic" operator="out" result="glow" />
                                     <feFlood floodColor={color} floodOpacity={opacity} result="color" />
                                     <feComposite in="color" in2="glow" operator="in" result="softGlow" />
@@ -155,31 +155,41 @@ function MusclePanel({ muscles, readiness, view, title }: MusclePanelProps) {
                             );
                         })}
                         
-                        {/* Global highlight filter */}
-                        <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor="rgba(255,255,255,0.05)" />
-                            <stop offset="50%" stopColor="rgba(255,255,255,0.02)" />
-                            <stop offset="100%" stopColor="rgba(255,255,255,0.05)" />
+                        <linearGradient id="premiumBodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="rgba(255,255,255,0.06)" />
+                            <stop offset="50%" stopColor="rgba(255,255,255,0.03)" />
+                            <stop offset="100%" stopColor="rgba(255,255,255,0.06)" />
                         </linearGradient>
+
+                        <filter id="innerDepth">
+                            <feOffset dx="0" dy="2" />
+                            <feGaussianBlur stdDeviation="1.5" result="offsetBlur" />
+                            <feComposite operator="out" in="SourceGraphic" in2="offsetBlur" result="inverse" />
+                            <feFlood floodColor="black" floodOpacity="0.4" result="color" />
+                            <feComposite operator="in" in="color" in2="inverse" result="shadow" />
+                            <feComposite operator="over" in="shadow" in2="SourceGraphic" />
+                        </filter>
                     </defs>
 
-                    {/* Body silhouette robust base */}
-                    <g fill="url(#bodyGradient)" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5">
-                        {/* Head & Neck */}
-                        <circle cx="50" cy="18" r="12" className="opacity-20" />
-                        <rect x="46" y="28" width="8" height="6" rx="2" className="opacity-20" />
+                    {/* Highly stylized skeletal/body base */}
+                    <g fill="url(#premiumBodyGradient)" stroke="rgba(255,255,255,0.12)" strokeWidth="0.4" filter="url(#innerDepth)">
+                        {/* Head */}
+                        <path d="M50,5 C42,5 38,10 38,20 C38,30 42,35 50,35 C58,35 62,30 62,20 C62,10 58,5 50,5 Z" className="opacity-15" />
                         
-                        {/* Torso & Arms Silhouettes */}
-                        <path d="M25,40 C15,40 5,45 5,55 L3,120 C3,130 10,135 20,135 L20,150 L80,150 L80,135 C90,135 97,130 97,120 L95,55 C95,45 85,40 75,40 Z" className="opacity-10" />
+                        {/* Core Chassis */}
+                        <path d="M22,45 C12,45 8,50 8,65 L6,140 C6,155 12,160 25,160 L75,160 C88,160 94,155 94,140 L92,65 C92,50 88,45 78,45 Z" className="opacity-[0.08]" />
                         
-                        {/* Legs Silhouettes */}
-                        <path d="M22,150 L20,270 C20,275 35,275 48,270 L48,150 Z M52,150 L52,270 C65,275 80,275 78,270 L75,150 Z" className="opacity-10" />
+                        {/* Structural Limbs */}
+                        <path d="M18,160 L14,285 C14,295 48,295 48,285 L48,160 Z M52,160 L52,285 C52,295 86,295 82,285 L78,160 Z" className="opacity-[0.08]" />
                     </g>
 
-                    {/* Scanning Line (Inside SVG for accuracy) */}
-                    <rect x="0" y="0" width="100" height="1" fill="#0AD9C4" className="animate-scanning opacity-0 group-hover:opacity-40" />
+                    {/* Dynamic Scanning Interface */}
+                    <g className="animate-scanning opacity-0 group-hover:opacity-60 transition-opacity">
+                        <line x1="0" y1="0" x2="100" y2="0" stroke="#0AD9C4" strokeWidth="0.5" strokeDasharray="2,2" />
+                        <circle cx="50" cy="0" r="1.5" fill="#0AD9C4" />
+                    </g>
 
-                    {/* Muscle overlays */}
+                    {/* Enhanced Muscle overlays */}
                     {panelMuscles.map(({ key, path }) => {
                         const score = readiness[key] ?? 50;
                         const status = getStatus(score);
@@ -189,20 +199,22 @@ function MusclePanel({ muscles, readiness, view, title }: MusclePanelProps) {
                                 key={key}
                                 d={path}
                                 fill={color}
-                                fillOpacity={0.7}
+                                fillOpacity={0.75}
                                 stroke={color}
-                                strokeWidth="1"
+                                strokeWidth="0.8"
                                 strokeOpacity={0.9}
                                 filter={`url(#glow-${key}-${view})`}
-                                className={status === "fatigued" ? "animate-pulse" : "transition-all duration-300 hover:fill-opacity-90"}
+                                className={status === "fatigued" ? "animate-pulse" : "transition-all duration-500 hover:fill-opacity-100"}
                             />
                         );
                     })}
                 </svg>
                 
-                {/* Side Scan Effects */}
-                <div className="absolute inset-y-0 -left-4 w-px bg-gradient-to-b from-transparent via-fn-accent/20 to-transparent" />
-                <div className="absolute inset-y-0 -right-4 w-px bg-gradient-to-b from-transparent via-fn-accent/20 to-transparent" />
+                {/* Visual Anchors (Corner Elements) */}
+                <div className="absolute top-10 left-0 w-2 h-2 border-l border-t border-white/20" />
+                <div className="absolute top-10 right-0 w-2 h-2 border-r border-t border-white/20" />
+                <div className="absolute bottom-10 left-0 w-2 h-2 border-l border-b border-white/20" />
+                <div className="absolute bottom-10 right-0 w-2 h-2 border-r border-b border-white/20" />
             </div>
         </div>
     );
@@ -219,63 +231,91 @@ export function BodyHeatmap({ readiness, className = "" }: BodyHeatmapProps) {
     }, [readiness]);
 
     return (
-        <div className={`flex flex-col gap-12 ${className} animate-panel-rise`}>
-            {/* Dual body views - No fixed height here, let flex/min-height handle it */}
-            <div className="flex flex-col md:flex-row items-center justify-center gap-12 sm:gap-24 relative py-8">
-                <div className="w-full max-w-[280px]">
-                    <MusclePanel muscles={MUSCLE_CONFIG} readiness={readiness} view="front" title="Anterior View" />
+        <div className={`flex flex-col gap-16 ${className} animate-panel-rise`}>
+            {/* High-Impact Visual Section */}
+            <div className="flex flex-col lg:flex-row items-stretch justify-center gap-16 xl:gap-32 relative py-12 px-6 bg-white/[0.01] rounded-[40px] border border-white/[0.03]">
+                <div className="flex-1 flex justify-center">
+                    <MusclePanel muscles={MUSCLE_CONFIG} readiness={readiness} view="front" title="Anterior Architecture" />
                 </div>
-                <div className="w-full max-w-[280px]">
-                    <MusclePanel muscles={MUSCLE_CONFIG} readiness={readiness} view="back" title="Posterior View" />
+
+                {/* Cybernetic Separator */}
+                <div className="hidden lg:flex flex-col items-center justify-center gap-6 opacity-20">
+                    <div className="h-24 w-px bg-gradient-to-t from-white/10 to-transparent" />
+                    <div className="p-2 border border-white/20 rounded-full">
+                        <div className="h-1 w-1 bg-white rounded-full" />
+                    </div>
+                    <div className="h-24 w-px bg-gradient-to-b from-white/10 to-transparent" />
                 </div>
-                
-                {/* Center visual divider */}
-                <div className="hidden md:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-4/5 w-px bg-white/5 shadow-[0_0_20px_rgba(255,255,255,0.05)]" />
+
+                <div className="flex-1 flex justify-center">
+                    <MusclePanel muscles={MUSCLE_CONFIG} readiness={readiness} view="back" title="Posterior Structure" />
+                </div>
             </div>
 
-            {/* Premium Info Grid - Ensures no overlap by being in a separate flow */}
-            <div className="relative z-20 mt-4">
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {/* Metrics HUD - Ensures isolation from anatomical view to prevent overlap */}
+            <div className="relative z-30">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-5">
                     {muscleRows.map(({ key, label, score, status, color }) => (
                         <div
                             key={key}
-                            className="group relative flex flex-col items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.03] p-5 backdrop-blur-xl transition-all duration-300 hover:bg-white/[0.08] hover:border-white/20 hover:-translate-y-1"
+                            className="group relative flex flex-col items-stretch gap-4 rounded-3xl border border-white/5 bg-black/40 p-6 backdrop-blur-2xl transition-all duration-500 hover:bg-white/[0.08] hover:border-white/20 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]"
                         >
-                            <div
-                                className="h-2 w-2 rounded-full"
-                                style={{
-                                    backgroundColor: color,
-                                    boxShadow: `0 0 15px ${color}`,
-                                }}
-                            />
-                            <div className="text-center">
-                                <span className="block text-[9px] font-black uppercase tracking-[0.25em] text-white/40 mb-1">{label}</span>
-                                <span className="block text-2xl font-black text-white tracking-tighter leading-none">{score}</span>
+                            <div className="flex items-center justify-between gap-3">
+                                <div
+                                    className="h-2 w-2 rounded-full"
+                                    style={{
+                                        backgroundColor: color,
+                                        boxShadow: `0 0 20px ${color}`,
+                                    }}
+                                />
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 truncate">{label}</span>
                             </div>
                             
-                            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-fn-accent">
+                            <div className="flex items-end justify-between">
+                                <span className="text-3xl font-black text-white tracking-tighter leading-none">{score}</span>
+                                <span className={`text-[9px] font-black uppercase italic tracking-widest ${status === 'fatigued' ? 'text-fn-danger' : 'text-fn-accent'} opacity-0 group-hover:opacity-100 transition-opacity`}>
                                     {status}
                                 </span>
+                            </div>
+
+                            {/* Inner progress pill */}
+                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full rounded-full transition-all duration-1000 ease-out"
+                                    style={{ 
+                                        width: `${score}%`,
+                                        backgroundColor: color,
+                                        boxShadow: `0 0 10px ${color}`
+                                    }}
+                                />
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
 
-            {/* Gradient Legend */}
-            <div className="premium-panel p-4 flex items-center gap-6">
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#EF4444] opacity-80">Fatigued</span>
-                <div className="relative h-[4px] flex-1">
+            {/* Premium Legend Interface */}
+            <div className="glass-card p-6 flex flex-col sm:flex-row items-center gap-6">
+                <div className="flex items-center gap-4">
+                    <div className="h-2 w-2 rounded-full bg-[#EF4444] animate-pulse" />
+                    <span className="text-[11px] font-black uppercase tracking-[0.5em] text-[#EF4444]/80">Critical Fatigue</span>
+                </div>
+                
+                <div className="relative h-[2px] flex-1 w-full min-w-[120px]">
                     <div
                         className="absolute inset-0 rounded-full"
                         style={{
                             background: "linear-gradient(to right, #EF4444, #F59E0B, #22d3a0, #0AD9C4)",
                         }}
                     />
-                    <div className="absolute inset-0 bg-white/10 blur-[2px] rounded-full" />
+                    {/* Glossy overlay */}
+                    <div className="absolute inset-0 bg-white/20 blur-[3px] rounded-full translate-y-[1px]" />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#0AD9C4] opacity-80">Optimal</span>
+                
+                <div className="flex items-center gap-4">
+                    <span className="text-[11px] font-black uppercase tracking-[0.5em] text-[#0AD9C4]/80">Optimal State</span>
+                    <div className="h-2 w-2 rounded-full bg-[#0AD9C4] shadow-[0_0_10px_#0AD9C4]" />
+                </div>
             </div>
         </div>
     );
