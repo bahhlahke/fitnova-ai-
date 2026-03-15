@@ -441,6 +441,18 @@ struct KodaAPIService {
         return try await get("api/v1/ai/progress-insight")
     }
 
+    /// POST /api/v1/ai/unique-insights — Long-term performance nuggets.
+    func aiUniqueInsights() async throws -> UniqueInsightsResponse {
+        if isDemoMode {
+            return UniqueInsightsResponse(insights: [
+                UniqueInsight(title: "Recovery Lag", description: "Your HRV drops significantly after heavy leg days.", type: "recovery"),
+                UniqueInsight(title: "Consistency Anchor", description: "Monday morning workouts have a 95% completion rate.", type: "consistency"),
+                UniqueInsight(title: "Priming Effect", description: "Pre-workout caffeine increases your squat volume by 12%.", type: "performance")
+            ])
+        }
+        return try await post("api/v1/ai/unique-insights", body: [:])
+    }
+
     /// POST /api/v1/ai/evolutionary-narrative
     func evolutionaryNarrative(localDate: String) async throws -> EvolutionaryNarrativeResponse {
         if isDemoMode {
@@ -1043,6 +1055,8 @@ struct PerformanceResponse: Decodable {
     let push_pull_balance: Double?
     let recovery_debt: Double?
     let nutrition_compliance: Double?
+    let recent_prs: [RecentPR]?
+    let progression_trend_points: [APIProgressionTrendPoint]?
 
     init(
         workout_days: Int?,
@@ -1050,7 +1064,9 @@ struct PerformanceResponse: Decodable {
         set_volume: Int?,
         push_pull_balance: Double?,
         recovery_debt: Double?,
-        nutrition_compliance: Double?
+        nutrition_compliance: Double?,
+        recent_prs: [RecentPR]? = nil,
+        progression_trend_points: [APIProgressionTrendPoint]? = nil
     ) {
         self.workout_days = workout_days
         self.workout_minutes = workout_minutes
@@ -1058,6 +1074,8 @@ struct PerformanceResponse: Decodable {
         self.push_pull_balance = push_pull_balance
         self.recovery_debt = recovery_debt
         self.nutrition_compliance = nutrition_compliance
+        self.recent_prs = recent_prs
+        self.progression_trend_points = progression_trend_points
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -1067,6 +1085,8 @@ struct PerformanceResponse: Decodable {
         case push_pull_balance
         case recovery_debt
         case nutrition_compliance
+        case recent_prs
+        case progression_trend_points
     }
 
     init(from decoder: Decoder) throws {
@@ -1077,6 +1097,8 @@ struct PerformanceResponse: Decodable {
         push_pull_balance = try container.decodeFlexibleDoubleIfPresent(forKey: .push_pull_balance)
         recovery_debt = try container.decodeFlexibleDoubleIfPresent(forKey: .recovery_debt)
         nutrition_compliance = try container.decodeFlexibleDoubleIfPresent(forKey: .nutrition_compliance)
+        recent_prs = try container.decodeIfPresent([RecentPR].self, forKey: .recent_prs)
+        progression_trend_points = try container.decodeIfPresent([APIProgressionTrendPoint].self, forKey: .progression_trend_points)
     }
 }
 
@@ -1185,9 +1207,7 @@ struct SquadVibe: Decodable, Identifiable {
 }
 
 // Phase 5: Coach Desk Types
-struct CoachDeskResponse: Decodable {
-    let insights: [CoachInsight]?
-}
+// (Removed duplicates redundant with APIModels.swift)
 
 private extension KeyedDecodingContainer {
     func decodeFlexibleDoubleIfPresent(forKey key: Key) throws -> Double? {
@@ -1204,13 +1224,7 @@ private extension KeyedDecodingContainer {
     }
 }
 
-struct CoachInsight: Decodable, Identifiable {
-    let title: String
-    let message: String
-    let urgency: String
-    let cta_route: String?
-    var id: String { title }
-}
+// (Removed redundant CoachInsight)
 
 struct TrophyResponse: Decodable {
     let trophies: [Trophy]

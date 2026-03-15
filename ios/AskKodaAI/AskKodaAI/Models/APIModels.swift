@@ -106,6 +106,44 @@ struct WorkoutParityDiff: Codable {
     let candidate_summary: String?
 }
 
+// MARK: - Performance & Insights (Parity with Web)
+
+struct UniqueInsight: Decodable, Identifiable {
+    var id: String { title ?? UUID().uuidString }
+    let title: String?
+    let description: String?
+    let type: String? // "recovery", "performance", "consistency", "composition"
+}
+
+struct UniqueInsightsResponse: Decodable {
+    let insights: [UniqueInsight]?
+}
+
+struct PerformanceAnalytics: Decodable {
+    let workout_days: Int?
+    let workout_minutes: Int?
+    let estimated_total_sets: Int?
+    let push_pull_balance: Double?
+    let recovery_debt: Double?
+    let nutrition_compliance: Double?
+    let recent_prs: [RecentPR]?
+    let progression_trend_points: [APIProgressionTrendPoint]?
+}
+
+struct RecentPR: Decodable {
+    let exercise_name: String?
+    let max_weight: Double?
+    let highest_1rm: Double?
+    let last_achieved_at: String?
+}
+
+struct APIProgressionTrendPoint: Decodable {
+    let date: String?
+    let exercise_name: String?
+    let e1rm: Double?
+    let volume: Double?
+}
+
 /// GET /api/v1/ai/projection — flat response: current, projected_4w, projected_12w, rate, confidence
 typealias DashboardProjectionResponse = ProjectionResponse
 

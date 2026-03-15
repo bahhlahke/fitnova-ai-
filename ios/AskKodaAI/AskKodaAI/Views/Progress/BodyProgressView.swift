@@ -22,6 +22,10 @@ struct BodyProgressView: View {
     @State private var evolutionaryNarrative: String?
     @State private var narrativeLoading = false
     @State private var projection: DashboardProjectionResponse?
+    @State private var isNarrativeExpanded = false
+    @State private var performanceAnalytics: PerformanceResponse?
+    @State private var uniqueInsights: [UniqueInsight] = []
+    @State private var insightsLoading = false
 
     private var dataService: KodaDataService? {
         guard let uid = auth.currentUserId else { return nil }
@@ -44,121 +48,14 @@ struct BodyProgressView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    PremiumHeroCard(
-                        title: "Body Composition",
-                        subtitle: "Track weight, body fat, and measurements to visualize your physique transformation over time.",
-                        eyebrow: "Progress"
-                    ) {
-                        HStack(spacing: 10) {
-                            if let w = latestWeight {
-                                PremiumMetricPill(label: "Weight", value: String(format: "%.1f kg", w))
-                            }
-                            if let bf = latestBodyFat {
-                                PremiumMetricPill(label: "Body Fat", value: String(format: "%.1f%%", bf))
-                            }
-                            if let delta = weightChange {
-                                let sign = delta >= 0 ? "+" : ""
-                                PremiumMetricPill(label: "Δ", value: "\(sign)\(String(format: "%.1f", delta)) kg")
-                            }
-                        }
-                    }
-
-                    // Evolutionary Narrative
-                    if narrativeLoading {
-                        ShimmerCard(height: 120)
-                    } else if let narrative = evolutionaryNarrative, !narrative.isEmpty {
-                        PremiumRowCard {
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "history.circle.fill")
-                                        .foregroundStyle(Brand.Color.accent)
-                                    Text("EVOLUTIONARY NARRATIVE")
-                                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                                        .tracking(1.4)
-                                        .foregroundStyle(Brand.Color.accent)
-                                }
-                                Text(narrative)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(.white)
-                                    .lineSpacing(4)
-                            }
-                            .padding(.vertical, 8)
-                        }
-                    }
-
-                    // Progress forecast chart
-                    if let p = projection,
-                       let cur = p.current,
-                       let proj4 = p.projected_4w,
-                       let proj12 = p.projected_12w,
-                       let conf = p.confidence {
-                        ProjectionChartCard(
-                            current: cur,
-                            projected4w: proj4,
-                            projected12w: proj12,
-                            rate: p.rate ?? 0,
-                            confidence: conf
-                        )
-                    }
-
-                    // Body comp scan + trophy room
-                    PremiumRowCard {
-                        NavigationLink {
-                            BodyCompScanView()
-                        } label: {
-                            HStack {
-                                Image(systemName: "camera.viewfinder")
-                                    .font(.title3)
-                                    .foregroundStyle(Brand.Color.accent)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Body Comp Scan")
-                                        .font(.headline)
-                                        .foregroundStyle(.white)
-                                    Text("AI-powered visual body composition analysis")
-                                        .font(.caption)
-                                        .foregroundStyle(Brand.Color.muted)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(Brand.Color.muted)
-                            }
-                        }
-                    }
-
-                    TrophyRoomView()
-
-                    // History
-                    if loading && entries.isEmpty {
-                        ShimmerCard(height: 80)
-                        ShimmerCard(height: 80)
-                        ShimmerCard(height: 80)
-                    } else if entries.isEmpty {
-                        PremiumRowCard {
-                            VStack(spacing: 8) {
-                                Image(systemName: "chart.line.uptrend.xyaxis")
-                                    .font(.title)
-                                    .foregroundStyle(Brand.Color.muted)
-                                Text("No progress entries yet.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Brand.Color.muted)
-                                Text("Add your first weight entry to start tracking trends.")
-                                    .font(.caption)
-                                    .foregroundStyle(Brand.Color.muted)
-                                    .multilineTextAlignment(.center)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                        }
-                    } else {
-                        VStack(alignment: .leading, spacing: 12) {
-                            PremiumSectionHeader("History", eyebrow: "\(entries.count) entries")
-                            ForEach(entries, id: \.track_id) { e in
-                                progressEntryCard(e)
-                            }
-                        }
-                    }
+                    compositionHeroSection
+                    insightsSection
+                    narrativeSection
+                    heatmapSection
+                    strengthTrendsSection
+                    projectionSection
+                    toolsSection
+                    historySection
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 20)
@@ -187,6 +84,263 @@ struct BodyProgressView: View {
             .sheet(isPresented: $showAdd) {
                 addEntrySheet
             }
+        }
+    }
+
+    // MARK: - Sections
+
+    private var compositionHeroSection: some View {
+        PremiumHeroCard(
+            title: "Body Composition",
+            subtitle: "Track weight, body fat, and measurements to visualize your physique transformation over time.",
+            eyebrow: "Progress"
+        ) {
+            HStack(spacing: 10) {
+                if let w = latestWeight {
+                    PremiumMetricPill(label: "Weight", value: String(format: "%.1f kg", w))
+                }
+                if let bf = latestBodyFat {
+                    PremiumMetricPill(label: "Body Fat", value: String(format: "%.1f%%", bf))
+                }
+                if let delta = weightChange {
+                    let sign = delta >= 0 ? "+" : ""
+                    PremiumMetricPill(label: "Δ", value: "\(sign)\(String(format: "%.1f", delta)) kg")
+                }
+            }
+        }
+    }
+
+    private var insightsSection: some View {
+        Group {
+            if !uniqueInsights.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("UNIQUE INSIGHTS")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .tracking(1.4)
+                        .foregroundStyle(Brand.Color.accent)
+                        .padding(.leading, 4)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(uniqueInsights) { insight in
+                                uniqueInsightCard(insight)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var narrativeSection: some View {
+        Group {
+            if narrativeLoading {
+                ShimmerCard(height: 120)
+            } else if let narrative = evolutionaryNarrative, !narrative.isEmpty {
+                PremiumRowCard {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "history.circle.fill")
+                                .foregroundStyle(Brand.Color.accent)
+                            Text("EVOLUTIONARY NARRATIVE")
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .tracking(1.4)
+                                .foregroundStyle(Brand.Color.accent)
+                        }
+                        
+                        Text(narrative)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.white)
+                            .lineSpacing(4)
+                            .lineLimit(isNarrativeExpanded ? nil : 4)
+                            .onTapGesture {
+                                withAnimation(.spring()) {
+                                    isNarrativeExpanded.toggle()
+                                }
+                            }
+                        
+                        if !isNarrativeExpanded {
+                            Button {
+                                withAnimation(.spring()) {
+                                    isNarrativeExpanded = true
+                                }
+                            } label: {
+                                Text("Read more")
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(Brand.Color.accent)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+    }
+
+    private var heatmapSection: some View {
+        Group {
+            if performanceAnalytics != nil {
+                WorkoutHeatmapChart(activity: generateActivityPoints())
+            }
+        }
+    }
+
+    private var strengthTrendsSection: some View {
+        Group {
+            if let analytics = performanceAnalytics, let points = analytics.progression_trend_points, !points.isEmpty {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("STRENGTH PROGRESSION")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .tracking(1.4)
+                        .foregroundStyle(Brand.Color.accent)
+                    
+                    let exercises = Array(Set(points.compactMap { $0.exercise_name })).sorted().prefix(2)
+                    ForEach(Array(exercises), id: \.self) { name in
+                        strengthTrendRow(name: name, points: points)
+                    }
+                }
+            }
+        }
+    }
+
+    private func strengthTrendRow(name: String, points: [APIProgressionTrendPoint]) -> some View {
+        let exercisePoints = points.filter { $0.exercise_name == name }
+        let trendPoints = exercisePoints.compactMap { p -> StrengthTrendPoint? in
+            guard let dStr = p.date,
+                  let date = DateHelpers.parseLocalDate(dStr),
+                  let val = p.e1rm else { return nil }
+            return StrengthTrendPoint(date: date, e1rm: val)
+        }
+        return StrengthTrendChart(exerciseName: name, points: trendPoints)
+    }
+
+    private var projectionSection: some View {
+        Group {
+            if let p = projection,
+               let cur = p.current,
+               let proj4 = p.projected_4w,
+               let proj12 = p.projected_12w,
+               let conf = p.confidence {
+                ProjectionChartCard(
+                    current: cur,
+                    projected4w: proj4,
+                    projected12w: proj12,
+                    rate: p.rate ?? 0,
+                    confidence: conf
+                )
+            }
+        }
+    }
+
+    private var toolsSection: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            PremiumRowCard {
+                NavigationLink {
+                    BodyCompScanView()
+                } label: {
+                    HStack {
+                        Image(systemName: "camera.viewfinder")
+                            .font(.title3)
+                            .foregroundStyle(Brand.Color.accent)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Body Comp Scan")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            Text("AI-powered visual body composition analysis")
+                                .font(.caption)
+                                .foregroundStyle(Brand.Color.muted)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Brand.Color.muted)
+                    }
+                }
+            }
+            TrophyRoomView()
+        }
+    }
+
+    private var historySection: some View {
+        Group {
+            if loading && entries.isEmpty {
+                VStack(spacing: 20) {
+                    ShimmerCard(height: 80)
+                    ShimmerCard(height: 80)
+                    ShimmerCard(height: 80)
+                }
+            } else if entries.isEmpty {
+                PremiumRowCard {
+                    VStack(spacing: 8) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.title)
+                            .foregroundStyle(Brand.Color.muted)
+                        Text("No progress entries yet.")
+                            .font(.subheadline)
+                            .foregroundStyle(Brand.Color.muted)
+                        Text("Add your first weight entry to start tracking trends.")
+                            .font(.caption)
+                            .foregroundStyle(Brand.Color.muted)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    PremiumSectionHeader("History", eyebrow: "\(entries.count) entries")
+                    ForEach(entries, id: \.track_id) { e in
+                        progressEntryCard(e)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Components
+
+    private func uniqueInsightCard(_ insight: UniqueInsight) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                let icon: String = {
+                    switch insight.type {
+                    case "recovery": return "battery.100"
+                    case "performance": return "bolt.fill"
+                    case "consistency": return "calendar.badge.checkmark"
+                    case "composition": return "figure.arms.open"
+                    default: return "lightbulb.fill"
+                    }
+                }()
+                Image(systemName: icon)
+                    .font(.caption)
+                    .foregroundStyle(Brand.Color.accent)
+                Text(insight.title?.uppercased() ?? "INSIGHT")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(Brand.Color.accent)
+            }
+            
+            Text(insight.description ?? "")
+                .font(.caption)
+                .foregroundStyle(.white)
+                .lineLimit(3)
+        }
+        .padding(12)
+        .frame(width: 200, height: 100, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Brand.Color.surfaceRaised)
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.Color.borderStrong, lineWidth: 1))
+        )
+    }
+
+    private func generateActivityPoints() -> [WorkoutActivityPoint] {
+        let calendar = Calendar.current
+        return (0..<28).map { i in
+            let date = calendar.date(byAdding: .day, value: -i, to: Date()) ?? Date()
+            // Random-ish intensity for demo (0-4)
+            let intensity = i % 7 == 0 ? 0 : (i % 5)
+            return WorkoutActivityPoint(date: date, intensity: intensity)
         }
     }
 
@@ -365,7 +519,11 @@ struct BodyProgressView: View {
 
     private func loadInsightAndProjection() async {
         progressInsightLoading = true
-        defer { progressInsightLoading = false }
+        insightsLoading = true
+        defer { 
+            progressInsightLoading = false
+            insightsLoading = false
+        }
         await withTaskGroup(of: Void.self) { group in
             group.addTask {
                 do {
@@ -376,12 +534,12 @@ struct BodyProgressView: View {
                 }
             }
             group.addTask {
-                narrativeLoading = true
+                await MainActor.run { narrativeLoading = true }
                 do {
                     let res = try await api.evolutionaryNarrative(localDate: DateHelpers.todayLocal)
                     await MainActor.run { evolutionaryNarrative = res.narrative }
                 } catch { }
-                narrativeLoading = false
+                await MainActor.run { narrativeLoading = false }
             }
             group.addTask {
                 do {
@@ -389,6 +547,22 @@ struct BodyProgressView: View {
                     await MainActor.run { projection = p }
                 } catch {
                     print("[Koda] aiProjection: \(error)")
+                }
+            }
+            group.addTask {
+                do {
+                    let res = try await api.aiUniqueInsights()
+                    await MainActor.run { uniqueInsights = res.insights ?? [] }
+                } catch {
+                    print("[Koda] aiUniqueInsights: \(error)")
+                }
+            }
+            group.addTask {
+                do {
+                    let res = try await api.analyticsPerformance()
+                    await MainActor.run { performanceAnalytics = res }
+                } catch {
+                    print("[Koda] analyticsPerformance: \(error)")
                 }
             }
         }

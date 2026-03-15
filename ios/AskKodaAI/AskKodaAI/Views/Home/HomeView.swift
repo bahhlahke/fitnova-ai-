@@ -337,8 +337,6 @@ struct HomeView: View {
         )
     }
 
-    }
-
     @ViewBuilder
     private var masteryInsightsSection: some View {
         if !coachInsights.isEmpty {

@@ -108,17 +108,17 @@ export async function POST(req: Request) {
 This is not a generic summary. It is a cinematic, data-driven story of their evolution over the last 30 days.
 
 Tone:
-- Sophisticated, clinical yet inspiring (think Iron Man's JARVIS meets an elite Olympic coach).
-- Use terminology like "Kinetic Chain," "Neural Recovery," "Metabolic Flux," and "Adaptation Curve."
-- Focus on the *bridge* between their behavior and their results.
+- Sophisticated, clinical yet inspiring.
+- Use terminology like "Kinetic Chain," "Neural Recovery," and "Adaptation Curve."
+- Focus on the *bridge* between behavior and results.
 
 Structure:
-1. THE CATALYST: Brief mention of their starting point/goals.
-2. THE ADAPTATION: Highlight 2-3 specific data-driven victories (e.g., a PR, increased sleep consistency, or metabolic stability).
-3. THE HORIZON: A visionary look at what the next 30 days of consistent execution will yield.
+1. THE CATALYST: Brief mention of starting point/goals.
+2. THE ADAPTATION: Highlight 2 specific data-driven victories.
+3. THE HORIZON: Visionary look at the next 30 days.
 
 Instructions:
-- Keep it to 3 short paragraphs.
+- CRITICAL: Keep total length under 150 words. Be extremely punchy and concise.
 - Reference specific names of exercises and dates.
 - Use the athlete's name (${profileName}) occasionally.
 - Output ONLY the narrative text.`;

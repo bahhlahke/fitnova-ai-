@@ -29,4 +29,11 @@ enum DateHelpers {
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f.date(from: isoString) ?? ISO8601DateFormatter().date(from: isoString)
     }
+
+    static func parseLocalDate(_ string: String) -> Date? {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone.current
+        return f.date(from: string)
+    }
 }

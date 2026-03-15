@@ -25,6 +25,8 @@ import { DashboardProgressSection } from "@/components/dashboard/DashboardProgre
 import { TrophyRoom } from "@/components/gamification/TrophyRoom";
 import { toLocalDateString } from "@/lib/date/local-date";
 import { toPlainFitnessLanguage } from "@/lib/ui/plain-language";
+import { PerformanceInsights } from "@/components/progress/PerformanceInsights";
+import { ProgressionTrendChart } from "@/components/progress/ProgressionTrendChart";
 
 type Entry = {
   track_id: string;
@@ -52,6 +54,7 @@ export default function ProgressPage() {
     recovery_debt: number;
     nutrition_compliance: number | null;
     recent_prs?: Array<{ exercise_name: string; max_weight: number; highest_1rm: number; last_achieved_at: string }>;
+    progression_trend_points?: Array<{ date: string; exercise_name: string; e1rm: number; volume: number }>;
   } | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [weeklyPlan, setWeeklyPlan] = useState<any>(null);
@@ -234,6 +237,8 @@ export default function ProgressPage() {
       .then(body => { if (body.current != null) setProjection(body); });
   }, [loading]);
 
+  const [isNarrativeExpanded, setIsNarrativeExpanded] = useState(false);
+
   const aiNarrative = aiInsight ?? fallbackNarrative;
 
   const chartWeights = weights.slice(0, 14).reverse();
@@ -247,6 +252,7 @@ export default function ProgressPage() {
 
   return (
     <PageLayout title="Progress" subtitle="Track check-ins, see trends, and know what to do next">
+      {/* ... existing header remains same ... */}
       <section className="premium-panel animate-panel-rise mb-6 p-5 sm:p-6">
         <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
@@ -273,298 +279,159 @@ export default function ProgressPage() {
         </div>
       </section>
 
-      <div className="mb-6 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-fn-accent">How This Page Works</p>
-        <div className="mt-2 grid gap-2 text-sm leading-relaxed text-fn-muted md:grid-cols-3">
-          <div className="rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2">1. Add a check-in with weight, body fat, or notes.</div>
-          <div className="rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2">2. Add another check-in after your next workout or later this week.</div>
-          <div className="rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2">3. Koda updates your trend and coach summary here automatically.</div>
-        </div>
-        <div className="mt-3 rounded-xl border border-fn-accent/10 bg-fn-accent/5 px-4 py-3 text-xs leading-relaxed text-fn-muted">
-          <span className="font-semibold text-white">Glossary:</span> A <span className="font-semibold text-white">check-in</span> is a quick daily status update (energy, sleep, soreness). An <span className="font-semibold text-white">AI body scan</span> is an optional photo-based estimate.
-        </div>
+      {/* New Unique Insights Section */}
+      <div className="mb-8">
+        <p className="mb-4 text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent">Unique Performance Insights</p>
+        <PerformanceInsights />
       </div>
 
-      <div className="mb-8 flex flex-wrap gap-4">
-        <Link href="/progress/add">
-          <Button variant="secondary" size="sm" icon={
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
-          }>Add check-in</Button>
-        </Link>
-        <Link href="/progress/scan">
-          <Button size="sm" className="border-fn-accent/20 bg-fn-accent/5 text-fn-accent hover:bg-fn-accent/10" icon={
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          }>Photo check-in</Button>
-        </Link>
-      </div>
-      <p className="mb-8 text-sm leading-relaxed text-fn-muted">
-        After you save a check-in, this page refreshes with your latest numbers, trend, and coach guidance. Example rhythm: Monday and Friday, or after two key workouts each week.
-      </p>
-
-      {loading ? (
-        <LoadingState />
-      ) : (
-        <>
-          <div className="grid gap-4 lg:grid-cols-3">
-            {/* Evolutionary Narrative — wide */}
-            <Card padding="lg" className="lg:col-span-2 border-fn-accent/20 bg-fn-accent/5 relative overflow-hidden">
-              <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-fn-accent/10 blur-[100px] pointer-events-none" />
-              <CardHeader title="Coach Summary" subtitle="What changed recently and what to do next" />
-              {evolutionaryNarrativeLoading ? (
-                <div className="mt-8 space-y-4 animate-pulse">
-                  <div className="h-4 w-full rounded-full bg-white/5" />
-                  <div className="h-4 w-4/5 rounded-full bg-white/5" />
-                  <div className="h-4 w-3/5 rounded-full bg-white/5" />
-                </div>
-              ) : (
-                <div className="mt-8">
-                  <p className="text-xl text-white leading-relaxed font-medium italic border-l-4 border-fn-accent/30 pl-8">
-                    {toPlainFitnessLanguage(evolutionaryNarrative || aiNarrative)}
-                  </p>
-                  <div className="mt-4 rounded-2xl border border-white/8 bg-black/15 px-4 py-3 text-sm leading-relaxed text-fn-muted">
-                    {nextProgressStep}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Evolutionary Narrative — wide */}
+        <Card padding="lg" className="lg:col-span-2 border-fn-accent/20 bg-fn-accent/5 relative overflow-hidden">
+          <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-fn-accent/10 blur-[100px] pointer-events-none" />
+          <CardHeader title="Coach Summary" subtitle="What changed recently and what to do next" />
+          {evolutionaryNarrativeLoading ? (
+            <div className="mt-8 space-y-4 animate-pulse">
+              <div className="h-4 w-full rounded-full bg-white/5" />
+              <div className="h-4 w-4/5 rounded-full bg-white/5" />
+              <div className="h-4 w-3/5 rounded-full bg-white/5" />
+            </div>
+          ) : (
+            <div className="mt-8">
+              <div
+                className={`relative cursor-pointer transition-all ${!isNarrativeExpanded ? "max-h-[160px] overflow-hidden" : ""}`}
+                onClick={() => setIsNarrativeExpanded(!isNarrativeExpanded)}
+              >
+                <p className="text-xl text-white leading-relaxed font-medium italic border-l-4 border-fn-accent/30 pl-8">
+                  {toPlainFitnessLanguage(evolutionaryNarrative || aiNarrative)}
+                </p>
+                {!isNarrativeExpanded && (
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 to-transparent pointer-events-none flex items-end justify-center pb-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent animate-pulse">Click to expand</span>
                   </div>
-                </div>
-              )}
-            </Card>
-
-            {/* Latest check-in stats */}
-            <Card className="border-white/5">
-              <CardHeader title="Latest Check-in" />
-              {latestWeight != null ? (
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-fn-ink/40 mb-2">Body Weight</p>
-                    <div className="flex items-baseline gap-3">
-                      <p className="text-5xl font-black text-white italic leading-none">{latestWeightDisplay}</p>
-                      <p className="text-xl font-black uppercase tracking-widest text-fn-ink/40">{unitLabel}</p>
-                    </div>
-                    {trend && (
-                      <div className="mt-4">
-                        <p className={`text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${trend === "down" ? "text-fn-accent" : trend === "up" ? "text-fn-danger" : "text-fn-muted"}`}>
-                          {trend === "down" && <span>↓</span>}
-                          {trend === "up" && <span>↑</span>}
-                          {trend === "stable" && <span>→</span>}
-                          {trend === "down" && "7-Day Trend: Decreasing"}
-                          {trend === "up" && "7-Day Trend: Increasing"}
-                          {trend === "stable" && "7-Day Trend: Stable"}
-                        </p>
-                        <p className="text-[9px] text-fn-muted/50 mt-1">Based on 7-day moving average</p>
-                      </div>
-                    )}
-                  </div>
-                  {latestBodyFat != null && (
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-fn-muted mb-1">Body Fat</p>
-                      <p className="text-2xl font-black text-fn-ink italic">{latestBodyFat}%</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="mt-6 flex flex-col items-center justify-center text-center pb-4">
-                  <p className="text-sm font-medium text-fn-muted mb-5 leading-relaxed">Add your first check-in to see your weight trend and coach feedback.</p>
-                  <div className="w-full max-w-[200px] flex flex-col gap-3">
-                    <Link href="/progress/add" className="w-full">
-                      <Button className="w-full h-12 shadow-[0_0_20px_rgba(255,255,255,0.1)]">Manual Entry</Button>
-                    </Link>
-                    <Link href="/progress/scan" className="w-full">
-                      <Button variant="secondary" className="w-full h-12 border-fn-accent/40 bg-fn-accent/10 text-fn-accent hover:bg-fn-accent/20">Photo Check-in</Button>
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </Card>
-          </div>
-
-          {/* Weight Trend Chart */}
-          <Card className="mt-4" padding="lg">
-            <CardHeader title="Weight Trend" subtitle={chartWeights.length > 1 ? `Last ${chartWeights.length} entries · chart zoomed to show smaller changes clearly` : "Add entries to see your trend"} />
-            {chartWeights.length > 1 ? (
-              <div className="mt-6">
-                {/* Y-axis labels */}
-                <div className="relative flex">
-                  <div className="flex flex-col justify-between text-right pr-3 py-1" style={{ height: 224, width: 52 }}>
-                    <span className="text-[9px] font-black text-fn-muted/40">{formatDisplayNumber(chartMax, 1)}</span>
-                    <span className="text-[9px] font-black text-fn-muted/40">{formatDisplayNumber((chartMax + chartMin) / 2, 1)}</span>
-                    <span className="text-[9px] font-black text-fn-muted/40">{formatDisplayNumber(chartMin, 1)}</span>
-                  </div>
-                  {/* The chart */}
-                  <div className="flex-1 relative">
-                    {/* Grid lines */}
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                      {[0, 1, 2].map(i => (
-                        <div key={i} className="border-t border-white/[0.05] w-full" />
-                      ))}
-                    </div>
-                    {/* Bars */}
-                    <div className="flex h-56 items-end gap-2 relative">
-                      {chartWeights.map((e, idx) => {
-                        const displayW = toDisplayWeight(e.weight, unitSystem);
-                        const heightPct = chartRange > 0 ? Math.max(2, ((displayW - chartMin) / chartRange) * 100) : 50;
-                        const dateObj = new Date(e.date + "T00:00:00");
-                        const dayLabel = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-                        return (
-                          <div key={e.track_id} className="group flex flex-1 flex-col items-center justify-end h-full gap-1">
-                            <span className="hidden group-hover:flex text-[9px] font-black text-fn-accent mb-1 whitespace-nowrap">
-                              {formatDisplayNumber(displayW, 1)}
-                            </span>
-                            <div
-                              className="w-full rounded-t-md bg-fn-accent/25 hover:bg-fn-accent/70 transition-all duration-300 cursor-default shadow-[0_0_1px_rgba(10,217,196,0.2)] hover:shadow-[0_0_12px_rgba(10,217,196,0.4)]"
-                              style={{ height: `${heightPct}%` }}
-                              title={`${e.date}: ${formatDisplayNumber(displayW, 1)} ${unitLabel}`}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-                {/* X-axis labels */}
-                <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-fn-muted/30 mt-3 pl-14 pr-1">
-                  <span>{new Date(chartWeights[0].date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                  <span className="text-fn-muted/20">{unitLabel.toUpperCase()}</span>
-                  <span>{new Date(chartWeights[chartWeights.length - 1].date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                </div>
+                )}
               </div>
-            ) : (
-              <EmptyState className="mt-4" message="Add at least 2 check-ins to see your weight trend." />
-            )}
-          </Card>
+              <div className="mt-6 rounded-2xl border border-white/8 bg-black/15 px-4 py-3 text-sm leading-relaxed text-fn-muted">
+                {nextProgressStep}
+              </div>
+            </div>
+          )}
+        </Card>
 
-          {/* PRs & 1RM Progression */}
-          <Card className="mt-4" padding="lg">
-            <CardHeader title="Strength Progression" subtitle="Verified PRs & Estimated 1RM History" />
-            {analyticsLoading ? (
-              <LoadingState className="mt-4" />
-            ) : analytics?.recent_prs?.length ? (
-              <div className="mt-6 grid gap-4 lg:grid-cols-2">
-                {analytics.recent_prs.map((pr: any) => (
-                  <div key={pr.exercise_name} className="flex flex-col gap-1 rounded-xl border border-white/5 bg-white/[0.02] p-4 shadow-xl">
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-fn-accent">{pr.exercise_name}</p>
-                    <div className="flex justify-between items-end mt-2">
-                      <div>
-                        <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-0.5">Max Logged</p>
-                        <p className="text-xl font-black text-white">{pr.max_weight} <span className="text-[10px] tracking-widest text-fn-muted">{unitLabel.toUpperCase()}</span></p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] uppercase font-black tracking-widest text-fn-muted mb-0.5">Est. 1RM</p>
-                        <p className="text-xl font-black text-fn-accent italic">{Math.round(pr.highest_1rm)} <span className="text-[10px] tracking-widest text-fn-muted">{unitLabel.toUpperCase()}</span></p>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-[9px] font-bold uppercase tracking-widest text-white/30 text-right">
-                      Last seen {new Date(pr.last_achieved_at).toLocaleDateString()}
+        {/* Latest check-in stats */}
+        <Card className="border-white/5">
+          <CardHeader title="Latest Check-in" />
+          {latestWeight != null ? (
+            <div className="mt-4 space-y-4">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-fn-ink/40 mb-2">Body Weight</p>
+                <div className="flex items-baseline gap-3">
+                  <p className="text-5xl font-black text-white italic leading-none">{latestWeightDisplay}</p>
+                  <p className="text-xl font-black uppercase tracking-widest text-fn-ink/40">{unitLabel}</p>
+                </div>
+                {trend && (
+                  <div className="mt-4">
+                    <p className={`text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${trend === "down" ? "text-fn-accent" : trend === "up" ? "text-fn-danger" : "text-fn-muted"}`}>
+                      {trend === "down" && <span>↓</span>}
+                      {trend === "up" && <span>↑</span>}
+                      {trend === "stable" && <span>→</span>}
+                      {trend === "down" && "7-Day Trend: Decreasing"}
+                      {trend === "up" && "7-Day Trend: Increasing"}
+                      {trend === "stable" && "7-Day Trend: Stable"}
                     </p>
+                    <p className="text-[9px] text-fn-muted/50 mt-1">Based on 7-day moving average</p>
                   </div>
-                ))}
+                )}
               </div>
-            ) : (
-              <EmptyState className="mt-4" message="No strength progression data available. Log heavy sets to establish a baseline." />
-            )}
-          </Card>
+            </div>
+          ) : (
+            <div className="mt-6 flex flex-col items-center justify-center text-center pb-4">
+              <p className="text-sm font-medium text-fn-muted mb-5 leading-relaxed">Add your first check-in to see your weight trend and coach feedback.</p>
+              <div className="w-full max-w-[200px] flex flex-col gap-3">
+                <Link href="/progress/add" className="w-full">
+                  <Button className="w-full h-12">Manual Entry</Button>
+                </Link>
+              </div>
+            </div>
+          )}
+        </Card>
+      </div>
 
-          <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            {/* What changed */}
-            <Card>
-              <CardHeader title="What Changed" subtitle="Signals from latest entry" />
-              <ul className="mt-6 space-y-3">
-                {[
-                  {
-                    icon: "M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3",
-                    text: latestBodyFat != null ? `Composition: ${latestBodyFat}% Adipose` : "Composition not logged",
-                    active: latestBodyFat != null,
-                  },
-                  {
-                    icon: "M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7",
-                    text: latestMeasurements && Object.keys(latestMeasurements).length > 0
-                      ? `Metrics: ${Object.keys(latestMeasurements).join(", ")}`
-                      : "No metrics captured",
-                    active: !!(latestMeasurements && Object.keys(latestMeasurements).length > 0),
-                  },
-                  {
-                    icon: "M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z",
-                    text: latestEntry?.notes ? `Observation: ${latestEntry.notes}` : "No concierge observations",
-                    active: !!latestEntry?.notes,
-                  },
-                ].map(({ icon, text, active }) => (
-                  <li key={text} className="flex items-start gap-4">
-                    <div className={`mt-1 shrink-0 h-8 w-8 rounded-xl flex items-center justify-center border ${active ? "bg-fn-accent/10 border-fn-accent/20" : "bg-white/5 border-white/5"}`}>
-                      <svg className={`h-4 w-4 ${active ? "text-fn-accent" : "text-white/20"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} />
-                      </svg>
-                    </div>
-                    <span className={`text-base leading-relaxed ${active ? "text-white" : "text-fn-ink/40"}`}>{text}</span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-
-            {/* Recent entries */}
-            <Card>
-              <CardHeader title="Recent Entries" subtitle="Last 10" />
-              {entries.length === 0 ? (
-                <EmptyState className="mt-4" message="No entries yet." />
-              ) : (
-                <ul className="mt-6 space-y-3">
-                  {entries.slice(0, 10).map((e) => (
-                    <li key={e.track_id} className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-black/40 px-5 py-4 transition-all hover:bg-black/60 shadow-fn-soft">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-fn-accent">{e.date}</span>
-                        <span className="text-base font-black text-white italic">
-                          {[
-                            e.weight != null ? `${formatDisplayNumber(toDisplayWeight(e.weight, unitSystem), 1)} ${unitLabel}` : "",
-                            e.body_fat_percent != null ? `${e.body_fat_percent}%` : "",
-                          ]
-                            .filter(Boolean)
-                            .join(" · ") || "—"}
-                        </span>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          const supabase = createClient();
-                          if (!supabase) return;
-                          const { error } = await supabase.from("progress_tracking").delete().eq("track_id", e.track_id);
-                          if (!error) {
-                            setEntries(prev => prev.filter(item => item.track_id !== e.track_id));
-                          }
-                        }}
-                        className="p-1 text-fn-muted hover:text-fn-danger transition-colors"
-                        title="Delete entry"
-                      >
-                        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
+      {/* New Strength Progression Charts */}
+      {analytics?.progression_trend_points && analytics.progression_trend_points.length > 0 && (
+        <div className="mt-8">
+          <p className="mb-4 text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent">Strength Progression</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Filter points by exercise and show charts for top 2-4 */}
+            {Array.from(new Set(analytics.progression_trend_points.map(p => p.exercise_name))).slice(0, 4).map(name => (
+              <ProgressionTrendChart
+                key={name}
+                exerciseName={name}
+                points={analytics.progression_trend_points!.filter(p => p.exercise_name === name).slice(-10)}
+              />
+            ))}
           </div>
-
-          {/* Elite Gamification Section */}
-          <div className="mt-8">
-            <TrophyRoom />
-          </div>
-
-          <div className="mt-8 space-y-8">
-            <DashboardAnalyticsSection
-              weeklyPlan={weeklyPlan}
-              weeklyPlanLoading={weeklyPlanLoading}
-              analytics={analytics as any}
-              analyticsLoading={analyticsLoading}
-            />
-
-            <DashboardProgressSection
-              last7Days={last7Days}
-              projection={projection}
-              unitSystem={unitSystem}
-            />
-          </div>
-        </>
+        </div>
       )}
+
+      {/* Existing weight trend chart */}
+      <Card className="mt-8" padding="lg">
+        <CardHeader title="Weight Trend" subtitle={chartWeights.length > 1 ? `Last ${chartWeights.length} entries · chart zoomed to show smaller changes clearly` : "Add entries to see your trend"} />
+        {chartWeights.length > 1 ? (
+          <div className="mt-6">
+            {/* ... rest of the existing weight chart remains ... */}
+            <div className="relative flex">
+              <div className="flex flex-col justify-between text-right pr-3 py-1" style={{ height: 224, width: 52 }}>
+                <span className="text-[9px] font-black text-fn-muted/40">{formatDisplayNumber(chartMax, 1)}</span>
+                <span className="text-[9px] font-black text-fn-muted/40">{formatDisplayNumber((chartMax + chartMin) / 2, 1)}</span>
+                <span className="text-[9px] font-black text-fn-muted/40">{formatDisplayNumber(chartMin, 1)}</span>
+              </div>
+              <div className="flex-1 relative">
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="border-t border-white/[0.05] w-full" />
+                  ))}
+                </div>
+                <div className="flex h-56 items-end gap-2 relative">
+                  {chartWeights.map((e, idx) => {
+                    const displayW = toDisplayWeight(e.weight, unitSystem);
+                    const heightPct = chartRange > 0 ? Math.max(2, ((displayW - chartMin) / chartRange) * 100) : 50;
+                    return (
+                      <div key={e.track_id} className="group flex flex-1 flex-col items-center justify-end h-full gap-1">
+                        <div
+                          className="w-full rounded-t-md bg-fn-accent/25 hover:bg-fn-accent/70 transition-all duration-300"
+                          style={{ height: `${heightPct}%` }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-fn-muted/30 mt-3 pl-14 pr-1">
+              <span>{new Date(chartWeights[0].date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+              <span>{new Date(chartWeights[chartWeights.length - 1].date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+            </div>
+          </div>
+        ) : (
+          <EmptyState className="mt-4" message="Add at least 2 check-ins to see your weight trend." />
+        )}
+      </Card>
+
+      <div className="mt-8 space-y-8">
+        <DashboardAnalyticsSection
+          weeklyPlan={weeklyPlan}
+          weeklyPlanLoading={weeklyPlanLoading}
+          analytics={analytics as any}
+          analyticsLoading={analyticsLoading}
+        />
+
+        <DashboardProgressSection
+          last7Days={last7Days}
+          projection={projection}
+          unitSystem={unitSystem}
+        />
+      </div>
     </PageLayout>
   );
 }

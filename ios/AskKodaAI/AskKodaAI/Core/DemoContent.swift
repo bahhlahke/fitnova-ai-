@@ -141,7 +141,22 @@ enum DemoContent {
             set_volume: 104,
             push_pull_balance: 0.94,
             recovery_debt: 0.18,
-            nutrition_compliance: 0.87
+            nutrition_compliance: 0.87,
+            recent_prs: [
+                RecentPR(exercise_name: "Back Squat", max_weight: 142.5, highest_1rm: 168.2, last_achieved_at: shiftedDate(days: -2)),
+                RecentPR(exercise_name: "Romanian Deadlift", max_weight: 102.5, highest_1rm: 124.5, last_achieved_at: shiftedDate(days: -5))
+            ],
+            progression_trend_points: [
+                APIProgressionTrendPoint(date: shiftedDate(days: -28), exercise_name: "Back Squat", e1rm: 145.0, volume: 2400),
+                APIProgressionTrendPoint(date: shiftedDate(days: -21), exercise_name: "Back Squat", e1rm: 152.0, volume: 2600),
+                APIProgressionTrendPoint(date: shiftedDate(days: -14), exercise_name: "Back Squat", e1rm: 160.0, volume: 2800),
+                APIProgressionTrendPoint(date: shiftedDate(days: -7), exercise_name: "Back Squat", e1rm: 165.0, volume: 2900),
+                APIProgressionTrendPoint(date: today, exercise_name: "Back Squat", e1rm: 168.2, volume: 3000),
+                
+                APIProgressionTrendPoint(date: shiftedDate(days: -28), exercise_name: "Romanian Deadlift", e1rm: 110.0, volume: 1800),
+                APIProgressionTrendPoint(date: shiftedDate(days: -14), exercise_name: "Romanian Deadlift", e1rm: 118.0, volume: 2000),
+                APIProgressionTrendPoint(date: today, exercise_name: "Romanian Deadlift", e1rm: 124.5, volume: 2200)
+            ]
         )
     }
 
