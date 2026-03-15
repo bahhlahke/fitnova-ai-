@@ -63,7 +63,7 @@ export function DashboardReadinessSection({
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Neural Insights</p>
               </div>
               <p className="text-sm font-medium italic text-white/60 leading-relaxed">
-                "{readinessInsight}"
+                &quot;{readinessInsight}&quot;
               </p>
             </div>
           ) : null}
