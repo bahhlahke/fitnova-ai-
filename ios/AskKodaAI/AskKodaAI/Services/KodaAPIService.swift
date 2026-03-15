@@ -334,7 +334,7 @@ struct KodaAPIService {
     }
 
     /// POST /api/v1/ai/post-workout-insight
-    func aiPostWorkoutInsight(dateLocal: String) async throws -> PostWorkoutInsightResponse {
+    func aiPostWorkoutInsight(dateLocal: String, wearableContext: AIWearableContextPayload? = nil) async throws -> PostWorkoutInsightResponse {
         if isDemoMode {
             return try await DebugUX.resolve(
                 primary: PostWorkoutInsightResponse(insight: "Clean output today. Reload carbs, walk 10 minutes tonight, and leave the next hinge session heavy."),
@@ -342,7 +342,11 @@ struct KodaAPIService {
                 label: "post-workout insight"
             )
         }
-        return try await post("api/v1/ai/post-workout-insight", body: ["dateLocal": dateLocal])
+        var body: [String: Any] = ["dateLocal": dateLocal]
+        if let wearableContext, wearableContext.hasAnySignal {
+            body["wearableContext"] = wearableContext.asJSON
+        }
+        return try await post("api/v1/ai/post-workout-insight", body: body)
     }
 
     /// POST /api/v1/user/awards/check
@@ -402,7 +406,7 @@ struct KodaAPIService {
     }
 
     /// POST /api/v1/plan/swap-exercise
-    func planSwapExercise(currentExercise: String, reason: String, location: String?, sets: Int?, reps: String?, intensity: String?) async throws -> PlanSwapResponse {
+    func planSwapExercise(currentExercise: String, reason: String, location: String?, sets: Int?, reps: String?, intensity: String?, wearableContext: AIWearableContextPayload? = nil) async throws -> PlanSwapResponse {
         if isDemoMode {
             return try await DebugUX.resolve(
                 primary: PlanSwapResponse(
@@ -419,6 +423,9 @@ struct KodaAPIService {
         if let s = sets { body["sets"] = s }
         if let r = reps { body["reps"] = r }
         if let i = intensity { body["intensity"] = i }
+        if let wearableContext, wearableContext.hasAnySignal {
+            body["wearableContext"] = wearableContext.asJSON
+        }
         return try await post("api/v1/plan/swap-exercise", body: body)
     }
 

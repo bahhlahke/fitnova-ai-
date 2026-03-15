@@ -204,16 +204,19 @@ final class HealthKitService: ObservableObject {
         sessionPhase: String? = nil,
         recoveryTargetHeartRate: Int? = nil
     ) -> HealthLiveSnapshot? {
+        let watchHR = WatchConnectivityManager.shared.workoutState?.heartRate
+        let effectiveHeartRate = watchHR ?? currentHeartRate
+        
         let hasSignal =
-            currentHeartRate != nil ||
+            effectiveHeartRate != nil ||
             todaySteps != nil ||
             todayHRV != nil ||
             hrvBaseline != nil
         guard hasSignal else { return nil }
 
         return HealthLiveSnapshot(
-            provider: "apple_health",
-            currentHeartRate: currentHeartRate,
+            provider: watchHR != nil ? "apple_watch_live" : "apple_health",
+            currentHeartRate: effectiveHeartRate,
             todaySteps: todaySteps,
             todayHRV: todayHRV,
             hrvBaseline: hrvBaseline,

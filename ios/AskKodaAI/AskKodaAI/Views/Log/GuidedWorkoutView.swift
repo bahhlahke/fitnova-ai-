@@ -81,9 +81,36 @@ struct GuidedWorkoutView: View {
 
     @State private var coachAudio = CoachAudioService.shared
 
+    private var effectiveHR: Int? {
+        watchSync.workoutState?.heartRate ?? healthKit.currentHeartRate
+    }
+
     private let restSeconds = 90
     private var api: KodaAPIService { KodaAPIService(getAccessToken: { auth.accessToken }) }
     private var motionAnalysis: MotionAnalysisService { MotionAnalysisService(api: api) }
+    private var ds: KodaDataService {
+        let uid = auth.currentUserId ?? "anon"
+        return KodaDataService(client: auth.supabaseClient, userId: uid)
+    }
+
+    private func wearableContextPayload() -> AIWearableContextPayload? {
+        guard let snapshot = healthKit.liveSnapshot(
+            sessionPhase: phase == .work ? "work" : "rest",
+            recoveryTargetHeartRate: recoveryTarget
+        ) else { return nil }
+        
+        return AIWearableContextPayload(
+            provider: snapshot.provider,
+            currentHeartRate: snapshot.currentHeartRate,
+            todaySteps: snapshot.todaySteps,
+            todayHRV: snapshot.todayHRV,
+            hrvBaseline: snapshot.hrvBaseline,
+            hrvDelta: snapshot.hrvDelta,
+            sessionPhase: snapshot.sessionPhase,
+            recoveryTargetHeartRate: snapshot.recoveryTargetHeartRate,
+            signalCapturedAt: snapshot.signalCapturedAt
+        )
+    }
     private var dataService: KodaDataService? {
         guard let uid = auth.currentUserId else { return nil }
         return KodaDataService(client: auth.supabaseClient, userId: uid)
@@ -882,7 +909,7 @@ struct GuidedWorkoutView: View {
     }
 
     private func restCockpit(exercise ex: PlanExercise) -> some View {
-        let displayHR = healthKit.currentHeartRate ?? simulatedHeartRate
+        let displayHR = effectiveHR ?? simulatedHeartRate
         let isOptimal = displayHR <= recoveryTarget
 
         return VStack(spacing: 20) {
@@ -1176,8 +1203,8 @@ struct GuidedWorkoutView: View {
         restRemaining = restSeconds
 
         if neuralRestMode {
-            // Seed simulation only when HealthKit HR is unavailable.
-            if healthKit.currentHeartRate == nil {
+            // Seed simulation only when live HR is unavailable.
+            if effectiveHR == nil {
                 simulatedHeartRate = 148
             }
             recoveryTarget = 110
@@ -1191,17 +1218,17 @@ struct GuidedWorkoutView: View {
                 await MainActor.run {
                     restRemaining = i
                     if neuralRestMode {
-                        // When HealthKit is unavailable, simulate HR drop
-                        if healthKit.currentHeartRate == nil {
+                        // When live HR is unavailable, simulate HR drop
+                        if effectiveHR == nil {
                             simulatedHeartRate -= Int.random(in: 1...3)
                             if simulatedHeartRate < recoveryTarget { simulatedHeartRate = recoveryTarget }
                         }
                     }
                 }
                 guard !Task.isCancelled else { return }
-
-                let effectiveHR = healthKit.currentHeartRate ?? simulatedHeartRate
-                if i == 0 || (neuralRestMode && effectiveHR <= recoveryTarget && i < restSeconds - 10) {
+                
+                let hrValue = effectiveHR ?? simulatedHeartRate
+                if i == 0 || (neuralRestMode && hrValue <= recoveryTarget && i < restSeconds - 10) {
                     await MainActor.run {
                         if isNewExerciseAfterRest {
                             isNewExerciseAfterRest = false
@@ -1224,7 +1251,16 @@ struct GuidedWorkoutView: View {
         swapFeedback = nil
         
         do {
-            let res = try await api.planSwapExercise(currentExercise: name, reason: swapInput, location: "gym", sets: ex?.sets, reps: ex?.reps, intensity: nil)
+            let context = wearableContextPayload()
+            let res = try await api.planSwapExercise(
+                currentExercise: name,
+                reason: swapInput,
+                location: "gym",
+                sets: ex?.sets,
+                reps: ex?.reps,
+                intensity: nil,
+                wearableContext: context
+            )
             if let rep = res.replacement?.name, exerciseIndex < exercises.count {
                 let newEx = PlanExercise(
                     name: rep,
@@ -1602,14 +1638,15 @@ struct GuidedWorkoutView: View {
     }
     
     private func calculateRecoveryScore() -> Double {
-        let hr = Double(healthKit.currentHeartRate ?? simulatedHeartRate)
+        let hrValue = effectiveHR ?? simulatedHeartRate
+        let hr = Double(hrValue)
         let spread = 160.0 - Double(recoveryTarget)
         let progress = 1.0 - ((hr - Double(recoveryTarget)) / spread)
         return max(0, min(1, progress))
     }
 
     private func getSteeringMessage() -> String? {
-        let hrValue = healthKit.currentHeartRate ?? simulatedHeartRate
+        let hrValue = effectiveHR ?? simulatedHeartRate
         let hr = Double(hrValue)
         if hr <= Double(recoveryTarget) {
             return "Metabolic Reset Complete. Readiness Optimal."
@@ -1953,7 +1990,8 @@ struct GuidedWorkoutView: View {
         _ = try? await api.awardsCheck()
 
         await MainActor.run { insightLoading = true }
-        let insight = try? await api.aiPostWorkoutInsight(dateLocal: DateHelpers.todayLocal)
+        let context = wearableContextPayload()
+        let insight = try? await api.aiPostWorkoutInsight(dateLocal: DateHelpers.todayLocal, wearableContext: context)
         await MainActor.run {
             postWorkoutInsight = insight?.insight
             insightLoading = false
@@ -2083,7 +2121,7 @@ struct GuidedWorkoutView: View {
                     .foregroundStyle(.pink)
                     .font(.system(size: 10, weight: .bold))
                 
-                if healthKit.currentHeartRate != nil {
+                if effectiveHR != nil {
                     Image(systemName: "heart.fill")
                         .foregroundStyle(.pink)
                         .font(.system(size: 10, weight: .bold))
@@ -2098,7 +2136,7 @@ struct GuidedWorkoutView: View {
             }
             
             VStack(alignment: .leading, spacing: 0) {
-                Text(healthKit.currentHeartRate != nil ? "\(healthKit.currentHeartRate!)" : (HealthKitService.shared.isAuthorized == true ? "---" : "Link Health"))
+                Text(effectiveHR != nil ? "\(effectiveHR!)" : (HealthKitService.shared.isAuthorized == true ? "---" : "Link Health"))
                     .font(.system(size: 14, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
                 Text("BPM")
