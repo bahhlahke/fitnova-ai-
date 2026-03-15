@@ -195,6 +195,10 @@ function GuidedWorkoutScreen() {
 
   const [fullscreenDemo, setFullscreenDemo] = useState<{ url: string; name: string } | null>(null);
 
+  // Priority 1 & 2 — coaching data surfaced in the rest phase
+  const [restFormCue, setRestFormCue] = useState<string | null>(null);
+  const [restFatigueAlert, setRestFatigueAlert] = useState<{ message: string; suggestion: string } | null>(null);
+
   const markMediaFailed = useCallback((url: string | null | undefined) => {
     if (!url) return;
     setFailedMediaUrls((current) => (current.includes(url) ? current : [...current, url]));
@@ -681,6 +685,34 @@ function GuidedWorkoutScreen() {
       return newLogs;
     });
 
+    // Priority 1 — surface the top coaching cue for the next set
+    setRestFormCue(
+      exercise?.coaching_points?.[0] ?? exercise?.common_mistakes?.[0] ?? null
+    );
+
+    // Priority 2 — fatigue detection: compare logged reps across sets
+    const parsedReps = parseInt(currentReps, 10);
+    const justLoggedReps = Number.isNaN(parsedReps) ? null : parsedReps;
+    const priorReps = loggedSets.map(s => s.reps).filter((r): r is number => r != null);
+    const allReps = justLoggedReps != null ? [...priorReps, justLoggedReps] : priorReps;
+    if (allReps.length >= 2) {
+      const peak = Math.max(...allReps);
+      const latest = allReps[allReps.length - 1];
+      const dropPct = peak > 0 ? Math.round(((peak - latest) / peak) * 100) : 0;
+      if (dropPct >= 20) {
+        setRestFatigueAlert({
+          message: `Reps dropped ${dropPct}% from your peak — fatigue signal detected.`,
+          suggestion: dropPct >= 35
+            ? "Reduce load by ~10% or take an extra 30s before the next set."
+            : "Take your full rest. You're still in the session.",
+        });
+      } else {
+        setRestFatigueAlert(null);
+      }
+    } else {
+      setRestFatigueAlert(null);
+    }
+
     setPhase("rest");
     setRestSeconds(exercise ? getExerciseRestSeconds(exercise) : 60);
     setIsWorkTimerRunning(false);
@@ -747,7 +779,7 @@ function GuidedWorkoutScreen() {
   if (phase === "overview") {
     return (
       <div className="premium-grid-bg mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg">
-        <div className="flex-1 overflow-y-auto px-6 py-10 pb-32">
+        <div className="flex-1 overflow-y-auto px-6 py-10 pb-56">
           <header className="premium-panel mb-8 p-6 sm:p-8">
             <Link href="/log/workout" className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-fn-muted transition-colors hover:text-white">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
@@ -854,7 +886,7 @@ function GuidedWorkoutScreen() {
           </footer>
         </div>
 
-        <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-fn-bg via-fn-bg to-transparent px-6 pb-10 pt-12">
+        <div className="fixed inset-x-0 bottom-0 z-[110] bg-gradient-to-t from-fn-bg via-fn-bg to-transparent px-6 pb-[max(5rem,env(safe-area-inset-bottom,5rem))] pt-12">
           <button
             type="button"
             onClick={startWorkout}
@@ -1434,6 +1466,23 @@ function GuidedWorkoutScreen() {
                 )}
               </div>
             </div>
+
+            {/* Priority 1 — Form coaching cue */}
+            {restFormCue && (
+              <div className="w-full max-w-sm mx-auto mt-4 rounded-2xl border border-fn-accent/20 bg-fn-accent/5 p-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-fn-accent">Key Cue — Next Set</p>
+                <p className="text-sm font-medium leading-relaxed text-white/85">{restFormCue}</p>
+              </div>
+            )}
+
+            {/* Priority 2 — Fatigue alert */}
+            {restFatigueAlert && (
+              <div className="w-full max-w-sm mx-auto mt-3 rounded-2xl border border-amber-300/20 bg-amber-300/5 p-5 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-amber-300">⚡ Fatigue Signal</p>
+                <p className="text-sm font-medium leading-relaxed text-amber-50/90">{restFatigueAlert.message}</p>
+                <p className="mt-1.5 text-xs font-semibold text-amber-200/70">{restFatigueAlert.suggestion}</p>
+              </div>
+            )}
 
             <button
               type="button"
