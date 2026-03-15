@@ -524,6 +524,9 @@ struct RecipeGenMeal: Decodable {
     let servings: Int?
     let cuisine_type: String?
     let estimated_cost_usd: Double?
+    let recipe_url: String?
+    let recipe_source: String?
+    let goal_alignment_rationale: String?
 
     init(
         name: String? = nil,
@@ -539,7 +542,10 @@ struct RecipeGenMeal: Decodable {
         prep_time_minutes: Int? = nil,
         servings: Int? = nil,
         cuisine_type: String? = nil,
-        estimated_cost_usd: Double? = nil
+        estimated_cost_usd: Double? = nil,
+        recipe_url: String? = nil,
+        recipe_source: String? = nil,
+        goal_alignment_rationale: String? = nil
     ) {
         self.name = name
         self.meal_type = meal_type
@@ -555,6 +561,9 @@ struct RecipeGenMeal: Decodable {
         self.servings = servings
         self.cuisine_type = cuisine_type
         self.estimated_cost_usd = estimated_cost_usd
+        self.recipe_url = recipe_url
+        self.recipe_source = recipe_source
+        self.goal_alignment_rationale = goal_alignment_rationale
     }
 }
 
@@ -566,6 +575,7 @@ struct GroceryItem: Codable, Identifiable {
     let estimated_cost_usd: Double?
     var checked: Bool
     var custom: Bool?
+    let source_recipe_name: String?
 
     // Allow decoding without checked/custom fields (server may omit them)
     init(from decoder: Decoder) throws {
@@ -576,15 +586,17 @@ struct GroceryItem: Codable, Identifiable {
         estimated_cost_usd = try c.decodeIfPresent(Double.self, forKey: .estimated_cost_usd)
         checked = try c.decodeIfPresent(Bool.self, forKey: .checked) ?? false
         custom = try c.decodeIfPresent(Bool.self, forKey: .custom)
+        source_recipe_name = try c.decodeIfPresent(String.self, forKey: .source_recipe_name)
     }
 
-    init(item: String?, category: String?, quantity: String?, estimated_cost_usd: Double? = nil, checked: Bool = false, custom: Bool? = nil) {
+    init(item: String?, category: String?, quantity: String?, estimated_cost_usd: Double? = nil, checked: Bool = false, custom: Bool? = nil, source_recipe_name: String? = nil) {
         self.item = item
         self.category = category
         self.quantity = quantity
         self.estimated_cost_usd = estimated_cost_usd
         self.checked = checked
         self.custom = custom
+        self.source_recipe_name = source_recipe_name
     }
 }
 
@@ -606,6 +618,9 @@ struct MealSwapOption: Decodable, Identifiable {
     let ingredients: [String]?
     let prep_time_minutes: Int?
     let reason: String?
+    let recipe_url: String?
+    let recipe_source: String?
+    let goal_alignment_rationale: String?
 }
 
 // MARK: - Eating Out

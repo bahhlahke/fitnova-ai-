@@ -403,6 +403,9 @@ export interface EnhancedMeal {
   servings: number;
   cuisine_type?: string;
   estimated_cost_usd?: number;
+  recipe_url?: string;
+  recipe_source?: string;
+  goal_alignment_rationale?: string;
 }
 
 export interface EnhancedGroceryItem {
@@ -421,6 +424,7 @@ export interface EnhancedGroceryItem {
   estimated_cost_usd?: number;
   checked: boolean;
   custom?: boolean;
+  source_recipe_name?: string;
 }
 
 export interface EnhancedMealPlan {
@@ -457,4 +461,7 @@ export interface MealSwapOption {
   ingredients: string[];
   prep_time_minutes: number;
   reason: string;
+  recipe_url?: string;
+  recipe_source?: string;
+  goal_alignment_rationale?: string;
 }

@@ -385,6 +385,16 @@ struct MealPlanView: View {
                     }
                 }
 
+                if let rationale = meal.goal_alignment_rationale, !rationale.isEmpty {
+                    Text("Coach: \(rationale)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Brand.Color.accent)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(Brand.Color.accent.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+
                 // Macros
                 HStack(spacing: 8) {
                     if let p = meal.protein { macroPill("P", "\(p)g", .green) }
@@ -435,6 +445,21 @@ struct MealPlanView: View {
                                             .foregroundStyle(.white)
                                     }
                                 }
+                            }
+                        }
+
+                        if let url = meal.recipe_url, let source = meal.recipe_source {
+                            Link(destination: URL(string: url)!) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.up.right.circle.fill")
+                                    Text("Full Recipe on \(source)")
+                                }
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(Brand.Color.accent)
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Brand.Color.surfaceRaised)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
                             }
                         }
                     }
@@ -575,6 +600,11 @@ struct MealPlanView: View {
                     Text(qty)
                         .font(.caption)
                         .foregroundStyle(Brand.Color.muted)
+                }
+                if let source = item.source_recipe_name, !source.isEmpty {
+                    Text("for \(source)")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Brand.Color.muted.opacity(0.7))
                 }
             }
 

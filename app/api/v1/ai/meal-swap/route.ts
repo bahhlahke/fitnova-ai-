@@ -63,7 +63,9 @@ RULES:
 2. All ingredient quantities MUST use US imperial units (oz, lbs, cups, tbsp, tsp, fl oz).
 3. Dietary restrictions must be strictly followed.
 4. Offer variety — different proteins, cuisines, or prep styles than the current meal.
-5. Return ONLY valid JSON. No markdown, no extra text.
+5. RECIPE LINKS: Provide high-quality, reputable recipe URLs in "recipe_url" and source name in "recipe_source".
+6. GOAL ALIGNMENT: In "goal_alignment_rationale", explain how this meal fits the user's fitness goals.
+7. Return ONLY valid JSON. No markdown, no extra text.
 
 Return JSON:
 {
@@ -78,7 +80,10 @@ Return JSON:
       "recipe": "Brief instructions (2-3 sentences)",
       "ingredients": ["8 oz salmon fillet", "1 cup quinoa"],
       "prep_time_minutes": 0,
-      "reason": "Why this is a good swap (one sentence)"
+      "reason": "Why this is a good swap (one sentence)",
+      "recipe_url": "https://...",
+      "recipe_source": "string",
+      "goal_alignment_rationale": "string"
     }
   ]
 }`;

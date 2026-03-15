@@ -100,12 +100,14 @@ export async function POST(request: Request) {
     const systemPrompt = `You are an expert sports nutritionist and chef. Generate a ${durationDays}-day personalized meal plan.
 
 CRITICAL RULES:
-1. ALL ingredient quantities MUST use US imperial units: oz, lbs, cups, tablespoons (tbsp), teaspoons (tsp), fluid ounces (fl oz). NEVER use grams or milliliters for ingredient quantities.
+1. ALL ingredient quantities MUST use US imperial units: oz, lbs, cups, tablespoons (tbsp), teaspoons (tsp), fluid ounces (fl oz). NEVER use grams or milliliters.
 2. Dietary restrictions MUST be strictly followed — no exceptions.
 3. Allergies listed must NEVER appear in any form.
 4. Vary proteins and cuisines across days — avoid repeating the same protein two days in a row.
 5. Calorie totals across all meals in a day should sum within ±50 kcal of the daily target.
-6. Return ONLY valid JSON. No markdown, no code blocks, no extra text.
+6. RECIPE LINKS: Provide high-quality, reputable recipe URLs (e.g., from Serious Eats, AllRecipes, Bon Appétit, NYT Cooking, Food Network) in the "recipe_url" field. Include the source name in "recipe_source".
+7. GOAL ALIGNMENT: In "goal_alignment_rationale", explain in 1 sentence how this specific meal helps achieve the user's fitness goals (e.g., "High protein supports muscle recovery after your leg day").
+8. Return ONLY valid JSON. No markdown, no code blocks, no extra text.
 
 Return JSON matching this exact structure:
 {
@@ -127,7 +129,10 @@ Return JSON matching this exact structure:
           "prep_time_minutes": 0,
           "servings": 1,
           "cuisine_type": "string",
-          "estimated_cost_usd": 0.00
+          "estimated_cost_usd": 0.00,
+          "recipe_url": "https://...",
+          "recipe_source": "string",
+          "goal_alignment_rationale": "string"
         }
       ]
     }
@@ -138,7 +143,8 @@ Return JSON matching this exact structure:
       "category": "Produce|Meat & Seafood|Dairy & Eggs|Canned & Jarred|Dry & Pantry|Frozen|Bakery|Beverages|Other",
       "quantity": "2 lbs",
       "estimated_cost_usd": 0.00,
-      "checked": false
+      "checked": false,
+      "source_recipe_name": "string (the name of the meal this item belongs to)"
     }
   ],
   "total_estimated_cost_usd": 0.00

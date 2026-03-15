@@ -138,11 +138,27 @@ struct MealSwapSheet: View {
                     if let f = option.fat { macroPill("F", "\(f)g", .orange) }
                 }
 
-                if let reason = option.reason, !reason.isEmpty {
+                if let rationale = option.goal_alignment_rationale, !rationale.isEmpty {
+                    Text("Coach: \(rationale)")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Brand.Color.accent)
+                        .italic()
+                } else if let reason = option.reason, !reason.isEmpty {
                     Text(reason)
                         .font(.caption)
                         .foregroundStyle(Brand.Color.muted)
                         .italic()
+                }
+
+                if let url = option.recipe_url, let source = option.recipe_source {
+                    Link(destination: URL(string: url)!) {
+                        HStack(spacing: 4) {
+                            Text("Full Recipe on \(source)")
+                            Image(systemName: "arrow.up.right")
+                        }
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Brand.Color.accent)
+                    }
                 }
 
                 Button {

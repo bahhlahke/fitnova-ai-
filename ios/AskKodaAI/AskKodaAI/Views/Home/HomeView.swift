@@ -32,6 +32,7 @@ struct HomeView: View {
     @State private var showingCoachChat = false
     @State private var showingCheckIn = false
     @State private var showingLogNutrition = false
+    @State private var showingMealPlanner = false
     @State private var generating = false
     @State private var refreshTask: Task<Void, Never>?
     @Namespace private var workoutNamespace
@@ -137,6 +138,10 @@ struct HomeView: View {
                 }
                 .sheet(isPresented: $showingLogNutrition) {
                     LogNutritionView()
+                }
+                .sheet(isPresented: $showingMealPlanner) {
+                    MealPlanView()
+                        .environmentObject(auth)
                 }
                 .sheet(item: $selectedInsight) { insight in
                     CoachInsightDetailView(insight: insight)
@@ -466,6 +471,9 @@ struct HomeView: View {
                 }
                 quickActionButton(title: "Log\nNutrition", icon: "fork.knife") {
                     showingLogNutrition = true
+                }
+                quickActionButton(title: "Meal\nPlanner", icon: "calendar") {
+                    showingMealPlanner = true
                 }
             }
         }

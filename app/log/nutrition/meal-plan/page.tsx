@@ -160,9 +160,26 @@ function MealCard({
         )}
       </div>
 
+      {meal.goal_alignment_rationale && (
+        <p className="mt-2 text-xs font-medium text-fn-primary border-t border-fn-border/50 pt-2 italic">
+          Coach: {meal.goal_alignment_rationale}
+        </p>
+      )}
+
       {expanded && (
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 space-y-3">
           <p className="text-xs text-fn-muted">{meal.recipe}</p>
+          {meal.recipe_url && (
+            <a
+              href={meal.recipe_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-fn-primary hover:underline bg-fn-primary/5 px-2 py-1 rounded-lg"
+            >
+              <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3"><path d="M12.222 2.003L12.5 2.222l.5.5.219.278L13.5 3.5l.219.278.281.222.219.5.5.5.278.219L15.5 6l-.219.278-.281.5-.5.219-.219.281L14 8l-.219.278-.5.219-.278-.5-.5.219-.5.219-.281.5-.219.278L11 9l.219-.278.5-.219.281-.5.5-.219.219-.281z"/></svg>
+              Full Recipe on {meal.recipe_source || "Source"}
+            </a>
+          )}
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.15em] text-fn-primary mb-1">
               Ingredients
@@ -584,6 +601,11 @@ function GroceryListPanel({
                           <span className="font-semibold">{item.quantity} </span>
                         )}
                         {item.item}
+                        {item.source_recipe_name && (
+                          <span className="ml-1 text-[10px] text-fn-muted">
+                            (for {item.source_recipe_name})
+                          </span>
+                        )}
                         {item.custom && (
                           <span className="ml-1 text-[10px] text-fn-muted">(custom)</span>
                         )}
