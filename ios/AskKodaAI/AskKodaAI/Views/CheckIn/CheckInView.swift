@@ -16,8 +16,10 @@ struct CheckInView: View {
     @State private var sleepHours = ""
     @State private var sorenessNotes = ""
     @State private var adherenceScore = 5
+    @State private var currentStep = 0 // 0: Energy, 1: Sleep, 2: Soreness/Adherence
     @State private var saving = false
     @State private var loading = false
+    @State private var isEditing = false
     @State private var errorMessage: String?
     @State private var saved = false
     @State private var alreadyCheckedIn = false
@@ -35,43 +37,143 @@ struct CheckInView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    PremiumHeroCard(
-                        title: "Daily check-in",
-                        subtitle: "Signal today's readiness so Koda can calibrate your protocol in real time.",
-                        eyebrow: "Recovery Loop"
-                    ) {
-                        HStack(spacing: 10) {
-                            PremiumMetricPill(label: "Energy", value: "\(energyScore)/10")
-                            PremiumMetricPill(label: "Adherence", value: "\(adherenceScore)/10")
+            VStack(spacing: 0) {
+                if loading {
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            ShimmerCard(height: 140)
+                            ShimmerCard(height: 100)
+                            ShimmerCard(height: 100)
+                        }
+                        .padding(16)
+                    }
+                } else if alreadyCheckedIn && !isEditing {
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            PremiumHeroCard(
+                                title: "Daily Mastery",
+                                subtitle: "Protocol Calibrated",
+                                eyebrow: "CALIBRATION"
+                            ) { EmptyView() }
+                            
+                            DailyMasteryView(
+                                energyScore: energyScore,
+                                sleepHours: Double(sleepHours) ?? 0,
+                                sorenessNotes: sorenessNotes,
+                                onEdit: { withAnimation { isEditing = true } }
+                            )
+                            
+                            recoveryPivotSection
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 20)
+                    }
+                } else {
+                    steppedCheckInFlow
+                }
+            }
+            .fnBackground()
+            .navigationTitle(alreadyCheckedIn && !isEditing ? "Daily Mastery" : "Check-in")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if isEditing || !alreadyCheckedIn {
+                    ToolbarItem(placement: .topBarLeading) {
+                        if currentStep > 0 {
+                            Button("Back") {
+                                withAnimation { currentStep -= 1 }
+                            }
                         }
                     }
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Dismiss") {
+                        dismiss()
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Brand.Color.muted)
+                }
+            }
+            .task { await loadExistingCheckIn() }
+        }
+    }
 
-                    if loading {
-                        ShimmerCard(height: 80)
-                        ShimmerCard(height: 80)
-                    } else {
+    @ViewBuilder
+    private var steppedCheckInFlow: some View {
+        VStack(spacing: 20) {
+            // Progress Indicator
+            HStack(spacing: 4) {
+                ForEach(0..<3) { i in
+                    Capsule()
+                        .fill(i <= currentStep ? Brand.Color.accent : Brand.Color.border)
+                        .frame(height: 4)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    if currentStep == 0 {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Ready to push?")
+                                .font(.title.weight(.black))
+                                .foregroundStyle(.white)
+                            Text("How is your baseline energy today?")
+                                .font(.subheadline)
+                                .foregroundStyle(Brand.Color.muted)
+                        }
+                        .padding(.horizontal, 4)
+                        
                         energyCard
+                    } else if currentStep == 1 {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Neural Recovery")
+                                .font(.title.weight(.black))
+                                .foregroundStyle(.white)
+                            Text("How many hours of high-quality sleep?")
+                                .font(.subheadline)
+                                .foregroundStyle(Brand.Color.muted)
+                        }
+                        .padding(.horizontal, 4)
+                        
                         sleepCard
+                    } else {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Protocol Sync")
+                                .font(.title.weight(.black))
+                                .foregroundStyle(.white)
+                            Text("Final signals for today's calibration.")
+                                .font(.subheadline)
+                                .foregroundStyle(Brand.Color.muted)
+                        }
+                        .padding(.horizontal, 4)
+                        
                         sorenessCard
                         adherenceCard
                     }
 
                     errorSection
-                    recoveryPivotSection
-
-                    if !loading {
+                    
+                    if currentStep < 2 {
+                        Button {
+                            withAnimation { currentStep += 1 }
+                        } label: {
+                            HStack {
+                                Text("Continue")
+                                Image(systemName: "arrow.right")
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(PremiumActionButtonStyle())
+                    } else {
                         submitButton
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 20)
+                .padding(.vertical, 10)
             }
-            .fnBackground()
-            .navigationTitle("Check-in")
-            .navigationBarTitleDisplayMode(.inline)
-            .task { await loadExistingCheckIn() }
         }
     }
 

@@ -110,13 +110,25 @@ enum DemoContent {
                     title: "Protect Pressing Output",
                     message: "Shoulder tightness is trending down. Keep your warm-up longer than usual before any heavy front-rack or overhead work.",
                     urgency: "medium",
-                    cta_route: "/log/workout"
+                    cta_route: "/log/workout",
+                    supporting_data: CoachInsightSupportingData(
+                        headline: "Shoulder Range",
+                        value: "95%",
+                        context: "Recovering from tightness",
+                        type: "stat"
+                    )
                 ),
                 CoachInsight(
                     title: "Nutrition Window",
                     message: "You are within reach of a clean training day. Front-load 40-50g carbs in the next meal to support the squat session.",
                     urgency: "low",
-                    cta_route: "/log/nutrition"
+                    cta_route: "/log/nutrition",
+                    supporting_data: CoachInsightSupportingData(
+                        headline: "Carb Target",
+                        value: "255g",
+                        context: "45g remaining",
+                        type: "stat"
+                    )
                 )
             ]
         )

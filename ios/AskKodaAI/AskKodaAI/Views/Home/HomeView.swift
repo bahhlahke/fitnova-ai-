@@ -17,6 +17,8 @@ struct HomeView: View {
     @State private var profile: UserProfile?
     @State private var briefing: AIBriefingResponse?
     @State private var nudges: [CoachNudge] = []
+    @State private var coachInsights: [CoachInsight] = []
+    @State private var selectedInsight: CoachInsight?
     @State private var weeklyInsight: String?
 
     // MARK: - Load phase
@@ -87,6 +89,7 @@ struct HomeView: View {
                         if !nudges.isEmpty {
                             nudgesSection
                         }
+                        masteryInsightsSection
                         quickActionsSection
                     }
                     .padding(.horizontal, 16)
@@ -134,6 +137,9 @@ struct HomeView: View {
                 }
                 .sheet(isPresented: $showingLogNutrition) {
                     LogNutritionView()
+                }
+                .sheet(item: $selectedInsight) { insight in
+                    CoachInsightDetailView(insight: insight)
                 }
                 .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StartGuidedWorkoutFromCoach"))) { note in
                     handleCoachWorkoutLaunch(note)
@@ -331,6 +337,85 @@ struct HomeView: View {
         )
     }
 
+    }
+
+    @ViewBuilder
+    private var masteryInsightsSection: some View {
+        if !coachInsights.isEmpty {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text("COACH'S DESK")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .tracking(1.4)
+                        .foregroundStyle(Brand.Color.accent)
+                    Spacer()
+                    Image(systemName: "sparkles")
+                        .font(.caption)
+                        .foregroundStyle(Brand.Color.accent.opacity(0.6))
+                }
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(coachInsights) { insight in
+                            Button {
+                                selectedInsight = insight
+                                HapticEngine.impact(.light)
+                            } label: {
+                                masteryInsightCard(insight)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func masteryInsightCard(_ insight: CoachInsight) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(insight.title ?? "Insight")
+                    .font(.subheadline.weight(.black))
+                    .foregroundStyle(.white)
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Brand.Color.muted)
+            }
+
+            Text(insight.message ?? "")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.8))
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            if let data = insight.supporting_data {
+                HStack(spacing: 6) {
+                    Text(data.headline ?? "")
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .foregroundStyle(Brand.Color.accent.opacity(0.8))
+                    Text(data.value ?? "")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Brand.Color.accent.opacity(0.1))
+                .clipShape(Capsule())
+            }
+        }
+        .padding(16)
+        .frame(width: 240, height: 120, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(Brand.Color.border, lineWidth: 1)
+                )
+        )
+    }
+
     @ViewBuilder
     private var nudgesSection: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -419,6 +504,7 @@ struct HomeView: View {
             group.addTask { await self.loadProfile() }
             group.addTask { await self.loadPlan() }
             group.addTask { await self.loadBriefing() }
+            group.addTask { await self.loadCoachInsights() }
         }
         criticalPhaseLoading = false
         // Secondary phase — non-blocking background loads
@@ -446,6 +532,11 @@ struct HomeView: View {
     private func loadBriefing() async {
         let res = try? await api.aiBriefing(localDate: DateHelpers.todayLocal)
         await MainActor.run { briefing = res }
+    }
+
+    private func loadCoachInsights() async {
+        let res = try? await api.aiCoachDesk()
+        await MainActor.run { coachInsights = res?.insights ?? [] }
     }
 
     private func loadPlan() async {
