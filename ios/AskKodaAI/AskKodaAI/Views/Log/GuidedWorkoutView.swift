@@ -15,6 +15,7 @@ struct GuidedWorkoutView: View {
     @EnvironmentObject var auth: SupabaseService
     @Environment(\.dismiss) var dismiss
     @StateObject private var healthKit = HealthKitService.shared
+    @StateObject private var watchSync = WatchConnectivityManager.shared
     let initialExercises: [PlanExercise]
     let initialTrainingPlan: TrainingPlan?
     @State private var exercises: [PlanExercise] = []
@@ -254,11 +255,17 @@ struct GuidedWorkoutView: View {
             await loadPlan()
             await setupPulseSubscription()
             startNeuralMastery()
+            setupWatchActionListener()
+            syncToWatch()
             speakCoachCue(for: phase)
         }
         .onChange(of: phase) { _, newValue in
             speakCoachCue(for: newValue)
+            syncToWatch()
         }
+        .onChange(of: exerciseIndex) { _, _ in syncToWatch() }
+        .onChange(of: setIndex) { _, _ in syncToWatch() }
+        .onChange(of: restRemaining) { _, _ in syncToWatch() }
         .onDisappear {
             stopNeuralMastery()
         }
@@ -2119,6 +2126,63 @@ struct GuidedWorkoutView: View {
                         .fill(Color.white.opacity(0.08))
                         .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
                 )
+        }
+    }
+    
+    // MARK: - Watch Sync
+    
+    private func syncToWatch() {
+        let ex = exercises[safe: exerciseIndex]
+        let state = WorkoutWatchState(
+            exerciseName: ex?.name ?? "Workout",
+            currentSet: setIndex + 1,
+            totalSets: ex?.sets ?? 1,
+            repsLabel: ex?.reps ?? "-",
+            phase: phaseString,
+            restRemaining: phase == .rest ? restRemaining : nil,
+            heartRate: healthKit.currentHeartRate ?? simulatedHeartRate
+        )
+        watchSync.sendState(state)
+    }
+    
+    private var phaseString: String {
+        switch phase {
+        case .work: return "work"
+        case .rest: return "rest"
+        case .exerciseIntro: return "intro"
+        default: return "other"
+        }
+    }
+    
+    private func setupWatchActionListener() {
+        NotificationCenter.default.addObserver(forName: .didReceiveWatchAction, object: nil, queue: .main) { notification in
+            guard let action = notification.object as? WatchAction else { return }
+            handleWatchAction(action)
+        }
+    }
+    
+    private func handleWatchAction(_ action: WatchAction) {
+        switch action {
+        case .completeSet:
+            if phase == .work {
+                advanceSet()
+            }
+        case .skipRest:
+            if phase == .rest {
+                advanceRest()
+            }
+        case .previousExercise:
+            if exerciseIndex > 0 {
+                exerciseIndex -= 1
+                setIndex = 0
+                phase = .exerciseIntro
+            }
+        case .nextExercise:
+            if exerciseIndex + 1 < exercises.count {
+                exerciseIndex += 1
+                setIndex = 0
+                phase = .exerciseIntro
+            }
         }
     }
 }
