@@ -9,6 +9,8 @@ import { DEFAULT_UNIT_SYSTEM, type UnitSystem, readUnitSystemFromProfile } from 
 import { toPlainFitnessLanguage, toTitleCaseLabel } from "@/lib/ui/plain-language";
 import { Card, Button, LoadingState } from "@/components/ui";
 import { AiCoachPanel } from "@/components/ai/AiCoachPanel";
+import { CoachInsightDetail } from "@/components/dashboard/CoachInsightDetail";
+import { ShieldAlert, BarChart3 } from "lucide-react";
 import { SpotifyMiniPlayer } from "@/components/music/SpotifyMiniPlayer";
 import { SpotifyProvider } from "@/lib/music/SpotifyProvider";
 import {
@@ -98,6 +100,7 @@ export default function HomePage() {
   const [nudges, setNudges] = useState<DashboardNudge[]>([]);
   const [coachInsights, setCoachInsights] = useState<any[]>([]);
   const [coachInsightsLoading, setCoachInsightsLoading] = useState(false);
+  const [selectedInsight, setSelectedInsight] = useState<any | null>(null);
 
   // Telemetry state
   const [telemetryOptIn, setTelemetryOptIn] = useState<boolean>(false);
@@ -1054,41 +1057,63 @@ export default function HomePage() {
                   Step 1: generate today&apos;s plan. Step 2: complete one action. Step 3: return here for your coach summary.
                 </div>
               )}
-              {/* Coach's Desk Mastery Insights */}
-              {(coachInsights.length > 0 || coachInsightsLoading) && (
-                <div className="rounded-xl bg-fn-accent/[0.07] border border-fn-accent/25 p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">🛡️</span>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-fn-accent">Why This Matters</p>
+            {/* Coach's Desk Mastery Insights */}
+            {(coachInsights.length > 0 || coachInsightsLoading) && (
+              <div className="group/desk relative overflow-hidden rounded-[2rem] bg-[linear-gradient(160deg,rgba(10,217,196,0.12),rgba(0,0,0,0.4))] border border-fn-accent/25 p-5 shadow-[0_15px_40px_rgba(10,217,196,0.1)] transition-all duration-500 hover:shadow-[0_20px_50px_rgba(10,217,196,0.2)]">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-fn-accent/5 rounded-full blur-[60px] -mr-16 -mt-16 animate-pulse-soft"></div>
+                
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-fn-accent/20 border border-fn-accent/30">
+                    <ShieldAlert size={14} className="text-fn-accent" />
                   </div>
-                  <p className="text-[10px] leading-relaxed text-fn-muted">
-                    Plain-English rule: if readiness looks low, choose an easier day or ask Coach to adapt the plan before you start.
-                  </p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-fn-accent">Why This Matters</p>
+                </div>
+
+                <div className="space-y-4">
                   {coachInsightsLoading ? (
-                    <div className="space-y-2 animate-pulse">
-                      <div className="h-2 w-full bg-fn-accent/10 rounded"></div>
-                      <div className="h-2 w-2/3 bg-fn-accent/10 rounded"></div>
+                    <div className="space-y-3 animate-pulse">
+                      <div className="h-3 w-full bg-fn-accent/10 rounded-full"></div>
+                      <div className="h-2 w-2/3 bg-fn-accent/10 rounded-full"></div>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {coachInsights.map((insight: any, idx: number) => (
                         <div
                           key={idx}
-                          className={`space-y-1 ${insight.cta_route ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
-                          onClick={() => {
-                            if (insight.cta_route) {
-                              window.location.href = insight.cta_route;
-                            }
-                          }}
+                          role="button"
+                          className="group relative flex flex-col gap-1.5 p-3 rounded-2xl border border-white/5 bg-white/[0.03] transition-all duration-300 hover:bg-white/[0.08] hover:border-fn-accent/30 hover:translate-x-1 cursor-pointer"
+                          onClick={() => setSelectedInsight(insight)}
                         >
-                          <p className="text-[11px] font-black text-white uppercase italic">{simplifyCoachInsightTitle(insight.title)}</p>
-                          <p className="text-[10px] text-fn-ink/60 leading-relaxed line-clamp-2">{toPlainFitnessLanguage(insight.message)}</p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-[11px] font-black text-white uppercase italic tracking-tight">{simplifyCoachInsightTitle(insight.title)}</p>
+                            <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                              <BarChart3 size={12} className="text-fn-accent" />
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-white/50 leading-relaxed line-clamp-2 pr-4">{toPlainFitnessLanguage(insight.message)}</p>
+                          
+                          {/* Hover indicator */}
+                          <div className="absolute top-1/2 -right-1 -translate-y-1/2 w-1 h-4 bg-fn-accent rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300" />
                         </div>
                       ))}
                     </div>
                   )}
+                  
+                  <p className="text-[9px] text-white/30 italic text-center mt-2">
+                    Click any insight to reveal supporting biometric data.
+                  </p>
                 </div>
-              )}
+              </div>
+            )}
+            
+            {/* Modal Injection */}
+            {selectedInsight && (
+              <CoachInsightDetail 
+                insight={selectedInsight} 
+                onClose={() => setSelectedInsight(null)} 
+              />
+            )}
+
             </div>
 
             {/* Weekly Insight */}

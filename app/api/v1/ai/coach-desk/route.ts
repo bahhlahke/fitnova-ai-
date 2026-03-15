@@ -40,7 +40,13 @@ export async function GET() {
             "title": "Short Impactful Title",
             "message": "Detailed, data-backed insight and recommended adjustment.",
             "urgency": "low" | "medium" | "high",
-            "cta_route": "/log/workout" | "/coach" | "/history" | "/community" | "/check-in" | null
+            "cta_route": "/log/workout" | "/coach" | "/history" | "/community" | "/check-in" | null,
+            "supporting_data": {
+              "headline": "Metric Name (e.g. HRV Trend)",
+              "value": "Current Value (e.g. 45ms)",
+              "context": "Short explanation of the data (e.g. 15% below baseline)",
+              "type": "chart" | "stat" | "text"
+            }
           }
         ]
       }
