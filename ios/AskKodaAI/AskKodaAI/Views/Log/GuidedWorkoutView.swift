@@ -442,7 +442,9 @@ struct GuidedWorkoutView: View {
                     .buttonStyle(PremiumActionButtonStyle())
                 }
                 .padding()
+                .padding(.bottom, 24)
             }
+            .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 0) }
         }
     }
 
