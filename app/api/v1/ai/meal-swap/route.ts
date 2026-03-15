@@ -63,7 +63,10 @@ RULES:
 2. All ingredient quantities MUST use US imperial units (oz, lbs, cups, tbsp, tsp, fl oz).
 3. Dietary restrictions must be strictly followed.
 4. Offer variety — different proteins, cuisines, or prep styles than the current meal.
-5. RECIPE LINKS: Provide high-quality, reputable recipe URLs in "recipe_url" and source name in "recipe_source".
+5. RECIPE LINKS: Provide high-quality, RELEVANT, and UNIQUE recipe URLs. Prefer: Serious Eats, NYT Cooking, Bon Appétit, AllRecipes, Food Network, or Epicurious.
+   - NEVER use "example.com" or generic site root URLs.
+   - Ensure the URL leads to a specific recipe matching the meal name.
+   - Include the source name in "recipe_source".
 6. GOAL ALIGNMENT: In "goal_alignment_rationale", explain how this meal fits the user's fitness goals.
 7. Return ONLY valid JSON. No markdown, no extra text.
 
@@ -113,7 +116,14 @@ Provide 3 diverse alternatives that closely match the calorie and protein target
       temperature: 0.8,
     });
 
-    const parsed = JSON.parse(content.replace(/```json|```/gi, "").trim()) as {
+    // Handle potential markdown artifacts or conversational filler
+    let jsonContent = content;
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonContent = jsonMatch[0];
+    }
+
+    const parsed = JSON.parse(jsonContent) as {
       options?: MealSwapOption[];
     };
     const options = (parsed.options ?? []).slice(0, 3);

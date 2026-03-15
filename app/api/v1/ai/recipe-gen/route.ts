@@ -105,7 +105,10 @@ CRITICAL RULES:
 3. Allergies listed must NEVER appear in any form.
 4. Vary proteins and cuisines across days — avoid repeating the same protein two days in a row.
 5. Calorie totals across all meals in a day should sum within ±50 kcal of the daily target.
-6. RECIPE LINKS: Provide high-quality, reputable recipe URLs (e.g., from Serious Eats, AllRecipes, Bon Appétit, NYT Cooking, Food Network) in the "recipe_url" field. Include the source name in "recipe_source".
+6. RECIPE LINKS: Provide high-quality, RELEVANT, and UNIQUE recipe URLs for EVERY meal. Prefer: Serious Eats, NYT Cooking, Bon Appétit, AllRecipes, Food Network, or Epicurious. 
+   - NEVER use "example.com" or generic site root URLs. 
+   - Ensure the URL leads to a specific recipe matching the meal name.
+   - Include the source name in "recipe_source".
 7. GOAL ALIGNMENT: In "goal_alignment_rationale", explain in 1 sentence how this specific meal helps achieve the user's fitness goals (e.g., "High protein supports muscle recovery after your leg day").
 8. Return ONLY valid JSON. No markdown, no code blocks, no extra text.
 
@@ -180,7 +183,19 @@ Generate the complete ${durationDays}-day plan. Aggregate all ingredients into a
       temperature: 0.7,
     });
 
-    const planData = JSON.parse(content.replace(/```json|```/gi, "").trim()) as EnhancedMealPlan;
+    // Handle potential markdown artifacts or conversational filler
+    let jsonContent = content;
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonContent = jsonMatch[0];
+    }
+
+    const planData = JSON.parse(jsonContent) as EnhancedMealPlan;
+
+    // 4. Basic Validation
+    if (!planData.days || !Array.isArray(planData.days) || planData.days.length === 0) {
+      throw new Error("Invalid plan structure: missing days");
+    }
 
     // Ensure all grocery items have checked=false if not set
     planData.grocery_list = (planData.grocery_list ?? []).map((item) => ({
