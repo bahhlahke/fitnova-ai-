@@ -442,7 +442,9 @@ struct GuidedWorkoutView: View {
                     .buttonStyle(PremiumActionButtonStyle())
                 }
                 .padding()
+                .padding(.bottom, 24)
             }
+            .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 0) }
         }
     }
 
@@ -913,6 +915,68 @@ struct GuidedWorkoutView: View {
                 }
 
                 restUpNextCard(exercise: ex, isOptimal: isOptimal)
+
+                // Priority 1 — Key coaching cue for the next set
+                if let cue = restFormCue(for: ex) {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "lightbulb.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Brand.Color.accent)
+                            .padding(.top, 2)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("KEY CUE — NEXT SET")
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .tracking(1.2)
+                                .foregroundStyle(Brand.Color.accent)
+                            Text(cue)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.white.opacity(0.85))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Brand.Color.accent.opacity(0.06))
+                            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(Brand.Color.accent.opacity(0.2), lineWidth: 1))
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
+                // Priority 2 — Fatigue signal
+                if let fatigue = fatigueAlert {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Brand.Color.warning)
+                            .padding(.top, 2)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("FATIGUE SIGNAL")
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .tracking(1.2)
+                                .foregroundStyle(Brand.Color.warning)
+                            Text(fatigue.message)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.white.opacity(0.9))
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(fatigue.suggestion)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Brand.Color.warning.opacity(0.75))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Brand.Color.warning.opacity(0.06))
+                            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(Brand.Color.warning.opacity(0.2), lineWidth: 1))
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
 
                 Button(action: advanceRest) {
                     Text(isOptimal ? "Start Next Set" : "Override Recovery")
@@ -1967,6 +2031,36 @@ struct GuidedWorkoutView: View {
         phase = exercises.isEmpty ? .completed : .overview
         // Pre-fetch demo video for the first exercise.
         if let first = exercises.first { prefetchDemoURL(for: first) }
+    }
+
+    // MARK: - Priority 1: Form coaching cue for the next set
+
+    private func restFormCue(for exercise: PlanExercise) -> String? {
+        if let catalogCue = ExerciseCatalog.entry(for: exercise.name ?? "")?.formCues.first?.cue {
+            return catalogCue
+        }
+        return exercise.coaching_points?.first ?? exercise.common_mistakes?.first
+    }
+
+    // MARK: - Priority 2: Fatigue detection from logged rep pattern
+
+    private struct FatigueAlert {
+        let message: String
+        let suggestion: String
+    }
+
+    private var fatigueAlert: FatigueAlert? {
+        let reps = currentExerciseLoggedSets.compactMap { $0.reps }
+        guard reps.count >= 2, let peak = reps.max(), peak > 0 else { return nil }
+        let latest = reps[reps.count - 1]
+        let dropPct = Int(Double(peak - latest) / Double(peak) * 100)
+        guard dropPct >= 20 else { return nil }
+        return FatigueAlert(
+            message: "Reps dropped \(dropPct)% from your peak — fatigue signal detected.",
+            suggestion: dropPct >= 35
+                ? "Reduce load by ~10% or take an extra 30s before the next set."
+                : "Take your full rest. You're still in the session."
+        )
     }
 
     private var workoutBackButton: some View {

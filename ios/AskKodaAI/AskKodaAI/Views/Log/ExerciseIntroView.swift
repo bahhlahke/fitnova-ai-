@@ -19,6 +19,7 @@ struct ExerciseIntroView: View {
     @State private var resolvedVideoURL: URL?
     @State private var cardAppeared = false
     @State private var cueRevealIndex = -1
+    @State private var showFullscreenDemo = false
 
     // MARK: - Derived
 
@@ -47,9 +48,79 @@ struct ExerciseIntroView: View {
                 Spacer()
                 coachingCard
             }
+
+            // View Demo overlay button — matches work-phase style
+            if effectiveVideoURL != nil {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button { showFullscreenDemo = true } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("View Demo")
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            }
+                            .foregroundStyle(.white.opacity(0.8))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(
+                                Capsule()
+                                    .fill(Color.black.opacity(0.45))
+                                    .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                            )
+                        }
+                        .padding(.top, 60)
+                        .padding(.trailing, 20)
+                    }
+                    Spacer()
+                }
+                .ignoresSafeArea(edges: .top)
+            }
         }
         .ignoresSafeArea()
         .task { await runIntroSequence() }
+        .fullScreenCover(isPresented: $showFullscreenDemo) {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                if let url = effectiveVideoURL {
+                    CinemaPlayerView(videoURL: url)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .ignoresSafeArea()
+                }
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.75)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button { showFullscreenDemo = false } label: {
+                            Image(systemName: "xmark")
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 42, height: 42)
+                                .background(
+                                    Circle()
+                                        .fill(Color.black.opacity(0.55))
+                                        .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                                )
+                        }
+                        .padding(.top, 60)
+                        .padding(.trailing, 24)
+                    }
+                    Spacer()
+                    Text(exercise.name ?? "Exercise")
+                        .font(.system(size: 28, weight: .black, design: .rounded).italic())
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 60)
+                }
+            }
+        }
     }
 
     // MARK: - Background

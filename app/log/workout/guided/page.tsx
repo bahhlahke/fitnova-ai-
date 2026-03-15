@@ -195,6 +195,10 @@ function GuidedWorkoutScreen() {
 
   const [fullscreenDemo, setFullscreenDemo] = useState<{ url: string; name: string } | null>(null);
 
+  // Priority 1 & 2 — coaching data surfaced in the rest phase
+  const [restFormCue, setRestFormCue] = useState<string | null>(null);
+  const [restFatigueAlert, setRestFatigueAlert] = useState<{ message: string; suggestion: string } | null>(null);
+
   const markMediaFailed = useCallback((url: string | null | undefined) => {
     if (!url) return;
     setFailedMediaUrls((current) => (current.includes(url) ? current : [...current, url]));
@@ -681,6 +685,34 @@ function GuidedWorkoutScreen() {
       return newLogs;
     });
 
+    // Priority 1 — surface the top coaching cue for the next set
+    setRestFormCue(
+      exercise?.coaching_points?.[0] ?? exercise?.common_mistakes?.[0] ?? null
+    );
+
+    // Priority 2 — fatigue detection: compare logged reps across sets
+    const parsedReps = parseInt(currentReps, 10);
+    const justLoggedReps = Number.isNaN(parsedReps) ? null : parsedReps;
+    const priorReps = loggedSets.map(s => s.reps).filter((r): r is number => r != null);
+    const allReps = justLoggedReps != null ? [...priorReps, justLoggedReps] : priorReps;
+    if (allReps.length >= 2) {
+      const peak = Math.max(...allReps);
+      const latest = allReps[allReps.length - 1];
+      const dropPct = peak > 0 ? Math.round(((peak - latest) / peak) * 100) : 0;
+      if (dropPct >= 20) {
+        setRestFatigueAlert({
+          message: `Reps dropped ${dropPct}% from your peak — fatigue signal detected.`,
+          suggestion: dropPct >= 35
+            ? "Reduce load by ~10% or take an extra 30s before the next set."
+            : "Take your full rest. You're still in the session.",
+        });
+      } else {
+        setRestFatigueAlert(null);
+      }
+    } else {
+      setRestFatigueAlert(null);
+    }
+
     setPhase("rest");
     setRestSeconds(exercise ? getExerciseRestSeconds(exercise) : 60);
     setIsWorkTimerRunning(false);
@@ -747,7 +779,7 @@ function GuidedWorkoutScreen() {
   if (phase === "overview") {
     return (
       <div className="premium-grid-bg mx-auto flex min-h-[100dvh] max-w-shell flex-col bg-fn-bg">
-        <div className="flex-1 overflow-y-auto px-6 py-10 pb-32">
+        <div className="flex-1 overflow-y-auto px-6 py-10 pb-56">
           <header className="premium-panel mb-8 p-6 sm:p-8">
             <Link href="/log/workout" className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-fn-muted transition-colors hover:text-white">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
@@ -792,46 +824,17 @@ function GuidedWorkoutScreen() {
                   </div>
                   {(() => {
                     const mediaUrl = getExerciseImageUrl(ex.name, ex.video_url || ex.image_url);
-                    const canExpand = !failedMediaUrls.includes(mediaUrl);
+                    if (failedMediaUrls.includes(mediaUrl)) return null;
                     return (
                       <button
                         type="button"
-                        onClick={() => canExpand && setFullscreenDemo({ url: mediaUrl, name: ex.name })}
-                        className="relative h-12 w-12 overflow-hidden rounded-xl bg-black/40 flex-shrink-0 transition-transform active:scale-95"
-                        title="Tap to view exercise demo"
+                        onClick={() => setFullscreenDemo({ url: mediaUrl, name: ex.name })}
+                        className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-fn-accent/30 bg-white/[0.06] text-fn-accent transition-all hover:bg-fn-accent/10 active:scale-95"
+                        title="View exercise demo"
                       >
-                        {failedMediaUrls.includes(mediaUrl) ? (
-                          <div className="flex h-full w-full items-center justify-center bg-white/5 text-lg">
-                            <span>🏋️</span>
-                          </div>
-                        ) : isExerciseVideoUrl(mediaUrl) ? (
-                          <video
-                            src={mediaUrl}
-                            muted
-                            autoPlay
-                            loop
-                            playsInline
-                            className="h-full w-full object-cover opacity-50 transition-opacity group-hover:opacity-100"
-                            onError={() => markMediaFailed(mediaUrl)}
-                          />
-                        ) : (
-                          <Image
-                            src={mediaUrl}
-                            alt={ex.name}
-                            width={48}
-                            height={48}
-                            className="h-full w-full object-cover opacity-50 transition-opacity group-hover:opacity-100"
-                            unoptimized={isExerciseGifUrl(mediaUrl)}
-                            onError={() => markMediaFailed(mediaUrl)}
-                          />
-                        )}
-                        {canExpand && (
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-                            <svg className="h-4 w-4 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                            </svg>
-                          </div>
-                        )}
+                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
                       </button>
                     );
                   })()}
@@ -883,7 +886,7 @@ function GuidedWorkoutScreen() {
           </footer>
         </div>
 
-        <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-fn-bg via-fn-bg to-transparent px-6 pb-10 pt-12">
+        <div className="fixed inset-x-0 bottom-0 z-[110] bg-gradient-to-t from-fn-bg via-fn-bg to-transparent px-6 pb-[max(5rem,env(safe-area-inset-bottom,5rem))] pt-12">
           <button
             type="button"
             onClick={startWorkout}
@@ -893,6 +896,44 @@ function GuidedWorkoutScreen() {
             Start Guided Session
           </button>
         </div>
+
+      {/* Fullscreen Exercise Demo Modal */}
+      {fullscreenDemo && (
+        <div className="fixed inset-0 z-[500] bg-black animate-in fade-in duration-200">
+          {isExerciseVideoUrl(fullscreenDemo.url) ? (
+            <video
+              src={fullscreenDemo.url}
+              className="absolute inset-0 h-full w-full object-contain"
+              loop
+              muted
+              autoPlay
+              playsInline
+            />
+          ) : (
+            <Image
+              src={fullscreenDemo.url}
+              alt={fullscreenDemo.name}
+              fill
+              className="object-contain"
+              unoptimized={isExerciseGifUrl(fullscreenDemo.url)}
+            />
+          )}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/50 to-transparent px-6 pb-12 pt-24">
+            <p className="text-center text-2xl font-black italic uppercase tracking-tight text-white drop-shadow-2xl">
+              {fullscreenDemo.name}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFullscreenDemo(null)}
+            className="absolute right-5 top-12 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-white/10"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
       </div>
     );
   }
@@ -1464,6 +1505,23 @@ function GuidedWorkoutScreen() {
               </div>
             </div>
 
+            {/* Priority 1 — Form coaching cue */}
+            {restFormCue && (
+              <div className="w-full max-w-sm mx-auto mt-4 rounded-2xl border border-fn-accent/20 bg-fn-accent/5 p-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-fn-accent">Key Cue — Next Set</p>
+                <p className="text-sm font-medium leading-relaxed text-white/85">{restFormCue}</p>
+              </div>
+            )}
+
+            {/* Priority 2 — Fatigue alert */}
+            {restFatigueAlert && (
+              <div className="w-full max-w-sm mx-auto mt-3 rounded-2xl border border-amber-300/20 bg-amber-300/5 p-5 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-amber-300">⚡ Fatigue Signal</p>
+                <p className="text-sm font-medium leading-relaxed text-amber-50/90">{restFatigueAlert.message}</p>
+                <p className="mt-1.5 text-xs font-semibold text-amber-200/70">{restFatigueAlert.suggestion}</p>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={nextSet}
@@ -1562,19 +1620,15 @@ function GuidedWorkoutScreen() {
 
       {/* Fullscreen Exercise Demo Modal */}
       {fullscreenDemo && (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black animate-in fade-in duration-200"
-          onClick={() => setFullscreenDemo(null)}
-        >
+        <div className="fixed inset-0 z-[500] bg-black animate-in fade-in duration-200">
           {isExerciseVideoUrl(fullscreenDemo.url) ? (
             <video
               src={fullscreenDemo.url}
-              className="h-full w-full object-contain"
+              className="absolute inset-0 h-full w-full object-contain"
               loop
               muted
               autoPlay
               playsInline
-              onClick={(e) => e.stopPropagation()}
             />
           ) : (
             <Image
@@ -1583,18 +1637,19 @@ function GuidedWorkoutScreen() {
               fill
               className="object-contain"
               unoptimized={isExerciseGifUrl(fullscreenDemo.url)}
-              onClick={(e) => e.stopPropagation()}
             />
           )}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-6 pb-10 pt-16 pointer-events-none">
-            <p className="text-center text-xl font-black italic uppercase tracking-tight text-white drop-shadow-2xl">
+          {/* Bottom gradient + exercise name */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/50 to-transparent px-6 pb-12 pt-24">
+            <p className="text-center text-2xl font-black italic uppercase tracking-tight text-white drop-shadow-2xl">
               {fullscreenDemo.name}
             </p>
           </div>
+          {/* Close button */}
           <button
             type="button"
             onClick={() => setFullscreenDemo(null)}
-            className="absolute top-6 right-6 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-white/10"
+            className="absolute right-5 top-12 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-white/10"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
