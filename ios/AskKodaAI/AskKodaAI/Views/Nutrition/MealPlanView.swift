@@ -20,6 +20,7 @@ struct MealPlanView: View {
     @State private var totalCostUsd: Double?
     @State private var loading = false
     @State private var errorMessage: String?
+    @State private var syncingGrocery = false
 
     // Preferences
     @State private var preferences = MealPlanPreferences.default
@@ -511,6 +512,21 @@ struct MealPlanView: View {
                         .foregroundStyle(Brand.Color.accent)
                 }
                 Button {
+                    Task { await syncGroceryList() }
+                } label: {
+                    if syncingGrocery {
+                        ProgressView().tint(Brand.Color.accent)
+                            .scaleEffect(0.7)
+                    } else {
+                        Image(systemName: "arrow.clockwise.circle")
+                            .font(.subheadline)
+                            .foregroundStyle(Brand.Color.accent)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(syncingGrocery)
+
+                Button {
                     exportGroceryList()
                 } label: {
                     Image(systemName: "square.and.arrow.up")
@@ -817,6 +833,9 @@ struct MealPlanView: View {
         )
         meals[mealIndex] = updated
         days[dayIdx] = RecipeGenDay(date: days[dayIdx].date, meals: meals)
+        
+        // Auto-sync grocery list after swap
+        Task { await syncGroceryList() }
     }
 
     // MARK: - Grocery Actions
@@ -830,6 +849,22 @@ struct MealPlanView: View {
         } catch {
             // Revert on error
             await MainActor.run { groceryList[index].checked = !newChecked }
+        }
+    }
+
+    private func syncGroceryList() async {
+        guard let pid = planId, !days.isEmpty else { return }
+        syncingGrocery = true
+        defer { syncingGrocery = false }
+        
+        do {
+            let res = try await api.nutritionGrocerySync(planId: pid, days: days)
+            await MainActor.run {
+                self.groceryList = res.grocery_list ?? []
+                HapticEngine.impact(.medium)
+            }
+        } catch {
+            await MainActor.run { errorMessage = "Sync failed: \(error.localizedDescription)" }
         }
     }
 

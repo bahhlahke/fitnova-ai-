@@ -584,6 +584,21 @@ struct KodaAPIService {
         let _: GroceryPatchResponse = try await post("api/v1/nutrition/grocery", body: body)
     }
 
+    /// POST /api/v1/ai/grocery-sync — Synchronize grocery list with current meal plan.
+    func nutritionGrocerySync(planId: String, days: [RecipeGenDay]) async throws -> RecipeGenResponse {
+        if isDemoMode {
+            return RecipeGenResponse(plan: nil, planId: planId, days: days, grocery_list: [])
+        }
+        
+        // Convert days to a format the API expects
+        let encoder = JSONEncoder()
+        let daysData = try encoder.encode(days)
+        let daysArray = (try JSONSerialization.jsonObject(with: daysData) as? [[String: Any]]) ?? []
+        
+        let body: [String: Any] = ["planId": planId, "days": daysArray]
+        return try await post("api/v1/ai/grocery-sync", body: body, timeoutInterval: 45)
+    }
+
     /// DELETE /api/v1/nutrition/grocery — Remove item from grocery list.
     func nutritionGroceryRemoveItem(planId: String, itemIndex: Int) async throws {
         if isDemoMode { return }

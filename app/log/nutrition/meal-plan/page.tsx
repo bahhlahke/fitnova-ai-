@@ -466,10 +466,14 @@ function GroceryListPanel({
   items,
   planId,
   onItemsChange,
+  onSync,
+  syncing,
 }: {
   items: EnhancedGroceryItem[];
   planId: string;
   onItemsChange: (items: EnhancedGroceryItem[]) => void;
+  onSync?: () => Promise<void>;
+  syncing?: boolean;
 }) {
   const [addItem, setAddItem] = useState("");
   const [addQty, setAddQty] = useState("");
@@ -557,12 +561,23 @@ function GroceryListPanel({
             </span>
           )}
         </h3>
-        <button
-          onClick={exportList}
-          className="text-xs text-fn-primary font-semibold hover:underline"
-        >
-          ↓ Export
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={exportList}
+            className="text-xs text-fn-primary font-semibold hover:underline"
+          >
+            ↓ Export
+          </button>
+          {onSync && (
+            <button
+              onClick={onSync}
+              disabled={syncing}
+              className="text-xs text-fn-primary font-semibold hover:underline disabled:opacity-50"
+            >
+              {syncing ? "⌛ Syncing..." : "↻ Refresh"}
+            </button>
+          )}
+        </div>
       </div>
 
       <Card>
@@ -867,6 +882,7 @@ export default function MealPlanPage() {
   const [prefs, setPrefs] = useState<MealPlanPreferences>(DEFAULT_PREFS);
   const [showPrefs, setShowPrefs] = useState(false);
   const [activeTab, setActiveTab] = useState<"plan" | "grocery">("plan");
+  const [syncingGrocery, setSyncingGrocery] = useState(false);
 
   // Swap modal state
   const [swapModal, setSwapModal] = useState<{
@@ -963,6 +979,32 @@ export default function MealPlanPage() {
     }
   }
 
+  async function handleSyncGroceryList(updatedPlan?: EnhancedMealPlan) {
+    if (!planId) return;
+    const currentPlan = updatedPlan || plan;
+    if (!currentPlan) return;
+
+    setSyncingGrocery(true);
+    try {
+      const res = await fetch("/api/v1/ai/grocery-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId,
+          days: currentPlan.days,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGroceryItems(data.grocery_list);
+      }
+    } catch (err) {
+      console.error("grocery_sync_error", err);
+    } finally {
+      setSyncingGrocery(false);
+    }
+  }
+
   function handleMealSwapConfirm(dayDate: string, mealIndex: number, newMeal: EnhancedMeal) {
     if (!plan) return;
     const updatedDays = plan.days.map((d) => {
@@ -971,7 +1013,9 @@ export default function MealPlanPage() {
       meals[mealIndex] = newMeal;
       return { ...d, meals };
     });
-    setPlan({ ...plan, days: updatedDays });
+    const updatedPlan = { ...plan, days: updatedDays };
+    setPlan(updatedPlan);
+    handleSyncGroceryList(updatedPlan);
   }
 
   async function handleLogMeal(meal: EnhancedMeal) {
@@ -1211,6 +1255,8 @@ export default function MealPlanPage() {
                     items={groceryItems}
                     planId={planId}
                     onItemsChange={setGroceryItems}
+                    onSync={() => handleSyncGroceryList()}
+                    syncing={syncingGrocery}
                   />
                 )}
               </div>
