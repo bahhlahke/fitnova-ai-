@@ -27,70 +27,83 @@ export function DashboardReadinessSection({
       : "text-fn-danger";
 
   const statusDotClass = isOptimal
-    ? "w-full bg-fn-accent shadow-[0_0_15px_rgba(10,217,196,0.6)]"
+    ? "w-full bg-fn-accent shadow-[0_0_20px_rgba(10,217,196,0.8)]"
     : isModerate
-      ? "w-2/3 bg-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.6)]"
-      : "w-1/3 bg-fn-danger shadow-[0_0_15px_rgba(255,59,48,0.6)]";
+      ? "w-2/3 bg-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.8)]"
+      : "w-1/3 bg-fn-danger shadow-[0_0_20px_rgba(255,59,48,0.8)]";
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-6">
       {/* System Readiness Card */}
-      <div className="rounded-xl3 border border-white/[0.08] bg-fn-surface/40 backdrop-blur-md p-6 shadow-fn-card">
-        <div className="flex items-center gap-3">
-          <div className="relative flex h-6 w-12 items-center justify-start rounded-md bg-fn-bg-alt border border-white/[0.08] p-[3px]">
-            <div className={`h-full rounded-sm transition-all duration-1000 ${statusDotClass}`} />
-          </div>
-          <p className={`text-[11px] font-black uppercase tracking-[0.4em] ${statusColor}`}>
-            System Readiness
-          </p>
+      <div className="premium-panel p-8 relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+          <svg viewBox="0 0 24 24" fill="none" className="h-32 w-32 border-none text-white" stroke="currentColor" strokeWidth="1">
+            <polyline points="2,12 6,12 8,4 10,20 12,10 14,16 16,12 22,12" />
+          </svg>
         </div>
-
-        <h2 className="mt-3 font-display text-3xl font-black uppercase italic tracking-tighter text-white leading-tight sm:text-4xl">
-          {recoverySuggestion ?? "Optimal Recovery"}
-        </h2>
-
-        {readinessInsight ? (
-          <div className="mt-5 rounded-xl border border-white/[0.05] bg-black/20 p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fn-accent mb-1">Insight</p>
-            <p className="text-sm font-medium italic text-fn-muted leading-relaxed">
-              {readinessInsight}
+        
+        <div className="relative z-10">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="relative flex h-8 w-16 items-center justify-start rounded-full bg-black/40 border border-white/10 p-[4px]">
+              <div className={`h-full rounded-full transition-all duration-1000 ${statusDotClass}`} />
+            </div>
+            <p className={`text-[12px] font-black uppercase tracking-[0.5em] ${statusColor}`}>
+              Neuromuscular Readiness
             </p>
           </div>
-        ) : null}
 
-        <div className="mt-6">
-          <Link href="/check-in">
-            <Button variant="secondary" className="w-full h-11">Initialize Check-In</Button>
-          </Link>
+          <h2 className="premium-headline text-4xl sm:text-6xl leading-[0.9] mb-6">
+            {recoverySuggestion ?? "Ready for High Intensity"}
+          </h2>
+
+          {readinessInsight ? (
+            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-5 backdrop-blur-md">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-fn-accent animate-pulse" />
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-fn-accent">Neural Insights</p>
+              </div>
+              <p className="text-sm font-medium italic text-white/60 leading-relaxed">
+                "{readinessInsight}"
+              </p>
+            </div>
+          ) : null}
+
+          <div className="mt-8">
+            <Link href="/check-in">
+              <Button variant="secondary" className="w-full h-14 bg-white/5 border-white/10 hover:bg-white/10 transition-all text-[11px] font-black uppercase tracking-widest shadow-xl">
+                Recalibrate Readiness
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
       {/* Muscle Stress Analysis Card */}
-      <div className="rounded-xl3 border border-white/[0.08] bg-fn-surface/40 backdrop-blur-md p-6 shadow-fn-card">
+      <div className="premium-panel p-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-4">
             {/* Pulse icon */}
-            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-fn-accent/20 bg-fn-accent/5">
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-fn-accent" stroke="currentColor" strokeWidth="2">
+            <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-fn-accent/20 bg-fn-accent/5">
+              <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6 text-fn-accent" stroke="currentColor" strokeWidth="2">
                 <polyline points="2,12 6,12 8,4 10,20 12,10 14,16 16,12 22,12" />
               </svg>
-              <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fn-accent opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-fn-accent" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-fn-accent" />
               </span>
             </div>
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.4em] text-fn-accent leading-none">
-                Muscle Stress Analysis
+              <p className="text-[12px] font-black uppercase tracking-[0.4em] text-fn-accent leading-none">
+                Structural Integrity
               </p>
-              <p className="text-[9px] font-medium uppercase tracking-widest text-white/25 mt-0.5">
-                10 Muscle Groups · ATL/CTL Ratio
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/20 mt-1.5">
+                localized fatigue gradients · ATL:CTL
               </p>
             </div>
           </div>
-          <div className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1">
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Live</span>
+          <div className="premium-badge">
+            Live
           </div>
         </div>
 

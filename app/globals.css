@@ -99,4 +99,23 @@
     .animate-panel-rise {
         animation: panel-rise 420ms ease-out both;
     }
+
+    @keyframes scanning {
+        0% { transform: translateY(-100%); opacity: 0; }
+        50% { opacity: 0.5; }
+        100% { transform: translateY(100%); opacity: 0; }
+    }
+
+    .animate-scanning {
+        animation: scanning 3s linear infinite;
+    }
+
+    @keyframes pulse-soft {
+        0%, 100% { opacity: 0.4; transform: scale(1); }
+        50% { opacity: 0.8; transform: scale(1.05); }
+    }
+
+    .animate-pulse-soft {
+        animation: pulse-soft 2s ease-in-out infinite;
+    }
 }
