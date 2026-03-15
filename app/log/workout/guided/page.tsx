@@ -896,6 +896,44 @@ function GuidedWorkoutScreen() {
             Start Guided Session
           </button>
         </div>
+
+      {/* Fullscreen Exercise Demo Modal */}
+      {fullscreenDemo && (
+        <div className="fixed inset-0 z-[500] bg-black animate-in fade-in duration-200">
+          {isExerciseVideoUrl(fullscreenDemo.url) ? (
+            <video
+              src={fullscreenDemo.url}
+              className="absolute inset-0 h-full w-full object-contain"
+              loop
+              muted
+              autoPlay
+              playsInline
+            />
+          ) : (
+            <Image
+              src={fullscreenDemo.url}
+              alt={fullscreenDemo.name}
+              fill
+              className="object-contain"
+              unoptimized={isExerciseGifUrl(fullscreenDemo.url)}
+            />
+          )}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/50 to-transparent px-6 pb-12 pt-24">
+            <p className="text-center text-2xl font-black italic uppercase tracking-tight text-white drop-shadow-2xl">
+              {fullscreenDemo.name}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFullscreenDemo(null)}
+            className="absolute right-5 top-12 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-white/10"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
       </div>
     );
   }
