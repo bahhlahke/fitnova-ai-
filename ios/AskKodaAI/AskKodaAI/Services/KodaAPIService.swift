@@ -30,6 +30,7 @@ struct KodaAPIService {
     func aiRespond(
         message: String,
         localDate: String? = nil,
+        conversationHistory: [[String: String]]? = nil,
         wearableContext: AIWearableContextPayload? = nil
     ) async throws -> AIReplyResponse {
         if isDemoMode {
@@ -42,6 +43,9 @@ struct KodaAPIService {
         let body: [String: Any] = {
             var b: [String: Any] = ["message": message]
             if let d = localDate, !d.isEmpty { b["localDate"] = d }
+            if let history = conversationHistory, !history.isEmpty {
+                b["conversationHistory"] = history
+            }
             if let wearableContext, wearableContext.hasAnySignal {
                 b["wearableContext"] = wearableContext.asJSON
             }
@@ -965,6 +969,7 @@ struct PlanExercise: Codable {
     let target_load_kg: Double?
     let rest_seconds_after_set: Int?
     let progression_note: String?
+    let image_url: String?
     let video_url: String?
     let cinema_video_url: String?
     let image_url: String?
