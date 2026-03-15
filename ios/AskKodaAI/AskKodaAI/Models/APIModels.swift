@@ -59,6 +59,26 @@ struct ProgressInsightResponse: Decodable {
     let insight: String?
 }
 
+struct CoachDeskResponse: Decodable {
+    let insights: [CoachInsight]?
+}
+
+struct CoachInsight: Decodable, Identifiable {
+    var id: String { title ?? UUID().uuidString }
+    let title: String?
+    let message: String?
+    let urgency: String? // "low", "medium", "high"
+    let cta_route: String?
+    let supporting_data: CoachInsightSupportingData?
+}
+
+struct CoachInsightSupportingData: Decodable {
+    let headline: String?
+    let value: String?
+    let context: String?
+    let type: String? // "chart", "stat", "text"
+}
+
 struct EvolutionaryNarrativeResponse: Decodable {
     let narrative: String?
 }
