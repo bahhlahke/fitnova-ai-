@@ -105,33 +105,37 @@ export async function POST(req: Request) {
 
     const systemPrompt = `You are Koda, an advanced AI Performance Architect. Your task is to write an "Evolutionary Progress Narrative" for the athlete. 
     
-This is not a generic summary. It is a cinematic, data-driven story of their evolution over the last 30 days.
+This is a clinical, high-fidelity audit of their physiological and performance data over the last 30 days.
+
+Objective:
+- Determine if the athlete is successfully adapting or if they are in a state of stagnant homeostasis.
+- Use exercise and nutrition science principles (e.g., SAID principle, glycemic pacing, progressive overload, recovery-debt management).
+- Provide high-leverage tactical "Prescriptions" for the next training block.
 
 Tone:
-- Sophisticated, clinical yet inspiring.
-- Use terminology like "Kinetic Chain," "Neural Recovery," and "Adaptation Curve."
-- Focus on the *bridge* between behavior and results.
+- Clinical, authoritative, yet motivating.
+- Use terminology like "Adaptation Rate," "Hypertrophic Volume," "Neural Efficiency," and "Metabolic Compliance."
 
 Structure:
-1. THE CATALYST: Brief mention of starting point/goals.
-2. THE ADAPTATION: Highlight 2 specific data-driven victories.
-3. THE HORIZON: Visionary look at the next 30 days.
+1. METABOLIC & NEURAL STATE: Brief synthesis of recovery (HRV/Sleep) and nutrition compliance.
+2. ADAPTIVE SIGNAL: Direct analysis of strength/PR trends and weight velocity.
+3. PRESCRIPTION: 1-2 specific tactical changes (e.g., "increase eccentric load on hinges," "front-load 50g carbs pre-session").
 
 Instructions:
-- CRITICAL: Keep total length under 150 words. Be extremely punchy and concise.
-- Reference specific names of exercises and dates.
-- Use the athlete's name (${profileName}) occasionally.
+- CRITICAL: Keep total length under 160 words.
+- Be precise: mention specific exercise names, loads, and dates.
+- Use the athlete's name (${profileName}) sparingly.
 - Output ONLY the narrative text.`;
 
     const dataBlock = [
       "Athlete: " + profileName,
-      "Goals: " + (profile?.goals?.length ? profile.goals.join(", ") : "Growth"),
+      "Goals: " + (profile?.goals?.length ? profile.goals.join(", ") : "General Performance"),
       "Experience: " + (profile?.experience_level || "Intermediate"),
-      "Recent Weights: " + progress.filter(p => p.weight).slice(0, 5).map((p) => `${p.date}:${p.weight}kg`).join("; "),
-      "Workouts (30d): " + workouts.length + " sessions total. Primary types: " + Array.from(new Set(workouts.map(w => w.workout_type))).slice(0,3).join(", "),
-      "Notable PRs: " + prs.map((p) => `${p.exercise_name}: ${Math.round(p.highest_1rm)}kg (${p.date})`).join(", "),
-      "Wellness Average (14d): Energy " + (checkIns.reduce((acc, c) => acc + (c.energy_score || 0), 0) / (checkIns.length || 1)).toFixed(1) + "/5, Sleep " + (checkIns.reduce((acc, c) => acc + (c.sleep_hours || 0), 0) / (checkIns.length || 1)).toFixed(1) + "h",
-      "Vitals Flux: HRV range " + Math.min(...signals.map(s => s.hrv || 999)) + "-" + Math.max(...signals.map(s => s.hrv || 0)) + "ms",
+      "Weight Velocity (5-entry avg): " + (progress.filter(p => p.weight).slice(0, 5).map((p) => `${p.date}:${p.weight}kg`).join("; ")),
+      "Strength Trajectory (Top 10 PRs): " + prs.map((p) => `${p.exercise_name}: ${Math.round(p.highest_1rm)}kg (${p.date})`).join(", "),
+      "Training Density (30d): " + workouts.length + " sessions. Mix: " + Array.from(new Set(workouts.map(w => w.workout_type))).slice(0,3).join(", "),
+      "Nutrition Compliance (avg protein/cal): " + (nutrition.reduce((acc, n) => acc + (n.total_calories || 0), 0) / (nutrition.length || 1)).toFixed(0) + "kcal, " + (nutrition.reduce((acc, n) => acc + (n.protein_g || 0), 0) / (nutrition.length || 1)).toFixed(0) + "g protein",
+      "Recovery Debt (14d signals): HRV range " + Math.min(...signals.map(s => s.hrv || 999)) + "-" + Math.max(...signals.map(s => s.hrv || 0)) + "ms. Sleep avg: " + (signals.reduce((acc, s) => acc + (s.sleep_hours || 0), 0) / (signals.length || 1)).toFixed(1) + "h.",
     ]
       .filter(Boolean)
       .join("\n");
