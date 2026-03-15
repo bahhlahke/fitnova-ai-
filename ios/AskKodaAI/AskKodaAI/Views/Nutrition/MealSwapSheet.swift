@@ -30,7 +30,22 @@ struct MealSwapSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     // Current meal summary
-                    VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .top, spacing: 12) {
+                if let imageUrl = option.image_url, let url = URL(string: imageUrl) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 80, height: 80)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    } placeholder: {
+                        Color.gray.opacity(0.1)
+                            .frame(width: 80, height: 80)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
                         Text("Replacing")
                             .font(.system(size: 11, weight: .black, design: .monospaced))
                             .foregroundStyle(Brand.Color.muted)
@@ -110,6 +125,20 @@ struct MealSwapSheet: View {
     private func optionCard(_ option: MealSwapOption) -> some View {
         PremiumRowCard {
             VStack(alignment: .leading, spacing: 10) {
+                if let imageUrl = option.image_url, let url = URL(string: imageUrl) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 100)
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    } placeholder: {
+                        Color.gray.opacity(0.1)
+                            .frame(height: 100)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                }
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         if let type = option.meal_type {

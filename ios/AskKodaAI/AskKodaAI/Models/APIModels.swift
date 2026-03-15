@@ -526,6 +526,7 @@ struct RecipeGenMeal: Decodable {
     let estimated_cost_usd: Double?
     let recipe_url: String?
     let recipe_source: String?
+    let image_url: String?
     let goal_alignment_rationale: String?
 
     init(
@@ -545,6 +546,7 @@ struct RecipeGenMeal: Decodable {
         estimated_cost_usd: Double? = nil,
         recipe_url: String? = nil,
         recipe_source: String? = nil,
+        image_url: String? = nil,
         goal_alignment_rationale: String? = nil
     ) {
         self.name = name
@@ -563,6 +565,7 @@ struct RecipeGenMeal: Decodable {
         self.estimated_cost_usd = estimated_cost_usd
         self.recipe_url = recipe_url
         self.recipe_source = recipe_source
+        self.image_url = image_url
         self.goal_alignment_rationale = goal_alignment_rationale
     }
 }
@@ -620,6 +623,7 @@ struct MealSwapOption: Decodable, Identifiable {
     let reason: String?
     let recipe_url: String?
     let recipe_source: String?
+    let image_url: String?
     let goal_alignment_rationale: String?
 }
 

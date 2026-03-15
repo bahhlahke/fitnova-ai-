@@ -67,8 +67,9 @@ RULES:
    - NEVER use "example.com" or generic site root URLs.
    - Ensure the URL leads to a specific recipe matching the meal name.
    - Include the source name in "recipe_source".
-6. GOAL ALIGNMENT: In "goal_alignment_rationale", explain how this meal fits the user's fitness goals.
-7. Return ONLY valid JSON. No markdown, no extra text.
+6. APPETIZING IMAGES: Provide a high-quality food image URL for EVERY meal in the "image_url" field using Unsplash (e.g. "https://source.unsplash.com/featured/800x600?food,keywords").
+7. GOAL ALIGNMENT: In "goal_alignment_rationale", explain how this meal fits the user's fitness goals.
+8. Return ONLY valid JSON. No markdown, no extra text.
 
 Return JSON:
 {
@@ -86,6 +87,7 @@ Return JSON:
       "reason": "Why this is a good swap (one sentence)",
       "recipe_url": "https://...",
       "recipe_source": "string",
+      "image_url": "https://...",
       "goal_alignment_rationale": "string"
     }
   ]

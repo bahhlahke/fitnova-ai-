@@ -109,8 +109,12 @@ CRITICAL RULES:
    - NEVER use "example.com" or generic site root URLs. 
    - Ensure the URL leads to a specific recipe matching the meal name.
    - Include the source name in "recipe_source".
-7. GOAL ALIGNMENT: In "goal_alignment_rationale", explain in 1 sentence how this specific meal helps achieve the user's fitness goals (e.g., "High protein supports muscle recovery after your leg day").
-8. Return ONLY valid JSON. No markdown, no code blocks, no extra text.
+7. APPETIZING IMAGES: Provide a high-quality food image URL for EVERY meal in the "image_url" field. 
+   - Use Unsplash image URLs with relevant keywords. Format: "https://images.unsplash.com/photo-[ID]?auto=format&fit=crop&w=800&q=80&q=80&keywords=[keywords]".
+   - If you don't have a specific ID, use a descriptive Source.Unsplash URL: "https://source.unsplash.com/featured/800x600?food,[keywords]".
+   - Ensure keywords are specific to the meal (e.g., "grilled-salmon", "avocado-toast").
+8. GOAL ALIGNMENT: In "goal_alignment_rationale", explain in 1 sentence how this specific meal helps achieve the user's fitness goals (e.g., "High protein supports muscle recovery after your leg day").
+9. Return ONLY valid JSON. No markdown, no code blocks, no extra text.
 
 Return JSON matching this exact structure:
 {
@@ -135,6 +139,7 @@ Return JSON matching this exact structure:
           "estimated_cost_usd": 0.00,
           "recipe_url": "https://...",
           "recipe_source": "string",
+          "image_url": "https://...",
           "goal_alignment_rationale": "string"
         }
       ]

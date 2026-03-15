@@ -134,6 +134,16 @@ function MealCard({
 
   return (
     <div className="border-l-4 border-fn-primary bg-fn-bg-alt p-4 rounded-r-xl">
+      {meal.image_url && (
+        <div className="relative h-40 -mt-4 -mx-4 mb-4 overflow-hidden rounded-tr-xl">
+          <img
+            src={meal.image_url}
+            alt={meal.name}
+            className="h-full w-full object-cover transition-transform duration-500 hover:scale-110"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-fn-bg-alt/90 via-transparent to-transparent" />
+        </div>
+      )}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -310,8 +320,15 @@ function SwapModal({
           {options.map((opt, i) => (
             <div key={i} className="border border-fn-border rounded-xl p-4">
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-bold text-fn-ink">{opt.name}</p>
+                <div className="flex-1 min-w-0">
+                  {opt.image_url && (
+                    <img
+                      src={opt.image_url}
+                      alt={opt.name}
+                      className="h-24 w-full object-cover rounded-lg mb-2"
+                    />
+                  )}
+                  <h5 className="font-bold text-fn-ink">{opt.name}</h5>
                   <p className="text-xs text-fn-muted mt-0.5">{opt.reason}</p>
                   <div className="mt-2 flex gap-3">
                     <MacroBadge label="P" value={opt.protein} />

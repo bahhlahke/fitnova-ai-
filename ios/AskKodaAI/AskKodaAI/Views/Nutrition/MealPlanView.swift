@@ -345,6 +345,29 @@ struct MealPlanView: View {
 
         return PremiumRowCard {
             VStack(alignment: .leading, spacing: 10) {
+                if let imageUrl = meal.image_url, let url = URL(string: imageUrl) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 140)
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [.black.opacity(0.6), .clear]),
+                                    startPoint: .bottom,
+                                    endPoint: .center
+                                )
+                            )
+                    } placeholder: {
+                        Color.gray.opacity(0.1)
+                            .frame(height: 140)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .padding(.bottom, 8)
+                }
+
                 // Header row
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {

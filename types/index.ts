@@ -405,6 +405,7 @@ export interface EnhancedMeal {
   estimated_cost_usd?: number;
   recipe_url?: string;
   recipe_source?: string;
+  image_url?: string;
   goal_alignment_rationale?: string;
 }
 
@@ -463,5 +464,6 @@ export interface MealSwapOption {
   reason: string;
   recipe_url?: string;
   recipe_source?: string;
+  image_url?: string;
   goal_alignment_rationale?: string;
 }
