@@ -384,8 +384,12 @@ struct OnboardingView: View {
                 // Apple Health
                 Button {
                     Task {
-                        try? await HealthKitService.shared.requestAuthorization()
-                        HapticEngine.notification(.success)
+                        do {
+                            try await HealthKitService.shared.requestAuthorization()
+                            HapticEngine.notification(.success)
+                        } catch {
+                            await MainActor.run { errorMessage = error.localizedDescription }
+                        }
                     }
                 } label: {
                     HStack(spacing: 16) {
@@ -404,8 +408,13 @@ struct OnboardingView: View {
                         
                         Spacer()
                         
-                        Image(systemName: "link")
-                            .foregroundStyle(Brand.Color.accent)
+                        if HealthKitService.shared.isAuthorized == true {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(Brand.Color.success)
+                        } else {
+                            Image(systemName: "link")
+                                .foregroundStyle(Brand.Color.accent)
+                        }
                     }
                     .padding(20)
                     .premiumCard()

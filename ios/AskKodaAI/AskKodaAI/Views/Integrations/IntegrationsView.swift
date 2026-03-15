@@ -195,8 +195,8 @@ struct IntegrationsView: View {
                             Spacer()
                             if healthKit.isSyncing {
                                 ProgressView().tint(Brand.Color.accent)
-                            } else if healthKit.lastSyncDate != nil {
-                                Label("Synced", systemImage: "checkmark.circle.fill")
+                            } else if healthKit.isAuthorized == true || healthKit.lastSyncDate != nil {
+                                Label("Connected", systemImage: "checkmark.circle.fill")
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(Brand.Color.success)
                             }
@@ -231,7 +231,7 @@ struct IntegrationsView: View {
                                     .foregroundStyle(Brand.Color.danger)
                             }
 
-                            Button(healthKit.isSyncing ? "Syncing…" : "Sync Apple Health") {
+                            Button(healthKit.isSyncing ? "Syncing…" : (healthKit.isAuthorized == true ? "Sync Apple Health" : "Connect Apple Health")) {
                                 Task { await requestAuthAndSync() }
                             }
                             .buttonStyle(PremiumActionButtonStyle())

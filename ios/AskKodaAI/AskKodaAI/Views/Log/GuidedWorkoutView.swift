@@ -655,16 +655,21 @@ struct GuidedWorkoutView: View {
                 .frame(height: 8)
 
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 12) {
                         workoutBadge(label: "Set", value: "\(min(setIndex + 1, ex.sets ?? 1))/\(ex.sets ?? 1)")
                         workoutBadge(label: "Target", value: ex.reps ?? "-")
                         workoutBadge(label: "Focus", value: ex.intensity ?? "Push")
+                        hrBadge
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
-                        workoutBadge(label: "Set", value: "\(min(setIndex + 1, ex.sets ?? 1))/\(ex.sets ?? 1)")
-                        workoutBadge(label: "Target", value: ex.reps ?? "-")
-                        workoutBadge(label: "Focus", value: ex.intensity ?? "Push")
+                        HStack(spacing: 12) {
+                            workoutBadge(label: "Set", value: "\(min(setIndex + 1, ex.sets ?? 1))/\(ex.sets ?? 1)")
+                            workoutBadge(label: "Target", value: ex.reps ?? "-")
+                            workoutBadge(label: "Focus", value: ex.intensity ?? "Push")
+                        }
+                        
+                        hrBadge
                     }
                 }
             }
@@ -1597,7 +1602,8 @@ struct GuidedWorkoutView: View {
     }
 
     private func getSteeringMessage() -> String? {
-        let hr = Double(healthKit.currentHeartRate ?? simulatedHeartRate)
+        let hrValue = healthKit.currentHeartRate ?? simulatedHeartRate
+        let hr = Double(hrValue)
         if hr <= Double(recoveryTarget) {
             return "Metabolic Reset Complete. Readiness Optimal."
         } else if restRemaining < 20 && hr > Double(recoveryTarget) + 20 {
@@ -2060,6 +2066,45 @@ struct GuidedWorkoutView: View {
             suggestion: dropPct >= 35
                 ? "Reduce load by ~10% or take an extra 30s before the next set."
                 : "Take your full rest. You're still in the session."
+        )
+    }
+
+    private var hrBadge: some View {
+        HStack(spacing: 8) {
+            ZStack {
+                Image(systemName: "heart.fill")
+                    .foregroundStyle(.pink)
+                    .font(.system(size: 10, weight: .bold))
+                
+                if healthKit.currentHeartRate != nil {
+                    Image(systemName: "heart.fill")
+                        .foregroundStyle(.pink)
+                        .font(.system(size: 10, weight: .bold))
+                        .scaleEffect(showingPulseAnimation ? 1.4 : 1.0)
+                        .opacity(showingPulseAnimation ? 0 : 1)
+                        .onAppear {
+                            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: false)) {
+                                showingPulseAnimation = true
+                            }
+                        }
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 0) {
+                Text(healthKit.currentHeartRate != nil ? "\(healthKit.currentHeartRate!)" : (HealthKitService.shared.isAuthorized == true ? "---" : "Link Health"))
+                    .font(.system(size: 14, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                Text("BPM")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(Brand.Color.muted)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(Color.white.opacity(0.1))
+                .overlay(Capsule().stroke(Color.white.opacity(0.1), lineWidth: 1))
         )
     }
 

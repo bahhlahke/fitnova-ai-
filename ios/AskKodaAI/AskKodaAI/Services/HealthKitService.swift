@@ -37,6 +37,7 @@ final class HealthKitService: ObservableObject {
     @Published private(set) var todayHRV: Double?
     @Published private(set) var hrvBaseline: Double?
     @Published private(set) var liveSignalsUpdatedAt: Date?
+    @Published private(set) var isAuthorized: Bool? = nil
 
     var hrvDelta: Double? {
         guard let todayHRV, let hrvBaseline else { return nil }
@@ -88,6 +89,29 @@ final class HealthKitService: ObservableObject {
     private init() {
         #if canImport(HealthKit)
         isAvailable = HKHealthStore.isHealthDataAvailable()
+        if isAvailable {
+            refreshAuthorizationStatus()
+        }
+        #endif
+    }
+
+    func refreshAuthorizationStatus() {
+        #if canImport(HealthKit)
+        guard isAvailable else { return }
+        let coreTypes = Set(Self.coreReadRequirements.map(\.type))
+        let authorized = coreTypes.allSatisfy { store.authorizationStatus(for: $0) == .sharingAuthorized }
+        // Note: HealthKit authorizationStatus is for SHARING (writing). 
+        // For READING, it always returns .notDetermined or .sharingAuthorized (if we asked).
+        // A better check for reading is to see if we've at least prompted.
+        // However, for Koda, we want to know if they've granted the permissions we asked for.
+        // We'll use a pragmatic check: if any of our core types are authorized for reading (which we can't truly check),
+        // we'll assume authorized if they've completed the prompt and we have some data or status is sharingAuthorized.
+        
+        // Since we can't definitively know READ authorization, we'll mark as authorized if they've gone through the flow.
+        // We'll update this after a successful requestAuthorization call.
+        if isAuthorized == nil && authorized {
+            isAuthorized = true
+        }
         #endif
     }
     
@@ -98,6 +122,7 @@ final class HealthKitService: ObservableObject {
     func startHeartRateStreaming() {
         #if canImport(HealthKit)
         guard HKHealthStore.isHealthDataAvailable() else { return }
+        guard hrQuery == nil else { return }
         
         let hrType = HKQuantityType(.heartRate)
         let predicate = HKQuery.predicateForSamples(withStart: Date(), end: nil, options: .strictStartDate)
@@ -215,6 +240,7 @@ final class HealthKitService: ObservableObject {
         if !unauthorizedCore.isEmpty && authorizedCoreReadCount > 0 {
             throw HealthKitError.partialPermissionDenied(dataTypes: unauthorizedCore)
         }
+        isAuthorized = true
         #else
         throw HealthKitError.notAvailable
         #endif
