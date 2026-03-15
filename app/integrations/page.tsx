@@ -72,36 +72,60 @@ export default function IntegrationsPage() {
             const supabase = createClient();
             if (!supabase) { setLoading(false); return; }
 
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
             if (!user) { setLoading(false); return; }
 
             setUserId(user.id);
 
-            // A provider is only "Active" if real data has actually been received via the webhook
-            const { data } = await supabase
+            // 1. Capture and persist Spotify token if present in session
+            // Supabase puts provider_token in the session object after OAuth
+            if (session.provider_token) {
+                console.log("Spotify provider token found in session, persisting to database...");
+                await supabase.from("connected_accounts").upsert({
+                    user_id: user.id,
+                    provider: "spotify",
+                    status: "connected",
+                    access_token: session.provider_token,
+                    refresh_token: session.provider_refresh_token || null,
+                    metadata: {
+                        last_sync_at: new Date().toISOString(),
+                        source: "web_oauth_capture"
+                    }
+                }, { onConflict: "user_id,provider" });
+            }
+
+            // 2. Fetch active providers from connected_signals (existing logic)
+            const { data: signalsData } = await supabase
                 .from("connected_signals")
                 .select("provider")
                 .eq("user_id", user.id);
 
-            if (data && data.length > 0) {
-                const providers = new Set(data.map(d => d.provider as string));
-
-                // Check if user has Spotify identity
-                const identities = user.identities || [];
-                const hasSpotify = identities.some(identity => identity.provider === 'spotify');
-                if (hasSpotify) {
-                    providers.add('spotify');
-                }
-
-                setActiveProviders(providers);
-            } else {
-                // Even if no connected_signals, check for Spotify
-                const identities = user.identities || [];
-                const hasSpotify = identities.some(identity => identity.provider === 'spotify');
-                if (hasSpotify) {
-                    setActiveProviders(new Set(['spotify']));
-                }
+            const providers = new Set<string>();
+            if (signalsData) {
+                signalsData.forEach(d => providers.add(d.provider));
             }
+
+            // 3. Check connected_accounts for Spotify
+            const { data: accountsData } = await supabase
+                .from("connected_accounts")
+                .select("provider")
+                .eq("user_id", user.id)
+                .eq("provider", "spotify")
+                .maybeSingle();
+
+            if (accountsData) {
+                providers.add('spotify');
+            }
+
+            // 4. Fallback to identities check
+            const identities = user.identities || [];
+            const hasSpotifyIdentity = identities.some(identity => identity.provider === 'spotify');
+            if (hasSpotifyIdentity) {
+                providers.add('spotify');
+            }
+
+            setActiveProviders(providers);
             setLoading(false);
         }
         void load();

@@ -20,6 +20,7 @@ export async function GET() {
         : null;
 
     if (metadataToken) {
+        console.log(`[SpotifyToken] Found token in user_metadata for user ${user.id}`);
         return NextResponse.json({ access_token: metadataToken, token: metadataToken });
     }
 
@@ -31,12 +32,14 @@ export async function GET() {
         .maybeSingle();
 
     if (error) {
+        console.error(`[SpotifyToken] Error looking up connected_accounts for user ${user.id}:`, error);
         return NextResponse.json({ error: "Failed to look up Spotify connection." }, { status: 500 });
     }
 
     const token = typeof account?.access_token === "string" ? account.access_token : null;
 
     if (!token) {
+        console.log(`[SpotifyToken] No Spotify connection found for user ${user.id}`);
         return NextResponse.json({
             connected: false,
             token: null,
@@ -45,5 +48,6 @@ export async function GET() {
         });
     }
 
+    console.log(`[SpotifyToken] Found token in connected_accounts for user ${user.id}`);
     return NextResponse.json({ connected: true, access_token: token, token });
 }
