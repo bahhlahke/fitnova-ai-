@@ -367,7 +367,7 @@ enum DemoContent {
 
     static var recipePlan: RecipeGenResponse {
         RecipeGenResponse(
-            plan_id: "plan-1",
+            planId: "plan-1",
             days: [
                 RecipeGenDay(
                     date: today,

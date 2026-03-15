@@ -431,6 +431,13 @@ struct RecipeGenResponse: Decodable {
     // Backward-compat: top-level days/grocery_list if server returns them directly
     let days: [RecipeGenDay]?
     let grocery_list: [GroceryItem]?
+
+    init(plan: RecipeGenPlan? = nil, planId: String? = nil, days: [RecipeGenDay]? = nil, grocery_list: [GroceryItem]? = nil) {
+        self.plan = plan
+        self.planId = planId
+        self.days = days
+        self.grocery_list = grocery_list
+    }
 }
 
 struct RecipeGenPlan: Decodable {
@@ -459,6 +466,38 @@ struct RecipeGenMeal: Decodable {
     let servings: Int?
     let cuisine_type: String?
     let estimated_cost_usd: Double?
+
+    init(
+        name: String? = nil,
+        meal_type: String? = nil,
+        calories: Int? = nil,
+        protein: Int? = nil,
+        carbs: Int? = nil,
+        fat: Int? = nil,
+        fiber_g: Double? = nil,
+        sodium_mg: Double? = nil,
+        recipe: String? = nil,
+        ingredients: [String]? = nil,
+        prep_time_minutes: Int? = nil,
+        servings: Int? = nil,
+        cuisine_type: String? = nil,
+        estimated_cost_usd: Double? = nil
+    ) {
+        self.name = name
+        self.meal_type = meal_type
+        self.calories = calories
+        self.protein = protein
+        self.carbs = carbs
+        self.fat = fat
+        self.fiber_g = fiber_g
+        self.sodium_mg = sodium_mg
+        self.recipe = recipe
+        self.ingredients = ingredients
+        self.prep_time_minutes = prep_time_minutes
+        self.servings = servings
+        self.cuisine_type = cuisine_type
+        self.estimated_cost_usd = estimated_cost_usd
+    }
 }
 
 struct GroceryItem: Codable, Identifiable {

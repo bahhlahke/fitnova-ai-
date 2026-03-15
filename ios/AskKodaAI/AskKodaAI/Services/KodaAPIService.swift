@@ -972,7 +972,6 @@ struct PlanExercise: Codable {
     let image_url: String?
     let video_url: String?
     let cinema_video_url: String?
-    let image_url: String?
 
     init(
         name: String? = nil,
