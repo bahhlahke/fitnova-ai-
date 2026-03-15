@@ -128,6 +128,29 @@ export default function SettingsPage() {
     weigh_in: "weekly",
   });
   const [smsConsent, setSmsConsent] = useState(false);
+  const [mealPlanningPrefs, setMealPlanningPrefs] = useState<{
+    cuisine_preferences: string[];
+    dietary_restrictions: string[];
+    allergies: string;
+    cooking_skill: "beginner" | "intermediate" | "advanced";
+    prep_time_budget: "quick" | "moderate" | "elaborate";
+    meals_per_day: number;
+    include_snacks: boolean;
+    servings_per_meal: 1 | 2 | 4;
+    meal_prep_mode: boolean;
+    weekly_budget_usd: number | null;
+  }>({
+    cuisine_preferences: [],
+    dietary_restrictions: [],
+    allergies: "",
+    cooking_skill: "intermediate",
+    prep_time_budget: "moderate",
+    meals_per_day: 3,
+    include_snacks: false,
+    servings_per_meal: 1,
+    meal_prep_mode: false,
+    weekly_budget_usd: null,
+  });
   const [trainingSchedule, setTrainingSchedule] = useState<{
 
     preferred_training_days: number[];
@@ -208,6 +231,19 @@ export default function SettingsPage() {
           });
           setCoachTone(typeof dev.ai_coach_tone === "string" ? dev.ai_coach_tone : "balanced");
           setNudges(typeof dietary.ai_nudges === "string" ? dietary.ai_nudges : "standard");
+          const mp = (dietary.meal_planning ?? {}) as Record<string, unknown>;
+          setMealPlanningPrefs({
+            cuisine_preferences: Array.isArray(mp.cuisine_preferences) ? mp.cuisine_preferences as string[] : [],
+            dietary_restrictions: Array.isArray(mp.dietary_restrictions) ? mp.dietary_restrictions as string[] : [],
+            allergies: Array.isArray(mp.allergies) ? (mp.allergies as string[]).join(", ") : (typeof mp.allergies === "string" ? mp.allergies : ""),
+            cooking_skill: (mp.cooking_skill as "beginner" | "intermediate" | "advanced") ?? "intermediate",
+            prep_time_budget: (mp.prep_time_budget as "quick" | "moderate" | "elaborate") ?? "moderate",
+            meals_per_day: typeof mp.meals_per_day === "number" ? mp.meals_per_day : 3,
+            include_snacks: typeof mp.include_snacks === "boolean" ? mp.include_snacks : false,
+            servings_per_meal: (mp.servings_per_meal as 1 | 2 | 4) ?? 1,
+            meal_prep_mode: typeof mp.meal_prep_mode === "boolean" ? mp.meal_prep_mode : false,
+            weekly_budget_usd: typeof mp.weekly_budget_usd === "number" ? mp.weekly_budget_usd : null,
+          });
           setProfile(nextProfile);
           setUnitSystem(nextUnitSystem);
           const nextHeight = nextProfile.height;
@@ -272,6 +308,21 @@ export default function SettingsPage() {
         dietary_preferences: {
           ...(profile.dietary_preferences ?? {}),
           ai_nudges: nudges,
+          meal_planning: {
+            cuisine_preferences: mealPlanningPrefs.cuisine_preferences,
+            dietary_restrictions: mealPlanningPrefs.dietary_restrictions,
+            allergies: mealPlanningPrefs.allergies
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean),
+            cooking_skill: mealPlanningPrefs.cooking_skill,
+            prep_time_budget: mealPlanningPrefs.prep_time_budget,
+            meals_per_day: mealPlanningPrefs.meals_per_day,
+            include_snacks: mealPlanningPrefs.include_snacks,
+            servings_per_meal: mealPlanningPrefs.servings_per_meal,
+            meal_prep_mode: mealPlanningPrefs.meal_prep_mode,
+            weekly_budget_usd: mealPlanningPrefs.weekly_budget_usd,
+          },
         },
         activity_level: profile.activity_level ?? null,
         devices: {
@@ -767,6 +818,169 @@ export default function SettingsPage() {
                 <option value="standard">Standard</option>
                 <option value="high">High</option>
               </Select>
+            </div>
+          </div>
+        </Card>
+
+        <Card padding="lg">
+          <CardHeader title="Meal planning" subtitle="Default preferences used when generating AI meal plans" />
+          <div className="mt-4 space-y-6">
+            {/* Basic options */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <Label htmlFor="mp-meals-per-day">Meals per day</Label>
+                <Select
+                  id="mp-meals-per-day"
+                  value={String(mealPlanningPrefs.meals_per_day)}
+                  onChange={(e) => setMealPlanningPrefs((p) => ({ ...p, meals_per_day: Number(e.target.value) }))}
+                  className="mt-1"
+                >
+                  {[3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} meals</option>)}
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="mp-cooking-skill">Cooking skill</Label>
+                <Select
+                  id="mp-cooking-skill"
+                  value={mealPlanningPrefs.cooking_skill}
+                  onChange={(e) => setMealPlanningPrefs((p) => ({ ...p, cooking_skill: e.target.value as "beginner" | "intermediate" | "advanced" }))}
+                  className="mt-1"
+                >
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="mp-prep-time">Max prep time</Label>
+                <Select
+                  id="mp-prep-time"
+                  value={mealPlanningPrefs.prep_time_budget}
+                  onChange={(e) => setMealPlanningPrefs((p) => ({ ...p, prep_time_budget: e.target.value as "quick" | "moderate" | "elaborate" }))}
+                  className="mt-1"
+                >
+                  <option value="quick">Quick (under 15 min)</option>
+                  <option value="moderate">Moderate (15–30 min)</option>
+                  <option value="elaborate">Elaborate (30+ min)</option>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="mp-servings">Servings per recipe</Label>
+                <Select
+                  id="mp-servings"
+                  value={String(mealPlanningPrefs.servings_per_meal)}
+                  onChange={(e) => setMealPlanningPrefs((p) => ({ ...p, servings_per_meal: Number(e.target.value) as 1 | 2 | 4 }))}
+                  className="mt-1"
+                >
+                  <option value="1">Just me (×1)</option>
+                  <option value="2">2 people (×2)</option>
+                  <option value="4">Meal prep (×4)</option>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="mp-budget">Weekly food budget (optional)</Label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-fn-muted text-sm">$</span>
+                  <Input
+                    id="mp-budget"
+                    type="number"
+                    min="0"
+                    step="10"
+                    placeholder="No limit"
+                    value={mealPlanningPrefs.weekly_budget_usd ?? ""}
+                    onChange={(e) => setMealPlanningPrefs((p) => ({ ...p, weekly_budget_usd: e.target.value ? Number(e.target.value) : null }))}
+                    className="pl-7"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="mp-allergies">Allergies</Label>
+                <Input
+                  id="mp-allergies"
+                  className="mt-1"
+                  placeholder="e.g. peanuts, shellfish"
+                  value={mealPlanningPrefs.allergies}
+                  onChange={(e) => setMealPlanningPrefs((p) => ({ ...p, allergies: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            {/* Toggles */}
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={mealPlanningPrefs.include_snacks}
+                  onChange={(e) => setMealPlanningPrefs((p) => ({ ...p, include_snacks: e.target.checked }))}
+                  className="h-4 w-4 rounded border-fn-border text-fn-primary"
+                />
+                <span className="text-sm text-fn-ink">Include snacks in plans</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={mealPlanningPrefs.meal_prep_mode}
+                  onChange={(e) => setMealPlanningPrefs((p) => ({ ...p, meal_prep_mode: e.target.checked }))}
+                  className="h-4 w-4 rounded border-fn-border text-fn-primary"
+                />
+                <span className="text-sm text-fn-ink">Batch cook / meal prep mode</span>
+              </label>
+            </div>
+
+            {/* Dietary restrictions */}
+            <div>
+              <Label>Dietary Restrictions</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {["Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Keto", "Paleo", "Halal", "Kosher", "Low-Sodium", "Low-Carb"].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() =>
+                      setMealPlanningPrefs((p) => ({
+                        ...p,
+                        dietary_restrictions: p.dietary_restrictions.includes(r)
+                          ? p.dietary_restrictions.filter((x) => x !== r)
+                          : [...p.dietary_restrictions, r],
+                      }))
+                    }
+                    className={`rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${
+                      mealPlanningPrefs.dietary_restrictions.includes(r)
+                        ? "bg-fn-primary text-white border-fn-primary"
+                        : "bg-fn-bg text-fn-muted border-fn-border hover:border-fn-primary hover:text-fn-primary"
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Cuisine preferences */}
+            <div>
+              <Label>Cuisine Preferences</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {["American", "Mediterranean", "Mexican", "Asian", "Italian", "Indian", "Japanese", "Thai", "Greek", "Middle Eastern"].map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() =>
+                      setMealPlanningPrefs((p) => ({
+                        ...p,
+                        cuisine_preferences: p.cuisine_preferences.includes(c)
+                          ? p.cuisine_preferences.filter((x) => x !== c)
+                          : [...p.cuisine_preferences, c],
+                      }))
+                    }
+                    className={`rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${
+                      mealPlanningPrefs.cuisine_preferences.includes(c)
+                        ? "bg-fn-primary text-white border-fn-primary"
+                        : "bg-fn-bg text-fn-muted border-fn-border hover:border-fn-primary hover:text-fn-primary"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </Card>
